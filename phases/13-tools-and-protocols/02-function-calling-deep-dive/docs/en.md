@@ -1,105 +1,105 @@
-# Function Calling Deep Dive — OpenAI, Anthropic, Gemini
+# Function Calling 심층 분석 - OpenAI, Anthropic, Gemini
 
-> The three frontier providers converged on the same tool-call loop in 2024 and then diverged on everything else. OpenAI uses `tools` and `tool_calls`. Anthropic uses `tool_use` and `tool_result` blocks. Gemini uses `functionDeclarations` and unique-id correlation. This lesson diffs the three side by side so code that ships on one provider does not break when you port it.
+> 세 frontier provider는 2024년에 같은 tool-call loop로 수렴한 뒤, 나머지 모든 것에서 갈라졌습니다. OpenAI는 `tools`와 `tool_calls`를 사용합니다. Anthropic은 `tool_use`와 `tool_result` block을 사용합니다. Gemini는 `functionDeclarations`와 unique-id correlation을 사용합니다. 이 레슨은 세 가지를 나란히 비교해, 한 provider에서 출시한 코드가 다른 provider로 port될 때 깨지지 않게 합니다.
 
 **Type:** Build
 **Languages:** Python (stdlib, schema translators)
 **Prerequisites:** Phase 13 · 01 (the tool interface)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- State the three shape differences between OpenAI, Anthropic, and Gemini function-calling payloads (declaration, call, result).
-- Translate one tool declaration across all three provider formats and predict where strict-mode constraints will differ.
-- Use `tool_choice` in each provider to force, forbid, or auto-pick tool calls.
-- Know the per-provider hard limits (tool count, schema depth, argument length) and the error signatures each one emits when limits are violated.
+- OpenAI, Anthropic, Gemini function-calling payload의 세 가지 shape 차이(declaration, call, result)를 말합니다.
+- 하나의 tool declaration을 세 provider format으로 모두 번역하고, strict-mode constraint가 어디서 달라질지 예측합니다.
+- 각 provider에서 `tool_choice`를 사용해 tool call을 force, forbid 또는 auto-pick합니다.
+- provider별 hard limit(tool count, schema depth, argument length)과 limit 위반 시 각 provider가 내는 error signature를 압니다.
 
-## The Problem
+## 문제
 
-The shape of a function-calling request differs by provider. Three concrete examples from 2026 production stacks:
+function-calling request의 shape는 provider마다 다릅니다. 2026년 production stack에서 가져온 세 가지 구체적인 예입니다.
 
-**OpenAI Chat Completions / Responses API.** You pass `tools: [{type: "function", function: {name, description, parameters, strict}}]`. The model's response contains `choices[0].message.tool_calls: [{id, type: "function", function: {name, arguments}}]` where `arguments` is a JSON string you must parse. Strict mode (`strict: true`) enforces schema compliance via constrained decoding.
+**OpenAI Chat Completions / Responses API.** `tools: [{type: "function", function: {name, description, parameters, strict}}]`를 전달합니다. 모델의 response에는 `choices[0].message.tool_calls: [{id, type: "function", function: {name, arguments}}]`가 들어 있으며, 여기서 `arguments`는 직접 parse해야 하는 JSON string입니다. strict mode(`strict: true`)는 constrained decoding으로 schema compliance를 강제합니다.
 
-**Anthropic Messages API.** You pass `tools: [{name, description, input_schema}]`. The response comes back as `content: [{type: "text"}, {type: "tool_use", id, name, input}]`. `input` is already parsed (an object, not a string). You reply with a new `user` message containing a `{type: "tool_result", tool_use_id, content}` block.
+**Anthropic Messages API.** `tools: [{name, description, input_schema}]`를 전달합니다. response는 `content: [{type: "text"}, {type: "tool_use", id, name, input}]`로 돌아옵니다. `input`은 이미 parse되어 있습니다(string이 아니라 object). 결과를 보낼 때는 `{type: "tool_result", tool_use_id, content}` block이 들어 있는 새 `user` message로 답합니다.
 
-**Google Gemini API.** You pass `tools: [{functionDeclarations: [{name, description, parameters}]}]` (nested under `functionDeclarations`). The response arrives as `candidates[0].content.parts: [{functionCall: {name, args, id}}]` where `id` is unique in Gemini 3 and up for parallel-call correlation. You reply with `{functionResponse: {name, id, response}}`.
+**Google Gemini API.** `tools: [{functionDeclarations: [{name, description, parameters}]}]`를 전달합니다(`functionDeclarations` 아래에 중첩). response는 `candidates[0].content.parts: [{functionCall: {name, args, id}}]`로 도착하며, `id`는 Gemini 3 이상에서 parallel-call correlation을 위해 unique합니다. 결과는 `{functionResponse: {name, id, response}}`로 답합니다.
 
-Same loop. Different field names, different nesting, different string-vs-object conventions, different correlation mechanisms. A team that writes a weather agent on OpenAI pays a two-day port to Anthropic and another day to Gemini just for the plumbing.
+같은 loop입니다. 하지만 field name, nesting, string-vs-object convention, correlation mechanism이 다릅니다. OpenAI에서 weather agent를 작성한 팀은 plumbing만으로 Anthropic port에 이틀, Gemini port에 하루를 더 쓰게 됩니다.
 
-This lesson builds a translator that unifies the three formats into one canonical tool declaration and routes at the edge. Phase 13 · 17 generalizes the same pattern into an LLM gateway.
+이 레슨은 세 format을 하나의 canonical tool declaration으로 통합하고 edge에서 route하는 translator를 만듭니다. Phase 13 · 17은 같은 패턴을 LLM gateway로 일반화합니다.
 
-## The Concept
+## 개념
 
-### The common structure
+### 공통 구조
 
-Every provider needs five things:
+모든 provider에는 다섯 가지가 필요합니다.
 
-1. **Tool list.** Per-tool name, description, and input schema.
-2. **Tool choice.** Force a specific tool, forbid tools, or let the model decide.
-3. **Call emission.** Structured output naming the tool and arguments.
-4. **Call id.** Correlate the response to the right call (matters for parallel).
-5. **Result injection.** A message or block that ties the result back to the call.
+1. **Tool list.** tool별 name, description, input schema.
+2. **Tool choice.** 특정 tool 강제, tool 금지, 또는 model에 결정 위임.
+3. **Call emission.** tool과 arguments를 명명하는 structured output.
+4. **Call id.** response를 올바른 call과 연결합니다(parallel에서 중요).
+5. **Result injection.** result를 call에 다시 묶는 message 또는 block.
 
-### Shape diffs, field by field
+### field별 shape 차이
 
-| Aspect | OpenAI | Anthropic | Gemini |
+| 측면 | OpenAI | Anthropic | Gemini |
 |--------|--------|-----------|--------|
-| Declaration envelope | `{type: "function", function: {...}}` | `{name, description, input_schema}` | `{functionDeclarations: [{...}]}` |
+| 선언 envelope | `{type: "function", function: {...}}` | `{name, description, input_schema}` | `{functionDeclarations: [{...}]}` |
 | Schema field | `parameters` | `input_schema` | `parameters` |
-| Response container | `tool_calls[]` on assistant message | `content[]` of type `tool_use` | `parts[]` of type `functionCall` |
+| Response container | assistant message의 `tool_calls[]` | type이 `tool_use`인 `content[]` | type이 `functionCall`인 `parts[]` |
 | Arguments type | stringified JSON | parsed object | parsed object |
-| Id format | `call_...` (OpenAI generates) | `toolu_...` (Anthropic) | UUID (Gemini 3+) |
-| Result block | role `tool`, `tool_call_id` | `user` with `tool_result`, `tool_use_id` | `functionResponse` with matching `id` |
-| Force-a-tool | `tool_choice: {type: "function", function: {name}}` | `tool_choice: {type: "tool", name}` | `tool_config: {function_calling_config: {mode: "ANY"}}` |
-| Forbid tools | `tool_choice: "none"` | `tool_choice: {type: "none"}` | `mode: "NONE"` |
-| Strict schema | `strict: true` | schema-is-schema (always enforced) | `responseSchema` at request level |
+| Id 형식 | `call_...`(OpenAI가 생성) | `toolu_...`(Anthropic) | UUID(Gemini 3+) |
+| Result block | role `tool`, `tool_call_id` | `tool_result`, `tool_use_id`가 있는 `user` | matching `id`가 있는 `functionResponse` |
+| 특정 tool 강제 | `tool_choice: {type: "function", function: {name}}` | `tool_choice: {type: "tool", name}` | `tool_config: {function_calling_config: {mode: "ANY"}}` |
+| Tool 금지 | `tool_choice: "none"` | `tool_choice: {type: "none"}` | `mode: "NONE"` |
+| Strict schema | `strict: true` | schema-is-schema(항상 강제) | request level의 `responseSchema` |
 
-### Limits you will actually hit
+### 실제로 부딪히게 될 limit
 
-- **OpenAI.** 128 tools per request. Schema depth 5. Argument string <= 8192 bytes. Strict mode requires no `$ref`, no `oneOf`/`anyOf`/`allOf` with overlap, every property listed in `required`.
-- **Anthropic.** 64 tools per request. Schema depth effectively unbounded but practical limit 10. No strict-mode flag; schema is a contract and the model tends to comply.
-- **Gemini.** 64 functions per request. Schema types are OpenAPI 3.0 subset (slight divergence from JSON Schema 2020-12). Parallel calls unique-id since Gemini 3.
+- **OpenAI.** request당 tool 128개. schema depth 5. argument string <= 8192 bytes. strict mode는 `$ref` 금지, overlap이 있는 `oneOf`/`anyOf`/`allOf` 금지, 모든 property가 `required`에 있어야 함을 요구합니다.
+- **Anthropic.** request당 tool 64개. schema depth는 사실상 unbounded지만 practical limit은 10입니다. strict-mode flag는 없습니다. schema는 contract이고 모델은 대체로 따릅니다.
+- **Gemini.** request당 function 64개. schema type은 OpenAPI 3.0 subset(JSON Schema 2020-12와 약간 다름)입니다. Gemini 3부터 parallel call unique-id가 있습니다.
 
-### `tool_choice` behavior
+### `tool_choice` 동작
 
-Three modes everyone supports, named differently.
+모두가 지원하지만 이름이 다른 세 mode가 있습니다.
 
-- **Auto.** Model picks tool or text. Default.
-- **Required / Any.** Model must call at least one tool.
-- **None.** Model must not call tools.
+- **Auto.** 모델이 tool 또는 text를 선택합니다. 기본값입니다.
+- **Required / Any.** 모델은 적어도 하나의 tool을 호출해야 합니다.
+- **None.** 모델은 tool을 호출하면 안 됩니다.
 
-Plus one mode unique to each provider:
+각 provider에 고유한 mode도 하나씩 있습니다.
 
-- **OpenAI.** Force a specific tool by name.
-- **Anthropic.** Force a specific tool by name; `disable_parallel_tool_use` flag separates single vs multi.
-- **Gemini.** `mode: "VALIDATED"` routes every response through a schema validator regardless of model intent.
+- **OpenAI.** 이름으로 특정 tool을 force합니다.
+- **Anthropic.** 이름으로 특정 tool을 force합니다. `disable_parallel_tool_use` flag가 single과 multi를 분리합니다.
+- **Gemini.** `mode: "VALIDATED"`는 모델 의도와 관계없이 모든 response를 schema validator로 route합니다.
 
-### Parallel calls
+### parallel call
 
-OpenAI's `parallel_tool_calls: true` (default) emits multiple calls in one assistant message. You run them all and reply with a batched tool-role message containing one entry per `tool_call_id`. Anthropic historically did single-call; `disable_parallel_tool_use: false` (default as of Claude 3.5) enables multi. Gemini 2 allowed parallel calls but did not give stable ids; Gemini 3 adds UUIDs so out-of-order responses correlate cleanly.
+OpenAI의 `parallel_tool_calls: true`(기본값)는 한 assistant message에 여러 call을 출력합니다. 당신은 모두 실행하고, `tool_call_id`마다 하나의 entry가 있는 batched tool-role message로 답합니다. Anthropic은 역사적으로 single-call이었지만, `disable_parallel_tool_use: false`(Claude 3.5 기준 기본값)가 multi를 활성화합니다. Gemini 2는 parallel call을 허용했지만 stable id를 주지 않았습니다. Gemini 3는 UUID를 추가해 out-of-order response가 깔끔하게 correlate되도록 합니다.
 
-### Streaming
+### streaming
 
-All three support streamed tool calls. The wire format differs:
+세 provider 모두 streamed tool call을 지원합니다. wire format은 다릅니다.
 
-- **OpenAI.** Delta chunks of `tool_calls[i].function.arguments` arrive incrementally. You accumulate until `finish_reason: "tool_calls"`.
-- **Anthropic.** Block-start / block-delta / block-stop events. `input_json_delta` chunks carry partial arguments.
-- **Gemini.** `streamFunctionCallArguments` (new in Gemini 3) emits chunks with a `functionCallId` so multiple parallel calls can interleave.
+- **OpenAI.** `tool_calls[i].function.arguments`의 delta chunk가 incrementally 도착합니다. `finish_reason: "tool_calls"`까지 누적합니다.
+- **Anthropic.** block-start / block-delta / block-stop event입니다. `input_json_delta` chunk가 partial arguments를 운반합니다.
+- **Gemini.** `streamFunctionCallArguments`(Gemini 3의 새 기능)가 `functionCallId`가 있는 chunk를 내보내 여러 parallel call이 interleave될 수 있게 합니다.
 
-Phase 13 · 03 goes deep on parallel + streaming reassembly. This lesson focuses on the declaration and single-call shapes.
+Phase 13 · 03은 parallel + streaming reassembly를 깊게 다룹니다. 이 레슨은 declaration과 single-call shape에 초점을 둡니다.
 
-### Errors and repair
+### error와 repair
 
-Invalid-argument errors look different too.
+invalid-argument error도 서로 다르게 보입니다.
 
-- **OpenAI (non-strict).** Model returns `arguments: "{bad json}"`, your JSON parse fails, you inject an error message and re-call.
-- **OpenAI (strict).** Validation happens during decoding; invalid JSON is impossible but `refusal` can appear.
-- **Anthropic.** `input` may contain unexpected fields; schema is advisory. Validate server-side.
-- **Gemini.** OpenAPI 3.0 quirk: `enum` on object fields silently ignored; validate yourself.
+- **OpenAI (non-strict).** 모델이 `arguments: "{bad json}"`를 반환하고, 당신의 JSON parse가 실패합니다. error message를 주입하고 다시 호출합니다.
+- **OpenAI (strict).** validation은 decoding 중에 일어납니다. invalid JSON은 불가능하지만 `refusal`이 나타날 수 있습니다.
+- **Anthropic.** `input`에 unexpected field가 들어 있을 수 있습니다. schema는 advisory입니다. server-side로 validate하세요.
+- **Gemini.** OpenAPI 3.0 quirk: object field의 `enum`이 조용히 무시됩니다. 직접 validate하세요.
 
-### The translator pattern
+### translator pattern
 
-A canonical tool declaration in your code looks like this (you pick the shape):
+코드의 canonical tool declaration은 이렇게 생겼습니다(형태는 당신이 정합니다).
 
 ```python
 Tool(
@@ -110,55 +110,55 @@ Tool(
 )
 ```
 
-Three tiny functions translate it to the three provider shapes. The harness in `code/main.py` does exactly this, then round-trips a fake tool call through each provider's response shape. No network required — this lesson teaches the shapes, not the HTTP.
+세 개의 작은 function이 이를 세 provider shape로 번역합니다. `code/main.py`의 harness가 정확히 이 일을 한 뒤, fake tool call을 각 provider의 response shape로 round-trip합니다. network는 필요 없습니다. 이 레슨은 HTTP가 아니라 shape를 가르칩니다.
 
-Production teams wrap this translator in `AbstractToolset` (Pydantic AI), `UniversalToolNode` (LangGraph), or `BaseTool` (LlamaIndex). Phase 13 · 17 ships a gateway that exposes an OpenAI-shaped API in front of any of the three.
+production team은 이 translator를 `AbstractToolset`(Pydantic AI), `UniversalToolNode`(LangGraph), `BaseTool`(LlamaIndex)로 감쌉니다. Phase 13 · 17은 세 provider 앞에서 OpenAI-shaped API를 노출하는 gateway를 제공합니다.
 
-## Use It
+## 사용하기
 
-`code/main.py` defines one canonical `Tool` dataclass and three translators that emit the OpenAI, Anthropic, and Gemini declaration JSON. It then parses a hand-crafted provider response of each shape into the same canonical call object, demonstrating that the semantics are identical under the skin. Run it and diff the three declarations side by side.
+`code/main.py`는 하나의 canonical `Tool` dataclass와 OpenAI, Anthropic, Gemini declaration JSON을 출력하는 세 translator를 정의합니다. 그런 다음 손으로 만든 각 provider response shape를 같은 canonical call object로 parse하여, 겉모습 아래의 의미론이 동일함을 보여 줍니다. 실행하고 세 declaration을 나란히 diff하세요.
 
-What to look at:
+살펴볼 것:
 
-- The three declaration blocks differ only in envelope and field names.
-- The three response blocks differ in where the call lives (top-level `tool_calls`, `content[]` block, `parts[]` entry).
-- One `canonical_call()` function extracts `{id, name, args}` from all three response shapes.
+- 세 declaration block은 envelope와 field name만 다릅니다.
+- 세 response block은 call이 있는 위치(top-level `tool_calls`, `content[]` block, `parts[]` entry)가 다릅니다.
+- 하나의 `canonical_call()` function이 세 response shape 모두에서 `{id, name, args}`를 추출합니다.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-provider-portability-audit.md`. Given a function-calling integration against one provider, the skill produces a portability audit: which provider limits it relies on, which fields need renaming, and what breaks when ported to each other provider.
+이 레슨은 `outputs/skill-provider-portability-audit.md`를 만듭니다. 한 provider에 대한 function-calling integration이 주어지면, 이 skill은 portability audit을 만듭니다. 어떤 provider limit에 의존하는지, 어떤 field를 rename해야 하는지, 다른 provider로 port할 때 무엇이 깨지는지를 알려 줍니다.
 
-## Exercises
+## 연습 문제
 
-1. Run `code/main.py` and verify that the three provider declaration JSONs all serialize the same underlying `Tool` object. Modify the canonical tool to add an enum parameter and confirm only the Gemini translator needs to handle the OpenAPI quirk.
+1. `code/main.py`를 실행하고 세 provider declaration JSON이 모두 같은 underlying `Tool` object를 serialize하는지 확인하세요. canonical tool을 수정해 enum parameter를 추가하고, Gemini translator만 OpenAPI quirk를 처리해야 하는지 확인하세요.
 
-2. Add a `ListToolsResponse` parser for each provider that extracts the tool list a model returns after a `list_tools` or discovery call. OpenAI does not have one natively; note this asymmetry.
+2. 각 provider에 대해 `list_tools` 또는 discovery call 이후 모델이 반환하는 tool list를 추출하는 `ListToolsResponse` parser를 추가하세요. OpenAI에는 native로 이것이 없습니다. 이 asymmetry를 기록하세요.
 
-3. Implement `tool_choice` conversion: map a canonical `ToolChoice(mode="force", tool_name="x")` into all three provider shapes. Then map `mode="any"` and `mode="none"`. Check the lesson's diff table.
+3. `tool_choice` conversion을 구현하세요. canonical `ToolChoice(mode="force", tool_name="x")`를 세 provider shape로 모두 map하세요. 그런 다음 `mode="any"`와 `mode="none"`을 map하세요. 레슨의 diff table을 확인하세요.
 
-4. Pick one of the three providers and read its function-calling guide end to end. Find one field in its schema spec that the other two do not support. Candidates: OpenAI `strict`, Anthropic `disable_parallel_tool_use`, Gemini `function_calling_config.allowed_function_names`.
+4. 세 provider 중 하나를 골라 function-calling guide를 끝까지 읽으세요. 그 schema spec에서 다른 두 provider가 지원하지 않는 field 하나를 찾으세요. 후보: OpenAI `strict`, Anthropic `disable_parallel_tool_use`, Gemini `function_calling_config.allowed_function_names`.
 
-5. Write a test vector: a tool call whose arguments violate the declared schema. Run it through each provider's validator (the stdlib one in Lesson 01 will do as a proxy) and record which errors fire. Document which provider you would use in production for strictness.
+5. test vector를 작성하세요. 선언된 schema를 위반하는 arguments를 가진 tool call입니다. 각 provider의 validator를 통해 실행하고(Lesson 01의 stdlib validator를 proxy로 써도 됩니다), 어떤 error가 발생하는지 기록하세요. strictness를 기준으로 production에서 어떤 provider를 쓸지 문서화하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
-| Function calling | "Tool use" | Provider-level API for structured tool-call emission |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
+|------|----------------|-----------|
+| Function calling | "Tool use" | structured tool-call emission을 위한 provider-level API |
 | Tool declaration | "Tool spec" | Name + description + JSON Schema input payload |
-| `tool_choice` | "Force / forbid" | Auto / required / none / specific-name modes |
-| Strict mode | "Schema enforcement" | OpenAI flag that constrains decoding to match schema |
-| `tool_use` block | "Anthropic's call shape" | Inline content block with id, name, input |
-| `functionCall` part | "Gemini's call shape" | A `parts[]` entry containing name, args, and id |
-| Arguments-as-string | "Stringified JSON" | OpenAI returns args as a JSON string, not an object |
-| Parallel tool calls | "Fan-out in one turn" | Multiple tool calls in one assistant message |
-| Refusal | "Model declines" | Strict-mode-only refusal block instead of a call |
-| OpenAPI 3.0 subset | "Gemini schema quirk" | Gemini uses a JSON-Schema-like dialect with minor differences |
+| `tool_choice` | "Force / forbid" | Auto / required / none / specific-name mode |
+| Strict mode | "Schema enforcement" | schema와 맞도록 decoding을 constrain하는 OpenAI flag |
+| `tool_use` block | "Anthropic의 call shape" | id, name, input이 있는 inline content block |
+| `functionCall` part | "Gemini의 call shape" | name, args, id를 담은 `parts[]` entry |
+| Arguments-as-string | "Stringified JSON" | OpenAI는 args를 object가 아니라 JSON string으로 반환함 |
+| Parallel tool calls | "한 turn의 fan-out" | 하나의 assistant message 안에 여러 tool call이 있음 |
+| Refusal | "Model declines" | call 대신 strict-mode-only refusal block |
+| OpenAPI 3.0 subset | "Gemini schema quirk" | Gemini가 사용하는, 작은 차이가 있는 JSON-Schema-like dialect |
 
-## Further Reading
+## 더 읽을거리
 
-- [OpenAI — Function calling guide](https://platform.openai.com/docs/guides/function-calling) — canonical reference including strict mode and parallel calls
-- [Anthropic — Tool use overview](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview) — `tool_use` and `tool_result` block semantics
-- [Google — Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling) — parallel calls, unique ids, and OpenAPI subset
-- [Vertex AI — Function calling reference](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling) — Gemini's enterprise surface
-- [OpenAI — Structured outputs](https://platform.openai.com/docs/guides/structured-outputs) — strict-mode schema enforcement details
+- [OpenAI - Function calling guide](https://platform.openai.com/docs/guides/function-calling) - strict mode와 parallel call을 포함한 canonical reference
+- [Anthropic - Tool use overview](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview) - `tool_use`와 `tool_result` block semantics
+- [Google - Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling) - parallel call, unique id, OpenAPI subset
+- [Vertex AI - Function calling reference](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling) - Gemini의 enterprise surface
+- [OpenAI - Structured outputs](https://platform.openai.com/docs/guides/structured-outputs) - strict-mode schema enforcement detail

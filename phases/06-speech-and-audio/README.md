@@ -1,5 +1,5 @@
-# Phase 6: Speech & Audio
+# Phase 6: 음성 및 오디오
 
-> The other half of human communication. Hear, understand, speak.
+> 인간 커뮤니케이션의 다른 절반. 듣고, 이해하고, 말합니다.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 레슨 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

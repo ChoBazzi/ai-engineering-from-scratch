@@ -1,39 +1,48 @@
 {
+  "lesson": "02-self-attention-from-scratch",
+  "title": "Self-Attention 처음부터 구현하기",
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does vanilla self-attention scale the dot product by 1/sqrt(d_k)?",
-      "options": ["To make the output values between 0 and 1", "To prevent dot products from growing large in high dimensions, which would push softmax into regions with tiny gradients", "To normalize the query and key vectors to unit length", "To reduce the computational cost of the matrix multiplication"],
+      "question": "기본 self-attention은 왜 dot product를 1/sqrt(d_k)로 스케일링하나요?",
+      "options": ["출력값을 0과 1 사이로 만들기 위해", "고차원에서 dot product가 커져 softmax가 gradient가 아주 작은 영역으로 밀려나는 것을 막기 위해", "query와 key 벡터를 단위 길이로 정규화하기 위해", "행렬 곱셈의 계산 비용을 줄이기 위해"],
       "correct": 1,
-      "explanation": "When d_k is large, the dot product of random vectors grows proportionally to sqrt(d_k). Without scaling, softmax receives large inputs, producing near-one-hot outputs where gradients vanish."
+      "explanation": "d_k가 클 때 무작위 벡터의 dot product는 sqrt(d_k)에 비례해 커집니다. 스케일링이 없으면 softmax가 큰 입력을 받아 거의 one-hot에 가까운 출력을 만들고, 그 영역에서는 gradient가 사라집니다."
     },
     {
-      "stage": "pre",
-      "question": "What are the three projections in self-attention?",
-      "options": ["Input, hidden, and output", "Query, key, and value -- each a learned linear projection of the same input", "Encoder, decoder, and cross-attention", "Embedding, position, and segment"],
+      "stage": "check",
+      "question": "self-attention의 세 가지 projection은 무엇인가요?",
+      "options": ["입력, hidden, 출력", "Query, key, value -- 모두 같은 입력에서 학습된 선형 projection", "Encoder, decoder, cross-attention", "Embedding, position, segment"],
       "correct": 1,
-      "explanation": "Self-attention projects the input through three different weight matrices to produce queries (what am I looking for?), keys (what do I contain?), and values (what do I output if matched?)."
+      "explanation": "Self-attention은 입력을 세 개의 서로 다른 가중치 행렬에 통과시켜 queries(무엇을 찾고 있는가?), keys(무엇을 담고 있는가?), values(매칭되면 무엇을 출력하는가?)를 만듭니다."
+    },
+    {
+      "stage": "check",
+      "question": "Attention weight는 raw score에서 어떻게 만들어지나요?",
+      "options": ["각 score를 그대로 value vector에 곱합니다", "각 row에 softmax를 적용해 position들에 대한 probability distribution을 만듭니다", "가장 큰 score 하나만 남기고 나머지는 버립니다", "Score matrix를 transpose해서 query와 key를 바꿉니다"],
+      "correct": 1,
+      "explanation": "Scaled score의 각 row에 softmax를 적용하면 합이 1인 attention weight가 됩니다. 이 weight가 value vector들의 weighted sum을 계산하는 데 쓰입니다."
+    },
+    {
+      "stage": "check",
+      "question": "head가 8개이고 d_model=512인 multi-head attention에서 각 head의 차원은 얼마인가요?",
+      "options": ["512 -- 각 head가 전체 차원을 봅니다", "64 -- d_model을 head마다 균등하게 나눕니다(512/8=64)", "8 -- head마다 한 차원입니다", "4096 -- 각 head가 representation을 확장합니다"],
+      "correct": 1,
+      "explanation": "Multi-head attention은 d_model을 h개의 head로 나누며, 각 head는 d_k = d_model/h 차원에서 동작합니다. head마다 512/8 = 64차원이므로 전체 계산 비용은 전체 차원을 쓰는 single-head attention과 같습니다."
     },
     {
       "stage": "post",
-      "question": "In multi-head attention with 8 heads and d_model=512, what is the dimension of each head?",
-      "options": ["512 -- each head sees the full dimension", "64 -- d_model is split evenly across heads (512/8=64)", "8 -- one dimension per head", "4096 -- each head expands the representation"],
+      "question": "autoregressive attention의 causal mask는 무엇을 막나요?",
+      "options": ["모델이 padding token에 attend하는 것을 막습니다", "각 position이 미래 position에 attend하지 못하게 하여 다음 token을 예측할 때 과거 context만 쓰도록 보장합니다", "attention weight가 너무 커지는 것을 막습니다", "모델이 자기 자신의 position에 attend하는 것을 막습니다"],
       "correct": 1,
-      "explanation": "Multi-head attention splits d_model into h heads, each operating on d_k = d_model/h dimensions. With 512/8 = 64 dimensions per head, the total computation cost equals single-head attention at full dimension."
+      "explanation": "Autoregressive generation에서 token t는 token t+1, t+2 등을 보면 안 됩니다. causal mask는 softmax 전에 미래 position을 -infinity로 설정하여 해당 attention weight를 0으로 만듭니다."
     },
     {
       "stage": "post",
-      "question": "What does the causal mask in autoregressive attention prevent?",
-      "options": ["It prevents the model from attending to padding tokens", "It prevents each position from attending to future positions, ensuring the model can only use past context when predicting the next token", "It prevents attention weights from becoming too large", "It prevents the model from attending to its own position"],
+      "question": "self-attention은 왜 sequence length n에 대해 O(n^2) 복잡도를 갖나요?",
+      "options": ["모델에 n개의 layer가 쌓여 있기 때문에", "모든 token이 다른 모든 token과 attention score를 계산하여 n x n attention matrix를 만들기 때문에", "attention 뒤의 feedforward layer가 quadratic이기 때문에", "attention을 통한 backpropagation에 n^2개의 gradient 계산이 필요하기 때문에"],
       "correct": 1,
-      "explanation": "In autoregressive generation, token t must not see tokens t+1, t+2, etc. The causal mask sets future positions to -infinity before softmax, zeroing out their attention weights."
-    },
-    {
-      "stage": "post",
-      "question": "Why does self-attention have O(n^2) complexity in sequence length n?",
-      "options": ["Because the model has n layers stacked on top of each other", "Because every token computes attention scores with every other token, producing an n x n attention matrix", "Because the feedforward layers after attention are quadratic", "Because backpropagation through attention requires n^2 gradient computations"],
-      "correct": 1,
-      "explanation": "The QK^T matrix multiplication produces an n x n attention matrix where entry (i,j) is the attention from token i to token j. Both computation and memory scale as O(n^2), which is why long-context models need techniques like FlashAttention."
+      "explanation": "QK^T 행렬 곱셈은 (i,j) 항목이 token i에서 token j로 향하는 attention인 n x n attention matrix를 만듭니다. 계산과 메모리 모두 O(n^2)로 증가하므로 long-context 모델에는 FlashAttention 같은 기법이 필요합니다."
     }
   ]
 }

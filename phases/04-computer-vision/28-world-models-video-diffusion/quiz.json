@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What architectural difference distinguishes an action-conditioned world model (Genie 3) from a pure video generation model (Sora 2)?",
-      "options": ["Action-conditioned models are smaller", "Pure video generators condition on a prompt at t=0 and roll out; action-conditioned world models take a latent or explicit action per frame so the user can steer the rollout mid-generation", "Only the training datasets differ", "World models only work on 3D scenes"],
+      "question": "Action-conditioned world model(Genie 3)과 순수 video generation model(Sora 2)을 구분하는 architecture 차이는 무엇인가?",
+      "options": ["Action-conditioned model은 더 작다", "순수 video generator는 t=0의 prompt로 condition하고 rollout한다. Action-conditioned world model은 frame마다 latent 또는 explicit action을 받아 사용자가 generation 중간에 rollout을 steer할 수 있게 한다", "training dataset만 다르다", "World model은 3D scene에서만 작동한다"],
       "correct": 1,
-      "explanation": "Sora 2 is autoregressive on spacetime tokens; its prompt sets the scene but you cannot change direction mid-rollout. Genie 3 infers or takes a latent action at each step and conditions the next-frame prediction on it, letting the user interact with the simulated world. This interactivity is what makes a model a 'world simulator' rather than a video generator."
+      "explanation": "Sora 2는 spacetime token에 대해 autoregressive하다. Prompt가 scene을 설정하지만 rollout 중간에 방향을 바꿀 수는 없다. Genie 3는 각 step에서 latent action을 추론하거나 입력받고, next-frame prediction을 그것으로 condition해 사용자가 simulated world와 상호작용할 수 있게 한다. 이 interactivity가 model을 video generator가 아니라 'world simulator'로 만든다."
     },
     {
       "stage": "pre",
-      "question": "Divided attention in a video transformer means what?",
-      "options": ["Half the tokens are masked", "Each block does a temporal attention (same spatial position, across frames) followed by a spatial attention (same frame, across positions); this factorises cost from O((T*H*W)^2) into O((H*W)*T^2) + O(T*(H*W)^2) — dramatically cheaper than the joint product", "Only half the layers run attention", "Attention is split across GPUs"],
+      "question": "Video transformer에서 divided attention은 무엇을 뜻하는가?",
+      "options": ["token의 절반을 mask한다", "각 block이 temporal attention(같은 spatial position, frame 방향)을 수행한 뒤 spatial attention(같은 frame, position 방향)을 수행한다. 이 방식은 비용을 O((T*H*W)^2)에서 O((H*W)*T^2) + O(T*(H*W)^2)로 factorise해 joint product보다 극적으로 싸게 만든다", "layer의 절반만 attention을 실행한다", "attention을 GPU 여러 대에 나눈다"],
       "correct": 1,
-      "explanation": "Full joint attention over spacetime tokens is prohibitive: for T=150 temporal tokens and a 60x45 spatial grid (2700 spatial tokens), the joint (T*H*W)^2 ≈ 1.6e11 pairs. Divided attention runs temporal attention at each spatial position (H*W * T^2 ≈ 6.1e7) and spatial attention at each timestep (T * (H*W)^2 ≈ 1.1e9) — multiple orders of magnitude less. TimeSformer introduced this pattern; almost every 2026 video DiT (Sora, Wan, HunyuanVideo) uses a divided or window variant."
+      "explanation": "Spacetime token 전체에 대한 full joint attention은 너무 비싸다. T=150 temporal token과 60x45 spatial grid(2700 spatial token)라면 joint (T*H*W)^2는 약 1.6e11 pair다. Divided attention은 각 spatial position에서 temporal attention(H*W * T^2, 약 6.1e7)을 실행하고, 각 timestep에서 spatial attention(T * (H*W)^2, 약 1.1e9)을 실행한다. 여러 자릿수 더 적다. TimeSformer가 이 pattern을 도입했고, 2026년의 거의 모든 video DiT(Sora, Wan, HunyuanVideo)는 divided 또는 window variant를 사용한다."
     },
     {
       "stage": "post",
-      "question": "Sora 2's 2026 release advertised better physical plausibility. Which specific failure modes did this target?",
-      "options": ["Colour balance and contrast", "Weight, balance, object permanence, cause-and-effect — the model now handles dropped objects, characters colliding, and 'failures on purpose' (a missed jump) more believably than Sora 1", "Text rendering inside images", "Video length"],
+      "question": "Sora 2의 2026 release는 더 나은 physical plausibility를 내세웠다. 이것은 어떤 구체적인 failure mode를 겨냥했는가?",
+      "options": ["색 balance와 contrast", "Weight, balance, object permanence, cause-and-effect. 이제 model은 dropped object, character collision, 'failures on purpose'(missed jump)를 Sora 1보다 더 그럴듯하게 처리한다", "image 안의 text rendering", "video length"],
       "correct": 1,
-      "explanation": "Prior-generation video models famously failed on spaghetti-eating, drinking from glasses, and persistent-object scenes — hands would pass through objects, items would disappear mid-action. Sora 2 explicitly advertises improvements on weight, balance, object permanence, and cause-and-effect, measured against internal and public plausibility benchmarks. These are the dominant quality failures the field is still working on."
+      "explanation": "이전 세대 video model은 spaghetti를 먹거나 glass로 마시거나 persistent object가 필요한 scene에서 유명하게 실패했다. 손이 object를 통과하거나 물건이 동작 중간에 사라졌다. Sora 2는 internal 및 public plausibility benchmark에서 측정한 weight, balance, object permanence, cause-and-effect 개선을 명시적으로 광고한다. 이것들이 이 분야가 여전히 작업 중인 지배적인 quality failure다."
     },
     {
       "stage": "post",
-      "question": "In the emerging robotics stack (VLM + video generation + inverse dynamics), what does the inverse dynamics model do?",
-      "options": ["It generates the next frame", "It takes a pair (current observation, desired next observation from the video model) and outputs the low-level motor action that would connect them; this closes the loop between imagined rollouts and actual actuation", "It trains the VLM", "It labels training data"],
+      "question": "떠오르는 robotics stack(VLM + video generation + inverse dynamics)에서 inverse dynamics model은 무엇을 하는가?",
+      "options": ["next frame을 생성한다", "pair(current observation, video model이 만든 desired next observation)를 받아 둘을 연결할 low-level motor action을 출력한다. 이것이 imagined rollout과 actual actuation 사이의 loop를 닫는다", "VLM을 학습한다", "training data에 label을 붙인다"],
       "correct": 1,
-      "explanation": "The VLM plans, the video model imagines, and the inverse dynamics model turns imagination into motor commands. Given two consecutive observations, inverse dynamics asks: what action produced this transition? This three-component stack lets a robot train largely in a learned simulator, using the video model to generate data and the inverse dynamics model to execute."
+      "explanation": "VLM은 계획하고, video model은 상상하며, inverse dynamics model은 상상을 motor command로 바꾼다. 연속한 두 observation이 주어졌을 때 inverse dynamics는 묻는다. 어떤 action이 이 transition을 만들었는가? 이 세 구성 요소 stack은 robot이 learned simulator 안에서 주로 학습하게 해 주며, video model로 data를 생성하고 inverse dynamics model로 실행한다."
     },
     {
       "stage": "post",
-      "question": "Autonomous-driving teams use world models (Cosmos-Drive, Gaia-2, DrivingWorld) to replace what cost?",
-      "options": ["Actual fleet insurance", "Expensive real-world data collection for rare or dangerous corner cases (pedestrian jaywalks, icy roads, unusual vehicles); synthesised driving video provides on-demand training and evaluation data for those scenarios", "Road tolls", "Vehicle depreciation"],
+      "question": "Autonomous-driving team은 world model(Cosmos-Drive, Gaia-2, DrivingWorld)을 사용해 어떤 비용을 대체하는가?",
+      "options": ["실제 fleet insurance", "희귀하거나 위험한 corner case(pedestrian jaywalks, icy roads, unusual vehicles)를 위한 비싼 real-world data collection. 합성 driving video는 그런 scenario에 대한 on-demand training 및 evaluation data를 제공한다", "road tolls", "vehicle depreciation"],
       "correct": 1,
-      "explanation": "Collecting corner-case driving data takes millions of real-world miles. Cosmos-Drive, Gaia-2, and DrivingWorld generate it conditioned on trajectories and maps. Teams use this data to expand training sets, evaluate planners in reproducible conditions, and de-risk scenarios they cannot ethically drive in reality. Replacing a fraction of real-world collection with synthesis is one of the clearest production wins for video world models in 2026."
+      "explanation": "Corner-case driving data를 수집하려면 수백만 mile의 실제 주행이 필요하다. Cosmos-Drive, Gaia-2, DrivingWorld는 trajectory와 map으로 condition해 이를 생성한다. Team은 이 data를 사용해 training set을 확장하고, 재현 가능한 조건에서 planner를 평가하며, 실제로 운전하기에 윤리적으로 불가능한 scenario의 risk를 낮춘다. Real-world collection의 일부를 synthesis로 대체하는 것은 2026년 video world model의 가장 명확한 production win 중 하나다."
     }
   ]
 }

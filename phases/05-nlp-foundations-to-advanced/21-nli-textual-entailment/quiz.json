@@ -1,10 +1,10 @@
 {
   "lesson": "21-nli-textual-entailment",
-  "title": "Natural Language Inference — Textual Entailment",
+  "title": "자연어 추론 — 텍스트 함의",
   "questions": [
     {
       "stage": "pre",
-      "question": "What three labels does NLI assign to a (premise, hypothesis) pair?",
+      "question": "NLI는 (premise, hypothesis) pair에 어떤 세 가지 label을 부여하나요?",
       "options": [
         "Positive / negative / neutral",
         "True / false / unknown",
@@ -12,91 +12,91 @@
         "Cause / effect / unrelated"
       ],
       "correct": 2,
-      "explanation": "NLI is a 3-way classification over entailment, contradiction, and neutral."
+      "explanation": "NLI는 entailment, contradiction, neutral에 대한 3-way classification입니다."
     },
     {
       "stage": "pre",
-      "question": "How is NLI used as a zero-shot text classifier?",
+      "question": "NLI는 zero-shot text classifier로 어떻게 사용되나요?",
       "options": [
-        "Verbalize each candidate label as a hypothesis (e.g. 'This text is about sports') and pick the label with the highest entailment score",
-        "By averaging embeddings",
-        "By computing TF-IDF",
-        "By prompting an LLM"
+        "각 candidate label을 hypothesis로 verbalize하고(예: 'This text is about sports') entailment score가 가장 높은 label을 고릅니다",
+        "embedding을 평균내서 사용합니다",
+        "TF-IDF를 계산해서 사용합니다",
+        "LLM에 prompt해서 사용합니다"
       ],
       "correct": 0,
-      "explanation": "NLI-as-classifier turns labels into hypotheses; the model picks the max-entailment label."
+      "explanation": "NLI-as-classifier는 label을 hypothesis로 바꾸고, model은 max-entailment label을 고릅니다."
     },
     {
       "stage": "check",
-      "question": "Why is NLI a faithfulness check for RAG outputs?",
+      "question": "NLI가 RAG output의 faithfulness check가 되는 이유는 무엇인가요?",
       "options": [
-        "It uses tokenizers",
-        "Checking whether the retrieved context entails each answer claim is exactly the formulation NLI was trained on",
-        "It is cheap",
-        "It is multilingual"
+        "tokenizer를 사용하기 때문입니다",
+        "retrieved context가 각 answer claim을 entail하는지 검사하는 것이 NLI가 train된 formulation과 정확히 맞기 때문입니다",
+        "저렴하기 때문입니다",
+        "multilingual이기 때문입니다"
       ],
       "correct": 1,
-      "explanation": "Hallucination = answer claims not entailed by retrieved context; NLI directly measures entailment."
+      "explanation": "Hallucination은 retrieved context가 entail하지 않는 answer claim입니다. NLI는 entailment를 직접 측정합니다."
     },
     {
       "stage": "check",
-      "question": "What does the hypothesis-only baseline expose?",
+      "question": "hypothesis-only baseline은 무엇을 드러내나요?",
       "options": [
-        "Multilingual gaps",
-        "Slow inference",
-        "Datasets where the hypothesis alone (without the premise) is predictive of the label, signalling label leakage",
-        "Tokenizer drift"
+        "multilingual gap",
+        "느린 inference",
+        "premise 없이 hypothesis만으로도 label을 예측할 수 있는 dataset, 즉 label leakage 신호",
+        "tokenizer drift"
       ],
       "correct": 2,
-      "explanation": "A high hypothesis-only score on SNLI revealed annotation artifacts; useful for debugging your data."
+      "explanation": "SNLI에서 높은 hypothesis-only score는 annotation artifact를 드러냈습니다. 자신의 data를 debug할 때 유용합니다."
     },
     {
       "stage": "check",
-      "question": "Which NLI model family tops 2026 leaderboards as the standard workhorse?",
+      "question": "2026년 leaderboard에서 표준 workhorse로 상위권을 차지하는 NLI model family는 무엇인가요?",
       "options": [
         "fastText",
         "Plain Word2Vec",
-        "DeBERTa-v3 variants fine-tuned on MNLI/FEVER/ANLI",
+        "MNLI/FEVER/ANLI로 fine-tuned된 DeBERTa-v3 variant",
         "GPT-2"
       ],
       "correct": 2,
-      "explanation": "DeBERTa-v3 fine-tuned on MNLI and related corpora is the open NLI workhorse in 2026."
+      "explanation": "MNLI와 관련 corpus로 fine-tuned된 DeBERTa-v3는 2026년 open NLI workhorse입니다."
     },
     {
       "stage": "post",
-      "question": "Why do sentence-level NLI models drop accuracy on document-length premises?",
+      "question": "sentence-level NLI model이 document-length premise에서 accuracy가 떨어지는 이유는 무엇인가요?",
       "options": [
-        "They were trained on short premises and fail at multi-sentence and multi-hop inference; DocNLI-tuned models handle longer inputs",
-        "Larger inputs run slower",
-        "Documents trigger tokenizer drift",
-        "Cosine similarity decays"
+        "짧은 premise로 train되었고 multi-sentence 및 multi-hop inference에 약하기 때문입니다. DocNLI-tuned model은 더 긴 input을 처리합니다",
+        "더 큰 input은 더 느리게 실행되기 때문입니다",
+        "document가 tokenizer drift를 유발하기 때문입니다",
+        "cosine similarity가 감소하기 때문입니다"
       ],
       "correct": 0,
-      "explanation": "Training distribution mismatch: single-sentence NLI models lose 20+ F1 on document-length inputs."
+      "explanation": "training distribution mismatch입니다. single-sentence NLI model은 document-length input에서 F1이 20+ 떨어집니다."
     },
     {
       "stage": "post",
-      "question": "Why can zero-shot accuracy swing 10+ points based on the hypothesis template?",
+      "question": "hypothesis template에 따라 zero-shot accuracy가 10+ point 흔들릴 수 있는 이유는 무엇인가요?",
       "options": [
-        "Models are sensitive to phrasing; e.g. 'This text is about {label}' vs '{label}' alone shifts entailment probabilities",
-        "Templates change tokenizer behavior",
-        "Templates affect model weights",
-        "Templates change the label set"
+        "model이 phrasing에 민감하기 때문입니다. 예를 들어 'This text is about {label}'과 '{label}'만 쓰는 방식은 entailment probability를 바꿉니다",
+        "template이 tokenizer behavior를 바꾸기 때문입니다",
+        "template이 model weight를 바꾸기 때문입니다",
+        "template이 label set을 바꾸기 때문입니다"
       ],
       "correct": 0,
-      "explanation": "Template wording materially shifts entailment scores; tune it on a small held-out set."
+      "explanation": "template wording은 entailment score를 실질적으로 바꿉니다. 작은 held-out set에서 tune하세요."
     },
     {
       "stage": "post",
-      "question": "What is a safe limit to claim about NLI for hallucination detection?",
+      "question": "hallucination detection에서 NLI에 대해 claim할 수 있는 안전한 한계는 무엇인가요?",
       "options": [
-        "It only works on English",
-        "It reduces hallucination as a faithfulness signal but does not eliminate it; combine with retrieval recall and human review",
-        "It eliminates hallucination",
-        "It requires LLMs"
+        "영어에서만 작동합니다",
+        "faithfulness signal로 hallucination을 줄이지만 제거하지는 않습니다. retrieval recall 및 human review와 함께 사용해야 합니다",
+        "hallucination을 제거합니다",
+        "LLM이 필요합니다"
       ],
       "correct": 1,
-      "explanation": "NLI is a useful signal but not a complete solution; pair with retrieval metrics and human spot-checks."
+      "explanation": "NLI는 유용한 signal이지만 완전한 solution은 아닙니다. retrieval metric 및 human spot-check와 함께 사용하세요."
     }
   ]
 }

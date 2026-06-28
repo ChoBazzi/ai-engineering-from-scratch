@@ -1,58 +1,58 @@
 {
   "lesson": "11-planning-htn-and-evolutionary",
-  "title": "Planning with HTN and Evolutionary Search",
+  "title": "HTN과 Evolutionary Search로 Planning하기",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does an HTN add over a free-form LLM plan?",
+      "question": "HTN은 free-form LLM plan에 비해 무엇을 추가하나요?",
       "options": [
-        "Provable correctness when operator preconditions and effects are enforced",
-        "Cheaper inference",
-        "Shorter prompts",
-        "Better embeddings"
+        "Operator precondition과 effect가 enforce될 때 provable correctness",
+        "더 저렴한 inference",
+        "더 짧은 prompt",
+        "더 나은 embedding"
       ],
       "correct": 0,
-      "explanation": "HTN's symbolic operators with preconditions and effects guarantee soundness by construction."
+      "explanation": "HTN의 symbolic operator는 precondition과 effect를 통해 구성상 soundness를 보장합니다."
     },
     {
       "stage": "pre",
-      "question": "Which problem class is AlphaEvolve built for?",
+      "question": "AlphaEvolve는 어떤 problem class를 위해 만들어졌나요?",
       "options": [
         "Free-form prose generation",
-        "Optimizations with a machine-checkable, deterministic fitness function",
+        "Machine-checkable이고 deterministic한 fitness function이 있는 optimization",
         "Multi-turn chat memory",
         "Vector search ranking"
       ],
       "correct": 1,
-      "explanation": "Evolutionary search needs a deterministic evaluator; AlphaEvolve targets domains where one exists."
+      "explanation": "Evolutionary search에는 deterministic evaluator가 필요합니다. AlphaEvolve는 그런 evaluator가 있는 domain을 겨냥합니다."
     },
     {
       "stage": "check",
-      "question": "How does ChatHTN preserve plan soundness while using an LLM?",
+      "question": "ChatHTN은 LLM을 쓰면서도 plan soundness를 어떻게 보존하나요?",
       "options": [
-        "It does not; soundness is best-effort",
-        "LLM suggestions only enter as candidate decompositions, validated against the operator schema; the symbolic layer owns correctness",
-        "It fine-tunes the LLM on HTN traces",
-        "It uses a vector database"
+        "보존하지 않습니다. Soundness는 best-effort입니다",
+        "LLM suggestion은 candidate decomposition으로만 들어오고 operator schema로 validate됩니다. Symbolic layer가 correctness를 소유합니다",
+        "LLM을 HTN trace로 fine-tune합니다",
+        "Vector database를 사용합니다"
       ],
       "correct": 1,
-      "explanation": "The LLM expands the method library but cannot bypass operator preconditions and effects."
+      "explanation": "LLM은 method library를 확장하지만 operator precondition과 effect를 우회할 수 없습니다."
     },
     {
       "stage": "check",
-      "question": "Which AlphaEvolve result does the lesson cite?",
+      "question": "이 lesson이 인용하는 AlphaEvolve result는 무엇인가요?",
       "options": [
-        "First improvement over Strassen for 4x4 complex matrix multiplication in 56 years",
-        "10x speedup of inference on Gemini",
-        "Beating GPT-4 on HumanEval",
-        "First proof of P=NP"
+        "56년 만의 4x4 complex matrix multiplication에서 Strassen 개선",
+        "Gemini inference 10배 speedup",
+        "HumanEval에서 GPT-4 능가",
+        "P=NP의 첫 증명"
       ],
       "correct": 0,
-      "explanation": "AlphaEvolve found 48 scalar multiplications for 4x4 complex matmul, the first improvement on Strassen in 56 years."
+      "explanation": "AlphaEvolve는 4x4 complex matmul에 대해 48 scalar multiplication을 찾아, 56년 만에 Strassen을 개선했습니다."
     },
     {
       "stage": "check",
-      "question": "Which element of an HTN is a primitive directly-executable action with preconditions and effects?",
+      "question": "HTN에서 precondition과 effect를 가진 primitive directly-executable action은 무엇인가요?",
       "options": [
         "Task",
         "Method",
@@ -60,31 +60,31 @@
         "State"
       ],
       "correct": 2,
-      "explanation": "Operators are the primitives; methods decompose compound tasks; state is a set of facts."
+      "explanation": "Operator가 primitive입니다. Method는 compound task를 분해하고 state는 fact의 집합입니다."
     },
     {
       "stage": "post",
-      "question": "What is the lesson's warning about AlphaEvolve without a real evaluator?",
+      "question": "Real evaluator 없는 AlphaEvolve에 대한 lesson의 경고는 무엇인가요?",
       "options": [
-        "It is slow",
-        "Asking an LLM whether the code is better is not a fitness function; the evaluator must be deterministic and fast",
-        "It violates Apache 2.0",
-        "It cannot run on GPUs"
+        "느립니다",
+        "LLM에게 code가 더 나은지 묻는 것은 fitness function이 아닙니다. Evaluator는 deterministic하고 빨라야 합니다",
+        "Apache 2.0을 위반합니다",
+        "GPU에서 실행할 수 없습니다"
       ],
       "correct": 1,
-      "explanation": "Without a deterministic evaluator the search has no signal to converge on."
+      "explanation": "Deterministic evaluator가 없으면 search가 수렴할 signal이 없습니다."
     },
     {
       "stage": "post",
-      "question": "When should you reach for ReAct or ReWOO instead of HTN or AlphaEvolve?",
+      "question": "HTN 또는 AlphaEvolve 대신 ReAct나 ReWOO를 선택해야 하는 때는 언제인가요?",
       "options": [
-        "Never; HTN is strictly better",
-        "When you do not need formal soundness or a machine-checkable fitness; most agent tasks land here",
-        "When you have a GPU cluster available",
-        "When latency is below 100 ms"
+        "절대 없습니다. HTN이 항상 더 낫습니다",
+        "Formal soundness나 machine-checkable fitness가 필요 없을 때입니다. 대부분의 agent task가 여기에 속합니다",
+        "GPU cluster가 있을 때",
+        "Latency가 100 ms 미만일 때"
       ],
       "correct": 1,
-      "explanation": "The lesson explicitly warns against over-engineering: most tasks do not need formal planning or evolutionary search."
+      "explanation": "Lesson은 over-engineering을 명확히 경고합니다. 대부분의 task에는 formal planning이나 evolutionary search가 필요 없습니다."
     }
   ]
 }

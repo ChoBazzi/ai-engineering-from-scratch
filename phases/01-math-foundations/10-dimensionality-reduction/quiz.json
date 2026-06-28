@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the 'curse of dimensionality'?",
-      "options": ["High-dimensional data takes too long to download", "As dimensions grow, distances become meaningless, volume concentrates in corners, and you need exponentially more data", "Neural networks cannot process data with more than 100 features", "High-dimensional data always contains noise"],
+      "question": "'curse of dimensionality'란 무엇인가요?",
+      "options": ["high-dimensional data를 download하는 데 너무 오래 걸리는 것", "dimension이 커질수록 distance가 의미 없어지고, volume이 corner에 집중되며, exponentially more data가 필요해지는 현상", "neural network가 feature 100개보다 많은 data를 처리할 수 없는 것", "high-dimensional data가 항상 noise를 포함한다는 것"],
       "correct": 1,
-      "explanation": "In high dimensions, all pairwise distances converge to similar values, data points spread to corners, and maintaining sample density requires exponentially more data. Dimensionality reduction counteracts these effects."
+      "explanation": "high dimension에서는 모든 pairwise distance가 비슷한 값으로 수렴하고, data point가 corner로 퍼지며, sample density를 유지하려면 exponentially more data가 필요합니다. dimensionality reduction은 이러한 효과를 완화합니다."
     },
     {
       "stage": "pre",
-      "question": "What does PCA find?",
-      "options": ["The most important features by name", "The orthogonal directions of maximum variance in the data", "Clusters of similar data points", "The optimal number of features to keep"],
+      "question": "PCA는 무엇을 찾나요?",
+      "options": ["이름 기준으로 가장 중요한 feature", "data에서 maximum variance를 갖는 orthogonal directions", "비슷한 data point의 cluster", "유지할 optimal number of features"],
       "correct": 1,
-      "explanation": "PCA computes the eigenvectors of the covariance matrix, which are orthogonal directions ranked by how much data variance they capture. The first principal component points along the direction of maximum spread."
+      "explanation": "PCA는 covariance matrix의 eigenvector를 계산합니다. 이는 data variance를 얼마나 포착하는지에 따라 rank된 orthogonal direction입니다. first principal component는 maximum spread direction을 가리킵니다."
     },
     {
       "stage": "post",
-      "question": "After running PCA on 784-dimensional MNIST data with k=50 components, you find 95% of variance is captured. What does this tell you?",
-      "options": ["Only 50 pixels matter in each image", "The data effectively lives in a ~50-dimensional subspace; the remaining 734 dimensions are mostly noise or redundancy", "95% of images belong to the same class", "The model will achieve 95% accuracy"],
+      "question": "784-dimensional MNIST data에 k=50 components로 PCA를 실행했더니 variance의 95%가 포착되었습니다. 이것은 무엇을 알려주나요?",
+      "options": ["각 image에서 pixel 50개만 중요하다", "data가 사실상 약 50-dimensional subspace에 놓여 있으며, 나머지 734 dimensions는 대부분 noise 또는 redundancy다", "image의 95%가 같은 class에 속한다", "model이 95% accuracy를 달성한다"],
       "correct": 1,
-      "explanation": "95% explained variance with 50 components means the essential structure of 784-dimensional data is captured by just 50 directions. The rest carries only 5% of the variation -- mostly noise."
+      "explanation": "50 components로 95% explained variance를 얻었다는 것은 784-dimensional data의 essential structure가 단 50 directions에 의해 포착된다는 뜻입니다. 나머지는 variation의 5%만 담고 있으며 대부분 noise입니다."
     },
     {
       "stage": "post",
-      "question": "Why should you NOT use t-SNE as preprocessing before training a classifier?",
-      "options": ["t-SNE is too slow for large datasets", "t-SNE is designed for visualization only: it distorts global distances, is stochastic, and the output coordinates have no consistent meaning across runs", "t-SNE reduces data to exactly 2 dimensions which is too few", "t-SNE requires the labels to be known in advance"],
+      "question": "classifier training 전 preprocessing으로 t-SNE를 사용하면 안 되는 이유는 무엇인가요?",
+      "options": ["t-SNE는 large dataset에 너무 느리다", "t-SNE는 visualization 전용으로 설계되었다. global distance를 왜곡하고 stochastic하며 output coordinate가 run마다 일관된 의미를 갖지 않는다", "t-SNE는 data를 정확히 2 dimensions로 줄이므로 너무 적다", "t-SNE는 label을 미리 알아야 한다"],
       "correct": 1,
-      "explanation": "t-SNE preserves local neighborhoods but distorts global structure. Distances between clusters are meaningless, and different runs produce different layouts. Use PCA for preprocessing and t-SNE/UMAP only for visualization."
+      "explanation": "t-SNE는 local neighborhood를 보존하지만 global structure를 왜곡합니다. cluster 사이의 distance는 의미가 없고 run마다 다른 layout이 나옵니다. preprocessing에는 PCA를 사용하고, t-SNE/UMAP은 visualization에만 사용하세요."
     },
     {
       "stage": "post",
-      "question": "When would you choose kernel PCA over standard PCA?",
-      "options": ["When you have more samples than features", "When the data lies on a nonlinear manifold that standard PCA cannot separate, like concentric circles", "When you need the fastest possible computation", "When you want interpretable principal components"],
+      "question": "standard PCA 대신 kernel PCA를 선택할 때는 언제인가요?",
+      "options": ["sample이 feature보다 많을 때", "data가 concentric circles처럼 standard PCA로 분리할 수 없는 nonlinear manifold 위에 있을 때", "가능한 가장 빠른 계산이 필요할 때", "interpretable principal components가 필요할 때"],
       "correct": 1,
-      "explanation": "Standard PCA finds linear subspaces. If data has nonlinear structure (e.g., two concentric rings), PCA projects both onto the same line. Kernel PCA maps data to a higher-dimensional space where the structure becomes linear."
+      "explanation": "Standard PCA는 linear subspace를 찾습니다. data에 nonlinear structure가 있으면(예: two concentric rings) PCA는 둘을 같은 line 위로 project합니다. Kernel PCA는 data를 higher-dimensional space로 map해 structure가 linear해지게 합니다."
     }
   ]
 }

@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "A file on disk is decoded into a NumPy array with shape (224, 224, 3) and dtype uint8. What does each number represent?",
-      "options": ["The probability that a pixel is that colour, between 0 and 1", "One photon count per detector, normalized to the full dynamic range of the sensor", "A sample of light intensity at one grid position, quantized to one of 256 levels per channel", "A floating-point brightness value ready to feed to a convolutional network"],
+      "question": "디스크의 파일이 shape (224, 224, 3)와 dtype uint8인 NumPy 배열로 디코딩되었습니다. 각 숫자는 무엇을 나타내나요?",
+      "options": ["픽셀이 그 색일 확률이며 0과 1 사이의 값", "검출기당 하나의 광자 수이며 센서의 전체 동적 범위로 정규화된 값", "한 격자 위치에서의 빛 세기 샘플이며 채널마다 256개 수준 중 하나로 양자화된 값", "합성곱 신경망에 바로 넣을 수 있는 부동소수점 밝기 값"],
       "correct": 2,
-      "explanation": "A uint8 image stores 8-bit integers in [0, 255]. Each integer is one quantized sample of light intensity at one (row, column, channel) position. It is neither a probability nor a float; you must divide by 255 and standardize before feeding it to a pretrained model."
+      "explanation": "uint8 이미지는 [0, 255] 범위의 8비트 정수를 저장합니다. 각 정수는 하나의 (행, 열, 채널) 위치에서 빛 세기를 양자화한 샘플입니다. 확률도 float도 아니므로 사전 학습 모델에 넣기 전에 255로 나누고 표준화해야 합니다."
     },
     {
       "stage": "pre",
-      "question": "You load an image with Pillow and get an array of shape (480, 640, 3). You pass it as a batched tensor (1, 480, 640, 3) to a PyTorch Conv2d with in_channels=3. What happens?",
-      "options": ["Nothing — PyTorch auto-detects the layout", "The first conv layer treats height as the channel axis, producing meaningless feature maps", "PyTorch raises a RuntimeError: Conv2d expects NCHW, sees 480 channels where the weight expects 3, and refuses to run", "Accuracy drops by a few percent but inference still works"],
+      "question": "Pillow로 이미지를 불러와 shape (480, 640, 3)인 배열을 얻었습니다. 이를 배치 텐서 (1, 480, 640, 3)로 만들어 in_channels=3인 PyTorch Conv2d에 전달하면 어떻게 되나요?",
+      "options": ["아무 일도 일어나지 않습니다. PyTorch가 레이아웃을 자동 감지합니다", "첫 번째 conv 레이어가 height를 채널 축으로 취급해 의미 없는 feature map을 만듭니다", "PyTorch가 RuntimeError를 발생시킵니다. Conv2d는 NCHW를 기대하고, weight가 3채널을 기대하는 자리에서 480채널을 보았기 때문에 실행을 거부합니다", "정확도가 몇 퍼센트 떨어지지만 추론은 계속 동작합니다"],
       "correct": 2,
-      "explanation": "PyTorch Conv2d enforces strict channel-count checking against the weight tensor. A batched HWC input (1, 480, 640, 3) is interpreted as NCHW with C=480, which does not match the weight's expected 3 channels, and PyTorch raises RuntimeError before any computation. The loud failure is a feature — it forces you to fix the layout. You must permute to NCHW (`.permute(0, 3, 1, 2)`) before feeding PyTorch."
+      "explanation": "PyTorch Conv2d는 weight 텐서와 채널 수가 맞는지 엄격하게 검사합니다. 배치가 붙은 HWC 입력 (1, 480, 640, 3)은 C=480인 NCHW로 해석되며, weight가 기대하는 3채널과 맞지 않으므로 PyTorch는 계산 전에 RuntimeError를 발생시킵니다. 크게 실패하는 것은 장점입니다. 레이아웃을 고치도록 강제하기 때문입니다. PyTorch에 넣기 전에 NCHW로 바꾸려면 `.permute(0, 3, 1, 2)`를 사용해야 합니다."
     },
     {
       "stage": "post",
-      "question": "Why do ImageNet pretrained models expect inputs standardized with mean=[0.485, 0.456, 0.406] and std=[0.229, 0.224, 0.225]?",
-      "options": ["Those are the RGB values of an average natural scene", "Those are the per-channel mean and standard deviation of the ImageNet training set in [0, 1] space, so subtracting them centers the distribution the model was trained on", "They make the input strictly zero-mean unit-variance for any image", "They are required by the ReLU activation function"],
+      "question": "ImageNet 사전 학습 모델은 왜 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]로 표준화된 입력을 기대하나요?",
+      "options": ["그 값들이 평균적인 자연 장면의 RGB 값이기 때문입니다", "그 값들이 [0, 1] 공간에서 ImageNet 학습 세트의 채널별 평균과 표준편차이므로, 빼 주면 모델이 학습한 분포의 중심에 입력이 맞춰지기 때문입니다", "어떤 이미지든 입력을 엄격히 평균 0, 분산 1로 만들기 때문입니다", "ReLU 활성화 함수가 요구하기 때문입니다"],
       "correct": 1,
-      "explanation": "The numbers are statistics of the ImageNet training corpus computed after dividing pixels by 255. Using them aligns your input distribution with the one the network saw during training. For a model trained on a different dataset you would recompute the stats on that dataset."
+      "explanation": "이 숫자들은 픽셀을 255로 나눈 뒤 계산한 ImageNet 학습 말뭉치의 통계입니다. 이 값을 사용하면 입력 분포가 네트워크가 학습 중에 보았던 분포와 맞춰집니다. 다른 데이터셋으로 학습한 모델이라면 그 데이터셋에서 통계를 다시 계산해야 합니다."
     },
     {
       "stage": "post",
-      "question": "You resize a segmentation mask (integer class IDs 0..20) from 500x500 to 224x224. Which interpolation method is correct?",
-      "options": ["Bilinear — it smooths the class boundaries", "Bicubic — it preserves sharpness", "Lanczos — highest quality", "Nearest neighbour — it preserves valid integer class IDs instead of inventing fractional ones"],
+      "question": "세그멘테이션 마스크(정수 클래스 ID 0..20)를 500x500에서 224x224로 리사이즈합니다. 어떤 보간 방법이 맞나요?",
+      "options": ["Bilinear - 클래스 경계를 부드럽게 만듭니다", "Bicubic - 선명도를 보존합니다", "Lanczos - 가장 높은 품질입니다", "Nearest neighbour - 소수 클래스 값을 새로 만들지 않고 유효한 정수 클래스 ID를 보존합니다"],
       "correct": 3,
-      "explanation": "Bilinear, bicubic, and lanczos average neighbouring values. On a class-ID mask that produces non-integer values like 4.7 between class 4 and class 5, which are not real classes. Nearest neighbour picks the closest original pixel and keeps the label space intact. This rule also applies to any channel that encodes IDs or indices."
+      "explanation": "Bilinear, bicubic, lanczos는 주변 값을 평균냅니다. 클래스 ID 마스크에서는 클래스 4와 클래스 5 사이에 4.7 같은 정수가 아닌 값이 생기는데, 이는 실제 클래스가 아닙니다. Nearest neighbour는 가장 가까운 원본 픽셀을 선택해 레이블 공간을 그대로 유지합니다. 이 규칙은 ID나 인덱스를 인코딩하는 모든 채널에도 적용됩니다."
     },
     {
       "stage": "post",
-      "question": "RGB grayscale conversion uses weights 0.299 R + 0.587 G + 0.114 B rather than 0.333 R + 0.333 G + 0.333 B. Why?",
-      "options": ["To compensate for JPEG compression artifacts in each channel", "Because green photons carry more energy than red or blue photons", "Because human vision is most sensitive to green and least sensitive to blue, so the weighted sum matches perceived luminance", "To match the behaviour of the Bayer filter on camera sensors"],
+      "question": "RGB를 grayscale로 변환할 때 0.333 R + 0.333 G + 0.333 B가 아니라 0.299 R + 0.587 G + 0.114 B 가중치를 쓰는 이유는 무엇인가요?",
+      "options": ["각 채널의 JPEG 압축 아티팩트를 보정하기 위해서입니다", "초록색 광자가 빨간색이나 파란색 광자보다 더 많은 에너지를 갖기 때문입니다", "인간 시각이 초록색에 가장 민감하고 파란색에 가장 덜 민감하므로, 가중합이 지각된 휘도와 맞기 때문입니다", "카메라 센서의 Bayer 필터 동작과 맞추기 위해서입니다"],
       "correct": 2,
-      "explanation": "The ITU-R BT.601 weights 0.299/0.587/0.114 come from the luminous efficiency of the human eye. An equal-weight average would make green-tinted images look too dark and red ones too bright to a human observer. Most classical computer-vision grayscale code uses these weights; BT.709 (0.2126/0.7152/0.0722) is the modern HDTV variant for linear-light inputs."
+      "explanation": "ITU-R BT.601 가중치 0.299/0.587/0.114는 인간 눈의 시감 효율에서 나온 값입니다. 동일 가중 평균을 쓰면 사람에게 초록빛 이미지는 너무 어둡게, 빨간 이미지는 너무 밝게 보입니다. 대부분의 고전 컴퓨터 비전 grayscale 코드는 이 가중치를 사용합니다. BT.709 (0.2126/0.7152/0.0722)는 선형 빛 입력을 위한 현대 HDTV 변형입니다."
     }
   ]
 }

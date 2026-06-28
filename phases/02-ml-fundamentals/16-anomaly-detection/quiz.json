@@ -2,66 +2,66 @@
   {
     "id": "anomaly-pre-1",
     "stage": "pre",
-    "question": "Why is anomaly detection typically framed as an unsupervised problem rather than classification?",
+    "question": "이상 탐지가 보통 분류가 아니라 비지도 문제로 구성되는 이유는 무엇인가요?",
     "options": [
-      "Anomaly detection does not require any data",
-      "Labeled anomalies are extremely rare, and novel anomaly types differ from previously seen ones",
-      "Supervised classification is always less accurate",
-      "Anomaly detection only works on time series data"
+      "이상 탐지는 어떤 데이터도 필요로 하지 않는다",
+      "라벨링된 이상은 극히 드물고, 새로운 이상 유형은 이전에 본 것과 다르다",
+      "지도 분류는 항상 정확도가 더 낮다",
+      "이상 탐지는 시계열 데이터에서만 작동한다"
     ],
     "correct": 1,
-    "explanation": "Anomalies are rare (often <0.1% of data), so there are too few labeled examples to train a classifier. Also, future anomalies may be of types never seen before. Modeling 'normal' and flagging deviations handles both problems."
+    "explanation": "이상은 드물기 때문에(데이터의 <0.1%인 경우가 많음) 분류기를 학습할 만큼 라벨링된 예시가 너무 적습니다. 또한 미래의 이상은 이전에 본 적 없는 유형일 수 있습니다. '정상'을 모델링하고 이탈을 flag하면 두 문제를 모두 다룰 수 있습니다."
   },
   {
     "id": "anomaly-pre-2",
     "stage": "pre",
-    "question": "A temperature of 90F is normal in summer but anomalous in winter. What type of anomaly is this?",
+    "question": "90F라는 온도는 여름에는 정상이지만 겨울에는 이상입니다. 이것은 어떤 유형의 이상인가요?",
     "options": [
-      "Point anomaly",
-      "Contextual anomaly",
-      "Collective anomaly",
-      "Statistical anomaly"
+      "점 이상",
+      "문맥 이상",
+      "집단 이상",
+      "통계적 이상"
     ],
     "correct": 1,
-    "explanation": "A contextual anomaly is a value that is unusual given its context (time, location). The value itself might be normal in a different context. Same data point, different interpretation based on surrounding conditions."
+    "explanation": "문맥 이상은 주어진 문맥(시간, 위치)에서 특이한 값입니다. 값 자체는 다른 문맥에서는 정상일 수 있습니다. 같은 데이터 포인트라도 주변 조건에 따라 해석이 달라집니다."
   },
   {
     "id": "anomaly-post-1",
     "stage": "post",
-    "question": "The Z-score method flags points more than 3 standard deviations from the mean. When does this approach fail?",
+    "question": "Z-score 방법은 평균에서 3 표준편차보다 멀리 있는 포인트를 flag합니다. 이 접근법은 언제 실패하나요?",
     "options": [
-      "When the data is perfectly normally distributed",
-      "When the data is multimodal, skewed, or when outliers in the training data inflate the mean and std",
-      "When there are exactly 3 anomalies in the dataset",
-      "When the features are standardized"
+      "데이터가 완벽하게 정규분포일 때",
+      "데이터가 다봉, 왜도 분포이거나 학습 데이터의 이상치가 평균과 std를 부풀릴 때",
+      "데이터셋에 정확히 3개의 이상이 있을 때",
+      "특징이 표준화되어 있을 때"
     ],
     "correct": 1,
-    "explanation": "Z-score assumes a single Gaussian distribution. It fails on multimodal data (multiple clusters), skewed distributions, and when outliers in training data shift the mean/std, making real anomalies harder to detect."
+    "explanation": "Z-score는 단일 Gaussian 분포를 가정합니다. 다봉 데이터(여러 클러스터), 왜도가 있는 분포, 그리고 학습 데이터의 이상치가 평균/std를 이동시켜 실제 이상을 더 탐지하기 어렵게 만드는 경우 실패합니다."
   },
   {
     "id": "anomaly-post-2",
     "stage": "post",
-    "question": "How does Isolation Forest detect anomalies differently from distance-based methods?",
+    "question": "Isolation Forest는 거리 기반 방법과 다르게 이상을 어떻게 탐지하나요?",
     "options": [
-      "It uses neural networks instead of trees",
-      "It isolates points using random splits; anomalies require fewer splits to isolate because they are few and different",
-      "It computes distances to every other point in the dataset",
-      "It only works on text data"
+      "트리 대신 신경망을 사용한다",
+      "무작위 split으로 포인트를 고립시킨다. 이상은 적고 다르기 때문에 고립시키는 데 필요한 split이 더 적다",
+      "데이터셋의 모든 다른 포인트까지의 거리를 계산한다",
+      "텍스트 데이터에서만 작동한다"
     ],
     "correct": 1,
-    "explanation": "Isolation Forest randomly partitions data with tree splits. Anomalies, being rare and different, end up isolated (in their own leaf) with fewer splits. Short average path length = more anomalous."
+    "explanation": "Isolation Forest는 트리 split으로 데이터를 무작위 분할합니다. 이상은 드물고 다르기 때문에 더 적은 split만으로 자기 leaf에 고립됩니다. 짧은 평균 path length = 더 이상함을 의미합니다."
   },
   {
     "id": "anomaly-post-3",
     "stage": "post",
-    "question": "You build both an unsupervised anomaly detector and a supervised fraud classifier. When should you prefer the unsupervised approach?",
+    "question": "비지도 이상 detector와 지도 사기 분류기를 모두 만들었습니다. 언제 비지도 접근법을 선호해야 하나요?",
     "options": [
-      "Always -- unsupervised is always better for anomaly detection",
-      "When you need to detect novel fraud patterns that differ from historical labeled examples",
-      "When you have millions of labeled fraud examples",
-      "When you only care about precision, not recall"
+      "항상 -- 이상 탐지에는 비지도가 항상 더 좋다",
+      "과거의 라벨링된 예시와 다른 새로운 사기 패턴을 탐지해야 할 때",
+      "라벨링된 사기 예시가 수백만 개 있을 때",
+      "recall이 아니라 precision만 중요할 때"
     ],
     "correct": 1,
-    "explanation": "Supervised classifiers only catch fraud types present in training data. Unsupervised detectors flag any deviation from normal, catching novel fraud schemes. The tradeoff is higher false positive rate."
+    "explanation": "지도 분류기는 학습 데이터에 있는 사기 유형만 잡아냅니다. 비지도 detector는 정상에서 벗어나는 모든 것을 flag하므로 새로운 사기 수법을 잡아낼 수 있습니다. tradeoff는 더 높은 false positive rate입니다."
   }
 ]

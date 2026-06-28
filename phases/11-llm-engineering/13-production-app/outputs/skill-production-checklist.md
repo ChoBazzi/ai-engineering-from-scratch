@@ -1,127 +1,127 @@
 ---
 name: skill-production-checklist
-description: Decision framework for shipping LLM applications to production -- covers every component with specific thresholds and pass/fail criteria
+description: LLM 애플리케이션을 프로덕션에 출시하기 위한 의사결정 프레임워크 -- 구체적인 임계값과 통과/실패 기준으로 모든 구성요소를 다룬다
 version: 1.0.0
 phase: 11
 lesson: 13
 tags: [production, deployment, llm, architecture, scaling, cost, observability, guardrails]
 ---
 
-# Production LLM Checklist
+# 프로덕션 LLM 체크리스트
 
-When shipping an LLM application, work through this checklist in order. Each section has pass/fail criteria with specific thresholds.
+LLM 애플리케이션을 출시할 때는 이 체크리스트를 순서대로 진행한다. 각 섹션에는 구체적인 임계값이 있는 통과/실패 기준이 있다.
 
-## 1. Security (Ship Blockers)
+## 1. 보안(출시 차단 항목)
 
-Every item here must pass before any deployment.
+여기의 모든 항목은 배포 전에 반드시 통과해야 한다.
 
-| Check | Pass Criteria | How to Verify |
+| 점검 항목 | 통과 기준 | 검증 방법 |
 |-------|--------------|---------------|
-| API keys in env vars | Zero hardcoded keys in codebase | `grep -r "sk-" --include="*.py"` returns nothing |
-| Input guardrails active | Prompt injection patterns blocked | Send "Ignore all previous instructions" -- returns blocked response |
-| PII redaction | SSN, credit card, email patterns caught | Send "My SSN is 123-45-6789" -- PII redacted before LLM call |
-| Output filtering | Dangerous content blocked | Model cannot return `DROP TABLE`, `rm -rf`, `exec()` patterns |
-| Rate limiting | Per-user request cap enforced | 100 requests from same user in 10 seconds -- last 50+ rejected |
-| Auth on all endpoints | No unauthenticated LLM access | `curl /v1/chat` without token returns 401 |
-| CORS restricted | Only production domains allowed | `Origin: evil.com` request rejected |
-| Max input tokens | Requests over limit rejected | Send 50K token input -- returns 413 or truncation |
+| 환경 변수의 API 키 | 코드베이스에 하드코딩된 키가 0개 | `grep -r "sk-" --include="*.py"`가 아무것도 반환하지 않음 |
+| 입력 가드레일 활성화 | prompt injection 패턴 차단 | "Ignore all previous instructions" 전송 -- 차단 응답 반환 |
+| PII 제거 | SSN, 신용카드, 이메일 패턴 포착 | "My SSN is 123-45-6789" 전송 -- LLM 호출 전에 PII 제거 |
+| 출력 필터링 | 위험한 콘텐츠 차단 | 모델이 `DROP TABLE`, `rm -rf`, `exec()` 패턴을 반환할 수 없음 |
+| Rate limiting | 사용자별 요청 한도 강제 | 같은 사용자가 10초 안에 100개 요청 -- 마지막 50개 이상 거부 |
+| 모든 엔드포인트 인증 | 인증 없는 LLM 접근 없음 | 토큰 없이 `curl /v1/chat` 실행 시 401 반환 |
+| CORS 제한 | 프로덕션 도메인만 허용 | `Origin: evil.com` 요청 거부 |
+| 최대 입력 토큰 | 한도를 넘는 요청 거부 | 50K 토큰 입력 전송 -- 413 반환 또는 잘림 |
 
-## 2. Reliability (Week-One Survival)
+## 2. 신뢰성(첫 주 생존)
 
-These prevent your first on-call incident.
+이 항목들은 첫 온콜 장애를 막는다.
 
-| Check | Pass Criteria | How to Verify |
+| 점검 항목 | 통과 기준 | 검증 방법 |
 |-------|--------------|---------------|
-| Retry with backoff | 3 retries on 5xx, exponential delay | Kill LLM mock mid-request -- retries visible in logs |
-| Fallback model chain | 2+ models in chain | Primary model unavailable -- response still returns from fallback |
-| Request timeout | 30s max on all external calls | Slow LLM mock (60s) -- request times out at 30s |
-| Graceful degradation | Cache/RAG failure does not crash service | Stop cache -- requests still succeed (slower, more expensive) |
-| Health check endpoint | Returns dependency status | `GET /health` returns `{"status": "healthy", "cache": ..., "llm": ...}` |
-| Streaming works | First token under 500ms | Time-to-first-token measured, consistently < 500ms |
-| Error messages are safe | Internal errors never leak to users | Force 500 -- user sees generic error, not stack trace |
+| Backoff 재시도 | 5xx에서 3회 재시도, exponential delay | 요청 중 LLM mock 종료 -- 로그에 재시도 표시 |
+| Fallback 모델 체인 | 체인에 모델 2개 이상 | 주 모델 사용 불가 -- fallback에서 여전히 응답 반환 |
+| 요청 타임아웃 | 모든 외부 호출 최대 30초 | 느린 LLM mock(60초) -- 30초에 요청 타임아웃 |
+| Graceful degradation | Cache/RAG 실패가 서비스를 죽이지 않음 | 캐시 중지 -- 요청은 계속 성공(더 느리고 비쌈) |
+| 헬스 체크 엔드포인트 | dependency 상태 반환 | `GET /health`가 `{"status": "healthy", "cache": ..., "llm": ...}` 반환 |
+| 스트리밍 동작 | 첫 토큰 500ms 미만 | time-to-first-token 측정값이 지속적으로 500ms 미만 |
+| 안전한 오류 메시지 | 내부 오류가 사용자에게 유출되지 않음 | 500 강제 발생 -- 사용자는 stack trace가 아닌 일반 오류를 봄 |
 
-## 3. Cost Control (Month-One Economics)
+## 3. 비용 제어(첫 달 경제성)
 
-These prevent the $50K surprise invoice.
+이 항목들은 예상치 못한 $50K 청구서를 막는다.
 
-| Check | Pass Criteria | How to Verify |
+| 점검 항목 | 통과 기준 | 검증 방법 |
 |-------|--------------|---------------|
-| Cost per request tracked | Every request logs token count + USD cost | Request log has `input_tokens`, `output_tokens`, `cost_usd` fields |
-| Semantic cache active | > 20% hit rate on repeated patterns | Cache stats show hit rate after 1000 test requests |
-| Cache TTL configured | Entries expire (default: 1 hour) | Entry inserted -- not returned after TTL |
-| Per-user cost tracking | Cost aggregated by user_id | Dashboard/API shows top 10 users by cost |
-| Cost alerting | Alert at 80% of daily budget | Set $10 daily budget, send $8.50 in requests -- alert fires |
-| Model routing by cost | Low-complexity queries use cheaper model | Simple question routes to gpt-4o-mini, complex to gpt-4o |
-| Max output tokens set | Responses capped per template | Template with max_output_tokens=512 -- response never exceeds it |
+| 요청별 비용 추적 | 모든 요청이 토큰 수와 USD 비용을 기록 | 요청 로그에 `input_tokens`, `output_tokens`, `cost_usd` 필드가 있음 |
+| Semantic cache 활성화 | 반복 패턴에서 hit rate 20% 초과 | 테스트 요청 1000개 후 캐시 통계가 hit rate 표시 |
+| Cache TTL 구성 | 엔트리가 만료됨(기본: 1시간) | 엔트리 삽입 -- TTL 이후 반환되지 않음 |
+| 사용자별 비용 추적 | 비용이 user_id별로 집계됨 | 대시보드/API가 비용 상위 사용자 10명을 표시 |
+| 비용 알림 | 일일 예산의 80%에서 알림 | 일일 예산 $10 설정, $8.50 요청 전송 -- 알림 발생 |
+| 비용 기반 모델 라우팅 | 낮은 복잡도 쿼리는 더 저렴한 모델 사용 | 단순 질문은 gpt-4o-mini로, 복잡한 질문은 gpt-4o로 라우팅 |
+| 최대 출력 토큰 설정 | 템플릿별 응답 상한 적용 | max_output_tokens=512 템플릿 -- 응답이 이를 넘지 않음 |
 
-**Cost estimation formula:**
-```
+**비용 추정 공식:**
+```text
 Monthly LLM cost = DAU x queries_per_user x 30 x (1 - cache_hit_rate) x (avg_input_tokens x input_price + avg_output_tokens x output_price) / 1,000,000
 ```
 
-**Benchmark thresholds by scale:**
+**규모별 벤치마크 임계값:**
 
-| DAU | Target cost/request | Monthly budget |
+| DAU | 목표 요청당 비용 | 월간 예산 |
 |-----|-------------------|----------------|
 | 1K | < $0.005 | < $750 |
 | 10K | < $0.003 | < $4,500 |
 | 100K | < $0.001 | < $15,000 |
 
-## 4. Observability (Debugging in Production)
+## 4. 관측 가능성(프로덕션 디버깅)
 
-You cannot fix what you cannot see.
+볼 수 없는 것은 고칠 수 없다.
 
-| Check | Pass Criteria | How to Verify |
+| 점검 항목 | 통과 기준 | 검증 방법 |
 |-------|--------------|---------------|
-| Structured JSON logging | Every request produces a JSON log line | Log contains: request_id, user_id, model, tokens, latency_ms, cost |
-| Request tracing | End-to-end trace with component timing | Single request shows: guardrail (5ms) + cache (2ms) + llm (3200ms) + eval (1ms) |
-| Latency tracking | P50, P95, P99 measured | After 1000 requests: P50 < 2s, P99 < 10s |
-| Error rate monitoring | Errors counted and categorized | Dashboard shows: 0.5% API errors, 0.1% guardrail blocks, 0.01% timeouts |
-| Cache metrics | Hit rate, miss rate, entry count visible | `GET /v1/cache/stats` returns current numbers |
-| A/B test metrics | Per-variant quality metrics logged | Each request logs prompt_template + version for comparison |
-| Eval logging | Quality signals recorded per request | Response length, latency, model, template version stored for offline analysis |
+| 구조화 JSON 로깅 | 모든 요청이 JSON 로그 한 줄 생성 | 로그에 request_id, user_id, model, tokens, latency_ms, cost 포함 |
+| 요청 tracing | 구성요소별 timing이 있는 end-to-end trace | 단일 요청이 guardrail(5ms) + cache(2ms) + llm(3200ms) + eval(1ms)을 표시 |
+| 지연 시간 추적 | P50, P95, P99 측정 | 요청 1000개 후 P50 < 2s, P99 < 10s |
+| 오류율 모니터링 | 오류가 집계되고 분류됨 | 대시보드가 API 오류 0.5%, 가드레일 차단 0.1%, 타임아웃 0.01% 표시 |
+| 캐시 메트릭 | hit rate, miss rate, 엔트리 수 표시 | `GET /v1/cache/stats`가 현재 숫자 반환 |
+| A/B 테스트 메트릭 | variant별 품질 지표 로깅 | 비교를 위해 각 요청이 prompt_template과 version을 기록 |
+| Eval 로깅 | 요청별 품질 신호 기록 | 오프라인 분석용 응답 길이, 지연 시간, 모델, 템플릿 버전 저장 |
 
-## 5. Prompt Management
+## 5. 프롬프트 관리
 
-Prompts are code. Treat them like code.
+프롬프트는 코드다. 코드처럼 다뤄라.
 
-| Check | Pass Criteria | How to Verify |
+| 점검 항목 | 통과 기준 | 검증 방법 |
 |-------|--------------|---------------|
-| Versioned templates | Every template has a name + version string | Template change creates new version, old version preserved |
-| A/B testing support | Traffic split by deterministic user hash | Same user always sees same variant within experiment |
-| Rollback capability | Revert to previous version in < 1 minute | Change experiment config -- traffic instantly shifts |
-| Template validation | Variables validated before rendering | Missing variable in template raises clear error, not KeyError |
-| System prompt separation | System and user messages in separate fields | System prompt is not concatenated into user message |
+| 버전 관리 템플릿 | 모든 템플릿에 name과 version 문자열이 있음 | 템플릿 변경 시 새 버전 생성, 이전 버전 보존 |
+| A/B 테스트 지원 | deterministic user hash로 트래픽 분할 | 같은 사용자는 실험 내에서 항상 같은 variant를 봄 |
+| Rollback 기능 | 1분 미만에 이전 버전으로 복귀 | 실험 설정 변경 -- 트래픽이 즉시 전환됨 |
+| 템플릿 검증 | 렌더링 전 변수 검증 | 템플릿 변수 누락 시 KeyError가 아니라 명확한 오류 발생 |
+| 시스템 프롬프트 분리 | 시스템 메시지와 사용자 메시지를 별도 필드에 저장 | 시스템 프롬프트가 사용자 메시지에 이어 붙지 않음 |
 
-## 6. Scaling Readiness
+## 6. 스케일링 준비
 
-Not needed at launch. Needed at 10x.
+출시 시점에는 필요 없을 수 있다. 10배 성장 시점에는 필요하다.
 
-| Check | Pass Criteria | How to Verify |
+| 점검 항목 | 통과 기준 | 검증 방법 |
 |-------|--------------|---------------|
-| Async LLM calls | No thread blocking on API calls | 50 concurrent requests -- server CPU stays < 30% |
-| Connection pooling | HTTP connections reused | Network trace shows persistent connections to LLM provider |
-| Horizontal scaling | Stateless server design | 2 instances behind load balancer -- all requests succeed |
-| Queue support | Non-real-time tasks go to queue | Summarization request returns job_id, result available via polling |
-| Load tested | 100 concurrent users, < 5% error rate | `wrk` or `locust` test passes at target concurrency |
+| Async LLM 호출 | API 호출에서 thread blocking 없음 | 동시 요청 50개 -- 서버 CPU가 30% 미만 유지 |
+| Connection pooling | HTTP 연결 재사용 | 네트워크 trace가 LLM 제공자와의 persistent connection 표시 |
+| 수평 확장 | Stateless 서버 설계 | 로드 밸런서 뒤 인스턴스 2개 -- 모든 요청 성공 |
+| 큐 지원 | 실시간이 아닌 작업은 큐로 이동 | 요약 요청이 job_id 반환, polling으로 결과 사용 가능 |
+| Load test 완료 | 동시 사용자 100명, 오류율 5% 미만 | `wrk` 또는 `locust` 테스트가 목표 동시성에서 통과 |
 
-## Implementation order for new projects
+## 새 프로젝트 구현 순서
 
-1. **Day 1:** API server + prompt templates + single LLM call with retry
-2. **Day 2:** Input guardrails + output guardrails + error handling
-3. **Day 3:** Semantic cache + cost tracking per request
-4. **Day 4:** Streaming (SSE) + health check endpoint
-5. **Day 5:** Structured logging + request tracing + eval logging
-6. **Week 2:** A/B testing + prompt versioning + rollback
-7. **Week 3:** Fallback model chain + graceful degradation
-8. **Week 4:** Load testing + async optimization + horizontal scaling
+1. **1일차:** API 서버 + 프롬프트 템플릿 + 재시도 포함 단일 LLM 호출
+2. **2일차:** 입력 가드레일 + 출력 가드레일 + 오류 처리
+3. **3일차:** Semantic cache + 요청별 비용 추적
+4. **4일차:** 스트리밍(SSE) + 헬스 체크 엔드포인트
+5. **5일차:** 구조화 로깅 + 요청 tracing + eval 로깅
+6. **2주차:** A/B 테스트 + 프롬프트 버전 관리 + rollback
+7. **3주차:** Fallback 모델 체인 + graceful degradation
+8. **4주차:** Load testing + async 최적화 + 수평 확장
 
-## Quick diagnostic
+## 빠른 진단
 
-If something is wrong in production, check in this order:
+프로덕션에서 문제가 생기면 다음 순서로 확인한다.
 
-1. **Users complaining about errors?** Check health endpoint, then error rate in logs, then LLM provider status page
-2. **Responses are slow?** Check P99 latency, then cache hit rate, then LLM response times in traces
-3. **Cost spiking?** Check cost-per-request trend, then cache hit rate, then top users by cost, then look for prompt template changes that increased token count
-4. **Quality dropped?** Check if a new prompt version was deployed, check if RAG retrieval accuracy changed, check if model provider changed default model version
-5. **Security incident?** Check guardrail block rate (sudden drop = guardrails disabled), check request logs for unusual patterns, rotate API keys immediately
+1. **사용자가 오류를 호소하는가?** 헬스 엔드포인트, 로그의 오류율, LLM 제공자 상태 페이지 순서로 확인한다.
+2. **응답이 느린가?** P99 지연 시간, 캐시 hit rate, trace의 LLM 응답 시간을 확인한다.
+3. **비용이 급증하는가?** 요청당 비용 추세, 캐시 hit rate, 비용 상위 사용자, 토큰 수를 늘린 프롬프트 템플릿 변경을 확인한다.
+4. **품질이 떨어졌는가?** 새 프롬프트 버전 배포 여부, RAG 검색 정확도 변화, 모델 제공자의 기본 모델 버전 변경 여부를 확인한다.
+5. **보안 사고인가?** 가드레일 차단율(갑작스러운 하락 = 가드레일 비활성화), 비정상 패턴이 있는 요청 로그를 확인하고 API 키를 즉시 회전한다.

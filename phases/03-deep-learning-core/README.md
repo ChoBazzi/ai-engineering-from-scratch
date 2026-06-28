@@ -1,5 +1,5 @@
-# Phase 3: Deep Learning Core
+# 3단계: 딥러닝 핵심
 
-> Neural networks from first principles. No frameworks until you build one yourself.
+> 제1원리부터 신경망을 배웁니다. 직접 만들어 보기 전까지는 프레임워크를 쓰지 않습니다.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 수업 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

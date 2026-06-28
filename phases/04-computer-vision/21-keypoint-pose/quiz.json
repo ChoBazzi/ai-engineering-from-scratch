@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why do pose models regress heatmaps instead of (x, y) coordinates directly?",
-      "options": ["Heatmaps are cheaper to compute", "The spatial structure of a conv feature map aligns with spatial output; a Gaussian heatmap target provides a smooth loss landscape that tolerates small localisation errors, whereas direct coordinate regression is brittle and loses spatial context", "Heatmaps are required by the COCO metric", "Coordinate regression produces NaN"],
+      "question": "포즈 모델은 왜 (x, y) 좌표를 직접 회귀하지 않고 heatmap을 회귀할까?",
+      "options": ["Heatmap이 계산 비용이 더 낮기 때문이다", "conv feature map의 spatial structure가 spatial output과 맞고, Gaussian heatmap target은 작은 localisation error를 허용하는 smooth loss landscape를 제공하지만 direct coordinate regression은 취약하고 spatial context를 잃기 때문이다", "Heatmap은 COCO metric에 필수이기 때문이다", "Coordinate regression은 NaN을 만든다"],
       "correct": 1,
-      "explanation": "Regressing coordinates with MSE asks the network to reduce a 2D position to two scalars, losing the feature-map alignment that CNNs exploit. Heatmap regression gives the network a per-pixel loss that is smooth around the true location and preserves spatial priors. The empirical improvement over coordinate regression is large enough that every modern pose model uses heatmaps."
+      "explanation": "MSE로 좌표를 회귀하면 network가 2D position을 scalar 두 개로 줄여야 하므로 CNN이 활용하는 feature-map alignment를 잃는다. Heatmap regression은 network에 실제 위치 주변에서 smooth한 per-pixel loss를 주고 spatial prior를 보존한다. coordinate regression 대비 경험적 개선 폭이 충분히 커서 모든 modern pose model이 heatmap을 사용한다."
     },
     {
       "stage": "pre",
-      "question": "Top-down pose estimation vs bottom-up: which scales better with crowd size, and why?",
-      "options": ["Top-down, because each person uses a separate fast model", "Bottom-up, because it does one forward pass over the whole image then groups keypoints, so runtime is constant in the number of people", "They scale equally", "Top-down never scales"],
+      "question": "Top-down pose estimation과 bottom-up 중 crowd size에 더 잘 scale되는 것은 무엇이며, 이유는 무엇인가?",
+      "options": ["Top-down이다. 각 사람이 별도의 빠른 model을 쓰기 때문이다", "Bottom-up이다. 전체 이미지에 대해 forward pass를 한 번 수행한 뒤 keypoint를 group하므로 runtime이 사람 수에 대해 constant이기 때문이다", "둘은 똑같이 scale된다", "Top-down은 절대 scale되지 않는다"],
       "correct": 1,
-      "explanation": "Top-down runs a per-person keypoint model after a person detector, so cost grows linearly with the number of people. Bottom-up (OpenPose, HigherHRNet) produces all keypoints and association fields in one pass, then groups them — constant time regardless of crowd density. The trade: top-down is more accurate per-person; bottom-up is faster in crowds."
+      "explanation": "Top-down은 person detector 뒤에 사람별 keypoint model을 실행하므로 비용이 사람 수에 선형으로 증가한다. Bottom-up(OpenPose, HigherHRNet)은 한 번의 pass로 모든 keypoint와 association field를 만든 뒤 group하므로 crowd density와 무관하게 constant time이다. tradeoff는 top-down이 사람별 정확도가 더 높고, bottom-up은 crowd에서 더 빠르다는 점이다."
     },
     {
       "stage": "post",
-      "question": "What are Part Affinity Fields?",
-      "options": ["A scheduling algorithm", "2-channel unit-vector fields that encode the direction from one keypoint to another; integrating the PAF along a candidate line tells you whether two keypoints belong to the same instance, enabling bottom-up association without per-person detection", "A data augmentation technique", "A type of loss function"],
+      "question": "Part Affinity Fields란 무엇인가?",
+      "options": ["Scheduling algorithm", "한 keypoint에서 다른 keypoint로 향하는 방향을 인코딩하는 2-channel unit-vector field다. candidate line을 따라 PAF를 적분하면 두 keypoint가 같은 instance에 속하는지 알 수 있어, per-person detection 없이 bottom-up association을 가능하게 한다", "Data augmentation technique", "Loss function의 한 종류"],
       "correct": 1,
-      "explanation": "Per connected keypoint pair (limb), predict a 2-channel field (x, y components of the unit vector pointing from one keypoint to the other). To match a candidate shoulder with a candidate elbow, integrate the PAF along the line joining them; higher integral = stronger match. This turns pose into a bipartite matching problem solvable in polynomial time."
+      "explanation": "연결된 keypoint pair(limb)마다 한 keypoint에서 다른 keypoint로 향하는 unit vector의 x, y component로 된 2-channel field를 예측한다. candidate shoulder와 candidate elbow를 match하려면 둘을 잇는 선을 따라 PAF를 적분한다. 더 높은 integral은 더 강한 match다. 이것은 pose를 polynomial time에 풀 수 있는 bipartite matching 문제로 바꾼다."
     },
     {
       "stage": "post",
-      "question": "Why does sub-pixel refinement around the argmax meaningfully lift keypoint accuracy?",
-      "options": ["It smooths the heatmap", "Integer argmax rounds to the nearest grid cell; fitting a local parabola or using the offset dx = 0.25*(heatmap[y,x+1] - heatmap[y,x-1]) recovers the continuous peak position, often halving the L2 error for cleanly predicted keypoints", "It prevents overfitting", "It normalises the output"],
+      "question": "Argmax 주변의 sub-pixel refinement가 keypoint accuracy를 의미 있게 올리는 이유는 무엇인가?",
+      "options": ["Heatmap을 smooth하게 만들기 때문이다", "Integer argmax는 가장 가까운 grid cell로 반올림한다. local parabola를 fitting하거나 offset dx = 0.25*(heatmap[y,x+1] - heatmap[y,x-1])를 사용하면 continuous peak position을 복원해, 깨끗하게 예측된 keypoint의 L2 error를 자주 절반으로 줄인다", "Overfitting을 막기 때문이다", "Output을 normalise하기 때문이다"],
       "correct": 1,
-      "explanation": "A well-predicted heatmap has a smooth Gaussian peak whose centre is usually between grid cells. Integer argmax loses that sub-pixel information (up to 0.5 px error). Fitting a parabola or using the first-difference offset recovers the continuous peak. For sports analytics, medical landmarks, or anything requiring precise coordinates, this step is mandatory."
+      "explanation": "잘 예측된 heatmap에는 smooth Gaussian peak가 있고, 그 centre는 보통 grid cell 사이에 있다. Integer argmax는 그 sub-pixel information을 잃는다(최대 0.5 px error). Parabola fitting이나 first-difference offset은 continuous peak를 복원한다. Sports analytics, medical landmarks 또는 precise coordinates가 필요한 모든 작업에서 이 단계는 필수다."
     },
     {
       "stage": "post",
-      "question": "OKS (Object Keypoint Similarity) is the pose-estimation analogue of what object-detection metric?",
-      "options": ["Inference latency", "IoU — both measure geometric match between prediction and ground truth, with OKS using keypoint distances weighted by each keypoint's annotation variance; COCO reports mAP@OKS 0.5:0.95 for pose", "Classification accuracy", "Cross-entropy loss"],
+      "question": "OKS(Object Keypoint Similarity)는 어떤 object-detection metric의 pose-estimation analogue인가?",
+      "options": ["Inference latency", "IoU다. 둘 다 prediction과 ground truth 사이의 geometric match를 측정하며, OKS는 각 keypoint의 annotation variance로 가중한 keypoint distance를 사용한다. COCO는 pose에 대해 mAP@OKS 0.5:0.95를 보고한다", "Classification accuracy", "Cross-entropy loss"],
       "correct": 1,
-      "explanation": "OKS ranges 0 to 1 like IoU and plays the same role: it decides whether a prediction matches a ground-truth pose at a given strictness level. Each keypoint has a variance (COCO publishes them) that scales its contribution — invariant joints like nose and eyes weigh more than wrists, which are annotated less consistently. COCO Pose AP @ OKS 0.5:0.95 is the 2026 community benchmark."
+      "explanation": "OKS는 IoU처럼 0에서 1 범위이며 같은 역할을 한다. 주어진 strictness level에서 prediction이 ground-truth pose와 match되는지를 결정한다. 각 keypoint에는 contribution을 scale하는 variance(COCO가 공개)가 있다. nose와 eyes처럼 invariant한 joint는 wrist처럼 annotation consistency가 낮은 부위보다 더 크게 가중된다. COCO Pose AP @ OKS 0.5:0.95는 2026년 community benchmark다."
     }
   ]
 }

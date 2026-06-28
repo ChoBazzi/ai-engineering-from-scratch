@@ -2,66 +2,66 @@
   {
     "id": "linreg-pre-1",
     "stage": "pre",
-    "question": "What does the learning rate control in gradient descent?",
+    "question": "gradient descent에서 learning rate는 무엇을 제어하나요?",
     "options": [
-      "The number of features used by the model",
-      "How many epochs the model trains for",
-      "The size of each parameter update step",
-      "The ratio of training to test data"
+      "model이 사용하는 feature 수",
+      "model이 training하는 epoch 수",
+      "각 parameter update step의 크기",
+      "training data와 test data의 비율"
     ],
     "correct": 2,
-    "explanation": "The learning rate is a scalar that controls how much weights change per gradient descent step. Too large causes divergence, too small causes slow convergence."
+    "explanation": "learning rate는 gradient descent step마다 weight가 얼마나 바뀌는지 제어하는 scalar입니다. 너무 크면 divergence가 발생하고, 너무 작으면 convergence가 느려집니다."
   },
   {
     "id": "linreg-pre-2",
     "stage": "pre",
-    "question": "What does R-squared = 0 mean for a regression model?",
+    "question": "regression model에서 R-squared = 0은 무엇을 의미하나요?",
     "options": [
-      "The model makes perfect predictions",
-      "The model is no better than always predicting the mean of the target",
-      "The model has negative error",
-      "The model has not been trained yet"
+      "model이 완벽한 prediction을 한다",
+      "model이 target의 mean을 항상 예측하는 것보다 낫지 않다",
+      "model의 error가 negative이다",
+      "model이 아직 training되지 않았다"
     ],
     "correct": 1,
-    "explanation": "R-squared = 0 means the model explains none of the variance in the target. It performs exactly as well as simply predicting the mean every time."
+    "explanation": "R-squared = 0은 model이 target variance를 전혀 설명하지 못한다는 뜻입니다. 매번 mean을 예측하는 단순한 baseline과 정확히 같은 성능입니다."
   },
   {
     "id": "linreg-post-1",
     "stage": "post",
-    "question": "Why is feature scaling important for gradient descent in multiple linear regression?",
+    "question": "multiple linear regression에서 gradient descent를 사용할 때 feature scaling이 중요한 이유는 무엇인가요?",
     "options": [
-      "It makes the model more interpretable",
-      "It prevents the cost surface from being elongated, allowing faster convergence",
-      "It reduces the number of features needed",
-      "It guarantees the model will find the global minimum"
+      "model을 더 해석 가능하게 만들기 때문에",
+      "cost surface가 길게 늘어지는 것을 막아 더 빠르게 convergence하게 하기 때문에",
+      "필요한 feature 수를 줄이기 때문에",
+      "model이 global minimum을 찾는 것을 보장하기 때문에"
     ],
     "correct": 1,
-    "explanation": "When features have very different scales, the cost surface becomes elongated. Gradient descent takes many more steps to converge. Standardizing features makes the surface more spherical."
+    "explanation": "feature scale이 크게 다르면 cost surface가 길게 늘어집니다. 그러면 gradient descent가 convergence하기까지 훨씬 더 많은 step이 필요합니다. feature를 standardize하면 surface가 더 구형에 가까워집니다."
   },
   {
     "id": "linreg-post-2",
     "stage": "post",
-    "question": "The normal equation gives optimal weights directly. Why would you prefer gradient descent instead?",
+    "question": "normal equation은 optimal weight를 직접 제공합니다. 그런데도 gradient descent를 선호할 수 있는 이유는 무엇인가요?",
     "options": [
-      "Gradient descent always gives more accurate results",
-      "The normal equation does not work for linear regression",
-      "Matrix inversion in the normal equation is O(n^3) in features, which is too slow for thousands of features",
-      "Gradient descent requires less memory than storing the data"
+      "gradient descent가 항상 더 정확한 결과를 주기 때문에",
+      "normal equation은 linear regression에 동작하지 않기 때문에",
+      "normal equation의 matrix inversion은 feature 수에 대해 O(n^3)라서 feature가 수천 개이면 너무 느리기 때문에",
+      "gradient descent는 data를 저장하는 것보다 memory를 적게 쓰기 때문에"
     ],
     "correct": 2,
-    "explanation": "The normal equation requires inverting X^T * X, which is O(n^3) in the number of features. For large feature counts, gradient descent is more efficient."
+    "explanation": "normal equation은 X^T * X를 invert해야 하며, 이는 feature 수에 대해 O(n^3)입니다. feature 수가 많을 때는 gradient descent가 더 효율적입니다."
   },
   {
     "id": "linreg-post-3",
     "stage": "post",
-    "question": "A degree-10 polynomial regression model fits training data perfectly (R^2 = 1.0) but has R^2 = 0.3 on test data. What should you do?",
+    "question": "degree-10 polynomial regression model이 training data에는 완벽히 맞지만(R^2 = 1.0) test data에서는 R^2 = 0.3입니다. 무엇을 해야 하나요?",
     "options": [
-      "Increase the polynomial degree to 20 for even better training fit",
-      "Reduce model complexity (lower degree) or add regularization (Ridge) to prevent overfitting",
-      "Collect less training data so the model cannot memorize",
-      "Remove the test set and report training R^2 only"
+      "training fit을 더 좋게 만들기 위해 polynomial degree를 20으로 늘린다",
+      "overfitting을 막기 위해 model complexity를 낮추거나(lower degree) regularization(Ridge)을 추가한다",
+      "model이 memorization하지 못하도록 training data를 더 적게 모은다",
+      "test set을 제거하고 training R^2만 보고한다"
     ],
     "correct": 1,
-    "explanation": "Perfect training fit with poor test fit is overfitting. The fix is to reduce complexity (lower polynomial degree) or add regularization to penalize large weights."
+    "explanation": "완벽한 training fit과 나쁜 test fit은 overfitting입니다. 해결책은 complexity를 낮추거나(polynomial degree 낮추기) 큰 weight에 penalty를 주는 regularization을 추가하는 것입니다."
   }
 ]

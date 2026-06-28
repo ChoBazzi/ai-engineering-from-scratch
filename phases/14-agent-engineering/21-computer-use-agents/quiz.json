@@ -4,87 +4,87 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What input does Claude computer use take, and what does it emit?",
+      "question": "Claude computer use는 어떤 입력을 받고 무엇을 내보내는가?",
       "options": [
-        "Accessibility tree in, keyboard/mouse commands out",
-        "Screenshots in (vision-based), keyboard/mouse commands out",
-        "DOM XML in, JavaScript out",
-        "JSON in, SQL out"
+        "accessibility tree 입력, keyboard/mouse command 출력",
+        "screenshot 입력(vision-based), keyboard/mouse command 출력",
+        "DOM XML 입력, JavaScript 출력",
+        "JSON 입력, SQL 출력"
       ],
       "correct": 1,
-      "explanation": "Claude reads pixels and emits keyboard/mouse actions; no OS accessibility API is used."
+      "explanation": "Claude는 pixel을 읽고 keyboard/mouse action을 내보낸다. OS accessibility API는 사용하지 않는다."
     },
     {
       "stage": "pre",
-      "question": "What is Gemini 2.5 Computer Use's distinguishing safety feature?",
+      "question": "Gemini 2.5 Computer Use의 구별되는 safety feature는 무엇인가?",
       "options": [
-        "A per-step safety service that assesses each action before execution and rejects unsafe ones",
-        "Hard-coded WAF rules",
-        "Mandatory CAPTCHAs",
-        "Read-only mode by default"
+        "실행 전 각 action을 평가하고 unsafe action을 거부하는 step별 safety service",
+        "hard-coded WAF rule",
+        "필수 CAPTCHA",
+        "기본 read-only mode"
       ],
       "correct": 0,
-      "explanation": "Gemini 2.5 Computer Use ships a per-step safety classifier as a defining feature."
+      "explanation": "Gemini 2.5 Computer Use는 정의적 feature로 step별 safety classifier를 제공한다."
     },
     {
       "stage": "check",
-      "question": "What does the lesson identify as untrusted input across all three models?",
+      "question": "lesson은 세 model 모두에서 무엇을 untrusted input으로 식별하는가?",
       "options": [
-        "Only HTTPS responses",
-        "Screenshots, DOM text, tool outputs, PDF content, anything retrieved",
-        "Only PDF content",
-        "Nothing; everything is trusted"
+        "HTTPS response만",
+        "screenshot, DOM text, tool output, PDF content, retrieved anything",
+        "PDF content만",
+        "없다. 모든 것이 trusted다"
       ],
       "correct": 1,
-      "explanation": "Only direct user instructions count as permission; everything else is untrusted."
+      "explanation": "직접적인 사용자 지시만 permission으로 간주한다. 그 밖의 모든 것은 untrusted다."
     },
     {
       "stage": "check",
-      "question": "Which OSWorld / WebArena numbers does the lesson cite for OpenAI CUA at launch?",
+      "question": "lesson이 launch 시점 OpenAI CUA에 대해 인용하는 OSWorld / WebArena 수치는 무엇인가?",
       "options": [
         "OSWorld 38.1%, WebArena 58.1%, WebVoyager 87%",
         "OSWorld 0%, WebArena 0%",
         "OSWorld 99%, WebArena 99%",
-        "Numbers not reported"
+        "수치가 보고되지 않음"
       ],
       "correct": 0,
-      "explanation": "Those were the launch numbers cited."
+      "explanation": "그것들이 인용된 launch 수치다."
     },
     {
       "stage": "check",
-      "question": "Which defense pattern is NOT in the 2026 convergence list?",
+      "question": "다음 중 2026년 convergence list에 없는 defense pattern은?",
       "options": [
-        "Per-step safety classifier",
-        "Allowlist/blocklist of navigation targets",
-        "Human-in-the-loop for sensitive actions",
-        "Auto-clicking through dialogs to save time"
+        "step별 safety classifier",
+        "navigation target의 allowlist/blocklist",
+        "sensitive action을 위한 human-in-the-loop",
+        "시간 절약을 위해 dialog를 자동 click하기"
       ],
       "correct": 3,
-      "explanation": "Auto-clicking dialogs is the opposite of safe; the lesson recommends explicit confirmation."
+      "explanation": "dialog 자동 click은 안전의 반대다. lesson은 명시적 confirmation을 권장한다."
     },
     {
       "stage": "post",
-      "question": "What is the principal attack the lesson highlights against computer-use agents?",
+      "question": "lesson이 computer-use agent에 대해 강조하는 주요 공격은 무엇인가?",
       "options": [
-        "Network outages",
-        "A malicious page or PDF embedding instructions in retrieved content that the model treats as user intent",
-        "Slow rendering",
+        "network outage",
+        "악성 page나 PDF가 retrieved content 안에 instruction을 심고 model이 이를 user intent로 취급하게 하는 것",
+        "느린 rendering",
         "OS update lag"
       ],
       "correct": 1,
-      "explanation": "Trusting screenshots or DOM text as permission is the canonical indirect-prompt-injection failure."
+      "explanation": "screenshot이나 DOM text를 permission으로 신뢰하는 것이 대표적인 indirect-prompt-injection failure다."
     },
     {
       "stage": "post",
-      "question": "When is human-in-the-loop confirmation specifically recommended?",
+      "question": "human-in-the-loop confirmation은 언제 특별히 권장되는가?",
       "options": [
-        "On read-only navigation",
-        "On sensitive actions like login, purchase, file delete",
-        "Only when the model asks",
-        "Never"
+        "read-only navigation에서",
+        "login, purchase, file delete 같은 sensitive action에서",
+        "model이 요청할 때만",
+        "절대 하지 않음"
       ],
       "correct": 1,
-      "explanation": "Sensitive actions (money, data exposure, new logins) require explicit human confirmation."
+      "explanation": "sensitive action(money, data exposure, new login)에는 명시적인 human confirmation이 필요하다."
     }
   ]
 }

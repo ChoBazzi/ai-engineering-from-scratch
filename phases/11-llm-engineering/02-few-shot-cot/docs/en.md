@@ -1,38 +1,38 @@
 # Few-Shot, Chain-of-Thought, Tree-of-Thought
 
-> Telling a model what to do is prompting. Showing it how to think is engineering. The gap between 78% and 91% accuracy on the same model, same task, same data is not a better model. It is a better reasoning strategy.
+> 모델에게 무엇을 하라고 말하는 것은 prompting입니다. 어떻게 생각해야 하는지 보여주는 것은 engineering입니다. 같은 모델, 같은 작업, 같은 데이터에서 정확도가 78%에서 91%로 오르는 차이는 더 나은 모델이 아니라 더 나은 reasoning strategy입니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 11.01 (Prompt Engineering)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement few-shot prompting by selecting and formatting example demonstrations that maximize task accuracy
-- Apply chain-of-thought (CoT) reasoning to improve accuracy on multi-step problems like math word problems
-- Build a tree-of-thought prompt that explores multiple reasoning paths and selects the best one
-- Measure the accuracy improvement from zero-shot vs few-shot vs CoT on a standard benchmark
+- task accuracy를 최대화하는 example demonstration을 선택하고 formatting해 few-shot prompting을 구현합니다.
+- math word problem 같은 multi-step problem에서 chain-of-thought(CoT) reasoning을 적용해 정확도를 높입니다.
+- 여러 reasoning path를 탐색하고 가장 좋은 path를 선택하는 tree-of-thought prompt를 만듭니다.
+- standard benchmark에서 zero-shot, few-shot, CoT의 accuracy improvement를 측정합니다.
 
-## The Problem
+## 문제
 
-You build a math tutoring app. Your prompt says: "Solve this word problem." GPT-5 gets it right 94% of the time on GSM8K, the standard grade-school math benchmark. You think you already peaked. You do not — chain-of-thought still adds 3-4 points.
+수학 튜터링 앱을 만든다고 합시다. prompt는 "Solve this word problem."입니다. GPT-5는 GSM8K라는 표준 초등 수학 benchmark에서 94%를 맞힙니다. 이미 한계에 도달했다고 생각할 수 있습니다. 그렇지 않습니다. chain-of-thought는 여전히 3-4 point를 더합니다.
 
-Add five words -- "Let's think step by step" -- and accuracy jumps to 91%. Add a few worked examples and it reaches 95%. Same model. Same temperature. Same API cost. The only difference is that you gave the model scratch paper.
+"Let's think step by step"이라는 다섯 단어를 추가하면 accuracy가 91%까지 뛰는 model도 있습니다. worked example 몇 개를 추가하면 95%까지 올라갑니다. 같은 model, 같은 temperature, 같은 API cost입니다. 차이는 모델에게 scratch paper를 줬다는 것뿐입니다.
 
-This is not a hack. It is how reasoning works. Humans do not solve multi-step problems in one mental leap. Neither do transformers. When you force a model to generate intermediate tokens, those tokens become part of the context for the next token. Each reasoning step feeds the next. The model literally computes its way to the answer.
+이것은 hack이 아닙니다. reasoning이 작동하는 방식입니다. 인간도 multi-step problem을 한 번의 mental leap로 풀지 않습니다. transformer도 마찬가지입니다. 모델이 intermediate token을 생성하도록 강제하면, 그 token은 다음 token을 위한 context가 됩니다. 각 reasoning step이 다음 step을 먹여 살립니다. 모델은 말 그대로 답까지 계산해 갑니다.
 
-But "think step by step" is the beginning, not the end. What if you sampled five reasoning paths and took a majority vote? What if you let the model explore a tree of possibilities, evaluating and pruning branches? What if you interleaved reasoning with tool use? These are not hypotheticals. They are published techniques with measured improvements, and you will build all of them in this lesson.
+하지만 "think step by step"은 시작일 뿐입니다. reasoning path 다섯 개를 sample하고 majority vote를 한다면 어떨까요? 가능성의 tree를 탐색하고 branch를 평가해 prune한다면요? reasoning과 tool use를 섞는다면요? 이것들은 가설이 아니라 measured improvement가 있는 발표된 technique입니다. 이 lesson에서 직접 만듭니다.
 
-## The Concept
+## 개념
 
-### Zero-Shot vs Few-Shot: When Examples Beat Instructions
+### Zero-shot vs few-shot: 지시보다 예제가 이길 때
 
-Zero-shot prompting gives the model a task and nothing else. Few-shot prompting gives it examples first.
+zero-shot prompting은 모델에게 task만 줍니다. few-shot prompting은 먼저 example을 줍니다.
 
-Wei et al. (2022) measured this across 8 benchmarks. For simple tasks like sentiment classification, zero-shot and few-shot performed within 2% of each other. For complex tasks like multi-step arithmetic and symbolic reasoning, few-shot improved accuracy by 10-25%.
+Wei et al. (2022)는 8개 benchmark에서 이를 측정했습니다. sentiment classification 같은 단순 task에서는 zero-shot과 few-shot 차이가 2% 이내였습니다. multi-step arithmetic과 symbolic reasoning 같은 복잡한 task에서는 few-shot이 accuracy를 10-25% 개선했습니다.
 
-The intuition: examples are compressed instructions. Instead of describing the output format, you show it. Instead of explaining the reasoning process, you demonstrate it. The model pattern-matches on the examples more reliably than it interprets abstract instructions.
+직관은 이렇습니다. example은 압축된 instruction입니다. output format을 설명하는 대신 보여줍니다. reasoning process를 설명하는 대신 시연합니다. 모델은 abstract instruction을 해석하는 것보다 example의 pattern을 더 안정적으로 match합니다.
 
 ```mermaid
 graph TD
@@ -48,23 +48,23 @@ graph TD
     style F fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-**When few-shot wins:** format-sensitive tasks, classification, structured extraction, domain-specific jargon, any task where the model needs to match a specific pattern.
+**few-shot이 이기는 경우**: format-sensitive task, classification, structured extraction, domain-specific jargon, 특정 pattern을 정확히 맞춰야 하는 작업.
 
-**When zero-shot wins:** simple factual questions, creative tasks where examples constrain creativity, tasks where finding good examples is harder than writing good instructions.
+**zero-shot이 이기는 경우**: 단순 factual question, example이 creativity를 제한하는 creative task, 좋은 example을 찾는 것이 좋은 instruction을 쓰는 것보다 어려운 task.
 
-### Example Selection: Similar Beats Random
+### 예제 선택: 무작위보다 유사한 예제가 낫다
 
-Not all examples are equal. Choosing examples similar to the target input outperforms random selection by 5-15% on classification tasks (Liu et al., 2022). Three principles:
+모든 example이 같지 않습니다. target input과 비슷한 example을 고르는 것은 random selection보다 classification task에서 5-15% 더 좋습니다(Liu et al., 2022). 원칙은 세 가지입니다.
 
-1. **Semantic similarity**: pick examples closest to the input in embedding space
-2. **Label diversity**: cover all output categories in your examples
-3. **Difficulty matching**: match the complexity level of the target problem
+1. **Semantic similarity**: embedding space에서 input과 가장 가까운 example을 고릅니다.
+2. **Label diversity**: output category를 모두 덮습니다.
+3. **Difficulty matching**: target problem과 complexity level을 맞춥니다.
 
-The optimal number of examples for most tasks is 3-5. Below 3, the model does not have enough signal to extract the pattern. Above 5, you hit diminishing returns and waste context window tokens. For classification with many labels, use one example per label.
+대부분 task에서 optimal example 수는 3-5개입니다. 3개 미만이면 pattern을 추출할 signal이 부족합니다. 5개를 넘으면 diminishing return이 생기고 context window token을 낭비합니다. label이 많은 classification에서는 label당 example 하나를 사용하세요.
 
-### Chain-of-Thought: Giving Models Scratch Paper
+### Chain-of-Thought: 모델에게 풀이 공간 주기
 
-Chain-of-Thought (CoT) prompting was introduced by Wei et al. (2022) at Google Brain. The idea is simple: instead of asking the model for just the answer, ask it to show its reasoning steps first.
+Chain-of-Thought(CoT) prompting은 Wei et al. (2022)이 Google Brain에서 소개했습니다. 아이디어는 단순합니다. 모델에게 답만 요구하지 말고 먼저 reasoning step을 보여 달라고 요구합니다.
 
 ```mermaid
 graph LR
@@ -83,11 +83,11 @@ graph LR
     style A2 fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-Why does this work mechanically? Each token a transformer generates becomes context for the next token. Without CoT, the model must compress all reasoning into the hidden state of a single forward pass. With CoT, the model externalizes intermediate computations as tokens. Each reasoning token extends the effective computation depth.
+왜 기계적으로 작동할까요? transformer가 생성한 각 token은 다음 token을 위한 context가 됩니다. CoT가 없으면 모델은 모든 reasoning을 single forward pass의 hidden state에 압축해야 합니다. CoT가 있으면 intermediate computation을 token으로 externalize합니다. 각 reasoning token이 effective computation depth를 늘립니다.
 
-**GSM8K benchmarks (grade-school math, 8.5K problems):**
+**GSM8K benchmark(grade-school math, 8.5K problems):**
 
-| Model | Zero-Shot | Zero-Shot CoT | Few-Shot CoT |
+| 모델 | Zero-Shot | Zero-Shot CoT | Few-Shot CoT |
 |-------|-----------|---------------|--------------|
 | GPT-4o | 78% | 91% | 95% |
 | GPT-5 | 94% | 97% | 98% |
@@ -97,19 +97,19 @@ Why does this work mechanically? Each token a transformer generates becomes cont
 | Llama 4 70B | 80% | 89% | 94% |
 | DeepSeek-V3.1 | 89% | 94% | 96% |
 
-**Note on reasoning models.** Models like OpenAI's o-series (o3, o4-mini) and DeepSeek-R1 run chain-of-thought internally before emitting their answer. Adding "Let's think step by step" to a reasoning model is redundant and sometimes counterproductive — they have already done it.
+reasoning model에 대한 주의: OpenAI o-series(o3, o4-mini)와 DeepSeek-R1 같은 model은 답을 내기 전에 내부적으로 chain-of-thought를 수행합니다. 이런 model에 "Let's think step by step"을 추가하는 것은 중복이고 때로는 역효과입니다.
 
-Two flavors of CoT:
+CoT에는 두 flavor가 있습니다.
 
-**Zero-shot CoT**: append "Let's think step by step" to the prompt. No examples needed. Kojima et al. (2022) showed this single sentence improves accuracy across arithmetic, commonsense, and symbolic reasoning tasks.
+**Zero-shot CoT**: prompt 끝에 "Let's think step by step"을 붙입니다. example이 필요 없습니다. Kojima et al. (2022)은 이 한 문장이 arithmetic, commonsense, symbolic reasoning task 전반에서 accuracy를 높인다는 것을 보였습니다.
 
-**Few-shot CoT**: provide examples that include reasoning steps. More effective than zero-shot CoT because the model sees the exact reasoning format you expect.
+**Few-shot CoT**: reasoning step을 포함한 example을 제공합니다. 모델이 기대하는 reasoning format을 정확히 보기 때문에 zero-shot CoT보다 효과적입니다.
 
-**When CoT hurts**: simple factual recall ("What is the capital of France?"), single-step classification, tasks where speed matters more than accuracy. CoT adds 50-200 tokens of reasoning overhead per query. For high-throughput, low-complexity tasks, that is wasted cost.
+**CoT가 해로운 경우**: 단순 factual recall("What is the capital of France?"), single-step classification, accuracy보다 speed가 중요한 task. CoT는 query당 50-200 token의 reasoning overhead를 추가합니다.
 
-### Self-Consistency: Sample Many, Vote Once
+### Self-consistency: 많이 샘플링하고 한 번 투표하기
 
-Wang et al. (2023) introduced self-consistency. The insight: a single CoT path might contain reasoning errors. But if you sample N independent reasoning paths (using temperature > 0) and take the majority vote on the final answer, errors cancel out.
+Wang et al. (2023)은 self-consistency를 소개했습니다. 단일 CoT path는 reasoning error를 포함할 수 있습니다. 그러나 temperature > 0으로 N개의 독립 reasoning path를 sample하고 final answer에 majority vote를 하면 error가 상쇄됩니다.
 
 ```mermaid
 graph TD
@@ -136,13 +136,13 @@ graph TD
     style V fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-Self-consistency improved GSM8K accuracy from 56.5% (single CoT) to 74.4% with N=40 on the original PaLM 540B experiments. On GPT-5 the improvement is small (97% to 98%) because base accuracy is already saturated. The technique shines most on models with 60-85% base CoT accuracy -- the sweet spot where single-path errors are frequent but not systematic. For reasoning models (o-series, R1) self-consistency is subsumed by the built-in internal sampling.
+original PaLM 540B 실험에서 self-consistency는 GSM8K accuracy를 single CoT 56.5%에서 N=40 기준 74.4%로 높였습니다. GPT-5에서는 base accuracy가 이미 높아 97%에서 98%로 작은 개선만 납니다. 이 technique은 single-path error가 자주 있지만 systematic하지 않은 60-85% base CoT accuracy model에서 가장 빛납니다.
 
-The tradeoff: N samples means Nx the API cost and latency. In practice, N=5 captures most of the benefit. N=3 is the minimum for a meaningful vote. N > 10 has diminishing returns for most tasks.
+tradeoff는 명확합니다. N sample은 API cost와 latency가 N배입니다. 실제로는 N=5가 대부분 이득을 포착합니다. 의미 있는 vote의 최소값은 N=3입니다. N > 10은 대부분 task에서 diminishing return이 큽니다.
 
-### Tree-of-Thought: Branching Exploration
+### Tree-of-Thought: 분기 탐색
 
-Yao et al. (2023) introduced Tree-of-Thought (ToT). Where CoT follows one linear reasoning path, ToT explores multiple branches and evaluates which are most promising before continuing.
+Yao et al. (2023)은 Tree-of-Thought(ToT)를 소개했습니다. CoT가 하나의 linear reasoning path를 따르는 반면, ToT는 여러 branch를 탐색하고 어느 것이 유망한지 평가한 뒤 계속합니다.
 
 ```mermaid
 graph TD
@@ -165,37 +165,21 @@ graph TD
     B3a --> E5["Eval: 0.95"]
 
     E5 -->|Best path| Final["Solution"]
-
-    style Root fill:#1a1a2e,stroke:#ffa500,color:#fff
-    style E2 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style X fill:#1a1a2e,stroke:#e94560,color:#fff
-    style E5 fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style Final fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style B1 fill:#1a1a2e,stroke:#808080,color:#fff
-    style B2 fill:#1a1a2e,stroke:#808080,color:#fff
-    style B3 fill:#1a1a2e,stroke:#808080,color:#fff
-    style B1a fill:#1a1a2e,stroke:#808080,color:#fff
-    style B1b fill:#1a1a2e,stroke:#808080,color:#fff
-    style B3a fill:#1a1a2e,stroke:#808080,color:#fff
-    style B3b fill:#1a1a2e,stroke:#808080,color:#fff
-    style E1 fill:#1a1a2e,stroke:#808080,color:#fff
-    style E3 fill:#1a1a2e,stroke:#808080,color:#fff
-    style E4 fill:#1a1a2e,stroke:#808080,color:#fff
 ```
 
-ToT has three components:
+ToT의 구성요소는 세 가지입니다.
 
-1. **Thought generation**: produce multiple candidate next-steps
-2. **State evaluation**: score each candidate (can use the LLM itself as evaluator)
-3. **Search algorithm**: BFS or DFS through the tree, pruning low-scoring branches
+1. **Thought generation**: multiple candidate next-step을 생성합니다.
+2. **State evaluation**: 각 candidate를 score합니다. LLM 자체를 evaluator로 쓸 수 있습니다.
+3. **Search algorithm**: tree를 BFS 또는 DFS로 탐색하고 low-scoring branch를 prune합니다.
 
-On the Game of 24 task (combine 4 numbers using arithmetic to make 24), GPT-4 with standard prompting solves 7.3% of problems. With CoT, 4.0% (CoT actually hurts here because the search space is wide). With ToT, 74%.
+Game of 24 task(숫자 4개를 사칙연산으로 24 만들기)에서 GPT-4 standard prompting은 7.3%를 풉니다. CoT는 4.0%로 오히려 나빠집니다. search space가 넓기 때문입니다. ToT는 74%를 풉니다.
 
-ToT is expensive. Each node in the tree requires an LLM call. A tree with branching factor 3 and depth 3 requires up to 39 LLM calls. Use it only for problems where the search space is large but evaluatable -- planning, puzzle solving, creative problem-solving with constraints.
+ToT는 비쌉니다. tree의 각 node가 LLM call을 요구합니다. branching factor 3, depth 3이면 최대 39번 호출합니다. search space가 크지만 평가 가능한 문제(planning, puzzle solving, constraint가 있는 creative problem-solving)에만 사용하세요.
 
-### ReAct: Thinking + Doing
+### ReAct: 생각하기 + 행동하기
 
-Yao et al. (2022) combined reasoning traces with actions. The model alternates between thinking (generating reasoning) and acting (calling tools, searching, computing).
+Yao et al. (2022)은 reasoning trace와 action을 결합했습니다. 모델은 thinking(reasoning 생성)과 acting(tool call, search, compute)을 번갈아 수행합니다.
 
 ```mermaid
 graph LR
@@ -210,28 +194,19 @@ graph LR
     F["Answer:\n68.4 million"]
 
     Q --> T1 --> A1 --> O1 --> T2 --> A2 --> O2 --> T3 --> F
-
-    style Q fill:#1a1a2e,stroke:#ffa500,color:#fff
-    style T1 fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style A1 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style O1 fill:#1a1a2e,stroke:#808080,color:#fff
-    style T2 fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style A2 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style O2 fill:#1a1a2e,stroke:#808080,color:#fff
-    style T3 fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style F fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-ReAct outperforms pure CoT on knowledge-intensive tasks because it can ground its reasoning in real data. On HotpotQA (multi-hop question answering), ReAct with GPT-4 achieves 35.1% exact match vs 29.4% for CoT alone. The real power is that reasoning errors get corrected by observations -- the model can update its plan mid-execution.
+ReAct는 real data에 reasoning을 ground할 수 있기 때문에 knowledge-intensive task에서 pure CoT보다 낫습니다. HotpotQA(multi-hop question answering)에서 ReAct with GPT-4는 exact match 35.1%를 얻었고 CoT alone은 29.4%였습니다. 핵심은 observation이 reasoning error를 교정한다는 점입니다. 모델은 execution 중 plan을 업데이트할 수 있습니다.
 
-ReAct is the foundation of modern AI agents. Every agent framework (LangChain, CrewAI, AutoGen) implements some variant of the Thought-Action-Observation loop. You will build full agents in Phase 14. This lesson covers the prompting pattern.
+ReAct는 modern AI agent의 기반입니다. LangChain, CrewAI, AutoGen 같은 agent framework는 Thought-Action-Observation loop의 변형을 구현합니다. full agent는 Phase 14에서 만들고, 이 lesson은 prompting pattern을 다룹니다.
 
-### Structured Prompting: XML Tags, Delimiters, Headers
+### 구조화 프롬프팅: XML 태그, 구분자, 헤더
 
-As prompts get complex, structure prevents the model from confusing sections. Three approaches:
+prompt가 복잡해질수록 structure가 section confusion을 막습니다.
 
-**XML tags** (works best with Claude, solid everywhere):
-```
+**XML tags**는 Claude에서 특히 강하고 다른 모델에서도 잘 작동합니다.
+
+```text
 <context>
 You are reviewing a pull request.
 The codebase uses TypeScript and React.
@@ -240,35 +215,21 @@ The codebase uses TypeScript and React.
 <task>
 Review the following diff for bugs, security issues, and style violations.
 </task>
-
-<diff>
-{diff_content}
-</diff>
-
-<output_format>
-List each issue with: file, line, severity (critical/warning/info), description.
-</output_format>
 ```
 
-**Markdown headers** (universal):
-```
-## Role
+**Markdown headers**는 보편적입니다.
+
+```text
+## 역할
 Senior security engineer at a fintech company.
 
-## Task
+## 작업
 Analyze this API endpoint for vulnerabilities.
-
-## Input
-{api_code}
-
-## Rules
-- Focus on OWASP Top 10
-- Rate each finding: critical, high, medium, low
-- Include remediation steps
 ```
 
-**Delimiters** (minimal but effective):
-```
+**Delimiters**는 최소한이지만 효과적입니다.
+
+```text
 ---INPUT---
 {user_text}
 ---END INPUT---
@@ -278,9 +239,9 @@ Summarize the above in 3 bullet points.
 ---END INSTRUCTIONS---
 ```
 
-### Prompt Chaining: Sequential Decomposition
+### Prompt chaining: 순차 분해
 
-Some tasks are too complex for a single prompt. Prompt chaining breaks them into steps, where the output of one prompt becomes the input of the next.
+어떤 task는 single prompt로 처리하기에 너무 복잡합니다. prompt chaining은 task를 여러 단계로 나누고, 한 prompt의 output을 다음 prompt의 input으로 사용합니다.
 
 ```mermaid
 graph LR
@@ -290,64 +251,49 @@ graph LR
     P2 --> O2["Analysis"]
     O2 --> P3["Prompt 3:\nGenerate\nrecommendation"]
     P3 --> F["Final Output"]
-
-    style I fill:#1a1a2e,stroke:#808080,color:#fff
-    style P1 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style O1 fill:#1a1a2e,stroke:#ffa500,color:#fff
-    style P2 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style O2 fill:#1a1a2e,stroke:#ffa500,color:#fff
-    style P3 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style F fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-Chaining beats single-prompt for three reasons:
+chaining은 세 이유로 single prompt보다 낫습니다. 각 step이 더 단순하고, intermediate output을 inspect/validate할 수 있으며, step별로 다른 model을 사용할 수 있습니다. 예를 들어 extraction은 cheap model, reasoning은 expensive model을 쓸 수 있습니다.
 
-1. **Each step is simpler**: the model handles one focused task instead of juggling everything
-2. **Intermediate outputs are inspectable**: you can validate and correct between steps
-3. **Different steps can use different models**: use a cheap model for extraction, an expensive one for reasoning
+### 성능 비교
 
-### Performance Comparison
-
-| Technique | Best For | GSM8K Accuracy (GPT-5) | API Calls | Token Overhead | Complexity |
+| 기법 | 가장 적합한 경우 | GSM8K 정확도(GPT-5) | API 호출 | 토큰 오버헤드 | 복잡도 |
 |-----------|----------|------------------------|-----------|----------------|------------|
 | Zero-Shot | Simple tasks | 94% | 1 | None | Trivial |
 | Few-Shot | Format matching | 96% | 1 | 200-500 tokens | Low |
 | Zero-Shot CoT | Quick reasoning boost | 97% | 1 | 50-200 tokens | Trivial |
 | Few-Shot CoT | Maximum single-call accuracy | 98% | 1 | 300-600 tokens | Low |
-| Self-Consistency (N=5) | High-stakes reasoning | 98.5% | 5 | 5x token cost | Medium |
+| Self-Consistency (N=5) | 고위험 추론 | 98.5% | 5 | 토큰 비용 5배 | 중간 |
 | Reasoning model (o4-mini) | Drop-in CoT replacement | 97% | 1 | hidden (2-10x internal) | Trivial |
 | Tree-of-Thought | Search/planning problems | N/A (74% on Game of 24) | 10-40+ | 10-40x token cost | High |
 | ReAct | Knowledge-grounded reasoning | N/A (35.1% on HotpotQA) | 3-10+ | Variable | High |
-| Prompt Chaining | Complex multi-step tasks | 96% (pipeline) | 2-5 | 2-5x token cost | Medium |
+| Prompt Chaining | 복잡한 다단계 작업 | 96% (pipeline) | 2-5 | 토큰 비용 2-5배 | 중간 |
 
-The right technique depends on three factors: accuracy requirement, latency budget, and cost tolerance. For most production systems, few-shot CoT with a 3-sample self-consistency fallback covers 90% of use cases.
+올바른 technique은 accuracy requirement, latency budget, cost tolerance에 따라 달라집니다. 대부분 production system에서는 few-shot CoT와 3-sample self-consistency fallback이 use case의 90%를 덮습니다.
 
-## Build It
+## 직접 만들기
 
-We will build a math problem solver that combines few-shot prompting, chain-of-thought reasoning, and self-consistency voting into a single pipeline. Then we will add tree-of-thought for hard problems.
+few-shot prompting, chain-of-thought reasoning, self-consistency voting을 하나의 pipeline으로 결합한 math problem solver를 만듭니다. hard problem에는 tree-of-thought를 추가합니다. 전체 구현은 `code/advanced_prompting.py`에 있습니다.
 
-The full implementation is in `code/advanced_prompting.py`. Here are the key components.
+### 1단계: few-shot 예제 저장소
 
-### Step 1: Few-Shot Example Store
-
-The first component manages few-shot examples and selects the most relevant ones for a given problem.
+첫 component는 few-shot example을 관리하고 주어진 problem에 가장 관련 있는 example을 선택합니다.
 
 ```python
 GSM8K_EXAMPLES = [
     {
-        "question": "Janet's ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells every egg at the farmers' market for $2. How much does she make every day at the farmers' market?",
-        "reasoning": "Janet's ducks lay 16 eggs per day. She eats 3 and bakes 4, using 3 + 4 = 7 eggs. So she has 16 - 7 = 9 eggs left. She sells each for $2, so she makes 9 * 2 = $18 per day.",
+        "question": "Janet's ducks lay 16 eggs per day...",
+        "reasoning": "Janet's ducks lay 16 eggs per day...",
         "answer": "18"
     },
-    ...
 ]
 ```
 
-Each example has three parts: the question, the reasoning chain, and the final answer. The reasoning chain is what transforms a regular few-shot example into a CoT few-shot example.
+각 example에는 question, reasoning chain, final answer가 있습니다. reasoning chain이 일반 few-shot example을 CoT few-shot example로 바꿉니다.
 
-### Step 2: Chain-of-Thought Prompt Builder
+### 2단계: CoT 프롬프트 빌더
 
-The prompt builder assembles a system message, few-shot examples with reasoning chains, and the target question into a single prompt.
+prompt builder는 system message, reasoning chain이 있는 few-shot example, target question을 하나의 prompt로 조립합니다.
 
 ```python
 def build_cot_prompt(question, examples, num_examples=3):
@@ -357,143 +303,65 @@ def build_cot_prompt(question, examples, num_examples=3):
         "then give the final numerical answer on the last line "
         "in the format: 'The answer is [number]'."
     )
-
-    example_text = ""
-    for ex in examples[:num_examples]:
-        example_text += f"Q: {ex['question']}\n"
-        example_text += f"A: {ex['reasoning']} The answer is {ex['answer']}.\n\n"
-
-    user = f"{example_text}Q: {question}\nA:"
-    return system, user
+    ...
 ```
 
-The format constraint ("The answer is [number]") is critical. Without it, self-consistency cannot extract and compare answers across samples.
+`"The answer is [number]"` format constraint는 중요합니다. 이 형식이 없으면 self-consistency가 sample 간 answer를 추출하고 비교할 수 없습니다.
 
-### Step 3: Self-Consistency Voting
+### 3단계: self-consistency 투표
 
-Sample N reasoning paths and take the majority answer.
+N개의 reasoning path를 sample하고 majority answer를 선택합니다.
 
 ```python
 def self_consistency_solve(question, examples, client, model, n_samples=5):
     system, user = build_cot_prompt(question, examples)
-
     answers = []
     reasonings = []
-    for _ in range(n_samples):
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user}
-            ],
-            temperature=0.7
-        )
-        text = response.choices[0].message.content
-        reasonings.append(text)
-        answer = extract_answer(text)
-        if answer is not None:
-            answers.append(answer)
-
-    vote_counts = Counter(answers)
-    best_answer = vote_counts.most_common(1)[0][0] if vote_counts else None
-    confidence = vote_counts[best_answer] / len(answers) if best_answer else 0
-
-    return best_answer, confidence, reasonings, vote_counts
+    ...
 ```
 
-Temperature 0.7 is important. At temperature 0.0, all N samples would be identical, defeating the purpose. You need enough randomness for diverse reasoning paths but not so much that the model produces gibberish.
+temperature 0.7이 중요합니다. temperature 0.0에서는 N개의 sample이 모두 동일해져 목적이 사라집니다. diverse reasoning path를 얻을 만큼 randomness가 필요하지만, gibberish를 만들 만큼 높으면 안 됩니다.
 
-### Step 4: Tree-of-Thought Solver
+### 4단계: tree-of-thought 풀이기
 
-For problems where linear reasoning fails, ToT explores multiple approaches and evaluates which direction is most promising.
+linear reasoning이 실패하는 문제에서는 ToT가 multiple approach를 탐색하고 어느 방향이 가장 유망한지 평가합니다.
 
 ```python
 def tree_of_thought_solve(question, client, model, breadth=3, depth=3):
     thoughts = generate_initial_thoughts(question, client, model, breadth)
     scored = [(t, evaluate_thought(t, question, client, model)) for t in thoughts]
-    scored.sort(key=lambda x: x[1], reverse=True)
-
-    for current_depth in range(1, depth):
-        next_thoughts = []
-        for thought, score in scored[:2]:
-            extensions = extend_thought(thought, question, client, model, breadth)
-            for ext in extensions:
-                ext_score = evaluate_thought(ext, question, client, model)
-                next_thoughts.append((ext, ext_score))
-        scored = sorted(next_thoughts, key=lambda x: x[1], reverse=True)
-
-    best_thought = scored[0][0] if scored else ""
-    return extract_answer(best_thought), best_thought
+    ...
 ```
 
-The evaluator is itself an LLM call. You ask the model: "On a scale of 0.0 to 1.0, how promising is this reasoning path for solving the problem?" This is the key insight of ToT -- the model evaluates its own partial solutions.
+evaluator도 LLM call입니다. 모델에게 "이 reasoning path가 문제를 푸는 데 얼마나 유망한가를 0.0부터 1.0까지 평가하라"고 묻습니다. 이것이 ToT의 핵심 통찰입니다. 모델이 자신의 partial solution을 평가합니다.
 
-### Step 5: Full Pipeline
+### 5단계: 전체 파이프라인
 
-The pipeline combines all techniques with an escalation strategy.
+pipeline은 escalation strategy로 모든 technique을 결합합니다. cheap single CoT를 먼저 시도하고, self-consistency confidence가 낮으면 ToT로 escalate합니다.
 
 ```python
 def solve_with_escalation(question, examples, client, model):
     system, user = build_cot_prompt(question, examples)
     single_response = call_llm(client, model, system, user, temperature=0.0)
-    single_answer = extract_answer(single_response)
-
-    sc_answer, confidence, _, _ = self_consistency_solve(
-        question, examples, client, model, n_samples=5
-    )
-
-    if confidence >= 0.8:
-        return sc_answer, "self_consistency", confidence
-
-    tot_answer, _ = tree_of_thought_solve(question, client, model)
-    return tot_answer, "tree_of_thought", None
+    ...
 ```
 
-The escalation logic: try cheap (single CoT) first. If self-consistency confidence is below 0.8 (less than 4 of 5 samples agree), escalate to ToT. This balances cost and accuracy -- most problems are solved cheaply, hard problems get more compute.
+## 사용하기
 
-## Use It
+### LangChain
 
-### With LangChain
-
-LangChain provides built-in support for prompt templates and output parsing that simplify few-shot and CoT patterns:
+LangChain은 prompt template과 output parsing을 지원해 few-shot과 CoT pattern을 단순화합니다.
 
 ```python
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain_openai import ChatOpenAI
-
-example_prompt = PromptTemplate(
-    input_variables=["question", "reasoning", "answer"],
-    template="Q: {question}\nA: {reasoning} The answer is {answer}."
-)
-
-few_shot_prompt = FewShotPromptTemplate(
-    examples=examples,
-    example_prompt=example_prompt,
-    suffix="Q: {input}\nA: Let's think step by step.",
-    input_variables=["input"]
-)
-
-llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
-chain = few_shot_prompt | llm
-result = chain.invoke({"input": "If a train travels 120 km in 2 hours..."})
 ```
 
-LangChain also has `ExampleSelector` classes for semantic similarity selection:
+semantic similarity 기반 example selection에는 `ExampleSelector` class를 사용할 수 있습니다.
 
-```python
-from langchain_core.example_selectors import SemanticSimilarityExampleSelector
-from langchain_openai import OpenAIEmbeddings
+### DSPy
 
-selector = SemanticSimilarityExampleSelector.from_examples(
-    examples,
-    OpenAIEmbeddings(),
-    k=3
-)
-```
-
-### With DSPy
-
-DSPy treats prompting strategies as optimizable modules. Instead of handcrafting CoT prompts, you define a signature and let DSPy optimize the prompt:
+DSPy는 prompting strategy를 optimizable module로 취급합니다. CoT prompt를 손으로 만드는 대신 signature를 정의하고 DSPy가 prompt를 optimize하게 할 수 있습니다.
 
 ```python
 import dspy
@@ -503,74 +371,57 @@ dspy.configure(lm=dspy.LM("openai/gpt-4o", temperature=0.7))
 class MathSolver(dspy.Module):
     def __init__(self):
         self.solve = dspy.ChainOfThought("question -> answer")
-
-    def forward(self, question):
-        return self.solve(question=question)
-
-solver = MathSolver()
-result = solver(question="Janet's ducks lay 16 eggs per day...")
 ```
 
-DSPy's `ChainOfThought` automatically adds reasoning traces. `dspy.majority` implements self-consistency:
+DSPy의 `ChainOfThought`는 reasoning trace를 자동으로 추가하고, `dspy.majority`는 self-consistency를 구현합니다.
 
-```python
-result = dspy.majority(
-    [solver(question=q) for _ in range(5)],
-    field="answer"
-)
-```
+### 직접 구현 vs framework
 
-### Comparison: From-Scratch vs Frameworks
-
-| Feature | From-Scratch (this lesson) | LangChain | DSPy |
+| 기능 | 직접 구현(이 lesson) | LangChain | DSPy |
 |---------|--------------------------|-----------|------|
-| Control over prompt format | Full | Template-based | Automatic |
-| Self-consistency | Manual voting | Manual | Built-in (`dspy.majority`) |
-| Example selection | Custom logic | `ExampleSelector` | `dspy.BootstrapFewShot` |
-| Tree-of-Thought | Custom tree search | Community chains | Not built-in |
-| Prompt optimization | Manual iteration | Manual | Automatic compilation |
-| Best for | Learning, custom pipelines | Standard workflows | Research, optimization |
+| 프롬프트 형식 제어 | 전체 제어 | 템플릿 기반 | 자동 |
+| Self-consistency | 수동 투표 | 수동 | 내장(`dspy.majority`) |
+| 예제 선택 | 커스텀 로직 | `ExampleSelector` | `dspy.BootstrapFewShot` |
+| Tree-of-Thought | 커스텀 트리 탐색 | 커뮤니티 chain | 내장 아님 |
+| 프롬프트 최적화 | 수동 반복 | 수동 | 자동 컴파일 |
+| 가장 적합한 경우 | 학습, 커스텀 파이프라인 | 표준 워크플로 | 연구, 최적화 |
 
-## Ship It
+## 결과물
 
-This lesson produces two artifacts.
+이 lesson은 두 artifact를 만듭니다.
 
-**1. Reasoning Chain Prompt** (`outputs/prompt-reasoning-chain.md`): a production-ready prompt template for few-shot CoT with self-consistency. Plug in your examples and problem domain.
+**1. Reasoning Chain Prompt** (`outputs/prompt-reasoning-chain.md`): few-shot CoT와 self-consistency를 위한 production-ready prompt template입니다. example과 problem domain을 끼워 넣어 사용하세요.
 
-**2. CoT Pattern Selection Skill** (`outputs/skill-cot-patterns.md`): a decision framework for choosing the right reasoning technique based on task type, accuracy requirements, and cost constraints.
+**2. CoT Pattern Selection Skill** (`outputs/skill-cot-patterns.md`): task type, accuracy requirement, cost constraint에 따라 올바른 reasoning technique을 고르는 decision framework입니다.
 
-## Exercises
+## 연습문제
 
-1. **Measure the gap**: Take 10 GSM8K problems. Solve each with zero-shot, few-shot, zero-shot CoT, and few-shot CoT. Record accuracy for each. Which technique gives the biggest lift on your model?
+1. **gap 측정**: GSM8K problem 10개를 zero-shot, few-shot, zero-shot CoT, few-shot CoT로 각각 푸세요. 각 technique의 accuracy를 기록하세요. 어떤 technique이 가장 큰 lift를 주나요?
+2. **example selection experiment**: 같은 10개 problem에서 random example selection과 hand-picked similar example을 비교하세요. accuracy difference를 측정하세요. example quality가 example quantity보다 중요해지는 지점은 어디인가요?
+3. **self-consistency cost curve**: N=1, 3, 5, 7, 10으로 self-consistency를 실행하세요. accuracy vs cost(total tokens)를 plot하세요. 당신의 model에서 knee of the curve는 어디인가요?
+4. **ReAct loop 만들기**: calculator tool을 pipeline에 추가하세요. 모델이 math expression을 만들면 Python `eval()`(sandbox 안에서)을 실행하고 결과를 다시 넣으세요. tool-grounded reasoning이 pure CoT보다 나은지 측정하세요.
+5. **creative task용 ToT**: Tree-of-Thought solver를 "Write a 6-word story that is both funny and sad." 같은 creative writing task에 맞게 바꾸세요. LLM을 evaluator로 사용하세요. branching exploration이 single-shot generation보다 더 나은 creative output을 만드나요?
 
-2. **Example selection experiment**: For the same 10 problems, compare random example selection vs hand-picked similar examples. Measure accuracy difference. At what point does example quality matter more than example quantity?
+## 핵심 용어
 
-3. **Self-consistency cost curve**: Run self-consistency with N=1, 3, 5, 7, 10 on 20 GSM8K problems. Plot accuracy vs cost (total tokens). Where is the knee of the curve for your model?
+| Term | 사람들이 흔히 말하는 것 | 실제 의미 |
+|------|------------------------|----------|
+| Few-shot prompting | "예제 몇 개 주기" | prompt에 input-output demonstration을 포함해 model의 output format과 behavior를 anchor하는 방식 |
+| Chain-of-Thought | "step by step으로 생각하게 하기" | final answer 전에 intermediate reasoning token을 끌어내 model의 effective computation을 늘리는 방식 |
+| Self-Consistency | "여러 번 돌리기" | temperature > 0에서 N개의 diverse reasoning path를 sample하고 majority vote로 final answer를 고르는 방식 |
+| Tree-of-Thought | "option을 탐색하게 하기" | partial solution을 평가하고 유망한 path만 확장하는 reasoning branch 위의 structured search |
+| ReAct | "thinking + tool use" | Thought-Action-Observation loop에서 reasoning trace와 external action(search, compute, API call)을 섞는 방식 |
+| Prompt chaining | "단계로 나누기" | complex task를 sequential prompt로 분해하고 각 output을 다음 input으로 넘기는 방식 |
+| Zero-shot CoT | "think step by step만 붙이기" | example 없이 reasoning trigger phrase를 prompt에 추가해 latent reasoning capability를 활용하는 방식 |
 
-4. **Build a ReAct loop**: Extend the pipeline with a calculator tool. When the model generates a math expression, execute it with Python's `eval()` (in a sandbox) and feed the result back. Measure if tool-grounded reasoning outperforms pure CoT.
+## 더 읽을거리
 
-5. **ToT for creative tasks**: Adapt the Tree-of-Thought solver for a creative writing task: "Write a 6-word story that is both funny and sad." Use the LLM as evaluator. Does branching exploration produce better creative outputs than single-shot generation?
-
-## Key Terms
-
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| Few-shot prompting | "Give it some examples" | Including input-output demonstrations in the prompt to anchor the model's output format and behavior |
-| Chain-of-Thought | "Make it think step by step" | Eliciting intermediate reasoning tokens that extend the model's effective computation before producing a final answer |
-| Self-Consistency | "Run it multiple times" | Sampling N diverse reasoning paths at temperature > 0 and selecting the most common final answer by majority vote |
-| Tree-of-Thought | "Let it explore options" | Structured search over reasoning branches where each partial solution is evaluated and only promising paths are expanded |
-| ReAct | "Thinking + tool use" | Interleaving reasoning traces with external actions (search, compute, API calls) in a Thought-Action-Observation loop |
-| Prompt chaining | "Break it into steps" | Decomposing a complex task into sequential prompts where each output feeds the next input |
-| Zero-shot CoT | "Just add 'think step by step'" | Appending a reasoning trigger phrase to a prompt without any examples, relying on the model's latent reasoning capability |
-
-## Further Reading
-
-- [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903) -- Wei et al. 2022. The original CoT paper from Google Brain. Read sections 2-3 for the core results.
-- [Self-Consistency Improves Chain of Thought Reasoning in Language Models](https://arxiv.org/abs/2203.11171) -- Wang et al. 2023. The self-consistency paper. Table 1 has all the numbers you need.
-- [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601) -- Yao et al. 2023. ToT paper. The Game of 24 results in section 4 are the highlight.
-- [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629) -- Yao et al. 2022. The foundation of modern AI agents. Section 3 explains the Thought-Action-Observation loop.
-- [Large Language Models are Zero-Shot Reasoners](https://arxiv.org/abs/2205.11916) -- Kojima et al. 2022. The "Let's think step by step" paper. Surprisingly effective for how simple it is.
-- [DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines](https://arxiv.org/abs/2310.03714) -- Khattab et al. 2023. Treats prompting as a compilation problem. Read if you want to move beyond manual prompt engineering.
-- [OpenAI — Reasoning models guide](https://platform.openai.com/docs/guides/reasoning) -- vendor guidance on when chain-of-thought becomes an internal, priced-per-token "reasoning" mode versus a prompt-level trick.
-- [Lightman et al., "Let's Verify Step by Step" (2023)](https://arxiv.org/abs/2305.20050) -- process reward models (PRM) that grade each step of a chain; the reasoning supervision signal that succeeds outcome-only rewards.
-- [Snell et al., "Scaling LLM Test-Time Compute Optimally" (2024)](https://arxiv.org/abs/2408.03314) -- systematic study of CoT length, self-consistency sampling, and MCTS; where "think step by step" goes when accuracy matters more than latency.
+- [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903): Wei et al. 2022. Google Brain의 original CoT paper입니다. 핵심 결과는 section 2-3을 읽으세요.
+- [Self-Consistency Improves Chain of Thought Reasoning in Language Models](https://arxiv.org/abs/2203.11171): Wang et al. 2023. self-consistency paper입니다. Table 1에 필요한 수치가 있습니다.
+- [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601): Yao et al. 2023. ToT paper입니다. Game of 24 결과가 highlight입니다.
+- [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629): Yao et al. 2022. modern AI agent의 기반입니다.
+- [Large Language Models are Zero-Shot Reasoners](https://arxiv.org/abs/2205.11916): Kojima et al. 2022. "Let's think step by step" 논문입니다.
+- [DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines](https://arxiv.org/abs/2310.03714): Khattab et al. 2023. prompting을 compilation problem으로 다룹니다.
+- [OpenAI — Reasoning models guide](https://platform.openai.com/docs/guides/reasoning): chain-of-thought가 internal reasoning mode가 되는 시점에 대한 vendor guidance
+- [Lightman et al., "Let's Verify Step by Step" (2023)](https://arxiv.org/abs/2305.20050): chain의 각 step을 grade하는 process reward model(PRM)
+- [Snell et al., "Scaling LLM Test-Time Compute Optimally" (2024)](https://arxiv.org/abs/2408.03314): CoT length, self-consistency sampling, MCTS를 체계적으로 연구한 논문

@@ -1,61 +1,61 @@
 ---
 name: skill-naive-bayes-chooser
-description: Choose the right Naive Bayes variant for your classification task
+description: classification task에 맞는 Naive Bayes variant 선택하기
 phase: 2
 lesson: 14
 ---
 
-You are an expert in probabilistic classification. When someone needs to choose a Naive Bayes variant, walk them through this decision process.
+당신은 probabilistic classification expert다. 누군가 Naive Bayes variant를 선택해야 할 때, 이 decision process를 따라가도록 안내한다.
 
-## Decision Checklist
+## 결정 체크리스트
 
-### Step 1: What are your features?
+### 1단계: feature는 무엇인가?
 
-- **Word counts or TF-IDF values** -> MultinomialNB
-- **Continuous measurements (temperature, height, sensor readings)** -> GaussianNB
-- **Binary indicators (word present/absent, checkbox states)** -> BernoulliNB
-- **Mixed types** -> Split into subsets, or convert all to one type
+- **Word count 또는 TF-IDF value** -> MultinomialNB
+- **Continuous measurement(temperature, height, sensor reading)** -> GaussianNB
+- **Binary indicator(word present/absent, checkbox state)** -> BernoulliNB
+- **Mixed type** -> subset으로 나누거나 모두 하나의 type으로 변환
 
-### Step 2: How much data do you have?
+### 2단계: data가 얼마나 있는가?
 
-- **Under 1,000 samples**: Naive Bayes is a strong choice. Its strong prior (independence assumption) prevents overfitting.
-- **1,000 to 50,000 samples**: NB is still competitive. Compare against logistic regression.
-- **Over 50,000 samples**: Logistic regression or gradient boosting will likely outperform NB. Use NB as a baseline.
+- **1,000 sample 미만**: Naive Bayes는 강력한 선택이다. strong prior(independence assumption)가 overfitting을 막는다.
+- **1,000에서 50,000 sample**: NB는 여전히 competitive하다. logistic regression과 비교한다.
+- **50,000 sample 초과**: logistic regression이나 gradient boosting이 NB를 능가할 가능성이 높다. NB는 baseline으로 사용한다.
 
-### Step 3: Tune smoothing
+### 3단계: smoothing을 tune한다
 
-- Start with alpha=1.0 (Laplace smoothing).
-- If accuracy is low and you have enough data, try alpha=0.1 or 0.01.
-- If the model is overfitting (train >> test accuracy), increase alpha to 5.0 or 10.0.
-- Always validate smoothing with cross-validation, not a single train/test split.
+- alpha=1.0(Laplace smoothing)으로 시작한다.
+- accuracy가 낮고 data가 충분하다면 alpha=0.1 또는 0.01을 시도한다.
+- model이 overfitting한다면(train >> test accuracy), alpha를 5.0 또는 10.0으로 높인다.
+- smoothing은 single train/test split이 아니라 항상 cross-validation으로 validate한다.
 
-### Step 4: Check assumptions
+### 4단계: assumption을 확인한다
 
-- **MultinomialNB**: Features must be non-negative. If you have negative values, shift or use GaussianNB.
-- **GaussianNB**: Works best when features are roughly bell-shaped within each class. Check with histograms.
-- **BernoulliNB**: Binarize your features first. Choose the threshold carefully (for text: present=1, absent=0).
+- **MultinomialNB**: feature는 non-negative여야 한다. negative value가 있다면 shift하거나 GaussianNB를 사용한다.
+- **GaussianNB**: feature가 각 class 안에서 대략 bell-shaped일 때 가장 잘 동작한다. histogram으로 확인한다.
+- **BernoulliNB**: 먼저 feature를 binarize한다. threshold를 신중하게 고른다(text에서는 present=1, absent=0).
 
-## Common Mistakes
+## 흔한 실수
 
-1. **Using GaussianNB on text data.** Word counts are not Gaussian. Use MultinomialNB.
-2. **Forgetting Laplace smoothing.** A single unseen word zeros out the entire probability. Always smooth.
-3. **Trusting the probability outputs.** NB probabilities are poorly calibrated. Use them for ranking, not as confidence scores. If you need calibrated probabilities, use CalibratedClassifierCV.
-4. **Ignoring class imbalance.** NB priors reflect class frequencies. With 99% negative and 1% positive, the prior overwhelms the likelihood. Adjust priors manually or resample.
+1. **text data에 GaussianNB 사용.** Word count는 Gaussian이 아니다. MultinomialNB를 사용한다.
+2. **Laplace smoothing을 잊음.** unseen word 하나가 전체 probability를 zero로 만든다. 항상 smooth한다.
+3. **probability output을 신뢰함.** NB probability는 calibration이 좋지 않다. confidence score가 아니라 ranking에 사용한다. calibrated probability가 필요하면 CalibratedClassifierCV를 사용한다.
+4. **Class imbalance를 무시함.** NB prior는 class frequency를 반영한다. negative가 99%, positive가 1%라면 prior가 likelihood를 압도한다. prior를 수동으로 조정하거나 resample한다.
 
-## Quick Reference
+## 빠른 참조
 
-| Question | MultinomialNB | GaussianNB | BernoulliNB |
+| 질문 | MultinomialNB | GaussianNB | BernoulliNB |
 |----------|:---:|:---:|:---:|
-| Text classification? | Yes | No | Maybe (short text) |
-| Continuous features? | No | Yes | No |
-| Binary features? | No | No | Yes |
-| Very fast training needed? | Yes | Yes | Yes |
-| Small training set? | Good | Good | Good |
-| Need calibrated probabilities? | No | No | No |
+| Text classification? | 예 | 아니요 | 가능(short text) |
+| Continuous features? | 아니요 | 예 | 아니요 |
+| Binary features? | 아니요 | 아니요 | 예 |
+| Very fast training needed? | 예 | 예 | 예 |
+| Small training set? | 좋음 | 좋음 | 좋음 |
+| Need calibrated probabilities? | 아니요 | 아니요 | 아니요 |
 
-## When NOT to Use Naive Bayes
+## Naive Bayes를 사용하지 말아야 할 때
 
-- Features are highly correlated and you have enough data for a model that handles correlations (logistic regression, gradient boosting)
-- You need the best possible accuracy and have plenty of data
-- Your features are images, sequences, or graphs (use neural networks)
-- You need a model that captures feature interactions (use tree-based methods)
+- feature가 highly correlated되어 있고 correlation을 처리하는 model(logistic regression, gradient boosting)에 충분한 data가 있을 때
+- 가능한 최고의 accuracy가 필요하고 data가 충분할 때
+- feature가 image, sequence, graph일 때(neural network 사용)
+- feature interaction을 capture하는 model이 필요할 때(tree-based method 사용)

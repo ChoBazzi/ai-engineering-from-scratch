@@ -1,30 +1,30 @@
-# World Models & Video Diffusion
+# 월드 모델과 비디오 디퓨전
 
-> A video model that predicts the next seconds of a scene is a world simulator. Condition that prediction on actions and you have a learned game engine.
+> 장면의 다음 몇 초를 예측하는 video model은 world simulator다. 그 예측을 action으로 condition하면 학습된 game engine이 된다.
 
 **Type:** Learn + Build
 **Languages:** Python
 **Prerequisites:** Phase 4 Lesson 10 (Diffusion), Phase 4 Lesson 12 (Video Understanding), Phase 4 Lesson 23 (DiT + Rectified Flow)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Explain the difference between a pure video generation model (Sora 2) and an action-conditioned world model (Genie 3, DreamerV3)
-- Describe a video DiT: spatio-temporal patches, 3D position encoding, joint attention across (T, H, W) tokens
-- Trace how a world model plugs into robotics: VLM plans → video model simulates → inverse dynamics emits actions
-- Pick between Sora 2, Genie 3, Runway GWM-1 Worlds, Wan-Video, and HunyuanVideo for a given use case (creative video, interactive sim, autonomous-driving synthesis)
+- 순수 video generation model(Sora 2)과 action-conditioned world model(Genie 3, DreamerV3)의 차이를 설명한다
+- Video DiT를 설명한다. spatio-temporal patch, 3D position encoding, `(T, H, W)` token 전체의 joint attention
+- World model이 robotics에 연결되는 흐름을 추적한다. VLM plans -> video model simulates -> inverse dynamics emits actions
+- 주어진 사용 사례(creative video, interactive sim, autonomous-driving synthesis)에 대해 Sora 2, Genie 3, Runway GWM-1 Worlds, Wan-Video, HunyuanVideo 중에서 선택한다
 
-## The Problem
+## 문제
 
-Video generation and world modelling converged in 2026. A model that can generate a coherent minute of video has, in some sense, learned how the world moves: object permanence, gravity, causality, style. If you condition that prediction on actions (walk left, open the door), the video model becomes a learnable simulator that can replace a game engine, a driving simulator, or a robotics environment.
+Video generation과 world modelling은 2026년에 수렴했다. 일관된 1분 분량의 video를 생성할 수 있는 model은 어떤 의미에서는 세계가 움직이는 방식을 배운 것이다. Object permanence, gravity, causality, style이 포함된다. 그 예측을 action(walk left, open the door)으로 condition하면 video model은 game engine, driving simulator, robotics environment를 대체할 수 있는 learnable simulator가 된다.
 
-The stakes are concrete. Genie 3 generates playable environments from a single image. Runway GWM-1 Worlds synthesises infinite explorable scenes. Sora 2 produces minute-long videos with synchronised audio and modelled physics. NVIDIA Cosmos-Drive, Wayve Gaia-2, and Tesla DrivingWorld generate realistic driving video for autonomous-vehicle training data. The world-model paradigm is quietly taking over sim-to-real for robotics.
+중요성은 구체적이다. Genie 3는 단일 image에서 playable environment를 생성한다. Runway GWM-1 Worlds는 무한히 탐험 가능한 scene을 합성한다. Sora 2는 synchronised audio와 modeled physics가 있는 minute-long video를 만든다. NVIDIA Cosmos-Drive, Wayve Gaia-2, Tesla DrivingWorld는 autonomous-vehicle training data를 위한 현실적인 driving video를 생성한다. World-model paradigm은 robotics의 sim-to-real을 조용히 장악하고 있다.
 
-This lesson is the "big picture" lesson for Phase 4. It connects image generation, video understanding, and agentic reasoning into the architecture pattern dominant research is moving toward.
+이 수업은 Phase 4의 "big picture" 수업이다. Image generation, video understanding, agentic reasoning을 지배적인 연구가 향하는 architecture pattern으로 연결한다.
 
-## The Concept
+## 개념
 
-### Three families of world-modelling
+### World-modelling의 세 계열
 
 ```mermaid
 flowchart LR
@@ -45,68 +45,68 @@ flowchart LR
     style RL fill:#dcfce7,stroke:#16a34a
 ```
 
-- **Sora 2** is pure video generation conditioned on prompts. No action interface. You cannot "steer" it mid-rollout.
-- **Genie 3**, **GWM-1 Worlds**, **Mirage / Magica** are action-conditioned world models. Infer latent actions from observed video, then condition future frame predictions on actions. Interactive — you press keys or move a camera and the scene responds.
-- **DreamerV3** and the classic RL world-model family predict in a latent space with explicit action conditioning, trained on a reward signal. Less visual; more useful for sample-efficient RL.
+- **Sora 2**는 prompt로 condition되는 순수 video generation이다. Action interface가 없다. Rollout 중간에 "steer"할 수 없다.
+- **Genie 3**, **GWM-1 Worlds**, **Mirage / Magica**는 action-conditioned world model이다. 관찰된 video에서 latent action을 추론한 다음, action으로 future frame prediction을 condition한다. Interactive하다. 사용자가 key를 누르거나 camera를 움직이면 scene이 반응한다.
+- **DreamerV3**와 고전적인 RL world-model 계열은 명시적인 action conditioning이 있는 latent space에서 예측하고 reward signal로 학습된다. 시각적으로 덜 풍부하지만 sample-efficient RL에는 더 유용하다.
 
 ### Video DiT architecture
 
-```
+```text
 Video latent:          (C, T, H, W)
 Patchify (spatial):    grid of P_h x P_w patches per frame
 Patchify (temporal):   group P_t frames into a temporal patch
 Resulting tokens:      (T / P_t) * (H / P_h) * (W / P_w) tokens
 ```
 
-Positional encoding is 3D: a rotary or learned embedding per (t, h, w) coordinate. Attention can be:
+Positional encoding은 3D다. `(t, h, w)` coordinate마다 rotary 또는 learned embedding이 있다. Attention은 다음 중 하나일 수 있다.
 
-- **Full joint** — all tokens attend to all tokens. O(N^2) with N tokens. Prohibitive for long videos.
-- **Divided** — alternate temporal attention (same spatial position, across time: `(H*W) * T^2`) and spatial attention (same timestep, across space: `T * (H*W)^2`). Used by TimeSformer and most video DiTs.
-- **Window** — local windows in (t, h, w). Used by Video Swin.
+- **Full joint** — 모든 token이 모든 token에 attend한다. N개의 token에 대해 O(N^2)이다. 긴 video에는 너무 비싸다.
+- **Divided** — temporal attention(같은 spatial position, 시간 방향: `(H*W) * T^2`)과 spatial attention(같은 timestep, 공간 방향: `T * (H*W)^2`)을 번갈아 수행한다. TimeSformer와 대부분의 video DiT가 사용한다.
+- **Window** — `(t, h, w)`의 local window. Video Swin이 사용한다.
 
-Every 2026 video diffusion model uses one of these three patterns plus AdaLN conditioning (Lesson 23) and rectified flow.
+2026년의 모든 video diffusion model은 이 세 패턴 중 하나에 AdaLN conditioning(Lesson 23)과 rectified flow를 더해 사용한다.
 
-### Conditioning on actions: latent action models
+### Action으로 condition하기: latent action models
 
-Genie learns a **latent action** per frame by discriminatively predicting the action between a pair of consecutive frames. The model's decoder then conditions on the inferred latent action — not on explicit keyboard keys. At inference, a user can specify a latent action (or sample one from a fresh prior) and the model generates the next frame consistent with that action.
+Genie는 연속한 두 frame 사이의 action을 discriminatively 예측해 frame마다 **latent action**을 학습한다. 이후 model의 decoder는 명시적인 keyboard key가 아니라 추론된 latent action으로 condition된다. Inference에서 사용자는 latent action을 지정하거나 새로운 prior에서 sample할 수 있고, model은 그 action과 일관되는 next frame을 생성한다.
 
-Sora skips the action interface entirely. Its decoder predicts next spacetime tokens from past spacetime tokens. Prompt conditions the start; nothing steers it mid-generation.
+Sora는 action interface를 완전히 건너뛴다. Decoder는 과거 spacetime token에서 다음 spacetime token을 예측한다. Prompt가 시작을 condition하고, generation 중간에는 아무것도 조종하지 않는다.
 
 ### Physical plausibility
 
-Sora 2's 2026 release explicitly advertised **physical plausibility**: weight, balance, object permanence, cause-and-effect. Measured by the team via hand-rated plausibility scores; the model visibly improves on dropped objects, characters colliding, and failures-on-purpose (a missed jump) versus Sora 1.
+Sora 2의 2026 release는 **physical plausibility**를 명시적으로 내세웠다. Weight, balance, object permanence, cause-and-effect가 포함된다. Team은 hand-rated plausibility score로 측정했고, Sora 1과 비교해 dropped objects, characters colliding, failures-on-purpose(a missed jump)에서 눈에 띄게 개선되었다.
 
-Plausibility remains the dominant failure mode. 2024-2025 videos of people eating spaghetti or drinking from glasses revealed the model's lack of persistent object representation. 2026 models (Sora 2, Runway Gen-5, HunyuanVideo) reduce but do not eliminate these.
+Plausibility는 여전히 지배적인 failure mode다. 2024-2025년의 사람이 spaghetti를 먹거나 glass로 마시는 video는 model에 persistent object representation이 부족함을 드러냈다. 2026년 model(Sora 2, Runway Gen-5, HunyuanVideo)은 이를 줄였지만 없애지는 못했다.
 
 ### Autonomous driving world models
 
-Driving world models generate realistic road scenes conditioned on trajectories, bounding boxes, or navigation maps. Usage:
+Driving world model은 trajectory, bounding box, navigation map으로 condition된 현실적인 road scene을 생성한다. 사용 방식:
 
-- **Cosmos-Drive-Dreams** (NVIDIA) — generates minutes of driving video for RL training.
-- **Gaia-2** (Wayve) — trajectory-conditioned scene synthesis for policy evaluation.
-- **DrivingWorld** (Tesla) — simulates varied weather, time-of-day, traffic conditions.
+- **Cosmos-Drive-Dreams** (NVIDIA) — RL training용 driving video를 분 단위로 생성한다.
+- **Gaia-2** (Wayve) — policy evaluation을 위한 trajectory-conditioned scene synthesis.
+- **DrivingWorld** (Tesla) — 다양한 weather, time-of-day, traffic condition을 simulate한다.
 - **Vista** (ByteDance) — reactive driving scene synthesis.
 
-They replace expensive real-world data collection for corner cases — pedestrian jaywalks at night, icy intersections, unusual vehicle types — that would otherwise require millions of miles of driving.
+이들은 corner case를 위해 비싼 real-world data collection을 대체한다. 야간 무단횡단 보행자, icy intersection, unusual vehicle type처럼 원래라면 수백만 mile의 주행이 필요한 사례들이다.
 
 ### Robotics stack: VLM + video model + inverse dynamics
 
-The emerging three-component robotics loop:
+떠오르는 세 구성 요소 robotics loop:
 
-1. **VLM** parses the goal ("pick up the red cup"), plans a high-level action sequence.
-2. **Video generation model** simulates what executing each action would look like — predicts observations N frames ahead.
-3. **Inverse dynamics model** extracts the concrete motor commands that would produce those observations.
+1. **VLM**이 goal("pick up the red cup")을 parse하고 high-level action sequence를 계획한다.
+2. **Video generation model**이 각 action을 실행하면 어떤 모습일지 simulate한다. 즉 N frame 앞의 observation을 예측한다.
+3. **Inverse dynamics model**이 그 observation을 만들 concrete motor command를 추출한다.
 
-This replaces reward shaping and sample-heavy RL. The world model does the imagination; the inverse dynamics closes the loop on actuation. Genie Envisioner is one instantiation; many research groups are converging on this structure.
+이는 reward shaping과 sample-heavy RL을 대체한다. World model이 상상하고, inverse dynamics가 actuation의 loop를 닫는다. Genie Envisioner가 하나의 구현이고, 많은 연구 그룹이 이 구조로 수렴하고 있다.
 
-### Evaluation
+### 평가
 
-- **Visual quality** — FVD (Fréchet Video Distance), user studies.
-- **Prompt alignment** — CLIPScore per frame, VQA-style evaluation.
-- **Physical plausibility** — hand-rated on a benchmark suite (Sora 2's internal benchmark, VBench).
-- **Controllability** (for interactive world models) — action → observation consistency; can you go back to a prior state?
+- **Visual quality** — FVD(Fréchet Video Distance), user study.
+- **Prompt alignment** — frame별 CLIPScore, VQA-style evaluation.
+- **Physical plausibility** — benchmark suite에서 hand-rated(Sora 2의 internal benchmark, VBench).
+- **Controllability**(interactive world model용) — action -> observation consistency. 이전 state로 돌아갈 수 있는가?
 
-### Model landscape in 2026
+### 2026년 model landscape
 
 | Model | Use | Parameters | Output | License |
 |-------|-----|------------|--------|---------|
@@ -119,9 +119,9 @@ This replaces reward shaping and sample-heavy RL. The world model does the imagi
 | Cosmos / Cosmos-Drive | autonomous driving sim | 7-14B | driving scenes | NVIDIA open |
 | Magica / Mirage 2 | AI-native game engine | — | modifiable worlds | product |
 
-## Build It
+## 직접 만들기
 
-### Step 1: 3D patchify for video
+### Step 1: Video용 3D patchify
 
 ```python
 import torch
@@ -148,11 +148,11 @@ class VideoPatch3D(nn.Module):
         return tokens, (t, h, w)
 ```
 
-A 3D conv with stride equal to kernel acts as the spatio-temporal patchifier. `(T, H, W) -> (T/2, H/2, W/2)` grid of tokens.
+Kernel과 같은 stride를 가진 3D conv는 spatio-temporal patchifier처럼 작동한다. `(T, H, W) -> (T/2, H/2, W/2)` token grid를 만든다.
 
 ### Step 2: 3D rotary position encoding
 
-Rotary Position Embeddings (RoPE) separately applied along `t`, `h`, `w` axes:
+Rotary Position Embeddings(RoPE)를 `t`, `h`, `w` axis에 따로 적용한다.
 
 ```python
 def rope_3d(tokens, t_dim, h_dim, w_dim, grid):
@@ -179,7 +179,7 @@ def rope_3d(tokens, t_dim, h_dim, w_dim, grid):
     return tokens + torch.cat([emb_t, emb_h, emb_w], dim=-1)
 ```
 
-Simplified additive form. Real RoPE rotates paired channels at frequencies; the positional information is the same.
+단순화된 additive form이다. 실제 RoPE는 paired channel을 주파수별로 rotate한다. Positional information은 같다.
 
 ### Step 3: Divided attention block
 
@@ -209,9 +209,9 @@ class DividedAttentionBlock(nn.Module):
         return xs
 ```
 
-The time attention attends within each spatial position across time; the space attention attends within each frame across positions. Two O(T^2 + (HW)^2) operations instead of one O((THW)^2). This is the core of TimeSformer and every modern video DiT.
+Time attention은 각 spatial position 안에서 시간 방향으로 attend한다. Space attention은 각 frame 안에서 position 방향으로 attend한다. 하나의 O((THW)^2) 연산 대신 두 개의 O(T^2 + (HW)^2) 연산을 수행한다. 이것이 TimeSformer와 모든 현대 video DiT의 핵심이다.
 
-### Step 4: Compose a tiny video DiT
+### Step 4: Tiny video DiT 조립하기
 
 ```python
 class TinyVideoDiT(nn.Module):
@@ -228,9 +228,9 @@ class TinyVideoDiT(nn.Module):
         return self.out(tokens), grid
 ```
 
-Not a working video generator; a structural demo that every piece shapes correctly.
+작동하는 video generator가 아니라, 모든 조각의 shape가 맞는지 보여 주는 structural demo다.
 
-### Step 5: Check shapes
+### Step 5: Shape 확인하기
 
 ```python
 vid = torch.randn(1, 4, 8, 16, 16)  # (N, C, T, H, W)
@@ -241,59 +241,59 @@ print(f"tokens grid {grid}")
 print(f"output {tuple(out.shape)}")
 ```
 
-Expect `grid = (4, 8, 8)` and `out = (1, 256, 32)` after patching; the head then projects to per-token spatio-temporal patches, ready to be un-patchified back into a video.
+Patching 후 `grid = (4, 8, 8)`, `out = (1, 256, 32)`가 예상된다. Head는 per-token spatio-temporal patch로 project하고, 이는 다시 video로 un-patchify할 준비가 된 상태다.
 
-## Use It
+## 사용하기
 
-Production access patterns for 2026:
+2026년 운영 접근 패턴:
 
 - **Sora 2 API** (OpenAI) — text-to-video, synchronized audio. Premium pricing.
 - **Runway Gen-5 / GWM-1** (Runway) — image-to-video, interactive worlds.
 - **Wan-Video 2.1 / HunyuanVideo** — open-source self-host.
 - **Cosmos / Cosmos-Drive** (NVIDIA) — driving simulation open weights.
-- **Genie 3** — research preview, request access.
+- **Genie 3** — research preview, access request 필요.
 
-For building an interactive world-model demo: start with Wan-Video for quality, layer on a latent-action adapter for interactivity. For autonomous driving simulation: Cosmos-Drive is the 2026 open reference.
+Interactive world-model demo를 만든다면 quality를 위해 Wan-Video로 시작하고, interactivity를 위해 latent-action adapter를 얹는다. Autonomous driving simulation이라면 Cosmos-Drive가 2026년의 open reference다.
 
-For robotics, the stack in the wild:
+실전 robotics stack:
 
-1. Language goal -> VLM (Qwen3-VL) -> high-level plan.
+1. Language goal -> VLM(Qwen3-VL) -> high-level plan.
 2. Plan -> latent-action video model -> imagined rollout.
 3. Rollout -> inverse dynamics model -> low-level actions.
 4. Actions executed -> observation fed back into step 1.
 
-## Ship It
+## 출시하기
 
-This lesson produces:
+이 수업의 산출물:
 
-- `outputs/prompt-video-model-picker.md` — picks between Sora 2 / Runway / Wan / HunyuanVideo / Cosmos given task, license, and latency.
-- `outputs/skill-physical-plausibility-checks.md` — a skill that defines automated checks (object permanence, gravity, continuity) to run on any generated video before shipping.
+- `outputs/prompt-video-model-picker.md` — task, license, latency가 주어졌을 때 Sora 2 / Runway / Wan / HunyuanVideo / Cosmos 중에서 고른다.
+- `outputs/skill-physical-plausibility-checks.md` — 생성된 video를 출시하기 전에 실행할 automated check(object permanence, gravity, continuity)를 정의하는 skill.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Compute the token count for a 5-second 360p video at patch-t=2, patch-h=8, patch-w=8. Reason about memory for attention at this size.
-2. **(Medium)** Swap the divided attention block above for a full joint attention block and measure the shape and parameter count. Explain why divided attention is necessary for real video models.
-3. **(Hard)** Build a minimal latent-action video model: take a dataset of (frame_t, action_t, frame_{t+1}) triples (any simple 2D game), train a tiny video DiT conditioned on action embeddings, and show that different actions produce different next frames.
+1. **(Easy)** patch-t=2, patch-h=8, patch-w=8일 때 5초짜리 360p video의 token count를 계산하라. 이 크기에서 attention memory를 추론하라.
+2. **(Medium)** 위의 divided attention block을 full joint attention block으로 바꾸고 shape와 parameter count를 측정하라. 실제 video model에 divided attention이 필요한 이유를 설명하라.
+3. **(Hard)** 최소 latent-action video model을 만들어라. (frame_t, action_t, frame_{t+1}) triple dataset(간단한 2D game이면 무엇이든)을 가져와 action embedding으로 condition된 tiny video DiT를 학습하고, 서로 다른 action이 서로 다른 next frame을 만든다는 것을 보이라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 말하는 표현 | 실제 의미 |
 |------|----------------|----------------------|
-| World model | "Learned simulator" | A model that predicts future observations given state and action |
-| Video DiT | "Spacetime transformer" | Diffusion transformer with 3D patchification and divided attention |
-| Latent action | "Inferred control" | Discrete or continuous action latent inferred from frame pairs; used to condition next-frame generation |
-| Divided attention | "Time then space" | Two attention operations per block — across time then across space — to keep O(N^2) manageable |
-| Object permanence | "Things stay real" | Scene property that video models must learn; classic failure mode on food, glassware |
-| FVD | "Fréchet Video Distance" | Video equivalent of FID; primary visual quality metric |
-| Inverse dynamics model | "Observations to actions" | Given (state, next state), output the action that connects them; closes robotics loop |
-| Cosmos-Drive | "NVIDIA driving sim" | Open-weights autonomous-driving world model for RL and evaluation |
+| World model | "Learned simulator" | state와 action이 주어졌을 때 future observation을 예측하는 model |
+| Video DiT | "Spacetime transformer" | 3D patchification과 divided attention을 가진 diffusion transformer |
+| Latent action | "Inferred control" | frame pair에서 추론된 discrete 또는 continuous action latent. next-frame generation을 condition하는 데 사용된다 |
+| Divided attention | "Time then space" | O(N^2)를 다룰 수 있게 유지하기 위해 block마다 두 attention operation을 수행한다. 먼저 시간 방향, 그다음 공간 방향 |
+| Object permanence | "Things stay real" | Video model이 배워야 하는 scene property. 음식, glassware에서 나타나는 고전적 failure mode |
+| FVD | "Fréchet Video Distance" | FID의 video equivalent. 주요 visual quality metric |
+| Inverse dynamics model | "Observations to actions" | (state, next state)가 주어졌을 때 둘을 연결하는 action을 출력한다. Robotics loop를 닫는다 |
+| Cosmos-Drive | "NVIDIA driving sim" | RL과 evaluation을 위한 open-weights autonomous-driving world model |
 
-## Further Reading
+## 더 읽을거리
 
 - [Sora technical report (OpenAI)](https://openai.com/index/video-generation-models-as-world-simulators/)
 - [Genie: Generative Interactive Environments (Bruce et al., 2024)](https://arxiv.org/abs/2402.15391) — latent action world models
-- [TimeSformer (Bertasius et al., 2021)](https://arxiv.org/abs/2102.05095) — divided attention for video transformers
-- [DreamerV3 (Hafner et al., 2023)](https://arxiv.org/abs/2301.04104) — world models for RL
+- [TimeSformer (Bertasius et al., 2021)](https://arxiv.org/abs/2102.05095) — video transformer를 위한 divided attention
+- [DreamerV3 (Hafner et al., 2023)](https://arxiv.org/abs/2301.04104) — RL을 위한 world models
 - [Cosmos-Drive-Dreams (NVIDIA, 2025)](https://research.nvidia.com/labs/toronto-ai/cosmos-drive-dreams/) — driving world model
 - [Top 10 Video Generation Models 2026 (DataCamp)](https://www.datacamp.com/blog/top-video-generation-models)
 - [From Video Generation to World Model — survey repo](https://github.com/ziqihuangg/Awesome-From-Video-Generation-to-World-Model/)

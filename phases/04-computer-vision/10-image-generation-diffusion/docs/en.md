@@ -1,44 +1,44 @@
-# Image Generation — Diffusion Models
+# 이미지 생성 — Diffusion Models
 
-> A diffusion model learns to denoise. Train it to remove a tiny bit of noise from a noisy image, repeat that backwards a thousand times, and you have an image generator.
+> Diffusion model은 denoise하는 법을 배웁니다. Noisy image에서 아주 작은 noise를 제거하도록 훈련하고, 그것을 거꾸로 천 번 반복하면 image generator가 됩니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 4 Lesson 07 (U-Net), Phase 1 Lesson 06 (Probability), Phase 3 Lesson 06 (Optimizers)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Derive the forward noising process `x_0 -> x_1 -> ... -> x_T` and explain why the closed-form `q(x_t | x_0)` holds for any t
-- Implement a DDPM-style training objective that regresses the noise added at each step, and a sampler that walks back from pure noise to an image
-- Build a time-conditioned U-Net (small enough to train on CPU) that predicts the noise for any timestep
-- Explain the difference between DDPM and DDIM sampling, and when each is appropriate (Lesson 23 covers flow matching and rectified flow in depth)
+- Forward noising process `x_0 -> x_1 -> ... -> x_T`를 유도하고, closed-form `q(x_t | x_0)`가 임의의 t에서 왜 성립하는지 설명하기
+- 각 step에서 추가된 noise를 회귀하는 DDPM-style training objective와 pure noise에서 image로 되돌아가는 sampler 구현하기
+- 임의의 timestep에 대한 noise를 예측하는 time-conditioned U-Net을 CPU에서도 훈련할 수 있을 만큼 작게 만들기
+- DDPM sampling과 DDIM sampling의 차이, 그리고 각각이 적절한 경우를 설명하기(Lesson 23에서는 flow matching과 rectified flow를 깊게 다룹니다)
 
-## The Problem
+## 문제
 
-GANs generate one-shot: noise in, image out, one forward pass. They are fast and hard to train. Diffusion models generate iteratively: start from pure noise, denoise in small steps, image emerges. They are slow and easy to train. For the last five years the latter property has dominated: any small team can train a diffusion model and get reasonable samples; GAN training is a craft you learn over years of failed runs.
+GAN은 one-shot으로 생성합니다. Noise가 들어가고, image가 나오며, forward pass는 한 번입니다. 빠르지만 훈련하기 어렵습니다. Diffusion model은 반복적으로 생성합니다. Pure noise에서 시작해 작은 step으로 denoise하면 image가 나타납니다. 느리지만 훈련하기 쉽습니다. 지난 5년 동안은 후자의 특성이 지배했습니다. 작은 팀도 diffusion model을 훈련해 합리적인 sample을 얻을 수 있지만, GAN training은 수년간 실패한 run을 통해 배우는 craft입니다.
 
-Beyond training stability, diffusion's iterative structure is what unlocks everything modern image generation does: text conditioning, inpainting, image editing, super-resolution, controllable style. Each step of the sampling loop is a place to inject a new constraint. That hook is why Stable Diffusion, Imagen, DALL-E 3, Midjourney, and every controllable image model you will use are all diffusion-based.
+Training stability를 넘어, diffusion의 iterative structure는 현대 image generation이 하는 모든 것을 열어줍니다. text conditioning, inpainting, image editing, super-resolution, controllable style이 모두 여기에 해당합니다. Sampling loop의 각 step은 새로운 constraint를 주입할 수 있는 지점입니다. 이 hook 때문에 Stable Diffusion, Imagen, DALL-E 3, Midjourney, 그리고 사용하게 될 모든 controllable image model은 diffusion 기반입니다.
 
-This lesson builds the minimal DDPM: forward noising, backward denoising, training loop. The next lesson (Stable Diffusion) wires it into a production system with a VAE, a text encoder, and classifier-free guidance.
+이 lesson은 최소 DDPM을 만듭니다. forward noising, backward denoising, training loop입니다. 다음 lesson(Stable Diffusion)은 VAE, text encoder, classifier-free guidance를 붙여 production system으로 연결합니다.
 
-## The Concept
+## 개념
 
-### The forward process
+### Forward process
 
-Take an image `x_0`. Add a tiny amount of Gaussian noise to get `x_1`. Add a tiny amount more to get `x_2`. Keep going for T steps until `x_T` is nearly indistinguishable from pure Gaussian noise.
+Image `x_0`를 가져옵니다. Gaussian noise를 아주 조금 더해 `x_1`을 만듭니다. 조금 더 더해 `x_2`를 만듭니다. `x_T`가 pure Gaussian noise와 거의 구분되지 않을 때까지 T step 동안 계속합니다.
 
-```
+```text
 q(x_t | x_{t-1}) = N(x_t; sqrt(1 - beta_t) * x_{t-1},  beta_t * I)
 ```
 
-`beta_t` is a small variance schedule, typically linear from 0.0001 to 0.02 over T=1000 steps. Each step slightly shrinks the signal and injects fresh noise.
+`beta_t`는 작은 variance schedule이며, 보통 T=1000 step에 걸쳐 0.0001에서 0.02까지 linear하게 증가합니다. 각 step은 signal을 조금 줄이고 fresh noise를 주입합니다.
 
-### The closed-form jump
+### Closed-form jump
 
-Adding noise one step at a time is a Markov chain, but the math folds: you can sample `x_t` directly from `x_0` in one step.
+한 step씩 noise를 더하는 것은 Markov chain이지만, 수학은 접힙니다. `x_0`에서 `x_t`를 한 번에 직접 sample할 수 있습니다.
 
-```
+```text
 Define alpha_t = 1 - beta_t
 Define alpha_bar_t = prod_{s=1..t} alpha_s
 
@@ -50,11 +50,11 @@ Equivalently:
   where epsilon ~ N(0, I)
 ```
 
-This single equation is the whole reason diffusion is practical. During training you pick a random `t`, sample `x_t` directly from `x_0`, and train in one step — no simulation of the full Markov chain needed.
+이 단일 equation이 diffusion을 실용적으로 만드는 전체 이유입니다. Training 중에는 random `t`를 고르고, `x_0`에서 `x_t`를 직접 sample한 뒤 한 step으로 훈련합니다. 전체 Markov chain을 simulation할 필요가 없습니다.
 
-### The reverse process
+### Reverse process
 
-The forward process is fixed. The reverse process `p(x_{t-1} | x_t)` is what the neural network learns. Diffusion models do not predict `x_{t-1}` directly; they predict the noise `epsilon` added at step t, and the math derives `x_{t-1}` from it.
+Forward process는 고정되어 있습니다. Reverse process `p(x_{t-1} | x_t)`는 neural network가 학습하는 것입니다. Diffusion model은 `x_{t-1}`를 직접 예측하지 않습니다. step t에서 추가된 noise `epsilon`을 예측하고, 수학이 그것으로부터 `x_{t-1}`를 유도합니다.
 
 ```mermaid
 flowchart LR
@@ -74,24 +74,24 @@ flowchart LR
     style X0S fill:#dbeafe,stroke:#2563eb
 ```
 
-### The training loss
+### Training loss
 
-For every training step:
+모든 training step은 다음과 같습니다.
 
-1. Sample a real image `x_0`.
-2. Sample a timestep `t` uniformly from [1, T].
-3. Sample noise `epsilon ~ N(0, I)`.
-4. Compute `x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * epsilon`.
-5. Predict `epsilon_theta(x_t, t)` with the network.
-6. Minimise `|| epsilon - epsilon_theta(x_t, t) ||^2`.
+1. Real image `x_0`를 sample합니다.
+2. Timestep `t`를 [1, T]에서 uniform하게 sample합니다.
+3. Noise `epsilon ~ N(0, I)`를 sample합니다.
+4. `x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * epsilon`을 계산합니다.
+5. Network로 `epsilon_theta(x_t, t)`를 예측합니다.
+6. `|| epsilon - epsilon_theta(x_t, t) ||^2`를 최소화합니다.
 
-That is it. The neural network learns to predict the noise at any timestep. The loss is MSE. There is no adversarial game, no collapse, no oscillation.
+이게 전부입니다. Neural network는 임의의 timestep에서 noise를 예측하는 법을 배웁니다. Loss는 MSE입니다. Adversarial game도, collapse도, oscillation도 없습니다.
 
-### The sampler (DDPM)
+### Sampler (DDPM)
 
-To generate: start from `x_T ~ N(0, I)` and walk backwards one step at a time.
+생성하려면 `x_T ~ N(0, I)`에서 시작해 한 step씩 거꾸로 걸어갑니다.
 
-```
+```text
 for t = T, T-1, ..., 1:
     eps = model(x_t, t)
     x_{t-1} = (1 / sqrt(alpha_t)) * (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * eps) + sqrt(beta_t) * z
@@ -99,28 +99,28 @@ for t = T, T-1, ..., 1:
 return x_0
 ```
 
-The key is that even though the reverse conditional is not known in closed form in general, for this specific Gaussian forward process it is. The ugly-looking coefficients are what Bayes' rule gives you.
+핵심은 reverse conditional이 일반적으로 closed form으로 알려져 있지 않더라도, 이 특정 Gaussian forward process에서는 알려져 있다는 점입니다. 보기 흉한 coefficient는 Bayes' rule이 주는 것입니다.
 
-### Why 1000 steps
+### 왜 1000 step인가
 
-The forward noise schedule is chosen so each step adds just enough noise that the reverse step is nearly Gaussian. Too few steps and the reverse step is far from Gaussian, the network cannot model it well. Too many steps and sampling becomes expensive with diminishing gain. T=1000 with a linear schedule is the DDPM default.
+Forward noise schedule은 각 step이 reverse step을 거의 Gaussian으로 만들 만큼만 noise를 추가하도록 선택됩니다. Step이 너무 적으면 reverse step이 Gaussian에서 멀어져 network가 잘 modeling할 수 없습니다. Step이 너무 많으면 sampling이 비싸지고 이득은 줄어듭니다. Linear schedule에서 T=1000은 DDPM 기본값입니다.
 
-### DDIM: 20x faster sampling
+### DDIM: 20배 빠른 sampling
 
-Training is the same. Sampling changes. DDIM (Song et al., 2020) defines a deterministic reverse process that skips timesteps without retraining. Sampling in 50 steps with DDIM gives near-1000-step DDPM quality. Every production system uses DDIM or an even faster variant (DPM-Solver, Euler ancestral).
+Training은 같습니다. Sampling이 바뀝니다. DDIM(Song et al., 2020)은 retraining 없이 timestep을 건너뛰는 deterministic reverse process를 정의합니다. DDIM으로 50 step sampling을 하면 1000-step DDPM에 가까운 품질이 나옵니다. 모든 production system은 DDIM 또는 더 빠른 변형(DPM-Solver, Euler ancestral)을 사용합니다.
 
 ### Time conditioning
 
-The network `epsilon_theta(x_t, t)` needs to know which timestep it is denoising. Modern diffusion models inject `t` via sinusoidal time embeddings (same idea as positional encoding in transformers) that get added to feature maps at every U-Net level.
+Network `epsilon_theta(x_t, t)`는 자신이 denoise하는 timestep을 알아야 합니다. 현대 diffusion model은 sinusoidal time embedding(transformer의 positional encoding과 같은 아이디어)을 통해 `t`를 주입하고, 그것을 모든 U-Net level의 feature map에 더합니다.
 
-```
+```text
 t_embedding = sinusoidal(t)
 feature_map += MLP(t_embedding)
 ```
 
-Without time conditioning the network has to guess the noise level from the image itself, which works but is much less sample-efficient.
+Time conditioning이 없으면 network는 image 자체에서 noise level을 추측해야 합니다. 동작은 하지만 sample-efficiency가 훨씬 낮습니다.
 
-## Build It
+## 직접 만들기
 
 ### Step 1: Noise schedule
 
@@ -146,7 +146,7 @@ def precompute_schedule(betas):
 schedule = precompute_schedule(linear_beta_schedule(T=1000))
 ```
 
-Precompute once, gather by index during training and sampling.
+한 번 precompute하고, training과 sampling 중에는 index로 gather합니다.
 
 ### Step 2: Forward diffusion (q_sample)
 
@@ -157,9 +157,9 @@ def q_sample(x0, t, noise, schedule):
     return sqrt_a * x0 + sqrt_one_minus_a * noise
 ```
 
-One-line closed form. `t` is a batch of timesteps, one per image in the batch.
+한 줄짜리 closed form입니다. `t`는 batch의 image마다 하나씩 있는 timestep batch입니다.
 
-### Step 3: A tiny time-conditioned U-Net
+### Step 3: 작은 time-conditioned U-Net
 
 ```python
 import torch.nn as nn
@@ -203,7 +203,7 @@ class TinyUNet(nn.Module):
         return self.dec2(d2)
 ```
 
-Two-level U-Net with time conditioning injected at the bottleneck. Scale up the depth and width for real images.
+Bottleneck에 time conditioning을 주입하는 two-level U-Net입니다. Real image에는 depth와 width를 키우세요.
 
 ### Step 4: Training loop
 
@@ -223,7 +223,7 @@ def train_step(model, x0, schedule, optimizer, device, T=1000):
     return loss.item()
 ```
 
-That is the entire training loop. No GAN game, no specialised loss, one MSE call.
+이것이 전체 training loop입니다. GAN game도, specialised loss도 없고, MSE call 하나뿐입니다.
 
 ### Step 5: Sampler (DDPM)
 
@@ -248,9 +248,9 @@ def sample(model, schedule, shape, T=1000, device="cpu"):
     return x
 ```
 
-1000 forward passes to produce one batch of samples. In real code you would swap this for a DDIM 50-step sampler.
+한 batch의 sample을 만들려면 forward pass 1000번이 필요합니다. Real code에서는 이것을 DDIM 50-step sampler로 바꿀 것입니다.
 
-### Step 6: DDIM sampler (deterministic, ~20x faster)
+### Step 6: DDIM sampler (deterministic, 약 20배 빠름)
 
 ```python
 @torch.no_grad()
@@ -275,11 +275,11 @@ def sample_ddim(model, schedule, shape, steps=50, T=1000, device="cpu", eta=0.0)
     return x
 ```
 
-`eta=0` is fully deterministic (same noise input always produces the same output). `eta=1` recovers DDPM.
+`eta=0`은 완전히 deterministic입니다(같은 noise input은 항상 같은 output을 생성합니다). `eta=1`은 DDPM을 회복합니다.
 
-## Use It
+## 활용하기
 
-For production work, use `diffusers`:
+Production 작업에는 `diffusers`를 사용하세요.
 
 ```python
 from diffusers import DDPMScheduler, UNet2DModel
@@ -288,39 +288,39 @@ unet = UNet2DModel(sample_size=32, in_channels=3, out_channels=3, layers_per_blo
 scheduler = DDPMScheduler(num_train_timesteps=1000)
 ```
 
-The library ships ready-made schedulers (DDPM, DDIM, DPM-Solver, Euler, Heun), configurable U-Nets, pipelines for text-to-image and image-to-image, and LoRA fine-tuning helpers.
+이 library는 ready-made scheduler(DDPM, DDIM, DPM-Solver, Euler, Heun), configurable U-Net, text-to-image와 image-to-image pipeline, LoRA fine-tuning helper를 제공합니다.
 
-For research, `k-diffusion` (Katherine Crowson) has the most faithful reference implementations and the best sampling variants.
+Research에는 `k-diffusion`(Katherine Crowson)이 가장 충실한 reference implementation과 최고의 sampling variant를 갖고 있습니다.
 
-## Ship It
+## 출시하기
 
-This lesson produces:
+이 lesson은 다음을 만듭니다.
 
-- `outputs/prompt-diffusion-sampler-picker.md` — a prompt that picks DDPM / DDIM / DPM-Solver / Euler based on quality target, latency budget, and conditioning type.
-- `outputs/skill-noise-schedule-designer.md` — a skill that produces a linear, cosine, or sigmoid beta schedule given T and target corruption level, plus diagnostic plots of signal-to-noise ratio over time.
+- `outputs/prompt-diffusion-sampler-picker.md` — quality target, latency budget, conditioning type을 바탕으로 DDPM / DDIM / DPM-Solver / Euler를 고르는 prompt입니다.
+- `outputs/skill-noise-schedule-designer.md` — T와 target corruption level을 받아 linear, cosine, sigmoid beta schedule을 만들고 시간에 따른 signal-to-noise ratio diagnostic plot을 생성하는 skill입니다.
 
-## Exercises
+## 연습문제
 
-1. **(Easy)** Visualise the forward process: take one image and plot `x_t` at `t in [0, 100, 250, 500, 750, 1000]`. Verify that `x_1000` looks like pure Gaussian noise.
-2. **(Medium)** Train the TinyUNet on the synthetic-circles dataset for 20 epochs and sample 16 circles. Compare DDPM (1000 steps) and DDIM (50 steps) sampling — do they produce similar images from the same noise seed?
-3. **(Hard)** Implement a cosine noise schedule (Nichol & Dhariwal, 2021): `alpha_bar_t = cos^2((t/T + s) / (1 + s) * pi / 2)`. Train the same model with linear and cosine schedules and show that cosine gives better samples at low step counts.
+1. **(Easy)** Forward process를 시각화하세요. 이미지 하나를 가져와 `t in [0, 100, 250, 500, 750, 1000]`에서 `x_t`를 plot합니다. `x_1000`이 pure Gaussian noise처럼 보이는지 확인하세요.
+2. **(Medium)** Synthetic-circles dataset에서 TinyUNet을 20 epoch 동안 훈련하고 circle 16개를 sample하세요. DDPM(1000 steps)과 DDIM(50 steps) sampling을 비교하세요. 같은 noise seed에서 비슷한 image를 생성하나요?
+3. **(Hard)** Cosine noise schedule(Nichol & Dhariwal, 2021)을 구현하세요. `alpha_bar_t = cos^2((t/T + s) / (1 + s) * pi / 2)`입니다. 같은 model을 linear schedule과 cosine schedule로 훈련하고, cosine이 low step count에서 더 좋은 sample을 주는지 보이세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 방식 | 실제 의미 |
 |------|----------------|----------------------|
-| Forward process | "Add noise over time" | Fixed Markov chain that corrupts an image into Gaussian noise over T steps |
-| Reverse process | "Denoise step by step" | Learned distribution that walks back from noise to image |
-| Epsilon prediction | "Predict the noise" | The training target: `epsilon_theta(x_t, t)` predicts the noise added at step t |
-| Beta schedule | "Noise amounts" | Sequence of T small variances that define how much noise enters per step |
-| alpha_bar_t | "Cumulative retain factor" | Product of (1 - beta_s) up to time t; bigger t means less signal left |
-| DDPM sampler | "Ancestral, stochastic" | Samples each x_{t-1} from its conditional Gaussian; 1000 steps |
-| DDIM sampler | "Deterministic, fast" | Rewrites sampling as a deterministic ODE; 20-100 steps with similar quality |
-| Time conditioning | "Tell the model which t" | Sinusoidal embedding of t injected into the U-Net so it knows the noise level |
+| Forward process | "시간에 따라 noise 추가" | Image를 T step에 걸쳐 Gaussian noise로 corrupt하는 고정 Markov chain |
+| Reverse process | "한 step씩 denoise" | Noise에서 image로 되돌아가는 learned distribution |
+| Epsilon prediction | "Noise 예측" | Training target입니다. `epsilon_theta(x_t, t)`는 step t에서 추가된 noise를 예측합니다 |
+| Beta schedule | "Noise 양" | Step마다 얼마나 많은 noise가 들어가는지 정의하는 T개의 작은 variance sequence |
+| alpha_bar_t | "누적 유지 factor" | time t까지의 (1 - beta_s) product입니다. t가 클수록 남은 signal이 적습니다 |
+| DDPM sampler | "Ancestral, stochastic" | 각 x_{t-1}을 conditional Gaussian에서 sample합니다. 1000 steps입니다 |
+| DDIM sampler | "Deterministic, fast" | Sampling을 deterministic ODE로 다시 씁니다. 20-100 step으로 비슷한 품질을 냅니다 |
+| Time conditioning | "Model에 어떤 t인지 알려주기" | t의 sinusoidal embedding을 U-Net에 주입해 noise level을 알게 합니다 |
 
-## Further Reading
+## 더 읽기
 
-- [Denoising Diffusion Probabilistic Models (Ho et al., 2020)](https://arxiv.org/abs/2006.11239) — the paper that made diffusion practical and beat GANs on FID
-- [Improved DDPM (Nichol & Dhariwal, 2021)](https://arxiv.org/abs/2102.09672) — cosine schedule and v-parameterisation
-- [DDIM (Song, Meng, Ermon, 2020)](https://arxiv.org/abs/2010.02502) — the deterministic sampler that made real-time inference possible
-- [Elucidating the Design Space of Diffusion (Karras et al., 2022)](https://arxiv.org/abs/2206.00364) — a unified view of every diffusion design choice; current best reference
+- [Denoising Diffusion Probabilistic Models (Ho et al., 2020)](https://arxiv.org/abs/2006.11239) — diffusion을 실용적으로 만들고 FID에서 GAN을 이긴 논문
+- [Improved DDPM (Nichol & Dhariwal, 2021)](https://arxiv.org/abs/2102.09672) — cosine schedule과 v-parameterisation
+- [DDIM (Song, Meng, Ermon, 2020)](https://arxiv.org/abs/2010.02502) — real-time inference를 가능하게 한 deterministic sampler
+- [Elucidating the Design Space of Diffusion (Karras et al., 2022)](https://arxiv.org/abs/2206.00364) — 모든 diffusion design choice를 통합해서 보는 관점입니다. 현재 최고의 reference입니다

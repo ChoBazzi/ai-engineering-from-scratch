@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "How does a ViT turn an image into a sequence of tokens?",
-      "options": ["Flattens the entire image into one vector", "Applies a conv with kernel_size = stride = patch_size to split the image into non-overlapping patches and linearly project each to a token embedding in one operation", "Runs a CNN first and uses its feature map as tokens", "Sorts pixel intensities"],
+      "question": "ViT는 이미지를 어떻게 토큰 시퀀스로 바꾸나요?",
+      "options": ["전체 이미지를 하나의 벡터로 평탄화합니다", "kernel_size = stride = patch_size인 conv를 적용해 이미지를 겹치지 않는 패치로 나누고, 각 패치를 한 번의 연산으로 토큰 임베딩에 선형 투영합니다", "먼저 CNN을 실행하고 그 feature map을 토큰으로 사용합니다", "픽셀 intensity를 정렬합니다"],
       "correct": 1,
-      "explanation": "The first layer of a ViT is a conv with kernel_size = stride = 16, turning a 224x224 image into a 14x14 grid of 16x16 patches, each projected to dim=768. That single conv does both patchification and projection. The result is 196 tokens that a standard transformer encoder can process."
+      "explanation": "ViT의 첫 레이어는 kernel_size = stride = 16인 conv입니다. 224x224 이미지를 16x16 패치의 14x14 격자로 바꾸고, 각 패치를 dim=768로 투영합니다. 이 단일 conv가 patchification과 projection을 모두 수행합니다. 결과는 표준 transformer encoder가 처리할 수 있는 196개 토큰입니다."
     },
     {
       "stage": "pre",
-      "question": "What is the [CLS] token in ViT and why is it needed?",
-      "options": ["A learned vector prepended to the token sequence; after N transformer layers its output aggregates the whole image and feeds the classifier head", "A special pixel value", "A placeholder for missing data", "A dropout mask"],
+      "question": "ViT에서 [CLS] token은 무엇이며 왜 필요한가요?",
+      "options": ["토큰 시퀀스 앞에 붙는 학습된 벡터입니다. N개의 transformer layer 이후 그 출력은 전체 이미지를 집계하고 classifier head에 들어갑니다", "특수한 픽셀 값입니다", "누락 데이터용 placeholder입니다", "dropout mask입니다"],
       "correct": 0,
-      "explanation": "ViT follows BERT's convention: prepend a learned vector (the CLS token) to the patch sequence. Self-attention lets every token see every other token, so the CLS token aggregates global information from all patches. The classifier reads only the CLS output. Alternative designs use average-pooling over all patch tokens (used by ConvNeXt and many post-ViT models)."
+      "explanation": "ViT는 BERT의 관례를 따릅니다. 학습된 벡터(CLS token)를 patch sequence 앞에 붙입니다. Self-attention은 모든 토큰이 다른 모든 토큰을 보게 하므로 CLS token은 모든 패치의 전역 정보를 집계합니다. classifier는 CLS 출력만 읽습니다. 대안 설계는 모든 patch token에 대한 average-pooling을 사용합니다(ConvNeXt와 많은 post-ViT 모델에서 사용)."
     },
     {
       "stage": "post",
-      "question": "Why did the original ViT paper need JFT-300M pretraining to beat ResNet, and why does DeiT not?",
-      "options": ["ViT is broken without JFT-300M", "ViT has weaker inductive biases than CNNs; without enough data it overfits. DeiT showed that with strong augmentation (RandAugment, Mixup, CutMix), stochastic depth, and optionally CNN distillation, ViTs train fine on ImageNet-1k alone", "DeiT uses different attention", "The ViT paper was wrong"],
+      "question": "원래 ViT 논문은 ResNet을 이기기 위해 왜 JFT-300M 사전학습이 필요했으며, DeiT는 왜 그렇지 않았나요?",
+      "options": ["ViT는 JFT-300M 없이는 망가집니다", "ViT는 CNN보다 귀납 편향이 약합니다. 충분한 데이터가 없으면 overfit됩니다. DeiT는 강한 augmentation(RandAugment, Mixup, CutMix), stochastic depth, 선택적 CNN distillation을 사용하면 ViT가 ImageNet-1k만으로도 잘 학습됨을 보였습니다", "DeiT는 다른 attention을 사용합니다", "ViT 논문이 틀렸습니다"],
       "correct": 1,
-      "explanation": "ViT's lack of inductive bias (no locality, no translation equivariance baked in) means the network has to learn these from data. With 1M ImageNet images that is hard; with 300M JFT images it is easy. DeiT replaced the data with training-recipe improvements: heavy augmentation, stochastic depth, and distillation from a CNN teacher, all of which compensate for the lack of priors."
+      "explanation": "ViT에는 locality나 translation equivariance가 내장되어 있지 않아 귀납 편향이 부족하며, 네트워크가 이를 데이터에서 배워야 합니다. 1M개의 ImageNet 이미지로는 어렵지만 300M개의 JFT 이미지로는 쉽습니다. DeiT는 데이터를 학습 레시피 개선으로 대체했습니다. 강한 augmentation, stochastic depth, CNN teacher로부터의 distillation이 prior 부족을 보완합니다."
     },
     {
       "stage": "post",
-      "question": "Pre-LayerNorm (`x = x + sublayer(LN(x))`) vs post-LayerNorm (`x = LN(x + sublayer(x))`) — which is used in modern transformers and why?",
-      "options": ["Post-LN; it is simpler", "Pre-LN; it trains deeper networks stably without learning-rate warmup and avoids the gradient instabilities that post-LN suffers past about 6 layers", "They are identical", "Neither; modern transformers skip LayerNorm"],
+      "question": "Pre-LayerNorm(`x = x + sublayer(LN(x))`)과 post-LayerNorm(`x = LN(x + sublayer(x))`) 중 현대 트랜스포머는 무엇을 사용하며, 그 이유는 무엇인가요?",
+      "options": ["Post-LN입니다. 더 단순하기 때문입니다", "Pre-LN입니다. learning-rate warmup 없이 깊은 네트워크를 안정적으로 학습하고, post-LN이 약 6층 이후 겪는 gradient instability를 피하기 때문입니다", "둘은 동일합니다", "둘 다 아닙니다. 현대 트랜스포머는 LayerNorm을 건너뜁니다"],
       "correct": 1,
-      "explanation": "Post-LN was the original transformer (2017) and required careful warmup + small learning rates past 6-8 layers. Pre-LN (Xiong et al., 2020; used by ViT, GPT-2+, every modern LLM) is numerically more stable: the residual stream accumulates without passing through LN, and each sublayer operates on a normalised input. Every transformer deeper than 12 layers uses pre-LN."
+      "explanation": "Post-LN은 원래 transformer(2017)의 방식이며, 6-8층을 넘기려면 신중한 warmup과 작은 learning rate가 필요했습니다. Pre-LN(Xiong et al., 2020; ViT, GPT-2+, 모든 현대 LLM에서 사용)은 수치적으로 더 안정적입니다. residual stream은 LN을 통과하지 않고 누적되며, 각 sublayer는 정규화된 입력에서 작동합니다. 12층보다 깊은 모든 transformer는 pre-LN을 사용합니다."
     },
     {
       "stage": "post",
-      "question": "Swin Transformer introduces windowed attention. What problem does it solve?",
-      "options": ["Vanishing gradients", "Full attention has O((H*W)^2) cost; Swin restricts attention to local windows of 7x7 patches, reducing cost to O(H*W * window^2). Alternating blocks shift the window by half its size so information eventually mixes across the image", "BatchNorm not supported", "Overfitting to texture"],
+      "question": "Swin Transformer는 windowed attention을 도입합니다. 어떤 문제를 해결하나요?",
+      "options": ["Vanishing gradients", "Full attention은 O((H*W)^2) 비용을 가집니다. Swin은 attention을 7x7 patch의 local window로 제한해 비용을 O(H*W * window^2)로 줄입니다. 번갈아 나오는 블록은 window를 절반 크기만큼 이동시켜 정보가 결국 이미지 전체로 섞이게 합니다", "BatchNorm이 지원되지 않는 문제", "Texture에 overfit되는 문제"],
       "correct": 1,
-      "explanation": "A 224x224 image with 4x4 patches has 56*56 = 3136 tokens; full attention is 3136^2 = ~10M pairs per layer. Swin attends only within 7x7 windows, giving 49^2 = 2401 pairs per window (plus the window count). Shifted windows in alternating blocks mix information across windows over a few layers. This brings a CNN-like locality prior back to the transformer without giving up attention."
+      "explanation": "4x4 패치를 가진 224x224 이미지는 56*56 = 3136개 토큰을 가집니다. full attention은 레이어당 3136^2 = 약 10M개의 pair를 만듭니다. Swin은 7x7 window 안에서만 attention을 수행하므로 window당 49^2 = 2401개 pair가 됩니다(window 개수는 별도). 번갈아 나오는 블록의 shifted window는 몇 층에 걸쳐 window 사이 정보를 섞습니다. 이는 attention을 포기하지 않고 CNN 같은 locality prior를 트랜스포머에 되돌려 줍니다."
     }
   ]
 }

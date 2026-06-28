@@ -2,20 +2,20 @@
   {
     "id": "eval-pre-1",
     "stage": "pre",
-    "question": "Why should you never tune hyperparameters based on test set performance?",
+    "question": "test set 성능을 기준으로 hyperparameter를 tuning하면 안 되는 이유는 무엇인가요?",
     "options": [
-      "The test set is too small for reliable estimates",
-      "Adjusting the model based on test results effectively trains on the test set, making reported performance meaningless",
-      "Hyperparameters cannot be changed after training",
-      "The test set always has different features than the training set"
+      "test set은 신뢰할 만한 추정치를 얻기에는 너무 작다",
+      "test 결과를 기준으로 모델을 조정하면 사실상 test set으로 학습하는 것이 되어 보고된 성능이 무의미해진다",
+      "hyperparameter는 학습 후에 바꿀 수 없다",
+      "test set은 항상 training set과 다른 feature를 가진다"
     ],
     "correct": 1,
-    "explanation": "Every time you adjust your model based on test performance, you leak test information into your modeling decisions. The test set must be used exactly once at the end for an unbiased estimate."
+    "explanation": "test 성능을 기준으로 모델을 조정할 때마다 test 정보가 모델링 의사결정으로 새어 들어갑니다. 편향 없는 추정치를 얻으려면 test set은 마지막에 정확히 한 번만 사용해야 합니다."
   },
   {
     "id": "eval-pre-2",
     "stage": "pre",
-    "question": "A dataset has 95% negative and 5% positive samples. A model predicts 'negative' for every sample. What is its accuracy?",
+    "question": "데이터셋에 negative sample이 95%, positive sample이 5% 있습니다. 모델이 모든 sample을 'negative'로 예측합니다. accuracy는 얼마인가요?",
     "options": [
       "50%",
       "5%",
@@ -23,45 +23,45 @@
       "0%"
     ],
     "correct": 2,
-    "explanation": "Accuracy = correct predictions / total = 950/1000 = 95%. This shows why accuracy is misleading for imbalanced data -- a useless model looks great."
+    "explanation": "Accuracy = correct predictions / total = 950/1000 = 95%입니다. 이는 imbalanced data에서 accuracy가 왜 오해를 부르는지 보여줍니다. 쓸모없는 모델도 훌륭해 보입니다."
   },
   {
     "id": "eval-post-1",
     "stage": "post",
-    "question": "In K-fold cross-validation with K=5, how many times is each data point used for validation?",
+    "question": "K=5인 K-fold cross-validation에서 각 데이터 포인트는 validation에 몇 번 사용되나요?",
     "options": [
-      "5 times",
-      "Exactly once",
-      "It depends on the random seed",
-      "Never -- all data is used for training"
+      "5번",
+      "정확히 한 번",
+      "random seed에 따라 달라진다",
+      "전혀 사용되지 않는다. 모든 데이터는 training에 사용된다"
     ],
     "correct": 1,
-    "explanation": "In K-fold CV, data is split into K equal folds. Each fold is used as the validation set exactly once while the remaining K-1 folds are used for training."
+    "explanation": "K-fold CV에서는 데이터를 K개의 같은 크기 fold로 나눕니다. 각 fold는 정확히 한 번 validation set으로 사용되고, 나머지 K-1개 fold는 training에 사용됩니다."
   },
   {
     "id": "eval-post-2",
     "stage": "post",
-    "question": "A learning curve shows training score = 0.95 and validation score = 0.60 that does not improve with more data. What should you try?",
+    "question": "learning curve에서 training score = 0.95, validation score = 0.60이고 더 많은 데이터로도 개선되지 않습니다. 무엇을 시도해야 하나요?",
     "options": [
-      "Collect more training data",
-      "Use a simpler model or add regularization to reduce variance (overfitting)",
-      "Remove the validation set to give the model more training data",
-      "Increase the learning rate"
+      "training data를 더 수집한다",
+      "variance(overfitting)를 줄이기 위해 더 단순한 모델을 사용하거나 regularization을 추가한다",
+      "모델에 더 많은 training data를 주기 위해 validation set을 제거한다",
+      "learning rate를 높인다"
     ],
     "correct": 1,
-    "explanation": "A large gap between training (high) and validation (low) scores is high variance (overfitting). The fix is a simpler model, more regularization, or techniques like dropout -- not more data if the gap persists."
+    "explanation": "training score는 높고 validation score는 낮은 큰 격차는 high variance(overfitting)를 의미합니다. 격차가 계속된다면 해결책은 더 많은 데이터가 아니라 더 단순한 모델, 더 강한 regularization, 또는 dropout 같은 기법입니다."
   },
   {
     "id": "eval-post-3",
     "stage": "post",
-    "question": "AUC-ROC = 0.5 for a binary classifier. What does this indicate?",
+    "question": "binary classifier에서 AUC-ROC = 0.5입니다. 이는 무엇을 뜻하나요?",
     "options": [
-      "The model perfectly separates the two classes",
-      "The model performs no better than random guessing at ranking positives above negatives",
-      "The model has 50% accuracy",
-      "The model has equal precision and recall"
+      "모델이 두 class를 완벽하게 분리한다",
+      "모델이 positive를 negative보다 위에 순위 매기는 능력이 random guessing보다 낫지 않다",
+      "모델의 accuracy가 50%이다",
+      "모델의 precision과 recall이 같다"
     ],
     "correct": 1,
-    "explanation": "AUC-ROC = 0.5 means the model's ranking of positive and negative examples is no better than random. AUC = 1.0 would be perfect separation. The metric is threshold-independent."
+    "explanation": "AUC-ROC = 0.5는 모델의 positive/negative example 순위가 random보다 낫지 않다는 뜻입니다. AUC = 1.0이면 완벽한 분리입니다. 이 metric은 threshold-independent입니다."
   }
 ]

@@ -2,20 +2,20 @@
   {
     "id": "hptune-pre-1",
     "stage": "pre",
-    "question": "What is the difference between a parameter and a hyperparameter?",
+    "question": "parameter와 hyperparameter의 차이는 무엇인가?",
     "options": [
-      "Parameters are set by the user; hyperparameters are learned during training",
-      "Parameters are learned during training (weights, biases); hyperparameters are set before training starts (learning rate, max depth)",
-      "There is no difference; they are synonyms",
-      "Parameters apply to neural networks only; hyperparameters apply to tree models"
+      "Parameter는 사용자가 설정하고, hyperparameter는 학습 중에 학습된다",
+      "Parameter는 학습 중에 학습되고(weights, biases), hyperparameter는 학습 시작 전에 설정된다(learning rate, max depth)",
+      "차이가 없다. 둘은 동의어다",
+      "Parameter는 neural networks에만 적용되고, hyperparameter는 tree models에 적용된다"
     ],
     "correct": 1,
-    "explanation": "Parameters are learned by the optimization algorithm during training (e.g., weights). Hyperparameters are set before training and control how learning happens (e.g., learning rate, regularization strength)."
+    "explanation": "Parameter는 학습 중 최적화 알고리즘이 학습한다(예: weights). Hyperparameter는 학습 전에 설정되며 학습이 어떻게 일어나는지 제어한다(예: learning rate, regularization strength)."
   },
   {
     "id": "hptune-pre-2",
     "stage": "pre",
-    "question": "Grid search over 4 hyperparameters with 5 values each requires how many evaluations?",
+    "question": "각각 5개 값이 있는 4개의 hyperparameter에 대해 grid search를 하면 몇 번의 evaluation이 필요한가?",
     "options": [
       "20",
       "25",
@@ -23,45 +23,45 @@
       "4"
     ],
     "correct": 2,
-    "explanation": "Grid search evaluates every combination: 5^4 = 625. This exponential scaling is why grid search becomes impractical with many hyperparameters."
+    "explanation": "Grid search는 모든 조합을 평가한다: 5^4 = 625. 이런 지수적 scaling 때문에 hyperparameter가 많을 때 grid search는 비현실적이 된다."
   },
   {
     "id": "hptune-post-1",
     "stage": "post",
-    "question": "Why does random search often outperform grid search with the same evaluation budget?",
+    "question": "같은 evaluation budget에서 random search가 grid search보다 더 자주 좋은 성능을 내는 이유는 무엇인가?",
     "options": [
-      "Random search uses a better optimization algorithm",
-      "Most hyperparameters have low effective dimensionality, so random search covers the important ones more densely",
-      "Random search always finds the global optimum",
-      "Grid search cannot handle continuous hyperparameters"
+      "Random search가 더 나은 optimization algorithm을 사용한다",
+      "대부분의 hyperparameter는 낮은 effective dimensionality를 가지므로 random search가 중요한 hyperparameter를 더 촘촘히 덮는다",
+      "Random search는 항상 global optimum을 찾는다",
+      "Grid search는 continuous hyperparameter를 처리할 수 없다"
     ],
     "correct": 1,
-    "explanation": "Usually only 1-2 hyperparameters matter for a given problem. Grid search wastes evaluations varying unimportant ones. Random search gives unique values for every parameter per trial, covering important dimensions more densely."
+    "explanation": "보통 주어진 문제에서 중요한 hyperparameter는 1-2개뿐이다. Grid search는 중요하지 않은 것들을 바꾸는 데 evaluation을 낭비한다. Random search는 trial마다 모든 parameter에 고유한 값을 주므로 중요한 차원을 더 촘촘히 덮는다."
   },
   {
     "id": "hptune-post-2",
     "stage": "post",
-    "question": "In Bayesian optimization, what does the acquisition function balance?",
+    "question": "Bayesian optimization에서 acquisition function은 무엇 사이의 균형을 맞추는가?",
     "options": [
-      "Training speed and model accuracy",
-      "Exploitation (searching near known good points) and exploration (searching uncertain regions)",
-      "The number of features and the number of samples",
-      "Bias and variance in the surrogate model"
+      "Training speed와 model accuracy",
+      "Exploitation(이미 좋은 것으로 알려진 지점 근처 탐색)과 exploration(불확실한 영역 탐색)",
+      "feature 수와 sample 수",
+      "surrogate model의 bias와 variance"
     ],
     "correct": 1,
-    "explanation": "The acquisition function decides where to evaluate next by balancing exploitation (near known good results) and exploration (where the surrogate model is uncertain). This directs search more efficiently than random."
+    "explanation": "Acquisition function은 exploitation(좋은 결과가 알려진 근처)과 exploration(surrogate model이 불확실한 곳)의 균형을 맞춰 다음 평가 위치를 결정한다. 이것이 random보다 더 효율적으로 search를 이끈다."
   },
   {
     "id": "hptune-post-3",
     "stage": "post",
-    "question": "You tune hyperparameters using the test set and report the best test performance. What is wrong with this approach?",
+    "question": "test set을 사용해 hyperparameter를 tuning하고 최고의 test performance를 보고했다. 이 접근의 문제는 무엇인가?",
     "options": [
-      "Nothing -- this is standard practice",
-      "You overfitted to the test set; the reported performance is optimistic and will not generalize",
-      "The test set should be used for training, not tuning",
-      "Hyperparameters should only be integers"
+      "문제 없다. 이것이 표준 관행이다",
+      "test set에 overfit했다. 보고한 performance는 낙관적이며 일반화되지 않는다",
+      "test set은 tuning이 아니라 training에 사용해야 한다",
+      "Hyperparameter는 integer만 가능하다"
     ],
     "correct": 1,
-    "explanation": "Tuning on the test set means you selected hyperparameters that happen to perform well on those specific samples. This is overfitting to the test set. Use a validation set for tuning and reserve the test set for final evaluation."
+    "explanation": "test set으로 tuning한다는 것은 해당 특정 sample에서 우연히 잘 동작하는 hyperparameter를 선택했다는 뜻이다. 이것은 test set에 대한 overfitting이다. tuning에는 validation set을 사용하고, test set은 최종 평가용으로 남겨둔다."
   }
 ]

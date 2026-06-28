@@ -1,102 +1,102 @@
 {
   "lesson": "04-glove-fasttext-subword",
-  "title": "GloVe, FastText, and Subword Embeddings",
+  "title": "GloVe, FastText, Subword Embeddings",
   "questions": [
     {
       "stage": "pre",
-      "question": "What did GloVe contribute over Word2Vec?",
+      "question": "GloVe가 Word2Vec에 비해 기여한 점은 무엇인가요?",
       "options": [
-        "Direct factorization of the word-word co-occurrence matrix with a weighted loss",
-        "Byte-level tokenization",
-        "A deeper neural network",
-        "Subword n-gram embeddings"
+        "weighted loss를 사용해 word-word co-occurrence matrix를 직접 factorize했습니다",
+        "byte-level tokenization",
+        "더 깊은 neural network",
+        "Subword n-gram embedding"
       ],
       "correct": 0,
-      "explanation": "GloVe factorizes the global co-occurrence matrix with a thoughtfully weighted log-loss."
+      "explanation": "GloVe는 신중하게 weighted된 log-loss로 global co-occurrence matrix를 factorize합니다."
     },
     {
       "stage": "pre",
-      "question": "What problem does FastText solve that Word2Vec and GloVe do not?",
+      "question": "FastText가 Word2Vec과 GloVe가 해결하지 못한 어떤 문제를 해결하나요?",
       "options": [
-        "Reducing training cost",
+        "학습 비용 줄이기",
         "Multilingual transfer",
-        "Producing vectors for unseen words by composing character n-grams",
+        "character n-gram을 조합해 unseen word의 vector 만들기",
         "Polysemy disambiguation"
       ],
       "correct": 2,
-      "explanation": "FastText composes a word vector from its subword n-grams, so OOV words still get a sensible vector."
+      "explanation": "FastText는 subword n-gram에서 word vector를 조합하므로 OOV word도 그럴듯한 vector를 얻습니다."
     },
     {
       "stage": "check",
-      "question": "In GloVe, what role does the weighting function f(x) = (x/x_max)^alpha play?",
+      "question": "GloVe에서 weighting function f(x) = (x/x_max)^alpha는 어떤 역할을 하나요?",
       "options": [
-        "Downweights extremely frequent pairs so they do not dominate the loss",
-        "Selects negative samples",
-        "Initializes weights randomly",
-        "Normalizes vectors to unit length"
+        "극도로 frequent한 pair가 loss를 지배하지 않도록 downweight합니다",
+        "negative sample을 선택합니다",
+        "weight를 random하게 initialize합니다",
+        "vector를 unit length로 normalize합니다"
       ],
       "correct": 0,
-      "explanation": "The weighting prevents ubiquitous co-occurrences like (the, and) from dominating training."
+      "explanation": "weighting은 (the, and)처럼 어디에나 있는 co-occurrence가 training을 지배하지 못하게 합니다."
     },
     {
       "stage": "check",
-      "question": "How does the BPE merge step pick which pair to combine next?",
+      "question": "BPE merge step은 다음에 결합할 pair를 어떻게 고르나요?",
       "options": [
-        "A random pair",
-        "The lexicographically first pair",
-        "The most frequent adjacent token pair across the corpus",
-        "The pair with highest IDF"
+        "random pair",
+        "lexicographically first pair",
+        "corpus 전체에서 가장 frequent한 adjacent token pair",
+        "IDF가 가장 높은 pair"
       ],
       "correct": 2,
-      "explanation": "BPE iteratively merges the most frequent adjacent pair."
+      "explanation": "BPE는 most frequent adjacent pair를 반복적으로 merge합니다."
     },
     {
       "stage": "check",
-      "question": "Why does GPT-2 use byte-level BPE?",
+      "question": "GPT-2가 byte-level BPE를 사용하는 이유는 무엇인가요?",
       "options": [
-        "Byte BPE skips merge training",
-        "The base vocabulary of 256 bytes covers any input, eliminating out-of-vocabulary entirely",
-        "Bytes train faster than characters",
-        "Bytes preserve casing implicitly"
+        "Byte BPE는 merge training을 건너뜁니다",
+        "256 byte의 base vocabulary가 모든 input을 덮어 out-of-vocabulary를 완전히 제거합니다",
+        "Byte는 character보다 더 빠르게 학습됩니다",
+        "Byte는 casing을 암묵적으로 보존합니다"
       ],
       "correct": 1,
-      "explanation": "Starting from 256 bytes means every UTF-8 string tokenizes; nothing is OOV."
+      "explanation": "256 byte에서 시작하면 모든 UTF-8 string이 tokenize됩니다. 어떤 것도 OOV가 아닙니다."
     },
     {
       "stage": "post",
-      "question": "Which tokenizer should you use when fine-tuning a pretrained transformer?",
+      "question": "pretrained transformer를 fine-tuning할 때 어떤 tokenizer를 사용해야 하나요?",
       "options": [
-        "Always SentencePiece",
-        "The exact tokenizer the model shipped with; mismatch breaks the embeddings",
-        "Whichever has the largest vocabulary",
-        "Always byte-level BPE"
+        "항상 SentencePiece",
+        "모델과 함께 제공된 정확한 tokenizer; mismatch는 embedding을 망가뜨립니다",
+        "vocabulary가 가장 큰 tokenizer",
+        "항상 byte-level BPE"
       ],
       "correct": 1,
-      "explanation": "Tokenizer-model mismatch silently corrupts inputs; always pair the shipped tokenizer with its model."
+      "explanation": "Tokenizer-model mismatch는 input을 조용히 손상합니다. 항상 shipped tokenizer와 해당 model을 함께 사용하세요."
     },
     {
       "stage": "post",
-      "question": "When would you pick FastText over GloVe for pretrained word vectors?",
+      "question": "pretrained word vector에서 GloVe 대신 FastText를 고를 때는 언제인가요?",
       "options": [
-        "When you need a 50d model",
-        "For morphologically rich languages or domains with frequent neologisms and misspellings",
-        "When latency is tightest",
-        "When the corpus is very small"
+        "50d model이 필요할 때",
+        "morphologically rich language 또는 neologism과 misspelling이 자주 나오는 domain",
+        "latency가 가장 빠듯할 때",
+        "corpus가 매우 작을 때"
       ],
       "correct": 1,
-      "explanation": "FastText's subword composition handles inflections, neologisms, and misspellings that GloVe cannot."
+      "explanation": "FastText의 subword composition은 GloVe가 처리하지 못하는 inflection, neologism, misspelling을 처리합니다."
     },
     {
       "stage": "post",
-      "question": "What unit forms the base of WordPiece, BPE, and SentencePiece vocabularies?",
+      "question": "WordPiece, BPE, SentencePiece vocabulary의 기반 단위는 무엇인가요?",
       "options": [
-        "Sentences",
-        "Whole words",
-        "Paragraphs",
-        "Subword pieces (characters, n-grams, or learned merges) below the word level"
+        "Sentence",
+        "Whole word",
+        "Paragraph",
+        "word level 아래의 subword piece(character, n-gram 또는 learned merge)"
       ],
       "correct": 3,
-      "explanation": "All three are subword tokenizers; they differ in how merges or pieces are learned, not in being subword."
+      "explanation": "셋 모두 subword tokenizer입니다. 차이는 merge나 piece를 학습하는 방식이지, subword라는 점이 아닙니다."
     }
   ]
 }

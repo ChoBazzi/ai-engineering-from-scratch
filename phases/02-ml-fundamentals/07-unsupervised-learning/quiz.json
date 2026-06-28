@@ -2,66 +2,66 @@
   {
     "id": "unsupervised-pre-1",
     "stage": "pre",
-    "question": "What distinguishes unsupervised learning from supervised learning?",
+    "question": "비지도 학습은 지도 학습과 무엇이 다른가요?",
     "options": [
-      "Unsupervised learning uses more data",
-      "Unsupervised learning has no labeled outputs -- the algorithm finds structure on its own",
-      "Unsupervised learning only works with text data",
-      "Unsupervised learning always produces better results"
+      "비지도 학습은 더 많은 데이터를 사용한다",
+      "비지도 학습에는 레이블이 지정된 출력이 없으며, 알고리즘이 스스로 구조를 찾는다",
+      "비지도 학습은 텍스트 데이터에만 작동한다",
+      "비지도 학습은 항상 더 좋은 결과를 만든다"
     ],
     "correct": 1,
-    "explanation": "In unsupervised learning, there are no labels. The algorithm discovers patterns, groupings, or structure in the data without being told what the correct output should be."
+    "explanation": "비지도 학습에는 레이블이 없습니다. 알고리즘은 올바른 출력이 무엇인지 전달받지 않고 데이터 안의 패턴, 그룹, 구조를 발견합니다."
   },
   {
     "id": "unsupervised-pre-2",
     "stage": "pre",
-    "question": "What does K-Means require you to specify before training?",
+    "question": "K-Means는 학습 전에 무엇을 지정해야 하나요?",
     "options": [
-      "The exact cluster centers",
-      "The number of clusters K",
-      "The labels for each data point",
-      "The distance metric to use"
+      "정확한 클러스터 중심",
+      "클러스터 개수 K",
+      "각 데이터 포인트의 레이블",
+      "사용할 거리 척도"
     ],
     "correct": 1,
-    "explanation": "K-Means requires the number of clusters K as input. It then iteratively assigns points to the nearest centroid and recomputes centroids until convergence."
+    "explanation": "K-Means는 클러스터 개수 K를 입력으로 요구합니다. 그런 다음 수렴할 때까지 포인트를 가장 가까운 중심점에 반복적으로 할당하고 중심점을 다시 계산합니다."
   },
   {
     "id": "unsupervised-post-1",
     "stage": "post",
-    "question": "K-Means fails on two interlocking half-moon shapes but DBSCAN succeeds. Why?",
+    "question": "K-Means는 서로 맞물린 두 반달 모양에서 실패하지만 DBSCAN은 성공합니다. 왜 그럴까요?",
     "options": [
-      "DBSCAN uses more data than K-Means",
-      "DBSCAN finds clusters based on density, so it can discover arbitrary shapes, while K-Means assumes spherical clusters",
-      "DBSCAN always outperforms K-Means on every dataset",
-      "K-Means cannot handle 2D data"
+      "DBSCAN은 K-Means보다 더 많은 데이터를 사용한다",
+      "DBSCAN은 밀도를 기준으로 클러스터를 찾으므로 임의의 모양을 발견할 수 있지만, K-Means는 구형 클러스터를 가정한다",
+      "DBSCAN은 모든 데이터셋에서 항상 K-Means보다 성능이 좋다",
+      "K-Means는 2D 데이터를 처리할 수 없다"
     ],
     "correct": 1,
-    "explanation": "K-Means assigns points to the nearest centroid, producing spherical (convex) clusters. DBSCAN grows clusters from dense regions, discovering any shape as long as the cluster is connected by density."
+    "explanation": "K-Means는 포인트를 가장 가까운 중심점에 할당해 구형(볼록한) 클러스터를 만듭니다. DBSCAN은 밀집된 영역에서 클러스터를 확장하므로, 클러스터가 밀도로 연결되어 있기만 하면 어떤 모양이든 발견할 수 있습니다."
   },
   {
     "id": "unsupervised-post-2",
     "stage": "post",
-    "question": "What is the silhouette score measuring?",
+    "question": "silhouette score는 무엇을 측정하나요?",
     "options": [
-      "The total number of clusters found",
-      "How similar each point is to its own cluster compared to the nearest other cluster",
-      "The speed of the clustering algorithm",
-      "The percentage of outliers in the data"
+      "발견된 전체 클러스터 수",
+      "각 포인트가 가장 가까운 다른 클러스터와 비교해 자기 클러스터와 얼마나 비슷한지",
+      "클러스터링 알고리즘의 속도",
+      "데이터에서 이상치가 차지하는 비율"
     ],
     "correct": 1,
-    "explanation": "Silhouette score = (b - a) / max(a, b), where a is mean intra-cluster distance and b is mean nearest-cluster distance. It ranges from -1 (wrong cluster) to +1 (well-clustered)."
+    "explanation": "Silhouette score = (b - a) / max(a, b)이며, 여기서 a는 클러스터 내부 평균 거리이고 b는 가장 가까운 다른 클러스터까지의 평균 거리입니다. 값은 -1(잘못된 클러스터)부터 +1(잘 클러스터링됨)까지입니다."
   },
   {
     "id": "unsupervised-post-3",
     "stage": "post",
-    "question": "How does a Gaussian Mixture Model differ from K-Means in its cluster assignments?",
+    "question": "Gaussian Mixture Model은 클러스터 할당 방식에서 K-Means와 어떻게 다른가요?",
     "options": [
-      "GMM uses hard assignments where each point belongs to exactly one cluster",
-      "GMM gives soft (probabilistic) assignments where each point has a probability of belonging to each cluster",
-      "GMM does not use centroids at all",
-      "GMM only works with one-dimensional data"
+      "GMM은 각 포인트가 정확히 하나의 클러스터에 속하는 hard assignment를 사용한다",
+      "GMM은 각 포인트가 각 클러스터에 속할 확률을 갖는 soft(확률적) assignment를 제공한다",
+      "GMM은 중심점을 전혀 사용하지 않는다",
+      "GMM은 1차원 데이터에만 작동한다"
     ],
     "correct": 1,
-    "explanation": "K-Means assigns each point to exactly one cluster (hard). GMM computes the probability that each point belongs to each Gaussian component (soft), and can model elliptical, overlapping clusters."
+    "explanation": "K-Means는 각 포인트를 정확히 하나의 클러스터에 할당합니다(hard). GMM은 각 포인트가 각 Gaussian component에 속할 확률을 계산하며(soft), 타원형이거나 서로 겹치는 클러스터를 모델링할 수 있습니다."
   }
 ]

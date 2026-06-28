@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the pipe operator '|' do in a shell command?",
-      "options": ["Runs two commands in parallel", "Sends the standard output of one command as standard input to the next", "Saves the output of a command to a file", "Combines two files into one"],
+      "question": "셸 명령에서 파이프 연산자 '|'는 무엇을 하나요?",
+      "options": ["두 명령을 병렬로 실행한다", "한 명령의 표준 출력을 다음 명령의 표준 입력으로 보낸다", "명령의 출력을 파일에 저장한다", "두 파일을 하나로 합친다"],
       "correct": 1,
-      "explanation": "The pipe operator connects commands in a pipeline. For example, 'cat log.txt | grep error' sends the contents of log.txt as input to grep, which filters for lines containing 'error'."
+      "explanation": "파이프 연산자는 명령들을 파이프라인으로 연결합니다. 예를 들어 'cat log.txt | grep error'는 log.txt의 내용을 grep의 입력으로 보내고, grep은 'error'가 포함된 줄만 필터링합니다."
     },
     {
       "stage": "pre",
-      "question": "What happens to a running process when you close the terminal that started it?",
-      "options": ["The process continues running in the background", "The process receives a hangup signal (SIGHUP) and typically terminates", "The process pauses until you open a new terminal", "The process automatically migrates to a system service"],
+      "question": "프로세스를 시작한 터미널을 닫으면 실행 중인 프로세스에는 어떤 일이 일어나나요?",
+      "options": ["프로세스가 백그라운드에서 계속 실행된다", "프로세스가 hangup 신호(SIGHUP)를 받고 보통 종료된다", "새 터미널을 열 때까지 프로세스가 일시 중지된다", "프로세스가 자동으로 시스템 서비스로 이동한다"],
       "correct": 1,
-      "explanation": "Closing the terminal sends SIGHUP to child processes, which causes them to terminate by default. Tools like tmux, nohup, or screen prevent this."
+      "explanation": "터미널을 닫으면 자식 프로세스에 SIGHUP이 전송되고, 기본적으로 이 신호 때문에 종료됩니다. tmux, nohup, screen 같은 도구가 이를 방지합니다."
     },
     {
       "stage": "post",
-      "question": "What is the key advantage of tmux over using 'nohup command &' for long-running training jobs?",
-      "options": ["tmux uses less CPU than nohup", "tmux lets you detach, reattach, and see live output with multiple panes", "tmux automatically restarts failed processes", "tmux compresses the process output to save disk space"],
+      "question": "오래 실행되는 학습 작업에서 'nohup command &'를 사용하는 것보다 tmux가 갖는 핵심 장점은 무엇인가요?",
+      "options": ["tmux는 nohup보다 CPU를 덜 사용한다", "tmux는 분리, 재연결, 여러 창에서의 실시간 출력 확인을 가능하게 한다", "tmux는 실패한 프로세스를 자동으로 다시 시작한다", "tmux는 디스크 공간을 아끼기 위해 프로세스 출력을 압축한다"],
       "correct": 1,
-      "explanation": "tmux creates persistent sessions you can detach from and reattach to later, with live output visible in multiple panes. nohup only logs to a file with no way to interact or reattach."
+      "explanation": "tmux는 나중에 분리했다가 다시 연결할 수 있는 지속적인 세션을 만들고, 여러 창에서 실시간 출력을 볼 수 있게 합니다. nohup은 파일에 로그만 남기며 상호작용하거나 재연결할 방법은 없습니다."
     },
     {
       "stage": "post",
-      "question": "What does 'python train.py > output.log 2>&1' accomplish?",
-      "options": ["Runs train.py and saves only errors to output.log", "Runs train.py and redirects both standard output and standard error to output.log", "Runs train.py twice and logs the second run", "Runs train.py with double the memory allocation"],
+      "question": "'python train.py > output.log 2>&1'는 무엇을 수행하나요?",
+      "options": ["train.py를 실행하고 오류만 output.log에 저장한다", "train.py를 실행하고 표준 출력과 표준 오류를 모두 output.log로 리다이렉트한다", "train.py를 두 번 실행하고 두 번째 실행을 기록한다", "train.py를 두 배의 메모리 할당으로 실행한다"],
       "correct": 1,
-      "explanation": "'> output.log' redirects stdout to the file. '2>&1' sends stderr to the same place as stdout. The result is both normal output and errors captured in one file."
+      "explanation": "'> output.log'는 stdout을 파일로 리다이렉트합니다. '2>&1'는 stderr를 stdout과 같은 위치로 보냅니다. 결과적으로 일반 출력과 오류가 모두 하나의 파일에 캡처됩니다."
     },
     {
       "stage": "post",
-      "question": "Which command lets you access a remote Jupyter notebook running on port 8888 of a GPU box from your local browser?",
+      "question": "GPU 박스의 포트 8888에서 실행 중인 원격 Jupyter 노트북을 로컬 브라우저에서 열 수 있게 해주는 명령은 무엇인가요?",
       "options": ["scp -P 8888 user@gpu-box:~/notebook.ipynb", "ssh -L 8888:localhost:8888 user@gpu-box", "rsync -avz user@gpu-box:8888 localhost:8888", "ssh user@gpu-box --forward-port 8888"],
       "correct": 1,
-      "explanation": "SSH local port forwarding (-L) maps a remote port to your local machine. After this command, opening localhost:8888 in your browser accesses the remote Jupyter server."
+      "explanation": "SSH 로컬 포트 포워딩(-L)은 원격 포트를 로컬 머신에 매핑합니다. 이 명령을 실행한 뒤 브라우저에서 localhost:8888을 열면 원격 Jupyter 서버에 접근합니다."
     }
   ]
 }

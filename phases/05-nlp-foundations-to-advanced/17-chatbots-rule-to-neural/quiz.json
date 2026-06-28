@@ -1,102 +1,102 @@
 {
   "lesson": "17-chatbots-rule-to-neural",
-  "title": "Chatbots — Rule-Based to Neural to LLM Agents",
+  "title": "챗봇 — Rule-Based에서 Neural, LLM Agent까지",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does a slot-filling state machine do in a rule-based chatbot?",
+      "question": "rule-based chatbot에서 slot-filling state machine은 무엇을 하는가?",
       "options": [
-        "Detects sarcasm",
-        "Picks the most fluent reply",
-        "Embeds the user message",
-        "Tracks which required parameters (date, destination, amount) are still missing and asks for them in sequence"
+        "sarcasm을 감지한다",
+        "가장 유창한 reply를 고른다",
+        "user message를 embed한다",
+        "필수 parameter(date, destination, amount) 중 아직 빠진 것을 추적하고 순서대로 질문한다"
       ],
       "correct": 3,
-      "explanation": "Slot filling iteratively collects the structured parameters a task handler needs."
+      "explanation": "Slot filling은 task handler에 필요한 structured parameter를 반복적으로 수집한다."
     },
     {
       "stage": "pre",
-      "question": "Why is retrieval-based chat resistant to hallucination?",
+      "question": "retrieval-based chat이 hallucination에 강한 이유는 무엇인가?",
       "options": [
-        "It uses embeddings",
-        "It rejects all queries",
-        "It returns a canned response from a curated set rather than generating new text",
-        "It uses BM25"
+        "embedding을 사용하기 때문이다",
+        "모든 query를 거부하기 때문이다",
+        "새 text를 생성하는 대신 curated set에서 canned response를 반환하기 때문이다",
+        "BM25를 사용하기 때문이다"
       ],
       "correct": 2,
-      "explanation": "Retrieval surfaces pre-written answers; no generation means no fabricated content."
+      "explanation": "Retrieval은 미리 작성된 answer를 surface한다. generation이 없다는 것은 fabricated content도 없다는 뜻이다."
     },
     {
       "stage": "check",
-      "question": "What defines an LLM agent loop versus a single-shot LLM call?",
+      "question": "single-shot LLM call과 구분되는 LLM agent loop의 정의는 무엇인가?",
       "options": [
-        "Use of greedy decoding",
-        "Use of softmax",
-        "A controller that interleaves LLM calls with tool invocations until the model returns a final answer or the step budget is hit",
-        "Bigger context window"
+        "greedy decoding 사용",
+        "softmax 사용",
+        "model이 final answer를 반환하거나 step budget에 도달할 때까지 LLM call과 tool invocation을 interleave하는 controller",
+        "더 큰 context window"
       ],
       "correct": 2,
-      "explanation": "Agents add a plan-act-observe loop with tool calls and a termination condition."
+      "explanation": "Agent는 tool call과 termination condition을 갖춘 plan-act-observe loop를 추가한다."
     },
     {
       "stage": "check",
-      "question": "Why is hybrid routing (rules + retrieval + LLM agent) the 2026 production default?",
+      "question": "hybrid routing(rules + retrieval + LLM agent)이 2026년 production default인 이유는 무엇인가?",
       "options": [
-        "It is cheaper to maintain",
-        "It removes the need for evaluation",
-        "No single architecture handles every request well; rules cover destructive actions, retrieval covers FAQ, agents handle ambiguous open-ended queries",
-        "It avoids embeddings"
+        "유지보수가 더 저렴하기 때문이다",
+        "evaluation 필요성을 없애기 때문이다",
+        "어떤 단일 architecture도 모든 request를 잘 처리하지 못한다. rule은 destructive action을, retrieval은 FAQ를, agent는 모호한 open-ended query를 처리한다",
+        "embedding을 피하기 때문이다"
       ],
       "correct": 2,
-      "explanation": "Hybrid systems use deterministic rules for risky actions and reserve LLM agents for open-ended queries."
+      "explanation": "Hybrid system은 risky action에는 deterministic rule을 사용하고 open-ended query에는 LLM agent를 남겨 둔다."
     },
     {
       "stage": "check",
-      "question": "What is prompt injection?",
+      "question": "prompt injection이란 무엇인가?",
       "options": [
-        "A SQL injection variant only",
-        "A type of tokenizer attack",
-        "Injecting tokens into embeddings",
-        "User-supplied (direct) or document-supplied (indirect) text that tries to override the system prompt or hijack the agent's behavior"
+        "SQL injection variant일 뿐이다",
+        "tokenizer attack의 한 종류다",
+        "embedding에 token을 inject하는 것이다",
+        "system prompt를 override하거나 agent behavior를 hijack하려는 user-supplied(direct) 또는 document-supplied(indirect) text"
       ],
       "correct": 3,
-      "explanation": "Prompt injection rewrites the agent's behavior via untrusted text in user input or tool outputs."
+      "explanation": "Prompt injection은 user input이나 tool output의 untrusted text를 통해 agent behavior를 바꾸려 한다."
     },
     {
       "stage": "post",
-      "question": "Which OWASP Top 10 (LLM Apps 2025) risk is ranked LLM01?",
+      "question": "OWASP Top 10(LLM Apps 2025)에서 LLM01로 ranked된 risk는 무엇인가?",
       "options": [
-        "Prompt injection (direct and indirect)",
+        "Prompt injection(direct와 indirect)",
         "Insecure deserialization",
         "Broken access control",
         "SQL injection"
       ],
       "correct": 0,
-      "explanation": "Prompt injection is LLM01 in the OWASP LLM Apps Top 10 (2025)."
+      "explanation": "Prompt injection은 OWASP LLM Apps Top 10(2025)의 LLM01이다."
     },
     {
       "stage": "post",
-      "question": "What mitigation pattern reduces indirect prompt injection by separating planning from execution?",
+      "question": "planning과 execution을 분리해 indirect prompt injection을 줄이는 mitigation pattern은 무엇인가?",
       "options": [
-        "Shorter context",
-        "Plan-Verify-Execute: the agent plans first, verifies each action against the plan, then executes — preventing tool outputs from injecting new unplanned actions",
-        "Bigger model",
-        "Lower temperature"
+        "더 짧은 context",
+        "Plan-Verify-Execute: agent가 먼저 plan하고, 각 action을 plan과 대조해 verify한 뒤 execute한다. 이렇게 tool output이 새로운 unplanned action을 inject하지 못하게 한다",
+        "더 큰 model",
+        "더 낮은 temperature"
       ],
       "correct": 1,
-      "explanation": "PVE checks each step against the agreed plan, so injected instructions from tool outputs are rejected."
+      "explanation": "PVE는 각 step을 합의된 plan과 대조해 check하므로 tool output에서 온 injected instruction이 rejected된다."
     },
     {
       "stage": "post",
-      "question": "Why must destructive actions (payments, deletions) route through a structured flow even in an LLM-agent system?",
+      "question": "LLM-agent system에서도 destructive action(payment, deletion)이 structured flow를 거쳐야 하는 이유는 무엇인가?",
       "options": [
-        "LLMs are slow",
-        "Beam search is unsafe",
-        "Tools cannot be called",
-        "Confident fabrication, prompt injection, and scope creep mean the LLM cannot be the sole authority for irreversible side effects"
+        "LLM이 느리기 때문이다",
+        "beam search가 unsafe하기 때문이다",
+        "tool을 호출할 수 없기 때문이다",
+        "confident fabrication, prompt injection, scope creep 때문에 LLM이 irreversible side effect에 대한 유일한 authority가 될 수 없기 때문이다"
       ],
       "correct": 3,
-      "explanation": "Hallucination and injection make irreversible actions through pure LLM agents unsafe; require deterministic confirmation flows."
+      "explanation": "Hallucination과 injection은 pure LLM agent를 통한 irreversible action을 unsafe하게 만든다. deterministic confirmation flow가 필요하다."
     }
   ]
 }

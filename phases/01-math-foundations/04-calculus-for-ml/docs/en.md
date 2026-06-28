@@ -1,93 +1,93 @@
-# Calculus for Machine Learning
+# 머신러닝을 위한 미적분
 
-> Derivatives tell you which way is downhill. That is all a neural network needs to learn.
+> 도함수는 어느 방향이 내리막인지 알려 줍니다. 신경망이 학습하는 데 필요한 것은 그것뿐입니다.
 
 **Type:** Learn
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 1, Lessons 01-03
 **Time:** ~60 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Compute numerical and analytical derivatives for common ML functions (x^2, sigmoid, cross-entropy)
-- Implement gradient descent from scratch to minimize a loss function in 1D and 2D
-- Derive the gradient of a linear regression model and train it via manual weight updates
-- Explain the Hessian matrix, Taylor series approximations, and their connection to optimization methods
+- 흔한 ML 함수(x^2, sigmoid, cross-entropy)의 수치적 도함수와 해석적 도함수를 계산합니다.
+- 1D와 2D에서 손실 함수를 최소화하는 gradient descent를 처음부터 구현합니다.
+- 선형 회귀 모델의 그래디언트를 유도하고 수동 가중치 업데이트로 학습합니다.
+- Hessian 행렬, Taylor series 근사, 그리고 이들이 최적화 방법과 어떻게 연결되는지 설명합니다.
 
-## The Problem
+## 문제
 
-You have a neural network with millions of weights. Each weight is a knob. You need to figure out which direction to turn every single knob to make the model slightly less wrong. Calculus gives you that direction.
+수백만 개의 가중치를 가진 신경망이 있습니다. 각 가중치는 하나의 조절 손잡이입니다. 모델이 조금 덜 틀리게 만들려면 손잡이 하나하나를 어느 방향으로 돌려야 하는지 알아내야 합니다. 미적분이 그 방향을 줍니다.
 
-Without calculus, training a neural network would mean trying random changes and hoping for the best. With derivatives, you know exactly how each weight affects the error. You turn every knob the right way, every time.
+미적분이 없다면 신경망 학습은 무작위 변화를 시도하고 잘되기를 바라는 일이 됩니다. 도함수가 있으면 각 가중치가 오류에 어떤 영향을 주는지 정확히 알 수 있습니다. 매번 모든 손잡이를 올바른 방향으로 돌리게 됩니다.
 
-## The Concept
+## 개념
 
-### What is a derivative?
+### 도함수란 무엇인가?
 
-A derivative measures the rate of change. For a function y = f(x), the derivative f'(x) tells you: if you nudge x by a tiny amount, how much does y change?
+도함수는 변화율을 측정합니다. 함수 y = f(x)에 대해 도함수 f'(x)는 x를 아주 조금 움직이면 y가 얼마나 변하는지 알려 줍니다.
 
-Geometrically, the derivative is the slope of the tangent line at a point.
+기하학적으로 도함수는 한 점에서의 접선 기울기입니다.
 
 **f(x) = x^2:**
 
-| x | f(x) | f'(x) (slope) |
+| x | f(x) | f'(x) (기울기) |
 |---|------|---------------|
-| 0 | 0    | 0 (flat, at the bottom) |
+| 0 | 0    | 0 (평평함, 바닥) |
 | 1 | 1    | 2 |
-| 2 | 4    | 4 (tangent line slope at this point) |
+| 2 | 4    | 4 (이 점에서 접선 기울기) |
 | 3 | 9    | 6 |
 
-At x=2, the slope is 4. If you move x a tiny bit to the right, y increases by about 4 times that amount. At x=0, the slope is 0. You are at the bottom of the bowl.
+x=2에서 기울기는 4입니다. x를 오른쪽으로 아주 조금 움직이면 y는 그 양의 약 4배만큼 증가합니다. x=0에서 기울기는 0입니다. 그릇의 바닥에 있는 셈입니다.
 
-The formal definition:
+형식적 정의:
 
-```
+```text
 f'(x) = lim   f(x + h) - f(x)
         h->0  -----------------
                      h
 ```
 
-In code, you skip the limit and just use a very small h. That is the numerical derivative.
+코드에서는 극한을 직접 계산하지 않고 매우 작은 h를 사용합니다. 이것이 수치 도함수입니다.
 
-### Partial derivatives: one variable at a time
+### 편도함수: 한 번에 변수 하나
 
-Real functions have many inputs. A neural network loss depends on thousands of weights. A partial derivative holds all variables constant except one, then takes the derivative with respect to that one.
+실제 함수에는 입력이 많습니다. 신경망 loss는 수천 개의 가중치에 의존합니다. 편도함수는 하나를 제외한 모든 변수를 상수로 고정한 뒤, 그 하나에 대해 미분합니다.
 
-```
+```text
 f(x, y) = x^2 + 3xy + y^2
 
 df/dx = 2x + 3y     (treat y as a constant)
 df/dy = 3x + 2y     (treat x as a constant)
 ```
 
-Each partial derivative answers: if I nudge just this one weight, how does the loss change?
+각 편도함수는 "이 가중치 하나만 조금 움직이면 loss가 어떻게 변하는가?"에 답합니다.
 
-### The gradient: vector of all partial derivatives
+### 그래디언트: 모든 편도함수의 벡터
 
-The gradient collects every partial derivative into one vector. For a function f(x, y, z), the gradient is:
+그래디언트는 모든 편도함수를 하나의 벡터로 모읍니다. 함수 f(x, y, z)에 대해 그래디언트는 다음과 같습니다:
 
-```
+```text
 grad f = [ df/dx, df/dy, df/dz ]
 ```
 
-The gradient points in the direction of steepest ascent. To minimize a function, go in the opposite direction.
+그래디언트는 가장 가파른 상승 방향을 가리킵니다. 함수를 최소화하려면 반대 방향으로 가면 됩니다.
 
-**Contour plot of f(x,y) = x^2 + y^2:**
+**f(x,y) = x^2 + y^2의 contour plot:**
 
-The function forms a bowl shape with concentric circles as contour lines. The minimum is at (0, 0).
+이 함수는 등고선이 동심원인 그릇 모양을 이룹니다. 최솟값은 (0, 0)에 있습니다.
 
-| Point | grad f | -grad f (descent direction) |
+| 점 | grad f | -grad f (하강 방향) |
 |-------|--------|----------------------------|
-| (1, 1) | [2, 2] (points uphill, away from minimum) | [-2, -2] (points downhill, toward minimum) |
-| (0, 0) | [0, 0] (flat, at the minimum) | [0, 0] |
+| (1, 1) | [2, 2] (최솟값에서 멀어지는 오르막 방향) | [-2, -2] (최솟값을 향한 내리막 방향) |
+| (0, 0) | [0, 0] (평평함, 최솟값) | [0, 0] |
 
-This is gradient descent in a picture. Compute the gradient, negate it, take a step.
+이것이 그림으로 본 gradient descent입니다. 그래디언트를 계산하고, 부호를 바꾸고, 한 걸음 이동합니다.
 
-### The connection to optimization
+### 최적화와의 연결
 
-Training a neural network is optimization. You have a loss function L(w1, w2, ..., wn) that measures how wrong the model is. You want to minimize it.
+신경망 학습은 최적화입니다. 모델이 얼마나 틀렸는지 측정하는 loss function L(w1, w2, ..., wn)이 있습니다. 이를 최소화하고 싶습니다.
 
-```
+```text
 Gradient descent update rule:
 
   w_new = w_old - learning_rate * dL/dw
@@ -98,29 +98,29 @@ For every weight:
   3. Repeat
 ```
 
-The learning rate controls step size. Too big and you overshoot. Too small and you crawl.
+learning rate는 step size를 제어합니다. 너무 크면 지나치고, 너무 작으면 기어가듯 느립니다.
 
-**Loss landscape (1D slice):**
+**Loss landscape (1D 단면):**
 
-The loss function L(w) forms a curve with peaks and valleys as the weight w varies.
+loss function L(w)는 가중치 w가 변함에 따라 봉우리와 골짜기가 있는 곡선을 이룹니다.
 
-| Feature | Description |
+| 특징 | 설명 |
 |---------|-------------|
-| Global minimum | The lowest point on the entire curve -- the best solution |
-| Local minimum | A valley that is lower than its neighbors but not the lowest overall |
-| Slope | Gradient descent follows the slope downhill from any starting point |
+| Global minimum | 전체 곡선에서 가장 낮은 점, 즉 최선의 해 |
+| Local minimum | 이웃보다 낮지만 전체에서 가장 낮지는 않은 골짜기 |
+| Slope | Gradient descent는 어떤 시작점에서든 기울기를 따라 내리막으로 이동합니다 |
 
-Gradient descent follows the slope downhill. It can get stuck in local minima, but in high-dimensional spaces (millions of weights) this is rarely a practical problem.
+gradient descent는 기울기를 따라 내리막으로 갑니다. local minima에 갇힐 수 있지만, 수백만 가중치가 있는 고차원 공간에서는 실무적으로 드문 문제입니다.
 
-### Numerical vs analytical derivatives
+### 수치 도함수와 해석 도함수
 
-There are two ways to compute a derivative.
+도함수를 계산하는 방법은 두 가지입니다.
 
-Analytical: apply calculus rules by hand. For f(x) = x^2, the derivative is f'(x) = 2x. Exact. Fast.
+해석적 방법: 미적분 규칙을 손으로 적용합니다. f(x) = x^2의 도함수는 f'(x) = 2x입니다. 정확하고 빠릅니다.
 
-Numerical: approximate using the definition. Compute f(x+h) and f(x-h) for a tiny h, then use the difference.
+수치적 방법: 정의를 사용해 근사합니다. 아주 작은 h에 대해 f(x+h)와 f(x-h)를 계산한 뒤 차이를 사용합니다.
 
-```
+```text
 Numerical (central difference):
 
 f'(x) ~= f(x + h) - f(x - h)
@@ -130,13 +130,13 @@ f'(x) ~= f(x + h) - f(x - h)
 h = 0.0001 works well in practice
 ```
 
-Numerical derivatives are slower but work for any function. Analytical derivatives are fast but require you to derive the formula. Neural network frameworks use a third approach: automatic differentiation, which computes exact derivatives mechanically. You will see that in Phase 3.
+수치 도함수는 느리지만 어떤 함수에도 작동합니다. 해석 도함수는 빠르지만 공식을 유도해야 합니다. 신경망 프레임워크는 세 번째 접근법인 automatic differentiation을 사용합니다. 이는 정확한 도함수를 기계적으로 계산합니다. Phase 3에서 이를 보게 됩니다.
 
-### Derivatives by hand for simple functions
+### 단순 함수의 도함수를 손으로 구하기
 
-These are the derivatives you will see over and over in ML.
+ML에서 반복해서 보게 될 도함수들입니다.
 
-```
+```text
 Function        Derivative       Used in
 --------        ----------       -------
 f(x) = x^2     f'(x) = 2x      Loss functions (MSE)
@@ -148,9 +148,9 @@ f(x) = ln(x)   f'(x) = 1/x     Cross-entropy loss
 f(x) = 1/(1+e^-x)  f'(x) = f(x)(1-f(x))   Sigmoid activation
 ```
 
-For f(x) = x^2:
+f(x) = x^2에 대해:
 
-```
+```text
 f(x) = x^2    f'(x) = 2x
 
   x    f(x)   f'(x)   meaning
@@ -161,20 +161,20 @@ f(x) = x^2    f'(x) = 2x
    2    4       4      slope tilts right (increasing)
 ```
 
-For f(w) = wx + b with x=3, b=1:
+f(w) = wx + b이고 x=3, b=1일 때:
 
-```
+```text
 f(w) = 3w + 1    f'(w) = 3
 
 The derivative with respect to w is just x.
 If x is big, a small change in w causes a big change in output.
 ```
 
-### The chain rule
+### 연쇄 법칙
 
-When functions are composed, the chain rule tells you how to differentiate.
+함수가 합성되어 있을 때 연쇄 법칙은 어떻게 미분할지 알려 줍니다.
 
-```
+```text
 If y = f(g(x)), then dy/dx = f'(g(x)) * g'(x)
 
 Example: y = (3x + 1)^2
@@ -183,36 +183,36 @@ Example: y = (3x + 1)^2
   dy/dx = 2(3x + 1) * 3 = 6(3x + 1)
 ```
 
-Neural networks are chains of functions: input -> linear -> activation -> linear -> activation -> loss. Backpropagation is the chain rule applied repeatedly from output to input. That is the entire algorithm.
+신경망은 함수의 체인입니다: input -> linear -> activation -> linear -> activation -> loss. Backpropagation은 출력에서 입력으로 연쇄 법칙을 반복 적용하는 것입니다. 이것이 전체 알고리즘입니다.
 
-### The Hessian Matrix
+### Hessian 행렬
 
-The gradient tells you the slope. The Hessian tells you the curvature.
+그래디언트는 기울기를 알려 줍니다. Hessian은 곡률을 알려 줍니다.
 
-The Hessian is the matrix of second-order partial derivatives. For a function f(x1, x2, ..., xn), entry (i, j) of the Hessian is:
+Hessian은 2차 편도함수들의 행렬입니다. 함수 f(x1, x2, ..., xn)에 대해 Hessian의 (i, j) 원소는 다음과 같습니다:
 
-```
+```text
 H[i][j] = d^2f / (dx_i * dx_j)
 ```
 
-For a 2-variable function f(x, y):
+2변수 함수 f(x, y)에 대해:
 
-```
+```text
 H = | d^2f/dx^2    d^2f/dxdy |
     | d^2f/dydx    d^2f/dy^2 |
 ```
 
-**What the Hessian tells you at a critical point (where gradient = 0):**
+**임계점(gradient = 0)에서 Hessian이 알려 주는 것:**
 
-| Hessian property | Meaning | Example surface |
+| Hessian 성질 | 의미 | 예시 표면 |
 |-----------------|---------|-----------------|
-| Positive definite (all eigenvalues > 0) | Local minimum | Bowl pointing up |
-| Negative definite (all eigenvalues < 0) | Local maximum | Bowl pointing down |
-| Indefinite (mixed eigenvalues) | Saddle point | Horse saddle shape |
+| Positive definite (all eigenvalues > 0) | Local minimum | 위로 열린 그릇 |
+| Negative definite (all eigenvalues < 0) | Local maximum | 아래로 열린 그릇 |
+| Indefinite (mixed eigenvalues) | Saddle point | 말안장 모양 |
 
-**Example:** f(x, y) = x^2 - y^2 (a saddle function)
+**예:** f(x, y) = x^2 - y^2 (saddle function)
 
-```
+```text
 df/dx = 2x       df/dy = -2y
 d^2f/dx^2 = 2    d^2f/dy^2 = -2    d^2f/dxdy = 0
 
@@ -223,9 +223,9 @@ Eigenvalues: 2 and -2 (one positive, one negative)
 --> Saddle point at (0, 0)
 ```
 
-Compare with f(x, y) = x^2 + y^2 (a bowl):
+f(x, y) = x^2 + y^2(그릇)과 비교해 봅시다:
 
-```
+```text
 H = | 2  0 |
     | 0  2 |
 
@@ -233,48 +233,48 @@ Eigenvalues: 2 and 2 (both positive)
 --> Local minimum at (0, 0)
 ```
 
-**Why the Hessian matters in ML:**
+**ML에서 Hessian이 중요한 이유:**
 
-Newton's method uses the Hessian to take better optimization steps than gradient descent. Instead of just following the slope, it accounts for curvature:
+Newton's method는 Hessian을 사용해 gradient descent보다 더 나은 최적화 step을 취합니다. 단순히 기울기만 따르는 대신 곡률을 고려합니다:
 
-```
+```text
 Newton's update:    w_new = w_old - H^(-1) * gradient
 Gradient descent:   w_new = w_old - lr * gradient
 ```
 
-Newton's method converges faster because the Hessian "rescales" the gradient -- steep directions get smaller steps, flat directions get larger steps.
+Newton's method는 Hessian이 그래디언트를 "재스케일"하기 때문에 더 빠르게 수렴합니다. 가파른 방향은 더 작은 step을, 평평한 방향은 더 큰 step을 얻습니다.
 
-The catch: for a neural network with N parameters, the Hessian is N x N. A model with 1 million parameters would need a 1 trillion-entry matrix. That is why we use approximations.
+문제는 N개 파라미터를 가진 신경망에서 Hessian이 N x N이라는 점입니다. 파라미터가 100만 개인 모델은 1조 원소 행렬이 필요합니다. 그래서 근사를 사용합니다.
 
-| Method | What it uses | Cost | Convergence |
+| 방법 | 사용하는 것 | 비용 | 수렴 |
 |--------|-------------|------|-------------|
-| Gradient descent | First derivatives only | O(N) per step | Slow (linear) |
-| Newton's method | Full Hessian | O(N^3) per step | Fast (quadratic) |
-| L-BFGS | Approximate Hessian from gradient history | O(N) per step | Medium (superlinear) |
-| Adam | Per-parameter adaptive rates (diagonal Hessian approx) | O(N) per step | Medium |
-| Natural gradient | Fisher information matrix (statistical Hessian) | O(N^2) per step | Fast |
+| Gradient descent | 1차 도함수만 | step당 O(N) | 느림(선형) |
+| Newton's method | 전체 Hessian | step당 O(N^3) | 빠름(2차) |
+| L-BFGS | gradient history에서 근사한 Hessian | step당 O(N) | 중간(superlinear) |
+| Adam | 파라미터별 adaptive rates(diagonal Hessian approx) | step당 O(N) | 중간 |
+| Natural gradient | Fisher information matrix(statistical Hessian) | step당 O(N^2) | 빠름 |
 
-In practice, Adam is the default optimizer for deep learning. It approximates second-order information cheaply by tracking the running mean and variance of gradients per parameter.
+실무에서 Adam은 딥러닝의 기본 optimizer입니다. 파라미터별 그래디언트의 running mean과 variance를 추적해 2차 정보를 저렴하게 근사합니다.
 
-### Taylor Series Approximation
+### Taylor Series 근사
 
-Any smooth function can be approximated locally by a polynomial:
+어떤 매끄러운 함수든 한 점 근처에서는 다항식으로 근사할 수 있습니다:
 
-```
+```text
 f(x + h) = f(x) + f'(x)*h + (1/2)*f''(x)*h^2 + (1/6)*f'''(x)*h^3 + ...
 ```
 
-The more terms you include, the better the approximation -- but only near the point x.
+포함하는 항이 많을수록 근사가 좋아집니다. 단, x 근처에서만 그렇습니다.
 
-**Why Taylor series matter for ML:**
+**ML에서 Taylor series가 중요한 이유:**
 
-- **First-order Taylor = gradient descent.** When you use f(x + h) ~ f(x) + f'(x)*h, you are making a linear approximation. Gradient descent minimizes this linear model to choose h = -lr * f'(x).
+- **First-order Taylor = gradient descent.** f(x + h) ~ f(x) + f'(x)*h를 사용하면 선형 근사를 만드는 것입니다. Gradient descent는 이 선형 모델을 최소화해 h = -lr * f'(x)를 선택합니다.
 
-- **Second-order Taylor = Newton's method.** Using f(x + h) ~ f(x) + f'(x)*h + (1/2)*f''(x)*h^2, you get a quadratic model. Minimizing it gives h = -f'(x)/f''(x) -- Newton's step.
+- **Second-order Taylor = Newton's method.** f(x + h) ~ f(x) + f'(x)*h + (1/2)*f''(x)*h^2를 사용하면 2차 모델을 얻습니다. 이를 최소화하면 h = -f'(x)/f''(x), 즉 Newton's step을 얻습니다.
 
-- **Loss function design.** MSE and cross-entropy are smooth, which means their Taylor expansions are well-behaved. This is not an accident. Smooth losses make optimization predictable.
+- **Loss function design.** MSE와 cross-entropy는 매끄럽기 때문에 Taylor expansions가 잘 동작합니다. 이는 우연이 아닙니다. 매끄러운 losses는 최적화를 예측 가능하게 만듭니다.
 
-```
+```text
 Approximation order    What it captures    Optimization method
 -------------------    -----------------   -------------------
 0th order (constant)   Just the value      Random search
@@ -283,49 +283,49 @@ Approximation order    What it captures    Optimization method
 Higher orders          Finer structure     Rarely used in ML
 ```
 
-The key insight: all gradient-based optimization is really about approximating the loss function locally and stepping to the minimum of that approximation.
+핵심 통찰: 모든 gradient 기반 최적화는 결국 loss function을 국소적으로 근사하고 그 근사의 최솟값으로 이동하는 일입니다.
 
-### Integrals in ML
+### ML에서의 적분
 
-Derivatives tell you rates of change. Integrals compute accumulations -- area under a curve.
+도함수는 변화율을 알려 줍니다. 적분은 누적량, 즉 곡선 아래 면적을 계산합니다.
 
-In ML, you rarely compute integrals by hand, but the concept is everywhere:
+ML에서 적분을 손으로 계산하는 일은 드물지만, 개념은 어디에나 있습니다:
 
-**Probability.** For a continuous random variable with density p(x):
-```
+**확률.** 밀도 p(x)를 갖는 연속 확률변수에 대해:
+```text
 P(a < X < b) = integral from a to b of p(x) dx
 ```
-The area under the probability density curve between a and b is the probability of landing in that range.
+a와 b 사이의 확률밀도 곡선 아래 면적이 그 범위에 들어갈 확률입니다.
 
-**Expected value.** The average outcome weighted by probability:
-```
+**기댓값.** 확률로 가중한 평균 결과:
+```text
 E[f(X)] = integral of f(x) * p(x) dx
 ```
-The expected loss over a data distribution is an integral. Training minimizes an empirical approximation of this.
+데이터 분포에 대한 expected loss는 적분입니다. 학습은 이에 대한 경험적 근사를 최소화합니다.
 
-**KL divergence.** Measures how different two distributions are:
-```
+**KL divergence.** 두 분포가 얼마나 다른지 측정합니다:
+```text
 KL(p || q) = integral of p(x) * log(p(x) / q(x)) dx
 ```
-Used in VAEs, knowledge distillation, and Bayesian inference.
+VAEs, knowledge distillation, Bayesian inference에 사용됩니다.
 
-**Normalization constants.** In Bayesian inference:
-```
+**정규화 상수.** Bayesian inference에서:
+```text
 p(w | data) = p(data | w) * p(w) / integral of p(data | w) * p(w) dw
 ```
-The denominator is an integral over all possible parameter values. It is often intractable, which is why we use approximations like MCMC and variational inference.
+분모는 가능한 모든 파라미터 값에 대한 적분입니다. 보통 계산하기 어려워서 MCMC와 variational inference 같은 근사를 사용합니다.
 
-| Integral concept | Where it appears in ML |
+| 적분 개념 | ML에서 나타나는 곳 |
 |-----------------|----------------------|
-| Area under curve | Probability from density functions |
+| Area under curve | density functions에서의 확률 |
 | Expected value | Loss functions, risk minimization |
 | KL divergence | VAEs, policy optimization, distillation |
 | Normalization | Bayesian posteriors, softmax denominator |
 | Marginal likelihood | Model comparison, evidence lower bound (ELBO) |
 
-### Multivariable Chain Rule in a Computation Graph
+### Computation Graph에서의 다변수 연쇄 법칙
 
-The chain rule does not just apply to scalar functions in a line. In a neural network, variables fan out and merge. Here is how derivatives flow through a simple forward pass:
+연쇄 법칙은 일렬로 이어진 스칼라 함수에만 적용되는 것이 아닙니다. 신경망에서는 변수들이 갈라지고 다시 합쳐집니다. 간단한 forward pass에서 도함수가 흐르는 방식은 다음과 같습니다:
 
 ```mermaid
 graph LR
@@ -335,7 +335,7 @@ graph LR
     a -->|"loss fn"| L["L = -(y*log(a) + (1-y)*log(1-a))"]
 ```
 
-The backward pass computes gradients right to left:
+backward pass는 오른쪽에서 왼쪽으로 그래디언트를 계산합니다:
 
 ```mermaid
 graph RL
@@ -345,15 +345,15 @@ graph RL
     dz2 -->|"dz2/db = 1"| db["dL/db = dL/dz2 * 1"]
 ```
 
-Each arrow multiplies by the local derivative. The gradient for any parameter is the product of all local derivatives along the path from loss to that parameter. When paths branch and merge, you sum the contributions (multivariate chain rule).
+각 화살표는 local derivative를 곱합니다. 어떤 파라미터의 그래디언트는 loss에서 그 파라미터까지 가는 경로상의 모든 local derivatives의 곱입니다. 경로가 갈라지고 합쳐질 때는 기여분을 합합니다(다변수 연쇄 법칙).
 
-This is all backpropagation is: the chain rule applied systematically through a computation graph, from output to inputs.
+backpropagation은 이것이 전부입니다. 출력에서 입력으로 computation graph를 따라 연쇄 법칙을 체계적으로 적용하는 것입니다.
 
-### The Jacobian matrix
+### Jacobian 행렬
 
-When a function maps a vector to a vector (like a neural network layer), its derivative is a matrix. The Jacobian contains every partial derivative of every output with respect to every input.
+함수가 벡터를 벡터로 매핑하면(신경망 layer처럼) 그 도함수는 행렬입니다. Jacobian은 모든 출력의 모든 입력에 대한 편도함수를 담습니다.
 
-For f: R^n -> R^m, the Jacobian J is an m x n matrix:
+f: R^n -> R^m에 대해 Jacobian J는 m x n 행렬입니다:
 
 | | x1 | x2 | ... | xn |
 |---|---|---|---|---|
@@ -362,11 +362,11 @@ For f: R^n -> R^m, the Jacobian J is an m x n matrix:
 | ... | ... | ... | ... | ... |
 | fm | dfm/dx1 | dfm/dx2 | ... | dfm/dxn |
 
-You will not compute Jacobians by hand for neural networks. PyTorch handles it. But knowing it exists helps you understand shapes in backpropagation: if a layer maps R^n to R^m, its Jacobian is m x n. The gradient flows backward through the transpose of this matrix.
+신경망에서 Jacobian을 손으로 계산하지는 않을 것입니다. PyTorch가 처리합니다. 하지만 그것이 존재한다는 사실을 알면 backpropagation의 shape를 이해하는 데 도움이 됩니다. 어떤 layer가 R^n을 R^m으로 매핑하면 Jacobian은 m x n입니다. 그래디언트는 이 행렬의 전치를 통해 뒤로 흐릅니다.
 
-### Why this matters for neural networks
+### 이것이 신경망에서 중요한 이유
 
-Every weight in a neural network gets a gradient. The gradient tells you how to adjust that weight to reduce the loss.
+신경망의 모든 가중치는 그래디언트를 받습니다. 그래디언트는 loss를 줄이기 위해 그 가중치를 어떻게 조정해야 하는지 알려 줍니다.
 
 ```mermaid
 graph LR
@@ -382,19 +382,19 @@ graph RL
     end
 ```
 
-Each weight update:
+각 가중치 업데이트:
 - `W1 = W1 - lr * dL/dW1`
 - `W2 = W2 - lr * dL/dW2`
 
-The forward pass computes the prediction and loss. The backward pass computes the gradient of the loss with respect to every weight. Then every weight takes a small step downhill. Repeat for millions of steps. That is deep learning.
+forward pass는 예측과 loss를 계산합니다. backward pass는 모든 가중치에 대한 loss의 그래디언트를 계산합니다. 그런 다음 모든 가중치가 내리막 방향으로 작은 step을 취합니다. 이를 수백만 step 반복합니다. 그것이 딥러닝입니다.
 
 ```figure
 derivative-tangent
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Numerical derivative from scratch
+### 단계 1: 수치 도함수를 처음부터 만들기
 
 ```python
 def numerical_derivative(f, x, h=1e-7):
@@ -409,9 +409,9 @@ for x in [-2, -1, 0, 1, 2]:
     print(f"x={x:2d}  f'(x) numerical={numerical:.6f}  analytical={analytical:.1f}")
 ```
 
-The numerical derivative matches the analytical one to many decimal places.
+수치 도함수는 많은 소수 자리까지 해석 도함수와 일치합니다.
 
-### Step 2: Partial derivatives and gradients
+### 단계 2: 편도함수와 그래디언트
 
 ```python
 def numerical_gradient(f, point, h=1e-7):
@@ -434,7 +434,7 @@ print(f"Numerical gradient at (1,2): {[f'{g:.4f}' for g in grad]}")
 print(f"Analytical gradient at (1,2): [2*1+3*2, 3*1+2*2] = [{2*1+3*2}, {3*1+2*2}]")
 ```
 
-### Step 3: Gradient descent to find the minimum of f(x) = x^2
+### 단계 3: f(x) = x^2의 최솟값을 찾는 gradient descent
 
 ```python
 x = 5.0
@@ -445,9 +445,9 @@ for step in range(20):
     print(f"step {step:2d}  x={x:8.4f}  f(x)={x**2:10.6f}")
 ```
 
-Starting at x=5, each step moves closer to x=0 (the minimum).
+x=5에서 시작해 각 step마다 x=0(최솟값)에 가까워집니다.
 
-### Step 4: Gradient descent on a 2D function
+### 단계 4: 2D 함수에서의 gradient descent
 
 ```python
 def f_2d(point):
@@ -464,7 +464,7 @@ for step in range(30):
         print(f"step {step:2d}  point=({point[0]:7.4f}, {point[1]:7.4f})  f={loss:.6f}")
 ```
 
-### Step 5: Comparing numerical and analytical derivatives
+### 단계 5: 수치 도함수와 해석 도함수 비교
 
 ```python
 import math
@@ -487,7 +487,7 @@ for name, f, df in test_functions:
     print(f"{name:<12} {num:12.6f} {ana:12.6f} {err:12.2e}")
 ```
 
-### Step 6: Computing the Hessian numerically
+### 단계 6: Hessian을 수치적으로 계산하기
 
 ```python
 def hessian_2d(f, x, y, h=1e-5):
@@ -508,9 +508,9 @@ print(f"Saddle Hessian: {H_saddle}")  # [[2, 0], [0, -2]] -- mixed signs
 print(f"Bowl Hessian:   {H_bowl}")    # [[2, 0], [0, 2]]  -- both positive
 ```
 
-The Hessian of the saddle function has eigenvalues 2 and -2 (mixed signs, confirming a saddle point). The bowl has eigenvalues 2 and 2 (both positive, confirming a minimum).
+saddle function의 Hessian은 eigenvalues 2와 -2를 가집니다(부호가 섞여 있어 saddle point임을 확인). bowl은 eigenvalues 2와 2를 가집니다(둘 다 양수라 최솟값임을 확인).
 
-### Step 7: Taylor approximation in action
+### 단계 7: Taylor approximation 실제 적용
 
 ```python
 import math
@@ -531,9 +531,9 @@ for h in [0.1, 0.5, 1.0, 2.0]:
     print(f"h={h:.1f}  sin(h)={true_val:.4f}  order1={t1:.4f}  order2={t2:.4f}")
 ```
 
-Near x0=0, sin(x) ~ x (first-order Taylor). The approximation is excellent for small h but breaks down for large h. This is why gradient descent works best with small learning rates -- each step assumes the linear approximation is accurate.
+x0=0 근처에서 sin(x) ~ x입니다(first-order Taylor). h가 작을 때 근사는 훌륭하지만 h가 크면 무너집니다. 그래서 gradient descent는 작은 learning rates에서 가장 잘 작동합니다. 각 step은 선형 근사가 정확하다고 가정하기 때문입니다.
 
-### Step 8: Why this matters for a neural network
+### 단계 8: 이것이 신경망에서 중요한 이유
 
 ```python
 import random
@@ -569,11 +569,11 @@ print(f"\nLearned: y = {w:.2f}x + {b:.2f}")
 print(f"Actual:  y = 2x + 1")
 ```
 
-Every gradient-based training loop follows this pattern: predict, compute loss, compute gradients, update weights.
+모든 gradient 기반 학습 루프는 이 패턴을 따릅니다. 예측하고, loss를 계산하고, gradients를 계산하고, weights를 업데이트합니다.
 
-## Use It
+## 활용하기
 
-With NumPy, the same operations are faster and more concise:
+NumPy를 사용하면 같은 연산이 더 빠르고 간결해집니다:
 
 ```python
 import numpy as np
@@ -596,32 +596,32 @@ for epoch in range(200):
 print(f"Learned: y = {w:.2f}x + {b:.2f}")
 ```
 
-You just built gradient descent from scratch. PyTorch automates the gradient computation, but the update loop is identical.
+방금 gradient descent를 처음부터 만들었습니다. PyTorch는 그래디언트 계산을 자동화하지만, 업데이트 루프는 동일합니다.
 
-## Exercises
+## 연습 문제
 
-1. Implement `numerical_second_derivative(f, x)` using `numerical_derivative` called twice. Verify that the second derivative of x^3 at x=2 is 12.
-2. Use gradient descent to find the minimum of f(x, y) = (x - 3)^2 + (y + 1)^2. Start from (0, 0). The answer should converge to (3, -1).
-3. Add momentum to the gradient descent loop: maintain a velocity vector that accumulates past gradients. Compare convergence speed with and without momentum on f(x) = x^4 - 3x^2.
+1. `numerical_derivative`를 두 번 호출해 `numerical_second_derivative(f, x)`를 구현하세요. x=2에서 x^3의 2차 도함수가 12인지 검증하세요.
+2. gradient descent를 사용해 f(x, y) = (x - 3)^2 + (y + 1)^2의 최솟값을 찾으세요. (0, 0)에서 시작하세요. 답은 (3, -1)로 수렴해야 합니다.
+3. gradient descent 루프에 momentum을 추가하세요. 과거 gradients를 누적하는 velocity vector를 유지합니다. f(x) = x^4 - 3x^2에서 momentum이 있을 때와 없을 때의 수렴 속도를 비교하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Derivative | "The slope" | The rate of change of a function at a point. Tells you how much the output changes per unit change in input. |
-| Partial derivative | "Derivative of one variable" | The derivative with respect to one variable while all others are held constant. |
-| Gradient | "Direction of steepest ascent" | A vector of all partial derivatives. Points in the direction that increases the function fastest. |
-| Gradient descent | "Go downhill" | Subtract the gradient (times a learning rate) from the parameters to reduce the loss. The core of neural network training. |
-| Learning rate | "Step size" | A scalar that controls how big each gradient descent step is. Too large: diverge. Too small: converge slowly. |
-| Chain rule | "Multiply the derivatives" | The rule for differentiating composed functions: df/dx = df/dg * dg/dx. The mathematical basis of backpropagation. |
-| Jacobian | "Matrix of derivatives" | When a function maps vectors to vectors, the Jacobian is the matrix of all partial derivatives of outputs with respect to inputs. |
-| Numerical derivative | "Finite differences" | Approximating a derivative by evaluating the function at two nearby points and computing the slope between them. |
-| Backpropagation | "Reverse-mode autodiff" | Computing gradients layer by layer from output to input using the chain rule. How neural networks learn. |
-| Hessian | "Matrix of second derivatives" | The matrix of all second-order partial derivatives. Describes the curvature of a function. Positive definite Hessian at a critical point means local minimum. |
-| Taylor series | "Polynomial approximation" | Approximating a function near a point using its derivatives: f(x+h) ~ f(x) + f'(x)h + (1/2)f''(x)h^2 + ... The basis for understanding why gradient descent and Newton's method work. |
-| Integral | "Area under the curve" | The accumulation of a quantity over a range. In ML, integrals define probabilities, expected values, and KL divergence. |
+| Derivative | "기울기" | 한 점에서 함수의 변화율입니다. 입력이 한 단위 변할 때 출력이 얼마나 변하는지 알려 줍니다. |
+| Partial derivative | "변수 하나의 도함수" | 다른 모든 변수를 상수로 고정하고 한 변수에 대해 구한 도함수입니다. |
+| Gradient | "가장 가파른 상승 방향" | 모든 편도함수의 벡터입니다. 함수가 가장 빠르게 증가하는 방향을 가리킵니다. |
+| Gradient descent | "내리막으로 가기" | loss를 줄이기 위해 파라미터에서 그래디언트(learning rate를 곱한 값)를 뺍니다. 신경망 학습의 핵심입니다. |
+| Learning rate | "Step size" | 각 gradient descent step의 크기를 제어하는 스칼라입니다. 너무 크면 발산하고, 너무 작으면 느리게 수렴합니다. |
+| Chain rule | "도함수 곱하기" | 합성 함수를 미분하는 규칙입니다: df/dx = df/dg * dg/dx. backpropagation의 수학적 기반입니다. |
+| Jacobian | "도함수의 행렬" | 함수가 벡터를 벡터로 매핑할 때, Jacobian은 입력에 대한 출력의 모든 편도함수 행렬입니다. |
+| Numerical derivative | "Finite differences" | 가까운 두 점에서 함수를 평가하고 그 사이의 기울기를 계산해 도함수를 근사하는 것입니다. |
+| Backpropagation | "Reverse-mode autodiff" | 연쇄 법칙을 사용해 출력에서 입력으로 layer별 gradients를 계산하는 것입니다. 신경망이 학습하는 방식입니다. |
+| Hessian | "2차 도함수의 행렬" | 모든 2차 편도함수의 행렬입니다. 함수의 곡률을 설명합니다. 임계점에서 positive definite Hessian은 local minimum을 뜻합니다. |
+| Taylor series | "다항식 근사" | 도함수를 사용해 한 점 근처에서 함수를 근사하는 것입니다: f(x+h) ~ f(x) + f'(x)h + (1/2)f''(x)h^2 + ... gradient descent와 Newton's method가 작동하는 이유를 이해하는 기반입니다. |
+| Integral | "곡선 아래 면적" | 어떤 범위에 걸친 양의 누적입니다. ML에서 적분은 확률, 기댓값, KL divergence를 정의합니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [3Blue1Brown: Essence of Calculus](https://www.3blue1brown.com/topics/calculus) - visual intuition for derivatives, integrals, and the chain rule
-- [Stanford CS231n: Backpropagation](https://cs231n.github.io/optimization-2/) - how gradients flow through neural network layers
+- [3Blue1Brown: Essence of Calculus](https://www.3blue1brown.com/topics/calculus) - derivatives, integrals, chain rule에 대한 시각적 직관
+- [Stanford CS231n: Backpropagation](https://cs231n.github.io/optimization-2/) - gradients가 신경망 layers를 통해 흐르는 방식

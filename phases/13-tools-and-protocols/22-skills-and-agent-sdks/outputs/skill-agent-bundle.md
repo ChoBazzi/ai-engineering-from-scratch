@@ -1,30 +1,30 @@
 ---
 name: agent-bundle
-description: Produce a portable SKILL.md + AGENTS.md + MCP-server blueprint for a workflow, loadable across Claude Code, Cursor, Codex, and compatible agents.
+description: Claude Code, Cursor, Codex 및 호환 agent에서 load할 수 있는 workflow용 portable SKILL.md + AGENTS.md + MCP-server blueprint를 작성합니다.
 version: 1.0.0
 phase: 13
 lesson: 21
 tags: [skills, agents-md, apps-sdk, cross-agent, portability]
 ---
 
-Given a workflow description, produce an agent bundle.
+workflow 설명이 주어지면 agent bundle을 작성하세요.
 
-Produce:
+다음을 산출하세요.
 
-1. SKILL.md. YAML frontmatter with `name` and `description`, markdown body with numbered steps. Include progressive-disclosure subresource references if the body is long.
-2. AGENTS.md entry. A few lines to add to the repo's AGENTS.md reflecting any conventions the skill depends on (linter commands, test commands).
-3. MCP server blueprint. Which tools the skill calls via MCP; name, description (Use-when pattern), and input schema.
-4. Cross-agent translations. SkillKit-style notes on how this SKILL.md maps to Cursor rules, Codex `.codex.md`, Windsurf rules.
-5. Loading path. Where agents will discover this bundle: `~/.anthropic/skills/`, `./skills/`, `~/.claude/skills/`.
+1. SKILL.md. `name`과 `description`이 있는 YAML frontmatter, 번호가 매겨진 단계가 있는 markdown body. body가 길면 progressive-disclosure subresource reference를 포함하세요.
+2. AGENTS.md entry. skill이 의존하는 convention(linter command, test command)을 반영해 repo의 AGENTS.md에 추가할 몇 줄.
+3. MCP server blueprint. skill이 MCP를 통해 호출하는 도구, name, description(Use-when pattern), input schema.
+4. Cross-agent translations. 이 SKILL.md가 Cursor rules, Codex `.codex.md`, Windsurf rules로 어떻게 매핑되는지에 대한 SkillKit-style note.
+5. Loading path. agent가 이 bundle을 발견할 위치: `~/.anthropic/skills/`, `./skills/`, `~/.claude/skills/`.
 
-Hard rejects:
-- Any SKILL.md whose `name` is not `kebab-case`. Breaks discovery.
-- Any SKILL.md without `description` in frontmatter. Agent runtimes skip it.
-- Any bundle whose MCP tools are not named per Phase 13 · 05 rules.
+강한 거부 조건:
+- `name`이 `kebab-case`가 아닌 SKILL.md. discovery가 깨집니다.
+- frontmatter에 `description`이 없는 SKILL.md. agent runtime이 건너뜁니다.
+- MCP 도구 이름이 Phase 13 · 05 규칙을 따르지 않는 bundle.
 
-Refusal rules:
-- If the workflow is a single one-shot prompt, refuse to produce a skill; recommend inline prompt-engineering.
-- If the workflow requires OAuth (e.g. Slack post), flag that the MCP server's first-run elicitation must handle it.
-- If the target agents do not support SKILL.md (some IDEs), recommend translation via SkillKit or similar.
+거부 규칙:
+- workflow가 단일 one-shot prompt라면 skill 생성을 거절하고 inline prompt-engineering을 권장하세요.
+- workflow가 OAuth(예: Slack post)를 요구하면 MCP 서버의 first-run elicitation이 이를 처리해야 한다고 표시하세요.
+- 대상 agent가 SKILL.md를 지원하지 않는다면(일부 IDE) SkillKit 또는 유사 도구를 통한 translation을 권장하세요.
 
-Output: a one-page bundle with the three files sketched, the cross-agent translation notes, and the loading path. End with the single agent to test the bundle in first.
+산출물: 세 파일의 sketch, cross-agent translation note, loading path를 담은 한 페이지 bundle. 마지막에는 이 bundle을 가장 먼저 테스트할 단일 agent를 적으세요.

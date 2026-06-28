@@ -3,60 +3,60 @@
   "questions": [
     {
       "stage": "post",
-      "question": "Why does the `messages` field in a LangGraph State TypedDict need `Annotated[list, add_messages]`?",
+      "question": "LangGraph State TypedDict의 `messages` field에 `Annotated[list, add_messages]`가 필요한 이유는 무엇인가요?",
       "options": [
-        "It enables streaming of token deltas from the model.",
-        "Without the reducer, node updates overwrite the list instead of appending, so every turn loses the prior history.",
-        "It compresses the message list when checkpoints are written to disk.",
-        "It converts plain dicts into LangChain message objects at runtime."
+        "모델의 token delta streaming을 활성화하기 때문입니다.",
+        "Reducer가 없으면 node update가 list에 append되지 않고 list를 덮어써, 매 turn마다 이전 history를 잃기 때문입니다.",
+        "Checkpoint가 disk에 쓰일 때 message list를 압축하기 때문입니다.",
+        "Runtime에 plain dict를 LangChain message object로 변환하기 때문입니다."
       ],
       "correct": 1,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "What is the difference between `interrupt_before=['tools']` and `interrupt_after=['tools']`?",
+      "question": "`interrupt_before=['tools']`와 `interrupt_after=['tools']`의 차이는 무엇인가요?",
       "options": [
-        "No difference; they are aliases.",
-        "`interrupt_before` pauses after the model emits tool_calls but before the tools execute; `interrupt_after` pauses after the tools have already run.",
-        "`interrupt_before` runs the tool in a sandbox first; `interrupt_after` runs it in production.",
-        "`interrupt_before` is for unit tests; `interrupt_after` is for production."
+        "차이가 없습니다. 둘은 alias입니다.",
+        "`interrupt_before`는 모델이 tool_calls를 내보낸 뒤 tool이 실행되기 전에 pause하고, `interrupt_after`는 tool이 이미 실행된 뒤 pause합니다.",
+        "`interrupt_before`는 먼저 sandbox에서 tool을 실행하고, `interrupt_after`는 production에서 실행합니다.",
+        "`interrupt_before`는 unit test용이고, `interrupt_after`는 production용입니다."
       ],
       "correct": 1,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "Given a thread's checkpoint history, how do you time-travel to a prior state and explore a different branch?",
+      "question": "Thread의 checkpoint history가 있을 때, 이전 state로 time-travel해 다른 branch를 탐색하려면 어떻게 해야 하나요?",
       "options": [
-        "Call `graph.reset(thread_id)` then `graph.invoke(new_input, config)`.",
-        "Delete the checkpoint directory and reinvoke with the same thread_id.",
-        "Invoke the graph with the desired prior `checkpoint_id` in the config; passing `None` as input replays from that checkpoint, passing a new value appends to it before resuming.",
-        "Set `graph.rewind = True` and reinvoke."
+        "`graph.reset(thread_id)`를 호출한 뒤 `graph.invoke(new_input, config)`를 호출합니다.",
+        "Checkpoint directory를 삭제하고 같은 thread_id로 다시 invoke합니다.",
+        "Config에 원하는 이전 `checkpoint_id`를 넣어 graph를 invoke합니다. Input으로 `None`을 넘기면 그 checkpoint에서 replay하고, 새 값을 넘기면 resume 전에 해당 checkpoint에 append합니다.",
+        "`graph.rewind = True`를 설정하고 다시 invoke합니다."
       ],
       "correct": 2,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "In a four-node ReAct graph (agent, tools, conditional edge, static edge back to agent), where does the conditional edge live?",
+      "question": "Four-node ReAct graph(agent, tools, conditional edge, agent로 돌아가는 static edge)에서 conditional edge는 어디에 있나요?",
       "options": [
-        "From `tools` back to `agent`, routing on whether tool output was empty.",
-        "From `agent`, routing to `tools` if the last message has tool_calls and to `END` otherwise.",
-        "From `START`, routing to either `agent` or `END` based on input length.",
-        "There is no conditional edge; both are static."
+        "`tools`에서 `agent`로 돌아가며, tool output이 비었는지에 따라 route합니다.",
+        "`agent`에서 출발하며, 마지막 message에 tool_calls가 있으면 `tools`로, 아니면 `END`로 route합니다.",
+        "`START`에서 출발하며, input length에 따라 `agent`나 `END`로 route합니다.",
+        "Conditional edge는 없습니다. 둘 다 static입니다."
       ],
       "correct": 1,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "When should you use `Send(node_name, state)` instead of a plain edge?",
+      "question": "Plain edge 대신 `Send(node_name, state)`를 사용해야 하는 때는 언제인가요?",
       "options": [
-        "To retry a node after a failure.",
-        "To defer a node until a timer expires.",
-        "To dispatch N parallel executions of a target node whose outputs merge back through the state reducer.",
-        "To invoke a node in a different process for isolation."
+        "실패 후 node를 retry하기 위해서입니다.",
+        "Timer가 만료될 때까지 node를 defer하기 위해서입니다.",
+        "Output이 state reducer를 통해 다시 merge되는 target node의 N개 parallel execution을 dispatch하기 위해서입니다.",
+        "Isolation을 위해 node를 다른 process에서 invoke하기 위해서입니다."
       ],
       "correct": 2,
       "explanation": ""

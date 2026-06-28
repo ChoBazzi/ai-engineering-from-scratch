@@ -1,32 +1,32 @@
-# What Is Machine Learning
+# 머신러닝이란 무엇인가
 
-> Machine learning is teaching computers to find patterns in data instead of writing rules by hand.
+> Machine learning은 사람이 직접 rules를 작성하는 대신 computers가 data에서 patterns를 찾도록 가르치는 것입니다.
 
 **Type:** Learn
 **Languages:** Python
 **Prerequisites:** Phase 1 (Math Foundations)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Explain the difference between supervised, unsupervised, and reinforcement learning and identify which type applies to a given problem
-- Implement a nearest centroid classifier from scratch and evaluate it against a random baseline
-- Distinguish between classification and regression tasks and select the appropriate loss function for each
-- Evaluate whether a given business problem is suitable for ML or better solved with deterministic rules
+- supervised, unsupervised, reinforcement learning의 차이를 설명하고 주어진 problem에 어떤 type이 적용되는지 식별하기
+- nearest centroid classifier를 scratch부터 구현하고 random baseline과 비교해 evaluate하기
+- classification tasks와 regression tasks를 구분하고 각각에 맞는 loss function 선택하기
+- 주어진 business problem이 ML에 적합한지, 아니면 deterministic rules로 푸는 것이 나은지 evaluate하기
 
-## The Problem
+## 문제
 
-You want to build a spam filter. The traditional approach: sit down and write hundreds of rules. "If the email contains 'FREE MONEY', mark it spam. If it has more than 3 exclamation marks, mark it spam." You spend weeks writing rules. Then spammers change their wording. Your rules break. You write more rules. The cycle never ends.
+spam filter를 만들고 싶다고 해 봅시다. 전통적인 접근법은 자리에 앉아 수백 개의 rules를 작성하는 것입니다. "email에 'FREE MONEY'가 포함되어 있으면 spam으로 표시한다. 느낌표가 3개보다 많으면 spam으로 표시한다." 이렇게 rules를 작성하는 데 몇 주를 씁니다. 그러면 spammers가 표현을 바꿉니다. rules가 깨집니다. rules를 더 작성합니다. 이 cycle은 끝나지 않습니다.
 
-Machine learning flips this. Instead of writing rules, you give the computer thousands of labeled emails ("spam" or "not spam") and let it figure out the rules on its own. The computer finds patterns you never would have thought of. When spammers change tactics, you retrain on new data instead of rewriting code.
+Machine learning은 이것을 뒤집습니다. rules를 작성하는 대신, computer에 수천 개의 labeled emails("spam" 또는 "not spam")를 주고 스스로 rules를 찾아내게 합니다. computer는 사람이 생각하지 못했을 patterns를 찾습니다. spammers가 tactics를 바꾸면 code를 다시 쓰는 대신 new data로 retrain합니다.
 
-This shift from "programming rules" to "learning from data" is the core of machine learning. Every recommendation engine, voice assistant, self-driving car, and language model works this way.
+"programming rules"에서 "learning from data"로의 이 전환이 machine learning의 핵심입니다. 모든 recommendation engine, voice assistant, self-driving car, language model은 이런 방식으로 작동합니다.
 
-## The Concept
+## 개념
 
-### Learning From Data, Not Rules
+### Rules가 아니라 Data에서 배우기
 
-Traditional programming and machine learning solve problems in opposite directions.
+Traditional programming과 machine learning은 반대 방향으로 문제를 풉니다.
 
 ```mermaid
 flowchart LR
@@ -45,13 +45,13 @@ flowchart LR
     end
 ```
 
-Traditional programming: you write the rules. The program applies them to data to produce output.
+Traditional programming: rules를 사람이 작성합니다. program이 그 rules를 data에 적용해 output을 만듭니다.
 
-Machine learning: you provide data and expected outputs. The algorithm discovers the rules.
+Machine learning: data와 expected outputs를 제공합니다. algorithm이 rules를 발견합니다.
 
-The "model" that comes out of training IS the rules, encoded as numbers (weights, parameters). It generalizes from examples it has seen to make predictions on data it has never seen.
+training의 결과로 나오는 "model"이 바로 rules이며, numbers(weights, parameters)로 encoded되어 있습니다. model은 본 examples에서 generalize하여 한 번도 본 적 없는 data에 predictions를 만듭니다.
 
-### The Three Types of Machine Learning
+### Machine Learning의 세 가지 유형
 
 ```mermaid
 flowchart TD
@@ -69,41 +69,41 @@ flowchart TD
     RL --> VL[Value Learning]
 ```
 
-**Supervised Learning**: You have input-output pairs. The model learns to map inputs to outputs.
-- "Here are 10,000 photos labeled cat or dog. Learn to tell them apart."
-- "Here are house features and prices. Learn to predict the price."
+**Supervised Learning**: input-output pairs가 있습니다. model은 inputs를 outputs에 mapping하는 법을 배웁니다.
+- "cat 또는 dog로 labeled된 photos 10,000장이 있다. 둘을 구분하는 법을 배워라."
+- "house features와 prices가 있다. price를 예측하는 법을 배워라."
 
-**Unsupervised Learning**: You have inputs only. No labels. The model finds structure on its own.
-- "Here are 10,000 customer purchase histories. Find natural groupings."
-- "Here are 1,000 dimensional data points. Reduce to 2 dimensions while keeping structure."
+**Unsupervised Learning**: inputs만 있습니다. labels는 없습니다. model이 스스로 structure를 찾습니다.
+- "customer purchase histories 10,000개가 있다. 자연스러운 groupings를 찾아라."
+- "1,000 dimensional data points가 있다. structure를 유지하면서 2 dimensions로 줄여라."
 
-**Reinforcement Learning**: An agent takes actions in an environment and receives rewards or penalties. It learns a strategy (policy) to maximize total reward.
-- "Play this game. +1 for winning, -1 for losing. Figure out a strategy."
-- "Control this robot arm. +1 for picking up the object, -0.01 for each second wasted."
+**Reinforcement Learning**: agent가 environment에서 actions를 취하고 rewards 또는 penalties를 받습니다. total reward를 maximize하는 strategy(policy)를 배웁니다.
+- "이 game을 플레이해라. 이기면 +1, 지면 -1. strategy를 찾아라."
+- "이 robot arm을 제어해라. object를 집으면 +1, 낭비한 각 second마다 -0.01."
 
-Most of what you will build in practice uses supervised learning. Unsupervised learning is common for preprocessing and exploration. Reinforcement learning powers game AI, robotics, and RLHF for language models.
+실무에서 만들 대부분의 것은 supervised learning을 사용합니다. Unsupervised learning은 preprocessing과 exploration에 흔합니다. Reinforcement learning은 game AI, robotics, language models를 위한 RLHF를 구동합니다.
 
-### Beyond the Big Three
+### Big Three 너머
 
-The three categories above are clean, but real-world ML often blurs the lines.
+위 세 categories는 깔끔하지만, real-world ML은 종종 경계를 흐립니다.
 
-**Semi-supervised learning** uses a small set of labeled data and a large set of unlabeled data. You might have 100 labeled medical images and 100,000 unlabeled ones. Techniques include:
+**Semi-supervised learning**은 small set의 labeled data와 large set의 unlabeled data를 사용합니다. labeled medical images 100장과 unlabeled images 100,000장이 있을 수 있습니다. techniques에는 다음이 포함됩니다.
 
-- **Label propagation:** Build a graph connecting similar data points. Labels spread from labeled nodes to unlabeled neighbors through the graph.
-- **Pseudo-labeling:** Train a model on the labeled data, use it to predict labels for unlabeled data, then retrain on everything. The model bootstraps its own training set.
-- **Consistency regularization:** The model should give the same prediction for an input and a slightly perturbed version of that input. This works even without labels.
+- **Label propagation:** similar data points를 연결하는 graph를 만듭니다. labels가 graph를 통해 labeled nodes에서 unlabeled neighbors로 퍼집니다.
+- **Pseudo-labeling:** labeled data로 model을 train하고, 그 model로 unlabeled data의 labels를 예측한 다음, 모든 data로 retrain합니다. model이 자신의 training set을 bootstrap합니다.
+- **Consistency regularization:** model은 input과 그 input을 살짝 perturb한 version에 대해 같은 prediction을 내야 합니다. labels가 없어도 작동합니다.
 
-**Self-supervised learning** creates supervision from the data itself. No human labels needed at all. The model creates its own prediction task from the structure of the data.
+**Self-supervised learning**은 data 자체에서 supervision을 만듭니다. human labels가 전혀 필요 없습니다. model이 data structure에서 자기 자신의 prediction task를 만듭니다.
 
-- **Masked language modeling (BERT):** Hide 15% of words in a sentence, train the model to predict the missing words. The "labels" come from the original text.
-- **Contrastive learning (SimCLR):** Take an image, create two augmented versions. Train the model to recognize they came from the same image while distinguishing them from augmented versions of other images.
-- **Next-token prediction (GPT):** Predict the next word given all previous words. Every text document becomes a training example.
+- **Masked language modeling (BERT):** sentence의 words 15%를 숨기고, model이 missing words를 예측하도록 train합니다. "labels"는 original text에서 옵니다.
+- **Contrastive learning (SimCLR):** image 하나를 가져와 augmented versions 두 개를 만듭니다. model이 그것들이 같은 image에서 왔음을 인식하면서 다른 images의 augmented versions와 구분하도록 train합니다.
+- **Next-token prediction (GPT):** previous words가 모두 주어졌을 때 next word를 예측합니다. 모든 text document가 training example이 됩니다.
 
-These are not separate categories from the big three. They are strategies that combine supervised and unsupervised ideas. Self-supervised learning is technically supervised (the model predicts something), but the labels are generated automatically, not by humans.
+이들은 big three와 별개의 categories가 아닙니다. supervised와 unsupervised ideas를 결합하는 strategies입니다. Self-supervised learning은 기술적으로 supervised입니다(model이 무엇인가를 예측하므로). 하지만 labels가 humans가 아니라 자동으로 생성됩니다.
 
-### Classification vs Regression
+### 분류와 회귀
 
-These are the two main supervised learning tasks.
+두 가지 주요 supervised learning tasks입니다.
 
 | Aspect | Classification | Regression |
 |--------|---------------|------------|
@@ -113,13 +113,13 @@ These are the two main supervised learning tasks.
 | Loss function | Cross-entropy, accuracy | Mean squared error, MAE |
 | Decision | Boundaries between classes | A curve that fits the data |
 
-Classification answers "which category?" Regression answers "how much?"
+Classification은 "어느 category인가?"에 답합니다. Regression은 "얼마나 많은가?"에 답합니다.
 
-Some problems can be framed either way. Predicting if a stock goes up or down is classification. Predicting the exact price is regression.
+어떤 problems는 두 방식 모두로 framing할 수 있습니다. stock이 오를지 내릴지 예측하는 것은 classification입니다. 정확한 price를 예측하는 것은 regression입니다.
 
-### The ML Workflow
+### ML 워크플로
 
-Every machine learning project follows the same pipeline, regardless of the algorithm.
+모든 machine learning project는 algorithm과 관계없이 같은 pipeline을 따릅니다.
 
 ```mermaid
 flowchart LR
@@ -134,25 +134,25 @@ flowchart LR
     H -->|Performance drops| A
 ```
 
-**Collect Data**: Gather raw data. More data is almost always better, but quality matters more than quantity.
+**Collect Data**: raw data를 모읍니다. 더 많은 data는 거의 항상 좋지만, quantity보다 quality가 더 중요합니다.
 
-**Clean & Explore**: Handle missing values, remove duplicates, visualize distributions, spot anomalies. This step often takes 60-80% of total project time.
+**Clean & Explore**: missing values를 처리하고, duplicates를 제거하고, distributions를 visualize하고, anomalies를 찾습니다. 이 단계는 전체 project time의 60-80%를 차지하는 경우가 많습니다.
 
-**Feature Engineering**: Transform raw data into features the model can use. Turn dates into day-of-week. Normalize numerical columns. Encode categorical variables. Good features matter more than fancy algorithms.
+**Feature Engineering**: raw data를 model이 사용할 수 있는 features로 변환합니다. dates를 day-of-week로 바꾸고, numerical columns를 normalize하고, categorical variables를 encode합니다. 좋은 features는 fancy algorithms보다 더 중요합니다.
 
-**Split Data**: Divide into training, validation, and test sets. The model trains on training data, you tune hyperparameters on validation data, and you report final performance on test data.
+**Split Data**: training, validation, test sets로 나눕니다. model은 training data로 train하고, validation data로 hyperparameters를 tune하며, test data에서 final performance를 report합니다.
 
-**Train Model**: Feed training data into an algorithm. The algorithm adjusts internal parameters to minimize a loss function.
+**Train Model**: training data를 algorithm에 넣습니다. algorithm은 loss function을 minimize하도록 internal parameters를 조정합니다.
 
-**Evaluate**: Measure performance on validation/test data. If performance is not acceptable, go back and try different features, algorithms, or hyperparameters.
+**Evaluate**: validation/test data에서 performance를 측정합니다. performance가 acceptable하지 않으면 돌아가서 다른 features, algorithms, hyperparameters를 시도합니다.
 
-**Deploy**: Put the model into production where it makes predictions on new data.
+**Deploy**: model을 production에 넣어 new data에 predictions를 만들게 합니다.
 
-**Monitor**: Track performance over time. Data distributions change (data drift), and models degrade. When performance drops, retrain.
+**Monitor**: 시간에 따른 performance를 추적합니다. Data distributions는 변하고(data drift), models는 degrade합니다. performance가 떨어지면 retrain합니다.
 
-### Training, Validation, and Test Splits
+### 훈련, 검증, 테스트 분할
 
-This is the most important concept beginners get wrong. You must evaluate your model on data it has never seen during training. Otherwise you are measuring memorization, not learning.
+이것은 beginners가 가장 자주 틀리는 가장 중요한 개념입니다. model은 training 중 본 적 없는 data에서 evaluate해야 합니다. 그렇지 않으면 learning이 아니라 memorization을 측정하는 것입니다.
 
 ```mermaid
 flowchart LR
@@ -174,11 +174,11 @@ flowchart LR
 | Validation | Tune hyperparameters, compare models | After each training run | 10-20% |
 | Test | Final unbiased performance estimate | Once, at the very end | 10-20% |
 
-The test set is sacred. You look at it exactly once. If you keep adjusting your model based on test performance, you are effectively training on the test set and your reported numbers are meaningless.
+test set은 sacred합니다. 정확히 한 번만 봅니다. test performance를 기준으로 model을 계속 조정하면 사실상 test set으로 training하는 것이며, report한 numbers는 의미가 없어집니다.
 
-For small datasets, use k-fold cross-validation: split data into k parts, train on k-1 parts, validate on the remaining part, rotate, and average results.
+small datasets에는 k-fold cross-validation을 사용하세요. data를 k parts로 나누고, k-1 parts로 train하고 remaining part로 validate한 뒤 rotate하고 results를 average합니다.
 
-### Overfitting vs Underfitting
+### 과대적합과 과소적합
 
 ```mermaid
 flowchart LR
@@ -204,37 +204,37 @@ flowchart LR
     GF -->|Too much complexity| OF
 ```
 
-**Underfitting**: The model is too simple to capture the patterns in the data. A straight line trying to fit a curved relationship. Training error is high. Test error is high.
+**Underfitting**: model이 data의 patterns를 capture하기에 너무 단순합니다. curved relationship에 straight line을 맞추려는 경우입니다. Training error가 높고, test error도 높습니다.
 
-**Overfitting**: The model is too complex and memorizes the training data, including its noise. A wiggly curve that passes through every training point but fails on new data. Training error is low. Test error is high.
+**Overfitting**: model이 너무 복잡해서 noise까지 포함해 training data를 memorize합니다. 모든 training point를 지나지만 new data에서는 실패하는 구불구불한 curve입니다. Training error는 낮고, test error는 높습니다.
 
-**Good fit**: The model captures real patterns without memorizing noise. Training error and test error are both reasonably low.
+**Good fit**: model이 noise를 memorize하지 않고 real patterns를 capture합니다. Training error와 test error가 모두 적절히 낮습니다.
 
-Signs of overfitting:
-- Training accuracy is much higher than validation accuracy
-- The model performs well on training data but poorly on new data
-- Adding more training data improves performance (the model was memorizing, not learning)
+overfitting의 signs:
+- Training accuracy가 validation accuracy보다 훨씬 높음
+- model이 training data에서는 잘 수행하지만 new data에서는 poor하게 수행함
+- training data를 더 추가하면 performance가 개선됨(model이 learning이 아니라 memorizing하고 있었음)
 
-Fixes for overfitting:
-- Get more training data
-- Reduce model complexity (fewer parameters, simpler architecture)
-- Regularization (add a penalty for large weights)
-- Dropout (randomly zero out neurons during training)
-- Early stopping (stop training when validation error starts increasing)
+overfitting 해결책:
+- 더 많은 training data 확보
+- model complexity 줄이기(fewer parameters, simpler architecture)
+- Regularization(large weights에 penalty 추가)
+- Dropout(training 중 neurons를 random하게 zero out)
+- Early stopping(validation error가 증가하기 시작하면 training 중단)
 
-Fixes for underfitting:
-- Use a more complex model
-- Add more features
-- Reduce regularization
-- Train longer
+underfitting 해결책:
+- 더 complex한 model 사용
+- features 더 추가
+- regularization 줄이기
+- 더 오래 train하기
 
-### The Bias-Variance Tradeoff
+### 편향-분산 트레이드오프
 
-This is the mathematical framework behind overfitting and underfitting.
+이것은 overfitting과 underfitting 뒤에 있는 mathematical framework입니다.
 
-**Bias**: Error from wrong assumptions in the model. A linear model has high bias when the true relationship is nonlinear. High bias leads to underfitting.
+**Bias**: model의 잘못된 assumptions에서 오는 error입니다. true relationship이 nonlinear인데 linear model을 쓰면 high bias가 생깁니다. High bias는 underfitting으로 이어집니다.
 
-**Variance**: Error from sensitivity to small fluctuations in the training data. A model with high variance gives very different predictions when trained on different subsets of data. High variance leads to overfitting.
+**Variance**: training data의 작은 fluctuations에 대한 sensitivity에서 오는 error입니다. high variance model은 data의 다른 subsets로 train했을 때 매우 다른 predictions를 냅니다. High variance는 overfitting으로 이어집니다.
 
 | Model complexity | Bias | Variance | Result |
 |-----------------|------|----------|--------|
@@ -244,33 +244,33 @@ This is the mathematical framework behind overfitting and underfitting.
 
 Total error = Bias^2 + Variance + Irreducible noise
 
-You cannot reduce irreducible noise (it is randomness in the data itself). You want to find the sweet spot where bias^2 + variance is minimized.
+irreducible noise는 줄일 수 없습니다(data 자체의 randomness입니다). 목표는 bias^2 + variance가 minimized되는 sweet spot을 찾는 것입니다.
 
-### No Free Lunch Theorem
+### 공짜 점심 없음 정리
 
-There is no single algorithm that works best for every problem. An algorithm that performs well on one class of problems will perform poorly on another. This is why data scientists try multiple algorithms and compare results.
+모든 problem에 가장 잘 작동하는 single algorithm은 없습니다. 어떤 class of problems에서 잘 작동하는 algorithm은 다른 class에서는 poor하게 수행합니다. 그래서 data scientists는 multiple algorithms를 시도하고 results를 비교합니다.
 
-In practice, the choice depends on:
-- How much data you have
-- How many features there are
-- Whether the relationship is linear or nonlinear
-- Whether you need interpretability
-- How much compute you can afford
+실무에서 선택은 다음에 따라 달라집니다.
+- data가 얼마나 많은지
+- features가 얼마나 많은지
+- relationship이 linear인지 nonlinear인지
+- interpretability가 필요한지
+- 감당할 수 있는 compute가 얼마나 되는지
 
-### When NOT to Use Machine Learning
+### Machine Learning을 사용하지 말아야 할 때
 
-ML is powerful but not always the right tool. Before reaching for a model, ask whether you actually need one.
+ML은 강력하지만 항상 올바른 tool은 아닙니다. model을 꺼내기 전에 정말 필요한지 물어보세요.
 
-**Do not use ML when:**
+**다음 경우에는 ML을 사용하지 마세요.**
 
-- **Rules are simple and well-defined.** Tax calculation, sorting algorithms, unit conversions. If you can write the logic in a few if-statements, a model adds complexity for no benefit.
-- **You have no data or very little data.** ML needs examples to learn from. With 10 data points, you cannot train anything meaningful. Collect data first.
-- **The cost of being wrong is catastrophic and you need guaranteed correctness.** Medical dosage calculation, nuclear reactor control, cryptographic verification. ML models are probabilistic. They will sometimes be wrong. If "sometimes wrong" is unacceptable, use deterministic methods.
-- **A lookup table or heuristic solves the problem.** If a simple threshold or table covers 99% of cases, adding ML increases maintenance cost without meaningful improvement.
-- **You cannot explain the decision and explainability is required.** Regulated industries (lending, insurance, criminal justice) sometimes require that every decision be fully explainable. Some ML models are interpretable (linear regression, small decision trees). Most are not.
-- **The problem changes faster than you can retrain.** If the rules change daily and retraining takes a week, the model is always stale.
+- **Rules가 simple하고 well-defined입니다.** Tax calculation, sorting algorithms, unit conversions. 몇 개의 if-statements로 logic을 작성할 수 있다면 model은 이득 없이 complexity만 더합니다.
+- **data가 없거나 매우 적습니다.** ML은 examples에서 배워야 합니다. data points 10개로는 의미 있는 것을 train할 수 없습니다. 먼저 data를 수집하세요.
+- **틀렸을 때의 비용이 catastrophic이고 guaranteed correctness가 필요합니다.** Medical dosage calculation, nuclear reactor control, cryptographic verification. ML models는 probabilistic합니다. 때로는 틀립니다. "sometimes wrong"이 unacceptable하다면 deterministic methods를 사용하세요.
+- **lookup table 또는 heuristic으로 문제가 해결됩니다.** simple threshold나 table이 cases의 99%를 cover한다면 ML을 추가하는 것은 meaningful improvement 없이 maintenance cost를 늘립니다.
+- **decision을 설명할 수 없고 explainability가 required입니다.** regulated industries(lending, insurance, criminal justice)는 모든 decision이 fully explainable해야 할 때가 있습니다. 일부 ML models(linear regression, small decision trees)는 interpretable합니다. 대부분은 그렇지 않습니다.
+- **problem이 retrain할 수 있는 속도보다 빠르게 변합니다.** rules가 매일 바뀌고 retraining에 일주일이 걸리면 model은 항상 stale합니다.
 
-Use this decision flowchart:
+이 decision flowchart를 사용하세요.
 
 ```mermaid
 flowchart TD
@@ -288,13 +288,13 @@ flowchart TD
     J -->|"No labels"| M["Unsupervised or self-supervised"]
 ```
 
-## Build It
+## 직접 만들기
 
-The code in `code/ml_intro.py` implements a nearest centroid classifier from scratch, the simplest possible ML algorithm. It demonstrates the core idea: learn from data, then predict on new data.
+`code/ml_intro.py`의 code는 scratch부터 nearest centroid classifier를 구현합니다. 가능한 가장 단순한 ML algorithm입니다. 핵심 idea를 보여 줍니다. data에서 배우고, new data를 predict합니다.
 
-### Step 1: Nearest Centroid Classifier from Scratch
+### Step 1: Scratch부터 Nearest Centroid Classifier
 
-The nearest centroid classifier computes the center (mean) of each class in the training data. To predict, it assigns each new point to the class whose center is closest.
+nearest centroid classifier는 training data에서 각 class의 center(mean)를 계산합니다. predict할 때는 각 new point를 가장 가까운 center의 class에 할당합니다.
 
 ```python
 class NearestCentroid:
@@ -312,11 +312,11 @@ class NearestCentroid:
         return self.classes[distances.argmin(axis=0)]
 ```
 
-That is the entire algorithm. Fit computes two means. Predict computes distances. No gradient descent, no iteration, no hyperparameters.
+이것이 전체 algorithm입니다. Fit은 means 두 개를 계산합니다. Predict는 distances를 계산합니다. gradient descent도, iteration도, hyperparameters도 없습니다.
 
-### Step 2: Train on Synthetic Data
+### Step 2: Synthetic Data로 Train하기
 
-We generate a 2D classification dataset with two classes that overlap slightly. The centroid classifier draws a linear decision boundary between the class centers.
+약간 overlap되는 두 classes를 가진 2D classification dataset을 생성합니다. centroid classifier는 class centers 사이에 linear decision boundary를 그립니다.
 
 ```python
 rng = np.random.RandomState(42)
@@ -326,40 +326,40 @@ X = np.vstack([X_class0, X_class1])
 y = np.array([0] * 100 + [1] * 100)
 ```
 
-### Step 3: Compare Against a Baseline
+### Step 3: Baseline과 비교하기
 
-Every ML model should be compared against a trivial baseline. Here, the baseline predicts a random class. If your ML model does not beat random guessing, something is wrong.
+모든 ML model은 trivial baseline과 비교해야 합니다. 여기서 baseline은 random class를 예측합니다. ML model이 random guessing을 이기지 못하면 뭔가 잘못된 것입니다.
 
 ```python
 baseline_preds = rng.choice([0, 1], size=len(y_test))
 baseline_acc = np.mean(baseline_preds == y_test)
 ```
 
-The centroid classifier should get around 90%+ accuracy on this clean dataset. Random baseline gets around 50%.
+centroid classifier는 이 clean dataset에서 약 90%+ accuracy를 얻어야 합니다. Random baseline은 약 50%를 얻습니다.
 
-### Why This Matters
+### 이것이 중요한 이유
 
-The nearest centroid classifier is trivially simple. It has no hyperparameters, no iteration, no gradient descent. Yet it captures the fundamental ML pattern:
+nearest centroid classifier는 너무 단순합니다. hyperparameters도, iteration도, gradient descent도 없습니다. 하지만 근본적인 ML pattern을 포착합니다.
 
-1. **Learn** a representation from training data (the centroids)
-2. **Predict** on new data using that representation (nearest distance)
-3. **Evaluate** against a baseline (random guessing)
+1. training data에서 representation을 **Learn**합니다(centroids)
+2. 그 representation을 사용해 new data를 **Predict**합니다(nearest distance)
+3. baseline과 비교해 **Evaluate**합니다(random guessing)
 
-Every ML algorithm, from logistic regression to transformers, follows this same three-step pattern. The representation gets more complex, but the workflow stays the same.
+logistic regression부터 transformers까지 모든 ML algorithm은 같은 three-step pattern을 따릅니다. representation은 더 complex해지지만 workflow는 그대로입니다.
 
-### Step 4: What the Centroid Classifier Cannot Do
+### Step 4: Centroid Classifier가 할 수 없는 것
 
-The nearest centroid classifier assumes each class forms a single blob. It draws linear decision boundaries. It fails when:
+nearest centroid classifier는 각 class가 single blob을 이룬다고 가정합니다. linear decision boundaries를 그립니다. 다음 경우 실패합니다.
 
-- Classes have multiple clusters (e.g., the digit "1" can be written in several different ways)
-- The decision boundary is nonlinear (e.g., one class wraps around another)
-- Features have very different scales (distance is dominated by the largest-scale feature)
+- classes가 multiple clusters를 가짐(예: digit "1"은 여러 방식으로 쓰일 수 있음)
+- decision boundary가 nonlinear임(예: 한 class가 다른 class를 감싸는 경우)
+- features의 scales가 매우 다름(distance가 가장 큰 scale의 feature에 지배됨)
 
-These limitations motivate every other algorithm you will learn. K-nearest neighbors handles multiple clusters. Decision trees handle nonlinear boundaries. Feature scaling fixes the scale problem. Each lesson builds on the limitations of the previous one.
+이 limitations가 앞으로 배울 다른 모든 algorithms의 동기입니다. K-nearest neighbors는 multiple clusters를 처리합니다. Decision trees는 nonlinear boundaries를 처리합니다. Feature scaling은 scale problem을 고칩니다. 각 lesson은 이전 lesson의 limitations 위에 쌓입니다.
 
-## Use It
+## 사용하기
 
-sklearn provides `NearestCentroid` and synthetic data generators:
+sklearn은 `NearestCentroid`와 synthetic data generators를 제공합니다.
 
 ```python
 from sklearn.neighbors import NearestCentroid
@@ -377,35 +377,35 @@ clf.fit(X_train, y_train)
 print(f"Accuracy: {clf.score(X_test, y_test):.3f}")
 ```
 
-## Ship It
+## 산출물로 만들기
 
-This lesson produces `outputs/prompt-ml-problem-framer.md` -- a prompt that turns vague business problems into concrete ML tasks. Give it a problem description ("we want to reduce churn" or "predict demand for next quarter") and it identifies the learning type, defines the prediction target, lists candidate features, picks a success metric, establishes a baseline, and flags pitfalls like data leakage or class imbalance. Use it at the start of any ML project to avoid building the wrong thing.
+이 lesson은 `outputs/prompt-ml-problem-framer.md`를 만듭니다. vague business problems를 concrete ML tasks로 바꾸는 prompt입니다. problem description("we want to reduce churn" 또는 "predict demand for next quarter")을 주면 learning type을 식별하고, prediction target을 정의하고, candidate features를 나열하고, success metric을 고르고, baseline을 세우며, data leakage나 class imbalance 같은 pitfalls를 표시합니다. 어떤 ML project든 시작할 때 이것을 사용해 잘못된 것을 만들지 않게 하세요.
 
-## Key Terms
+## 핵심 용어
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
-| Model | "The AI" | A mathematical function with learnable parameters that maps inputs to outputs |
-| Training | "Teaching the AI" | Running an optimization algorithm to adjust model parameters so predictions match known outputs |
-| Feature | "An input column" | A measurable property of the data that the model uses to make predictions |
-| Label | "The answer" | The known output for a training example, used to compute the error signal |
-| Hyperparameter | "A setting you tweak" | A parameter set before training that controls the learning process (learning rate, number of layers) |
-| Loss function | "How wrong the model is" | A function that measures the gap between predicted and actual outputs, which training tries to minimize |
-| Overfitting | "It memorized the test" | The model learned training-specific noise instead of general patterns, so it fails on new data |
-| Underfitting | "It didn't learn anything" | The model is too simple to capture the real patterns in the data |
-| Generalization | "It works on new data" | The model's ability to make accurate predictions on data it was not trained on |
-| Cross-validation | "Testing on different chunks" | Repeatedly splitting data into train/test folds and averaging results, giving a more robust performance estimate |
-| Regularization | "Keeping weights small" | Adding a penalty term to the loss function that discourages overly complex models |
-| Data drift | "The world changed" | The statistical distribution of incoming data shifts over time, degrading model performance |
+| Model | "The AI" | inputs를 outputs에 mapping하는 learnable parameters를 가진 mathematical function |
+| Training | "Teaching the AI" | predictions가 known outputs와 맞도록 model parameters를 조정하는 optimization algorithm 실행 |
+| Feature | "An input column" | model이 predictions를 만들기 위해 사용하는 data의 measurable property |
+| Label | "The answer" | training example의 known output이며 error signal을 계산하는 데 사용됨 |
+| Hyperparameter | "A setting you tweak" | learning process를 제어하기 위해 training 전에 설정되는 parameter (learning rate, number of layers) |
+| Loss function | "How wrong the model is" | predicted outputs와 actual outputs 사이의 gap을 측정하고 training이 minimize하려는 function |
+| Overfitting | "It memorized the test" | model이 general patterns 대신 training-specific noise를 배워 new data에서 실패함 |
+| Underfitting | "It didn't learn anything" | model이 data의 real patterns를 capture하기에 너무 단순함 |
+| Generalization | "It works on new data" | train되지 않은 data에서 accurate predictions를 만드는 model의 능력 |
+| Cross-validation | "Testing on different chunks" | data를 train/test folds로 반복 split하고 results를 average해 더 robust한 performance estimate를 얻는 것 |
+| Regularization | "Keeping weights small" | overly complex models를 억제하는 penalty term을 loss function에 추가하는 것 |
+| Data drift | "The world changed" | incoming data의 statistical distribution이 시간에 따라 shift되어 model performance를 떨어뜨리는 것 |
 
-## Exercises
+## 연습 문제
 
-1. Take any dataset (e.g., Iris, Titanic). Split it 70/15/15 into train/validation/test. Explain why you should not tune hyperparameters on the test set.
-2. List three real-world problems. For each one, identify whether it is classification, regression, or clustering, and whether it is supervised or unsupervised.
-3. A model gets 99% accuracy on training data but 60% on test data. Diagnose the problem and list three things you would try to fix it.
+1. 아무 dataset(예: Iris, Titanic)을 가져오세요. train/validation/test로 70/15/15 split하세요. 왜 test set에서 hyperparameters를 tune하면 안 되는지 설명하세요.
+2. 세 가지 real-world problems를 나열하세요. 각각 classification, regression, clustering 중 무엇인지, 그리고 supervised인지 unsupervised인지 식별하세요.
+3. 어떤 model이 training data에서 99% accuracy를 얻지만 test data에서는 60%를 얻습니다. 문제를 diagnose하고 고치기 위해 시도할 세 가지를 나열하세요.
 
-## Further Reading
+## 더 읽을거리
 
-- [An Introduction to Statistical Learning](https://www.statlearning.com/) - free textbook covering all classical ML methods with practical examples
-- [Google's Machine Learning Crash Course](https://developers.google.com/machine-learning/crash-course) - concise visual introduction to ML concepts
-- [Scikit-learn User Guide](https://scikit-learn.org/stable/user_guide.html) - the practical reference for implementing ML in Python
+- [An Introduction to Statistical Learning](https://www.statlearning.com/) - practical examples와 함께 classical ML methods 전반을 다루는 무료 textbook
+- [Google's Machine Learning Crash Course](https://developers.google.com/machine-learning/crash-course) - ML concepts에 대한 concise visual introduction
+- [Scikit-learn User Guide](https://scikit-learn.org/stable/user_guide.html) - Python에서 ML을 구현하기 위한 practical reference

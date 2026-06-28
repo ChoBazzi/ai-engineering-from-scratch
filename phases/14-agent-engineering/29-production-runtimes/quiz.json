@@ -4,7 +4,7 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What are the six runtime shapes the lesson lists?",
+      "question": "이 lesson이 나열하는 여섯 runtime shape는 무엇인가?",
       "options": [
         "Request-response, streaming, durable execution, queue-based, event-driven, scheduled",
         "Read, write, exec, fork, exit, wait",
@@ -12,79 +12,79 @@
         "Map, filter, reduce, fold, scan, group"
       ],
       "correct": 0,
-      "explanation": "These are the six runtime shapes; pick a shape before picking a framework."
+      "explanation": "이것들이 여섯 runtime shape다. framework를 고르기 전에 shape를 골라라."
     },
     {
       "stage": "pre",
-      "question": "When is request-response a poor fit?",
+      "question": "request-response는 언제 맞지 않는가?",
       "options": [
-        "On a 1-second classification",
-        "When the task takes longer than about 30 seconds and users hang up while workers pile up",
-        "On REST APIs",
-        "On internal services"
+        "1초 classification에서",
+        "task가 약 30초보다 오래 걸려 user가 hang up하고 worker가 쌓일 때",
+        "REST API에서",
+        "internal service에서"
       ],
       "correct": 1,
-      "explanation": "Synchronous HTTP is only viable for short tasks; long tasks need queue/durable/event shapes."
+      "explanation": "synchronous HTTP는 short task에서만 viable하다. long task에는 queue/durable/event shape가 필요하다."
     },
     {
       "stage": "check",
-      "question": "What is durable execution's core property?",
+      "question": "durable execution의 core property는 무엇인가?",
       "options": [
-        "Faster inference",
-        "State is checkpointed after every step so the runtime can resume from the last successful step on failure",
-        "Lower token cost",
-        "Native voice support"
+        "더 빠른 inference",
+        "모든 step 후 state가 checkpoint되어 failure 시 runtime이 마지막 successful step에서 resume할 수 있다",
+        "더 낮은 token cost",
+        "native voice support"
       ],
       "correct": 1,
-      "explanation": "Checkpoint-and-resume is the differentiator; LangGraph is the lesson's reference."
+      "explanation": "checkpoint-and-resume이 differentiator다. LangGraph가 이 lesson의 reference다."
     },
     {
       "stage": "check",
-      "question": "Which Anthropic observation justifies queue-based runtimes for long-horizon agents?",
+      "question": "어떤 Anthropic observation이 long-horizon agent에 queue-based runtime을 정당화하는가?",
       "options": [
-        "Tasks always complete in 5 seconds",
-        "Computer use announcement: dozens-to-hundreds of steps per task is normal",
-        "Tasks must run synchronously",
-        "Cron solves everything"
+        "task는 항상 5초 안에 완료된다",
+        "computer use announcement: task당 dozens-to-hundreds of steps가 정상이다",
+        "task는 synchronous로 실행되어야 한다",
+        "cron이 모든 것을 해결한다"
       ],
       "correct": 1,
-      "explanation": "Anthropic flagged dozens-to-hundreds of steps per task as normal; that workload needs queues or durable runtimes."
+      "explanation": "Anthropic은 task당 dozens-to-hundreds of steps가 정상이라고 지적했다. 그런 workload에는 queue 또는 durable runtime이 필요하다."
     },
     {
       "stage": "check",
-      "question": "What does the lesson mean by 'observability is load-bearing'?",
+      "question": "이 lesson에서 'observability is load-bearing'은 무엇을 뜻하는가?",
       "options": [
-        "Logs are pretty",
-        "Without OTel GenAI spans and a Langfuse/Phoenix/Opik backend you cannot debug a multi-step agent that failed at step 40",
-        "Disk gets full",
-        "Providers require it for billing"
+        "log가 보기 좋다는 뜻",
+        "OTel GenAI span과 Langfuse/Phoenix/Opik backend 없이는 step 40에서 실패한 multi-step agent를 debug할 수 없다는 뜻",
+        "disk가 가득 찬다는 뜻",
+        "provider가 billing을 위해 요구한다는 뜻"
       ],
       "correct": 1,
-      "explanation": "Observability is not optional for multi-step agents; it is the difference between debugging and replaying from scratch."
+      "explanation": "multi-step agent에서 observability는 선택 사항이 아니다. debugging과 처음부터 replay하는 것의 차이다."
     },
     {
       "stage": "post",
-      "question": "Why must queue workers have a dead-letter queue (DLQ)?",
+      "question": "queue worker에는 왜 dead-letter queue(DLQ)가 있어야 하는가?",
       "options": [
-        "Without DLQ, failed jobs vanish silently",
-        "DLQ is required by AWS",
-        "DLQ makes jobs faster",
-        "DLQ is encrypted"
+        "DLQ가 없으면 failed job이 조용히 사라진다",
+        "AWS가 DLQ를 요구하기 때문이다",
+        "DLQ가 job을 더 빠르게 만든다",
+        "DLQ는 암호화되어 있다"
       ],
       "correct": 0,
-      "explanation": "Failed jobs without DLQ disappear; DLQ is the parking lot for failed jobs."
+      "explanation": "DLQ 없는 failed job은 사라진다. DLQ는 failed job을 위한 parking lot이다."
     },
     {
       "stage": "post",
-      "question": "What does the lesson recommend pairing cron-shaped agents with?",
+      "question": "이 lesson은 cron-shaped agent를 무엇과 짝지으라고 권하는가?",
       "options": [
-        "GPU autoscalers",
-        "Durable execution so a failing nightly run resumes next tick",
+        "GPU autoscaler",
+        "failing nightly run이 다음 tick에서 resume하도록 durable execution",
         "Streaming SSE",
         "WebRTC"
       ],
       "correct": 1,
-      "explanation": "Cron + durable execution recovers cleanly from failed scheduled runs."
+      "explanation": "cron + durable execution은 failed scheduled run에서 깔끔하게 recover한다."
     }
   ]
 }

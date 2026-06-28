@@ -1,109 +1,109 @@
-# Anomaly Detection
+# 이상 탐지
 
-> Normal is easy to define. Abnormal is whatever doesn't fit.
+> 정상은 정의하기 쉽다. 비정상은 맞지 않는 모든 것이다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 2, Lessons 01-09
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement Z-score, IQR, and Isolation Forest anomaly detection methods from scratch
-- Distinguish between point, contextual, and collective anomalies and select the appropriate detection method for each
-- Explain why anomaly detection is framed as modeling normal data rather than classifying anomalies
-- Compare unsupervised anomaly detection with supervised classification and evaluate the tradeoff between novel anomaly coverage and precision
+- Z-score, IQR, Isolation Forest 이상 탐지 방법을 처음부터 구현한다
+- 점 이상, 문맥 이상, 집단 이상을 구분하고 각각에 적절한 탐지 방법을 선택한다
+- 이상 탐지가 왜 이상을 분류하는 문제가 아니라 정상 데이터를 모델링하는 문제로 구성되는지 설명한다
+- 비지도 이상 탐지와 지도 분류를 비교하고, 새로운 이상 유형을 포괄하는 능력과 정밀도 사이의 tradeoff를 평가한다
 
-## The Problem
+## 문제
 
-A credit card is used in New York at 2pm, then in Tokyo at 2:05pm. A factory sensor reads 150 degrees when the normal range is 80-120. A server sends 50,000 requests per second when the daily average is 200.
+신용카드가 오후 2시에 뉴욕에서 사용되고, 오후 2시 5분에 도쿄에서 사용된다. 공장 센서가 정상 범위 80-120도 대신 150도를 읽는다. 서버가 일평균 200건인데 초당 50,000건의 요청을 보낸다.
 
-These are anomalies. Finding them matters. Fraud costs billions. Equipment failures cost downtime. Network intrusions cost data.
+이것들이 이상이다. 이를 찾는 일은 중요하다. 사기는 수십억 달러의 비용을 만든다. 장비 고장은 다운타임을 만든다. 네트워크 침입은 데이터를 잃게 한다.
 
-The challenge: you rarely have labeled examples of anomalies. Fraud makes up 0.1% of transactions. Equipment failures happen a few times per year. You cannot train a standard classifier because there is almost nothing in the "anomaly" class to learn from. Even if you have some labels, the anomalies you have seen are not the only types you will encounter. Tomorrow's fraud scheme looks different from today's.
+문제는 이상에 대한 라벨링된 예시가 거의 없다는 점이다. 사기는 거래의 0.1%를 차지한다. 장비 고장은 1년에 몇 번 발생한다. "이상" 클래스에서 배울 것이 거의 없기 때문에 표준 분류기를 학습할 수 없다. 일부 라벨이 있더라도, 지금까지 본 이상이 앞으로 만날 모든 유형은 아니다. 내일의 사기 수법은 오늘의 것과 다르게 생겼다.
 
-Anomaly detection flips the problem. Instead of learning what is abnormal, learn what is normal. Anything that deviates from normal is suspicious. This works without labels, adapts to new types of anomalies, and scales to massive datasets.
+이상 탐지는 문제를 뒤집는다. 비정상을 학습하는 대신 정상을 학습한다. 정상에서 벗어나는 것은 무엇이든 의심스럽다. 이 방식은 라벨 없이 작동하고, 새로운 이상 유형에 적응하며, 대규모 데이터셋으로 확장된다.
 
-## The Concept
+## 개념
 
-### Types of Anomalies
+### 이상 유형
 
-Not all anomalies are the same:
+모든 이상이 같은 것은 아니다.
 
-- **Point anomalies.** A single data point that is unusual regardless of context. A temperature reading of 500 degrees. A transaction of $50,000 from an account that normally spends $50.
-- **Contextual anomalies.** A data point that is unusual given its context. A temperature of 90 degrees is normal in summer, anomalous in winter. Same value, different context.
-- **Collective anomalies.** A sequence of data points that is unusual as a group, even though each individual point might be normal. Five login failures is normal. Fifty in a row is a brute-force attack.
+- **점 이상.** 문맥과 관계없이 특이한 단일 데이터 포인트. 500도라는 온도 측정값. 평소 50달러를 쓰는 계정에서 나온 50,000달러 거래.
+- **문맥 이상.** 주어진 문맥에서 특이한 데이터 포인트. 90도는 여름에는 정상이고 겨울에는 이상이다. 같은 값, 다른 문맥이다.
+- **집단 이상.** 각 개별 포인트는 정상일 수 있지만, 그룹으로 보면 특이한 데이터 포인트의 시퀀스. 로그인 실패 5번은 정상이다. 연속 50번은 brute-force 공격이다.
 
-Most methods detect point anomalies. Contextual anomalies need time or location features. Collective anomalies need sequence-aware methods.
+대부분의 방법은 점 이상을 탐지한다. 문맥 이상에는 시간 또는 위치 특징이 필요하다. 집단 이상에는 시퀀스 인식 방법이 필요하다.
 
 ```mermaid
 flowchart TD
-    A[Anomaly Types] --> B[Point Anomaly]
-    A --> C[Contextual Anomaly]
-    A --> D[Collective Anomaly]
+    A[이상 유형] --> B[점 이상]
+    A --> C[문맥 이상]
+    A --> D[집단 이상]
 
-    B --> B1["Single unusual value<br/>Temperature: 500F"]
-    C --> C1["Unusual in context<br/>90F in January"]
-    D --> D1["Unusual sequence<br/>50 failed logins"]
+    B --> B1["단일 특이값<br/>온도: 500F"]
+    C --> C1["문맥상 특이<br/>1월의 90F"]
+    D --> D1["특이한 시퀀스<br/>로그인 실패 50번"]
 
     style B fill:#fdd,stroke:#333
     style C fill:#ffd,stroke:#333
     style D fill:#fdf,stroke:#333
 ```
 
-### The Unsupervised Framing
+### 비지도 문제 구성
 
-In standard classification, you have labels for both classes. In anomaly detection, you typically have one of three situations:
+표준 분류에서는 두 클래스 모두에 대한 라벨이 있다. 이상 탐지에서는 보통 세 가지 상황 중 하나다.
 
-1. **Fully unsupervised.** No labels at all. You fit the detector on all data and hope anomalies are rare enough not to corrupt the "normal" model.
-2. **Semi-supervised.** You have a clean dataset of normal data only. You fit on this clean set and score everything else. This is the strongest setup when possible.
-3. **Weakly supervised.** You have a few labeled anomalies. Use them for evaluation, not training. Train unsupervised, then measure precision/recall on the labeled subset.
+1. **완전 비지도.** 라벨이 전혀 없다. 모든 데이터에 detector를 맞추고 이상이 충분히 드물어 "정상" 모델을 오염시키지 않기를 바란다.
+2. **준지도.** 정상 데이터만 있는 깨끗한 데이터셋이 있다. 이 깨끗한 세트에 맞춘 뒤 나머지 모든 것을 점수화한다. 가능하다면 가장 강한 설정이다.
+3. **약지도.** 라벨링된 이상이 몇 개 있다. 학습이 아니라 평가에 사용한다. 비지도 방식으로 학습한 뒤 라벨링된 부분집합에서 precision/recall을 측정한다.
 
-The key insight: anomaly detection is fundamentally different from classification. You are modeling the distribution of normal data, not the decision boundary between two classes.
+핵심 통찰: 이상 탐지는 분류와 근본적으로 다르다. 두 클래스 사이의 결정 경계를 모델링하는 것이 아니라 정상 데이터의 분포를 모델링한다.
 
-### Supervised vs Unsupervised: The Tradeoff
+### 지도 vs 비지도: Tradeoff
 
-If you do have labeled anomalies, should you use them for training (supervised classification) or for evaluation only (unsupervised detection)?
+라벨링된 이상이 있다면 이를 학습에 사용해야 할까(지도 분류), 아니면 평가에만 사용해야 할까(비지도 탐지)?
 
-**Supervised (treat as classification):**
-- Catches the exact types of anomalies you have seen before
-- Higher precision on known anomaly types
-- Misses novel anomaly types entirely
-- Requires retraining when new anomaly types emerge
-- Needs enough anomaly examples (often too few)
+**지도(분류로 취급):**
+- 이전에 본 정확한 이상 유형을 잡아낸다
+- 알려진 이상 유형에 대해 더 높은 정밀도를 낸다
+- 새로운 이상 유형은 완전히 놓친다
+- 새로운 이상 유형이 나타나면 재학습이 필요하다
+- 충분한 이상 예시가 필요하다(대개 너무 적다)
 
-**Unsupervised (model normal, flag deviations):**
-- Catches any deviation from normal, including novel types
-- Does not require labeled anomalies
-- Higher false positive rate (not everything unusual is bad)
-- More robust to distribution shift
+**비지도(정상을 모델링하고 이탈을 표시):**
+- 새로운 유형을 포함해 정상에서 벗어나는 모든 것을 잡아낸다
+- 라벨링된 이상이 필요 없다
+- 더 높은 false positive rate(특이한 것이 모두 나쁜 것은 아니다)
+- 분포 변화에 더 강건하다
 
-In practice, the best systems combine both: unsupervised detection for broad coverage, supervised models for known high-priority anomaly types, and human review for ambiguous cases.
+실제로 가장 좋은 시스템은 둘을 결합한다. 넓은 포괄 범위에는 비지도 탐지, 알려진 고우선순위 이상 유형에는 지도 모델, 애매한 사례에는 사람 검토를 사용한다.
 
-### Z-Score Method
+### Z-Score 방법
 
-The simplest approach. Compute the mean and standard deviation of each feature. Flag any point more than k standard deviations from the mean.
+가장 단순한 접근법이다. 각 특징의 평균과 표준편차를 계산한다. 평균에서 k 표준편차보다 더 멀리 있는 포인트를 표시한다.
 
 ```text
 z_score = (x - mean) / std
 anomaly if |z_score| > threshold
 ```
 
-The default threshold is 3.0 (99.7% of normal data falls within 3 standard deviations for a Gaussian distribution).
+기본 threshold는 3.0이다(가우시안 분포에서는 정상 데이터의 99.7%가 3 표준편차 안에 들어간다).
 
-**Strengths:** Simple. Fast. Interpretable ("this value is 4.5 standard deviations from normal").
+**강점:** 단순하다. 빠르다. 해석 가능하다("이 값은 정상보다 4.5 표준편차 떨어져 있다").
 
-**Weaknesses:** Assumes data is normally distributed. Sensitive to outliers in the training data (the outliers shift the mean and inflate the std, making them harder to detect). Fails on multimodal distributions.
+**약점:** 데이터가 정규분포라고 가정한다. 학습 데이터의 이상치에 민감하다(이상치가 평균을 이동시키고 std를 부풀려 탐지가 더 어려워진다). 다봉 분포에서 실패한다.
 
-**When it works well:** Single-feature monitoring where data is roughly bell-shaped. Server response times, manufacturing tolerances, sensor readings with stable baselines.
+**잘 작동하는 경우:** 데이터가 대략 종 모양인 단일 특징 모니터링. 서버 응답 시간, 제조 허용오차, 안정적인 baseline을 가진 센서 측정값.
 
-**When it fails:** Multi-cluster data (two office locations with different baseline temperatures), skewed data (transaction amounts where $1000 is rare but not anomalous), data with outliers in the training set.
+**실패하는 경우:** 다중 클러스터 데이터(기준 온도가 다른 두 사무실 위치), 왜도가 있는 데이터(1000달러가 드물지만 이상은 아닌 거래 금액), 학습 세트에 이상치가 있는 데이터.
 
-### IQR Method
+### IQR 방법
 
-More robust than Z-score. Uses the interquartile range instead of mean and standard deviation.
+Z-score보다 강건하다. 평균과 표준편차 대신 사분위 범위를 사용한다.
 
-```
+```text
 Q1 = 25th percentile
 Q3 = 75th percentile
 IQR = Q3 - Q1
@@ -112,126 +112,126 @@ upper_bound = Q3 + factor * IQR
 anomaly if x < lower_bound or x > upper_bound
 ```
 
-The default factor is 1.5.
+기본 factor는 1.5다.
 
-**Strengths:** Robust to outliers (percentiles are not affected by extreme values). Works on skewed distributions. No normality assumption.
+**강점:** 이상치에 강건하다(백분위수는 극단값의 영향을 받지 않는다). 왜도가 있는 분포에서 작동한다. 정규성 가정이 없다.
 
-**Weaknesses:** Univariate only (applies per feature independently). Cannot detect anomalies that are unusual only when features are considered together (a point might be normal in each feature individually but anomalous in the joint space).
+**약점:** 일변량 전용이다(각 특징에 독립적으로 적용). 특징을 함께 고려할 때만 특이한 이상은 탐지할 수 없다(각 특징에서는 정상인 포인트가 결합 공간에서는 이상일 수 있다).
 
-**Practical note:** The 1.5 factor in IQR corresponds to the whiskers in a box plot. Points outside the whiskers are potential outliers. Using 3.0 instead of 1.5 makes the detector more conservative (fewer flags, fewer false positives). The right factor depends on your tolerance for false alarms.
+**실무 메모:** IQR의 1.5 factor는 box plot의 whisker에 해당한다. whisker 밖의 포인트는 잠재적 이상치다. 1.5 대신 3.0을 쓰면 detector가 더 보수적이 된다(더 적은 flag, 더 적은 false positive). 적절한 factor는 false alarm에 대한 허용도에 달려 있다.
 
 ### Isolation Forest
 
-The key insight: anomalies are few and different. In a random partitioning of the data, anomalies are easier to isolate -- they need fewer random splits to be separated from the rest.
+핵심 통찰: 이상은 적고 다르다. 데이터를 무작위로 분할하면 이상은 더 쉽게 고립된다. 나머지와 분리되기 위해 필요한 무작위 split이 더 적다.
 
 ```mermaid
 flowchart TD
-    A[All Data Points] --> B{Random Feature + Random Split}
-    B --> C[Left Partition]
-    B --> D[Right Partition]
-    C --> E{Random Feature + Random Split}
-    E --> F[Normal Point - deep in tree]
-    E --> G[More splits needed...]
-    D --> H["Anomaly - isolated quickly (short path)"]
+    A[모든 데이터 포인트] --> B{무작위 특징 + 무작위 분할}
+    B --> C[왼쪽 파티션]
+    B --> D[오른쪽 파티션]
+    C --> E{무작위 특징 + 무작위 분할}
+    E --> F[정상 포인트 - 트리 깊은 곳]
+    E --> G[더 많은 split 필요...]
+    D --> H["이상 - 빠르게 고립됨 (짧은 path)"]
 
     style H fill:#fdd,stroke:#333
     style F fill:#dfd,stroke:#333
 ```
 
-**How it works:**
-1. Build many random trees (an isolation forest)
-2. At each node, pick a random feature and a random split value between the feature's min and max
-3. Keep splitting until every point is isolated (in its own leaf)
-4. Anomalies have shorter average path lengths across all trees
+**작동 방식:**
+1. 많은 무작위 트리(isolation forest)를 만든다
+2. 각 노드에서 무작위 특징과 해당 특징의 min과 max 사이의 무작위 split 값을 고른다
+3. 모든 포인트가 고립될 때까지(자기 leaf에 들어갈 때까지) 계속 분할한다
+4. 이상은 모든 트리에서 평균 path length가 더 짧다
 
-**Why it works:** Normal points live in dense regions. Many random splits are needed to isolate one from its neighbors. Anomalies live in sparse regions. One or two random splits are enough to isolate them.
+**작동하는 이유:** 정상 포인트는 조밀한 영역에 있다. 이웃들과 분리하려면 많은 무작위 split이 필요하다. 이상은 희소한 영역에 있다. 하나나 두 개의 무작위 split만으로도 고립된다.
 
-The anomaly score is based on the average path length across all trees, normalized by the expected path length of a random binary search tree:
+이상 점수는 모든 트리의 평균 path length를 기반으로 하며, 무작위 이진 탐색 트리의 기대 path length로 정규화된다.
 
-```
+```text
 score(x) = 2^(-average_path_length(x) / c(n))
 ```
 
-Where `c(n)` is the expected path length for n samples. Score near 1 means anomaly. Score near 0.5 means normal. Score near 0 means very normal (deep in dense clusters).
+여기서 `c(n)`은 n개 샘플에 대한 기대 path length다. 1에 가까운 점수는 이상을 의미한다. 0.5에 가까운 점수는 정상이다. 0에 가까운 점수는 매우 정상적이라는 뜻이다(조밀한 클러스터 깊은 곳).
 
-**Strengths:** No distribution assumptions. Works in high dimensions. Scales well (sublinear in sample size because each tree uses a subsample). Handles mixed feature types.
+**강점:** 분포 가정이 없다. 고차원에서 작동한다. 잘 확장된다(각 트리가 subsample을 사용하기 때문에 sample size에 대해 sublinear). 혼합 특징 유형을 처리한다.
 
-**Weaknesses:** Struggles with anomalies in dense regions (masking effect). Random splitting is less effective when many features are irrelevant.
+**약점:** 조밀한 영역 안의 이상에는 약하다(masking effect). 관련 없는 특징이 많으면 무작위 분할이 덜 효과적이다.
 
-**Key hyperparameters:**
-- `n_estimators`: Number of trees. 100 is usually enough. More trees give more stable scores but slower computation.
-- `max_samples`: Number of samples per tree. 256 is the default in the original paper. Smaller values make individual trees less accurate but increase diversity. The subsampling is what makes Isolation Forest fast -- each tree sees a small fraction of the data.
-- `contamination`: Expected fraction of anomalies. Used only for setting the threshold. Does not affect the scores themselves.
+**핵심 하이퍼파라미터:**
+- `n_estimators`: 트리 수. 보통 100이면 충분하다. 트리가 많을수록 점수가 더 안정적이지만 계산은 느려진다.
+- `max_samples`: 트리당 샘플 수. 원 논문의 기본값은 256이다. 값이 작을수록 개별 트리는 덜 정확하지만 다양성이 증가한다. 이 subsampling이 Isolation Forest를 빠르게 만든다. 각 트리는 데이터의 작은 일부만 본다.
+- `contamination`: 예상 이상 비율. threshold 설정에만 사용된다. 점수 자체에는 영향을 주지 않는다.
 
 ### Local Outlier Factor (LOF)
 
-LOF compares the local density around a point to the density around its neighbors. A point in a sparse region surrounded by dense regions is anomalous.
+LOF는 한 포인트 주변의 국소 밀도를 그 이웃 주변의 밀도와 비교한다. 조밀한 영역에 둘러싸인 희소 영역의 포인트는 이상이다.
 
-**How it works:**
-1. For each point, find its k nearest neighbors
-2. Compute the local reachability density (how dense is the neighborhood)
-3. Compare each point's density to its neighbors' densities
-4. If a point has much lower density than its neighbors, it is an outlier
+**작동 방식:**
+1. 각 포인트에 대해 k개의 최근접 이웃을 찾는다
+2. local reachability density(이웃이 얼마나 조밀한지)를 계산한다
+3. 각 포인트의 밀도를 이웃의 밀도와 비교한다
+4. 어떤 포인트의 밀도가 이웃보다 훨씬 낮으면 outlier다
 
-**LOF score:**
-- LOF close to 1.0 means similar density as neighbors (normal)
-- LOF greater than 1.0 means lower density than neighbors (potentially anomalous)
-- LOF much greater than 1.0 (e.g., 2.0+) means significantly lower density (likely anomaly)
+**LOF 점수:**
+- LOF가 1.0에 가까우면 이웃과 비슷한 밀도(정상)
+- LOF가 1.0보다 크면 이웃보다 낮은 밀도(잠재적 이상)
+- LOF가 1.0보다 훨씬 크면(예: 2.0+) 밀도가 현저히 낮음(이상 가능성 높음)
 
-The "local" part is critical. Consider a dataset with two clusters: a dense cluster of 1000 points and a sparse cluster of 50 points. A point on the edge of the sparse cluster is not globally unusual -- it has 50 neighbors. But it is locally unusual if its immediate neighbors are denser than it is. LOF captures this nuance that global methods miss.
+"local" 부분이 중요하다. 두 클러스터가 있는 데이터셋을 생각해보자. 1000개 포인트의 조밀한 클러스터와 50개 포인트의 희소한 클러스터가 있다. 희소 클러스터 가장자리의 포인트는 전역적으로 특이하지 않다. 50개의 이웃이 있기 때문이다. 하지만 바로 가까운 이웃들이 자신보다 더 조밀하다면 국소적으로는 특이하다. LOF는 전역 방법이 놓치는 이 미묘함을 포착한다.
 
-**Strengths:** Detects local anomalies (points that are unusual in their neighborhood, even if they are not globally unusual). Works on clusters of different densities.
+**강점:** 국소 이상을 탐지한다(전역적으로 특이하지 않아도 자기 이웃 안에서 특이한 포인트). 서로 다른 밀도의 클러스터에서 작동한다.
 
-**Weaknesses:** Slow on large datasets (O(n^2) for naive implementation). Sensitive to the choice of k. Does not work well in very high dimensions (curse of dimensionality affects distance calculations).
+**약점:** 큰 데이터셋에서는 느리다(나이브 구현은 O(n^2)). k 선택에 민감하다. 매우 고차원에서는 잘 작동하지 않는다(차원의 저주가 거리 계산에 영향을 준다).
 
-### Comparison
+### 비교
 
-| Method | Assumptions | Speed | Handles High Dims | Detects Local Anomalies |
+| 방법 | 가정 | 속도 | 고차원 처리 | 국소 이상 탐지 |
 |--------|------------|-------|-------------------|------------------------|
-| Z-score | Normal distribution | Very fast | Yes (per feature) | No |
-| IQR | None (per feature) | Very fast | Yes (per feature) | No |
-| Isolation Forest | None | Fast | Yes | Partially |
-| LOF | Distance is meaningful | Slow | Poorly | Yes |
+| Z-score | 정규분포 | 매우 빠름 | 예 (특징별) | 아니요 |
+| IQR | 없음 (특징별) | 매우 빠름 | 예 (특징별) | 아니요 |
+| Isolation Forest | 없음 | 빠름 | 예 | 부분적으로 |
+| LOF | 거리가 의미 있어야 함 | 느림 | 나쁨 | 예 |
 
-### Evaluation Challenges
+### 평가의 어려움
 
-Evaluating anomaly detectors is harder than evaluating classifiers:
+이상 detector 평가는 분류기 평가보다 어렵다.
 
-- **Extreme class imbalance.** With 0.1% anomalies, predicting "normal" for everything gives 99.9% accuracy. Accuracy is useless.
-- **AUROC is misleading.** With heavy imbalance, AUROC can look good even when the model misses most anomalies at practical thresholds.
-- **Better metrics:** Precision@k (of the top k flagged items, how many are real anomalies), AUPRC (area under precision-recall curve), and recall at a fixed false positive rate.
+- **극단적인 클래스 불균형.** 이상이 0.1%이면 모든 것에 "normal"을 예측해도 정확도는 99.9%다. 정확도는 쓸모없다.
+- **AUROC는 오해를 부른다.** 불균형이 심하면 실제 threshold에서 대부분의 이상을 놓쳐도 AUROC는 좋아 보일 수 있다.
+- **더 나은 지표:** Precision@k(상위 k개 flag 중 실제 이상이 몇 개인지), AUPRC(precision-recall curve 아래 면적), 고정 false positive rate에서의 recall.
 
 ```mermaid
 flowchart LR
-    A[Raw Data] --> B[Train on Normal Data Only]
-    B --> C[Score All Test Data]
-    C --> D[Rank by Anomaly Score]
-    D --> E[Evaluate Top-K Flagged Items]
-    E --> F[Precision at K / AUPRC]
+    A[원시 데이터] --> B[정상 데이터로만 학습]
+    B --> C[모든 테스트 데이터 점수화]
+    C --> D[이상 점수로 정렬]
+    D --> E[상위 K개 flag 평가]
+    E --> F[K에서의 Precision / AUPRC]
 
     style A fill:#f9f,stroke:#333
     style F fill:#9f9,stroke:#333
 ```
 
-### Anomaly Detection Pipeline
+### 이상 탐지 파이프라인
 
-In practice, anomaly detection follows this workflow:
+실무에서 이상 탐지는 다음 workflow를 따른다.
 
-1. **Collect baseline data.** Ideally, a period where you know there are no (or very few) anomalies.
-2. **Feature engineering.** Raw features plus derived features (rolling statistics, time features, ratios).
-3. **Train the detector.** Fit on the baseline data. The model learns what "normal" looks like.
-4. **Score new data.** Each new observation gets an anomaly score.
-5. **Threshold selection.** Choose the score cutoff. This is a business decision: higher threshold means fewer false alarms but more missed anomalies.
-6. **Alert and investigate.** Flagged points go to human review or automated response.
-7. **Feedback collection.** Record whether flagged items were true anomalies or false alarms. Use this data to evaluate the detector and tune the threshold over time.
+1. **baseline 데이터 수집.** 이상이 없거나 매우 적다고 아는 기간이 이상적이다.
+2. **특징 엔지니어링.** 원시 특징과 파생 특징(이동 통계, 시간 특징, 비율).
+3. **detector 학습.** baseline 데이터에 맞춘다. 모델은 "정상"이 어떻게 생겼는지 학습한다.
+4. **새 데이터 점수화.** 각 새 관측값은 이상 점수를 받는다.
+5. **threshold 선택.** 점수 cutoff를 고른다. 이는 비즈니스 결정이다. threshold가 높을수록 false alarm은 줄지만 놓치는 이상은 늘어난다.
+6. **알림과 조사.** flag된 포인트는 사람 검토 또는 자동 대응으로 간다.
+7. **피드백 수집.** flag된 항목이 true anomaly인지 false alarm인지 기록한다. 이 데이터를 사용해 detector를 평가하고 시간이 지나며 threshold를 조정한다.
 
-The pipeline is never "done." Data distributions shift, new anomaly types emerge, and thresholds need adjustment. Treat anomaly detection as a living system, not a one-time model.
+파이프라인은 결코 "완료"되지 않는다. 데이터 분포는 바뀌고, 새로운 이상 유형은 나타나며, threshold는 조정이 필요하다. 이상 탐지를 일회성 모델이 아니라 살아 있는 시스템으로 다뤄라.
 
-## Build It
+## 직접 만들기
 
-The code in `code/anomaly_detection.py` implements Z-score, IQR, and Isolation Forest from scratch.
+`code/anomaly_detection.py`의 코드는 Z-score, IQR, Isolation Forest를 처음부터 구현한다.
 
-### Z-Score Detector
+### Z-score detector
 
 ```python
 def zscore_detect(X, threshold=3.0):
@@ -242,9 +242,9 @@ def zscore_detect(X, threshold=3.0):
     return z.max(axis=1) > threshold
 ```
 
-Simple and vectorized. Flags a point if any feature exceeds the threshold.
+단순하고 vectorized되어 있다. 어떤 특징이든 threshold를 넘으면 그 포인트를 flag한다.
 
-### IQR Detector
+### IQR detector
 
 ```python
 def iqr_detect(X, factor=1.5):
@@ -258,9 +258,9 @@ def iqr_detect(X, factor=1.5):
     return outside.any(axis=1)
 ```
 
-### Isolation Forest from Scratch
+### 처음부터 만드는 Isolation Forest
 
-The from-scratch implementation builds isolation trees that randomly partition the feature space:
+처음부터 구현한 버전은 특징 공간을 무작위로 분할하는 isolation tree를 만든다.
 
 ```python
 class IsolationTree:
@@ -288,9 +288,9 @@ class IsolationTree:
         return self
 ```
 
-The path length to isolate a point determines its anomaly score. Shorter paths mean more anomalous.
+포인트를 고립시키는 path length가 이상 점수를 결정한다. path가 짧을수록 더 이상하다.
 
-The `IsolationForest` class wraps multiple trees:
+`IsolationForest` 클래스는 여러 트리를 감싼다.
 
 ```python
 class IsolationForest:
@@ -313,21 +313,21 @@ class IsolationForest:
         return scores
 ```
 
-The normalization factor `c(n)` is the expected path length of an unsuccessful search in a binary search tree with n elements. It equals `2 * H(n-1) - 2*(n-1)/n` where `H` is the harmonic number. This normalization ensures scores are comparable across datasets of different sizes.
+정규화 계수 `c(n)`은 n개 원소를 가진 이진 탐색 트리에서 실패한 탐색의 기대 path length다. 이는 `2 * H(n-1) - 2*(n-1)/n`과 같으며, 여기서 `H`는 조화수다. 이 정규화 덕분에 서로 다른 크기의 데이터셋 사이에서도 점수를 비교할 수 있다.
 
-### Demo Scenarios
+### 데모 시나리오
 
-The code generates multiple test scenarios:
+코드는 여러 테스트 시나리오를 생성한다.
 
-1. **Single cluster with outliers.** A 2D Gaussian cluster with anomalies injected far from the center. All methods should work here.
-2. **Multimodal data.** Three clusters of different sizes and densities. Points between clusters are anomalous. Z-score struggles because the per-feature ranges are wide.
-3. **High-dimensional data.** 50 features, but anomalies differ in only 5 of them. Tests whether methods can find anomalies in a subset of features.
+1. **이상치가 있는 단일 클러스터.** 중심에서 멀리 주입된 이상을 가진 2D Gaussian 클러스터. 모든 방법이 여기서는 작동해야 한다.
+2. **다봉 데이터.** 크기와 밀도가 다른 세 클러스터. 클러스터 사이의 포인트는 이상이다. 특징별 범위가 넓기 때문에 Z-score는 고전한다.
+3. **고차원 데이터.** 50개 특징이 있지만 이상은 그중 5개에서만 다르다. 방법들이 특징 일부에서 나타나는 이상을 찾을 수 있는지 테스트한다.
 
-Each demo compares all methods using precision, recall, F1, and Precision@k.
+각 데모는 precision, recall, F1, Precision@k를 사용해 모든 방법을 비교한다.
 
-## Use It
+## 사용하기
 
-With sklearn (using library implementations, not from-scratch):
+sklearn을 사용할 때는(처음부터 구현한 것이 아니라 라이브러리 구현):
 
 ```python
 from sklearn.ensemble import IsolationForest
@@ -342,24 +342,24 @@ lof.fit(X_train)
 predictions = lof.predict(X_test)
 ```
 
-Note `contamination` sets the expected fraction of anomalies. Setting it correctly matters -- too low misses anomalies, too high creates false alarms.
+`contamination`은 예상 이상 비율을 설정한다. 이를 올바르게 설정하는 것이 중요하다. 너무 낮으면 이상을 놓치고, 너무 높으면 false alarm이 생긴다.
 
-The code in `anomaly_detection.py` compares from-scratch implementations against sklearn on the same data.
+`anomaly_detection.py`의 코드는 처음부터 구현한 방법을 같은 데이터에서 sklearn과 비교한다.
 
-### sklearn Contamination Parameter
+### sklearn Contamination 파라미터
 
-The `contamination` parameter in sklearn determines the threshold for converting continuous anomaly scores into binary predictions. It does not change the underlying scores.
+sklearn의 `contamination` 파라미터는 연속 이상 점수를 이진 예측으로 바꾸기 위한 threshold를 결정한다. underlying score는 바꾸지 않는다.
 
 ```python
 iso_5 = IsolationForest(contamination=0.05)
 iso_10 = IsolationForest(contamination=0.10)
 ```
 
-Both produce the same anomaly scores. But `iso_5` flags the top 5% while `iso_10` flags the top 10%. If you do not know the true anomaly rate (you usually do not), set contamination to "auto" and work with the raw scores directly. Set your own threshold based on the cost tradeoff between false positives and false negatives.
+둘은 같은 이상 점수를 만든다. 하지만 `iso_5`는 상위 5%를 flag하고 `iso_10`은 상위 10%를 flag한다. 실제 이상 비율을 모른다면(대개 모른다), contamination을 "auto"로 설정하고 raw score를 직접 다뤄라. false positive와 false negative 사이의 비용 tradeoff에 기반해 직접 threshold를 설정한다.
 
 ### One-Class SVM
 
-Another unsupervised anomaly detector worth knowing. One-Class SVM fits a boundary around normal data in a high-dimensional feature space (using the kernel trick).
+알아둘 만한 또 다른 비지도 이상 detector다. One-Class SVM은 고차원 특징 공간에서 정상 데이터를 감싸는 경계를 맞춘다(kernel trick 사용).
 
 ```python
 from sklearn.svm import OneClassSVM
@@ -369,91 +369,91 @@ oc_svm.fit(X_train)
 predictions = oc_svm.predict(X_test)
 ```
 
-The `nu` parameter approximates the fraction of anomalies. One-Class SVM works well on small to medium datasets but does not scale to very large data (the kernel matrix grows quadratically).
+`nu` 파라미터는 이상 비율을 근사한다. One-Class SVM은 중소규모 데이터셋에서는 잘 작동하지만 매우 큰 데이터로는 확장되지 않는다(커널 행렬이 제곱으로 커진다).
 
-### Autoencoder Approach (Preview)
+### Autoencoder 접근법 (미리 보기)
 
-Autoencoders are neural networks that learn to compress and reconstruct data. Train on normal data. At test time, anomalies have high reconstruction error because the network learned to reconstruct normal patterns only.
+Autoencoder는 데이터를 압축하고 복원하도록 학습하는 신경망이다. 정상 데이터로 학습한다. 테스트 시점에 이상은 복원 오차가 높다. 네트워크가 정상 패턴만 복원하도록 학습했기 때문이다.
 
-This is covered in Phase 3 (Deep Learning), but the principle is the same: model what is normal, flag what deviates.
+이는 Phase 3(Deep Learning)에서 다루지만 원리는 같다. 정상을 모델링하고, 벗어나는 것을 flag한다.
 
-### Ensemble Anomaly Detection
+### Ensemble 이상 탐지
 
-Just as ensemble methods improve classification (Lesson 11), combining multiple anomaly detectors improves detection. The simplest approach:
+ensemble 방법이 분류를 개선하듯(Lesson 11), 여러 이상 detector를 결합하면 탐지가 개선된다. 가장 단순한 접근법은 다음과 같다.
 
-1. Run multiple detectors (Z-score, IQR, Isolation Forest, LOF)
-2. Normalize each detector's scores to [0, 1]
-3. Average the normalized scores
-4. Flag points above the threshold on the average score
+1. 여러 detector를 실행한다(Z-score, IQR, Isolation Forest, LOF)
+2. 각 detector의 점수를 [0, 1]로 정규화한다
+3. 정규화된 점수를 평균낸다
+4. 평균 점수가 threshold를 넘는 포인트를 flag한다
 
-This reduces false positives because different methods have different failure modes. A point flagged by all four methods is almost certainly anomalous. A point flagged by only one might be a quirk of that method.
+이는 false positive를 줄인다. 방법마다 실패 모드가 다르기 때문이다. 네 방법 모두가 flag한 포인트는 거의 확실히 이상이다. 하나의 방법만 flag한 포인트는 그 방법의 특이한 반응일 수 있다.
 
-More sophisticated ensembles weight each detector by its estimated reliability (measured on a validation set with known anomalies, if available).
+더 정교한 ensemble은 각 detector의 추정 신뢰도(가능하다면 알려진 이상이 있는 validation set에서 측정)를 기준으로 가중치를 둔다.
 
-### Production Considerations
+### 운영 고려사항
 
-1. **Threshold drift.** As data distribution shifts, a fixed threshold becomes outdated. Monitor the distribution of anomaly scores and adjust periodically.
-2. **Alert fatigue.** Too many false alarms and operators stop paying attention. Start with a high threshold (fewer, more reliable alerts) and lower it as trust builds.
-3. **Ensemble approach.** In production, combine multiple detectors. Flag a point only if multiple methods agree it is anomalous. This reduces false positives significantly.
-4. **Feature engineering.** Raw features are rarely enough. Add rolling statistics, ratios, time-since-last-event, and domain-specific features. A good feature set matters more than the choice of detector.
-5. **Feedback loop.** When operators investigate flagged items and confirm or dismiss them, feed this back into the system. Accumulate labeled data over time to evaluate and improve the detector.
+1. **Threshold drift.** 데이터 분포가 바뀌면 고정 threshold는 낡는다. 이상 점수 분포를 모니터링하고 주기적으로 조정한다.
+2. **Alert fatigue.** false alarm이 너무 많으면 운영자가 주의를 기울이지 않는다. 높은 threshold(더 적고 더 신뢰할 수 있는 alert)로 시작하고 신뢰가 쌓이면 낮춘다.
+3. **Ensemble 접근법.** 운영 환경에서는 여러 detector를 결합한다. 여러 방법이 이상이라고 동의할 때만 포인트를 flag한다. 이렇게 하면 false positive가 크게 줄어든다.
+4. **특징 엔지니어링.** 원시 특징만으로는 거의 충분하지 않다. 이동 통계, 비율, time-since-last-event, 도메인별 특징을 추가한다. 좋은 특징 세트는 detector 선택보다 더 중요하다.
+5. **피드백 루프.** 운영자가 flag된 항목을 조사해 확인하거나 기각하면 이를 시스템에 되돌린다. 시간이 지나며 라벨링된 데이터를 축적해 detector를 평가하고 개선한다.
 
-## Ship It
+## 내보내기
 
-This lesson produces:
-- `outputs/skill-anomaly-detector.md` -- a decision skill for choosing the right detector
-- `code/anomaly_detection.py` -- Z-score, IQR, and Isolation Forest from scratch, with sklearn comparison
+이 수업의 산출물:
+- `outputs/skill-anomaly-detector.md` -- 적절한 detector를 선택하기 위한 의사결정 skill
+- `code/anomaly_detection.py` -- 처음부터 구현한 Z-score, IQR, Isolation Forest와 sklearn 비교
 
-### Choosing a Threshold
+### Threshold 선택하기
 
-The anomaly score is continuous. You need a threshold to make binary decisions. This is a business decision, not a technical one.
+이상 점수는 연속값이다. 이진 결정을 내리려면 threshold가 필요하다. 이는 기술적 결정이 아니라 비즈니스 결정이다.
 
-Consider two scenarios:
-- **Fraud detection.** Missing fraud is expensive (chargebacks, customer trust). False alarms cost a human analyst 5 minutes to investigate. Set the threshold low to catch more fraud, accept more false alarms.
-- **Equipment maintenance.** A false alarm means an unnecessary shutdown costing $50,000. A missed failure means a $500,000 repair. Set the threshold to balance these costs.
+두 시나리오를 생각해보자.
+- **사기 탐지.** 사기를 놓치면 비용이 크다(chargeback, 고객 신뢰). false alarm은 사람 분석가가 조사하는 데 5분을 쓴다. 더 많은 사기를 잡기 위해 threshold를 낮게 설정하고 더 많은 false alarm을 받아들인다.
+- **장비 유지보수.** false alarm은 50,000달러가 드는 불필요한 중단을 의미한다. 놓친 고장은 500,000달러 수리를 의미한다. 이 비용의 균형을 맞추도록 threshold를 설정한다.
 
-In both cases, the optimal threshold depends on the cost ratio between false positives and false negatives. Plot precision and recall at different thresholds, overlay the cost function, and pick the minimum-cost point.
+두 경우 모두 최적 threshold는 false positive와 false negative 사이의 비용 비율에 달려 있다. 서로 다른 threshold에서 precision과 recall을 그리고, 비용 함수를 겹쳐서 최소 비용 지점을 선택한다.
 
-### Scaling to Production
+### 운영 환경으로 확장하기
 
-For real-time anomaly detection in production:
+운영 환경의 실시간 이상 탐지:
 
-1. **Batch training, online scoring.** Train the model periodically (daily, weekly) on recent normal data. Score each new observation as it arrives.
-2. **Feature computation must match.** If you trained with rolling statistics over 30 days, you need 30 days of history to compute features for a new observation. Buffer the required history.
-3. **Score distribution monitoring.** Track the distribution of anomaly scores over time. If the median score drifts upward, either the data is changing or the model is stale.
-4. **Explainability.** When you flag an anomaly, say why. Z-score: "Feature X is 4.2 standard deviations above normal." Isolation Forest: "This point was isolated in 3.1 splits on average (normal points take 8.5)."
+1. **배치 학습, 온라인 점수화.** 최근 정상 데이터로 모델을 주기적으로(매일, 매주) 학습한다. 새 관측값이 들어오는 즉시 점수화한다.
+2. **특징 계산이 일치해야 한다.** 30일 이동 통계로 학습했다면 새 관측값의 특징을 계산하려면 30일의 이력이 필요하다. 필요한 이력을 buffer에 보관한다.
+3. **점수 분포 모니터링.** 시간에 따른 이상 점수 분포를 추적한다. median score가 위로 드리프트하면 데이터가 바뀌고 있거나 모델이 낡은 것이다.
+4. **설명 가능성.** 이상을 flag할 때 이유를 말한다. Z-score: "Feature X is 4.2 standard deviations above normal." Isolation Forest: "This point was isolated in 3.1 splits on average (normal points take 8.5)."
 
-## Exercises
+## 연습 문제
 
-1. **Threshold tuning.** Run the Z-score detector with thresholds from 1.0 to 5.0 in steps of 0.5. Plot precision and recall at each threshold. Where is the sweet spot for your data?
+1. **Threshold 튜닝.** Z-score detector를 threshold 1.0부터 5.0까지 0.5 간격으로 실행한다. 각 threshold에서 precision과 recall을 그린다. 데이터에 맞는 sweet spot은 어디인가?
 
-2. **Multivariate anomalies.** Create 2D data where each feature individually looks normal, but the combination is anomalous (e.g., points far from the main cluster diagonal). Show that Z-score per feature misses these but Isolation Forest catches them.
+2. **다변량 이상.** 각 특징은 개별적으로 정상처럼 보이지만 조합은 이상인 2D 데이터를 만든다(예: 주 클러스터 대각선에서 멀리 떨어진 포인트). 특징별 Z-score는 이를 놓치지만 Isolation Forest는 잡는다는 것을 보인다.
 
-3. **LOF from scratch.** Implement Local Outlier Factor using k-nearest neighbors. Compare against sklearn's LocalOutlierFactor on the same data. Use k=10 and k=50 -- how does the choice of k affect results?
+3. **LOF 처음부터 구현하기.** k-nearest neighbors를 사용해 Local Outlier Factor를 구현한다. 같은 데이터에서 sklearn의 LocalOutlierFactor와 비교한다. k=10과 k=50을 사용한다. k 선택이 결과에 어떤 영향을 주는가?
 
-4. **Streaming anomaly detection.** Modify the Z-score detector to work in a streaming setting: update the running mean and variance as new points arrive (Welford's online algorithm). Compare to batch Z-score on the same data.
+4. **스트리밍 이상 탐지.** Z-score detector가 스트리밍 설정에서 작동하도록 수정한다. 새 포인트가 도착할 때 running mean과 variance를 업데이트한다(Welford의 online algorithm). 같은 데이터에서 배치 Z-score와 비교한다.
 
-5. **Real-world evaluation.** Take a dataset with known anomalies (credit card fraud from Kaggle, for example). Evaluate all four methods using precision@100, precision@500, and AUPRC. Which method works best? Why?
+5. **현실 데이터 평가.** 알려진 이상이 있는 데이터셋(예: Kaggle의 credit card fraud)을 가져온다. precision@100, precision@500, AUPRC로 네 방법을 모두 평가한다. 어떤 방법이 가장 잘 작동하는가? 왜인가?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Anomaly | "Outlier, unusual point" | A data point that deviates significantly from the expected pattern of normal data |
-| Point anomaly | "A single weird value" | An individual observation that is unusual regardless of context |
-| Contextual anomaly | "Normal value, wrong context" | An observation that is unusual given its context (time, location, etc.) but might be normal in another context |
-| Isolation Forest | "Random splits to find outliers" | An ensemble of random trees that isolates anomalies with fewer splits than normal points |
-| Local Outlier Factor | "Compare density to neighbors" | A method that flags points whose local density is much lower than their neighbors' density |
-| Z-score | "Standard deviations from mean" | (x - mean) / std, measuring how far a point is from the center in units of standard deviation |
-| IQR | "Interquartile range" | Q3 - Q1, measuring the spread of the middle 50% of data, used for robust outlier detection |
-| Contamination | "Expected fraction of anomalies" | A hyperparameter telling the detector what proportion of the data it should flag as anomalous |
-| Precision@k | "Of the top k flags, how many are real" | Precision computed on only the k most suspicious points, useful for imbalanced anomaly detection |
-| AUPRC | "Area under precision-recall curve" | A metric that summarizes precision-recall performance across all thresholds, better than AUROC for imbalanced data |
+| 이상 | "Outlier, 특이한 포인트" | 정상 데이터의 기대 패턴에서 크게 벗어나는 데이터 포인트 |
+| 점 이상 | "하나의 이상한 값" | 문맥과 관계없이 특이한 개별 관측값 |
+| 문맥 이상 | "정상 값, 잘못된 문맥" | 주어진 문맥(시간, 위치 등)에서는 특이하지만 다른 문맥에서는 정상일 수 있는 관측값 |
+| Isolation Forest | "outlier를 찾기 위한 무작위 split" | 정상 포인트보다 더 적은 split으로 이상을 고립시키는 무작위 트리 ensemble |
+| Local Outlier Factor | "밀도를 이웃과 비교" | 국소 밀도가 이웃의 밀도보다 훨씬 낮은 포인트를 flag하는 방법 |
+| Z-score | "평균으로부터의 표준편차" | (x - mean) / std로, 포인트가 중심에서 표준편차 단위로 얼마나 떨어져 있는지 측정 |
+| IQR | "사분위 범위" | Q3 - Q1로, 데이터 가운데 50%의 퍼짐을 측정하며 강건한 outlier 탐지에 사용 |
+| Contamination | "예상 이상 비율" | detector가 데이터 중 어느 비율을 이상으로 flag해야 하는지 알려주는 하이퍼파라미터 |
+| Precision@k | "상위 k개 flag 중 실제가 몇 개인가" | 가장 의심스러운 k개 포인트에 대해서만 계산한 precision으로, 불균형 이상 탐지에 유용 |
+| AUPRC | "Precision-recall curve 아래 면적" | 모든 threshold에서 precision-recall 성능을 요약하는 지표로, 불균형 데이터에서는 AUROC보다 낫다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Liu et al., Isolation Forest (2008)](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/icdm08b.pdf) -- the original Isolation Forest paper
-- [Breunig et al., LOF: Identifying Density-Based Local Outliers (2000)](https://dl.acm.org/doi/10.1145/342009.335388) -- the original LOF paper
-- [scikit-learn Outlier Detection docs](https://scikit-learn.org/stable/modules/outlier_detection.html) -- overview of all sklearn anomaly detectors
-- [Chandola et al., Anomaly Detection: A Survey (2009)](https://dl.acm.org/doi/10.1145/1541880.1541882) -- comprehensive survey of anomaly detection methods
-- [Goldstein and Uchida, A Comparative Evaluation of Unsupervised Anomaly Detection Algorithms (2016)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0152173) -- empirical comparison of 10 methods on real datasets
+- [Liu et al., Isolation Forest (2008)](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/icdm08b.pdf) -- 원 Isolation Forest 논문
+- [Breunig et al., LOF: Identifying Density-Based Local Outliers (2000)](https://dl.acm.org/doi/10.1145/342009.335388) -- 원 LOF 논문
+- [scikit-learn Outlier Detection docs](https://scikit-learn.org/stable/modules/outlier_detection.html) -- 모든 sklearn 이상 detector 개요
+- [Chandola et al., Anomaly Detection: A Survey (2009)](https://dl.acm.org/doi/10.1145/1541880.1541882) -- 이상 탐지 방법에 대한 포괄적 survey
+- [Goldstein and Uchida, A Comparative Evaluation of Unsupervised Anomaly Detection Algorithms (2016)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0152173) -- 실제 데이터셋에서 10개 방법을 비교한 실증 연구

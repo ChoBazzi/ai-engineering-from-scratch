@@ -1,57 +1,57 @@
-# GPU Setup & Cloud
+# GPU 설정과 Cloud
 
-> Training on CPU is fine for learning. Training for real needs a GPU.
+> 학습을 위해서는 CPU training도 괜찮다. 실제 training에는 GPU가 필요하다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 0, Lesson 01
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Verify local GPU availability using `nvidia-smi` and PyTorch's CUDA API
-- Configure Google Colab with a T4 GPU for free cloud-based experiments
-- Benchmark matrix multiplication on CPU vs GPU and measure the speedup
-- Estimate the largest model that fits in your VRAM using the fp16 rule of thumb
+- `nvidia-smi`와 PyTorch의 CUDA API를 사용해 local GPU availability를 확인한다
+- 무료 cloud 기반 experiment를 위해 T4 GPU가 있는 Google Colab을 구성한다
+- CPU와 GPU의 matrix multiplication을 benchmark하고 speedup을 측정한다
+- fp16 rule of thumb을 사용해 VRAM에 들어갈 수 있는 가장 큰 model을 추정한다
 
-## The Problem
+## 문제
 
-Most lessons in phases 1-3 run fine on CPU. But once you start training CNNs, transformers, or LLMs (phases 4+), you need GPU acceleration. A training run that takes 8 hours on CPU takes 10 minutes on GPU.
+phases 1-3의 대부분 lesson은 CPU에서 잘 실행된다. 하지만 CNN, transformer, LLM(phases 4+)을 training하기 시작하면 GPU acceleration이 필요하다. CPU에서 8시간 걸리는 training run이 GPU에서는 10분이면 끝난다.
 
-You have three options: local GPU, cloud GPU, or Google Colab (free).
+선택지는 세 가지다: local GPU, cloud GPU, Google Colab(free).
 
-## The Concept
+## 개념
 
 ```
-Your options:
+선택지:
 
 1. Local NVIDIA GPU
-   Cost: $0 (you already have it)
-   Setup: Install CUDA + cuDNN
-   Best for: Regular use, large datasets
+   Cost: $0 (이미 가지고 있는 경우)
+   Setup: CUDA + cuDNN 설치
+   Best for: 정기적인 사용, 큰 dataset
 
 2. Google Colab (free tier)
    Cost: $0
    Setup: None
-   Best for: Quick experiments, no GPU at home
+   Best for: 빠른 experiment, 집에 GPU가 없는 경우
 
 3. Cloud GPU (Lambda, RunPod, Vast.ai)
    Cost: $0.20-2.00/hr
    Setup: SSH + install
-   Best for: Serious training, large models
+   Best for: 본격적인 training, 큰 model
 ```
 
-## Build It
+## 직접 만들기
 
-### Option 1: Local NVIDIA GPU
+### 선택지 1: Local NVIDIA GPU
 
-Check if you have one:
+GPU가 있는지 확인한다:
 
 ```bash
 nvidia-smi
 ```
 
-Install PyTorch with CUDA:
+CUDA가 포함된 PyTorch를 설치한다:
 
 ```python
 import torch
@@ -63,17 +63,17 @@ if torch.cuda.is_available():
     print(f"Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 ```
 
-### Option 2: Google Colab
+### 선택지 2: Google Colab
 
-1. Go to [colab.research.google.com](https://colab.research.google.com)
-2. Runtime > Change runtime type > T4 GPU
-3. Run `!nvidia-smi` to verify
+1. [colab.research.google.com](https://colab.research.google.com)으로 이동한다
+2. Runtime > Change runtime type > T4 GPU를 선택한다
+3. 확인을 위해 `!nvidia-smi`를 실행한다
 
-Upload notebooks from this course directly to Colab.
+이 course의 notebook을 Colab에 직접 upload한다.
 
-### Option 3: Cloud GPU
+### 선택지 3: Cloud GPU
 
-For Lambda Labs, RunPod, or Vast.ai:
+Lambda Labs, RunPod, Vast.ai를 사용할 때:
 
 ```bash
 ssh user@your-gpu-instance
@@ -82,16 +82,16 @@ pip install torch torchvision torchaudio
 python -c "import torch; print(torch.cuda.get_device_name(0))"
 ```
 
-### No GPU? No problem.
+### GPU가 없나요? 괜찮습니다.
 
-Most lessons work on CPU. The ones that need GPU will say so and include Colab links.
+대부분의 lesson은 CPU에서 동작한다. GPU가 필요한 lesson은 그렇게 명시하고 Colab link를 포함한다.
 
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using: {device}")
 ```
 
-## Build It: GPU vs CPU benchmark
+## 직접 만들기: GPU vs CPU benchmark
 
 ```python
 import torch
@@ -120,17 +120,17 @@ if torch.cuda.is_available():
     print(f"Speedup: {cpu_time / gpu_time:.0f}x")
 ```
 
-## Exercises
+## 연습 문제
 
-1. Run the benchmark above and compare CPU vs GPU times
-2. If you don't have a GPU, run it on Google Colab and compare
-3. Check how much GPU memory you have and estimate the largest model you can fit (rule of thumb: 2 bytes per parameter for fp16)
+1. 위 benchmark를 실행하고 CPU와 GPU 시간을 비교한다
+2. GPU가 없다면 Google Colab에서 실행하고 비교한다
+3. GPU memory가 얼마나 있는지 확인하고 들어갈 수 있는 가장 큰 model을 추정한다(rule of thumb: fp16에서는 parameter당 2 bytes)
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| CUDA | "GPU programming" | NVIDIA's parallel computing platform that lets you run code on the GPU |
-| VRAM | "GPU memory" | Video RAM on the GPU, separate from system RAM. Limits model size. |
-| fp16 | "Half precision" | 16-bit floating point, uses half the memory of fp32 with minimal accuracy loss |
-| Tensor Core | "Fast matrix hardware" | Specialized GPU cores for matrix multiplication, 4-8x faster than regular cores |
+| CUDA | "GPU programming" | GPU에서 code를 실행할 수 있게 해 주는 NVIDIA의 parallel computing platform |
+| VRAM | "GPU memory" | system RAM과 분리된 GPU의 Video RAM. model size를 제한한다. |
+| fp16 | "Half precision" | 16-bit floating point. accuracy loss를 최소화하면서 fp32의 절반 memory를 사용한다 |
+| Tensor Core | "빠른 matrix hardware" | matrix multiplication을 위한 특수 GPU core. 일반 core보다 4-8배 빠르다 |

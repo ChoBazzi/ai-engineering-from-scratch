@@ -1,57 +1,57 @@
-# Audio Classification — From k-NN on MFCCs to AST and BEATs
+# 오디오 분류 — MFCC 기반 k-NN부터 AST와 BEATs까지
 
-> Everything from "dog barking vs siren" to "which language is this" is audio classification. The features are mels. The architecture moves each decade. The evaluation stays AUC, F1, and per-class recall.
+> "개 짖는 소리 vs 사이렌"부터 "이 언어가 무엇인가"까지 모두 오디오 분류입니다. 특징은 mel입니다. 아키텍처는 10년마다 바뀝니다. 평가는 AUC, F1, 클래스별 recall로 남아 있습니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 6 · 02 (Spectrograms & Mel), Phase 3 · 06 (CNNs), Phase 5 · 08 (CNNs & RNNs for Text)
 **Time:** ~75 minutes
 
-## The Problem
+## 문제
 
-You get a 10-second clip. You want to know: "what is it?" Urban sound (siren, drill, dog), speech command (yes/no/stop), language ID (en/es/ar), speaker emotion (angry/neutral), or environmental sound (indoor/outdoor, babble). All of these are *audio classification*, and in 2026 the baseline architecture is mature: log-mel → CNN or Transformer → softmax.
+10초짜리 클립을 받았습니다. 알고 싶은 것은 "이게 무엇인가?"입니다. 도시 소리(사이렌, 드릴, 개), 음성 명령(yes/no/stop), language ID(en/es/ar), 화자 감정(angry/neutral), 환경음(indoor/outdoor, babble)이 모두 여기에 해당합니다. 이 모든 것이 *오디오 분류*이며, 2026년의 baseline 아키텍처는 성숙해 있습니다. log-mel → CNN 또는 Transformer → softmax입니다.
 
-The core difficulty is not the network. It is data. Audio datasets have brutal class imbalance, strong domain shift (clean vs noisy), and label noise (who decided "urban babble" vs "restaurant noise"?). The 80% of the problem is curation, augmentation, and evaluation, not swapping CNN for Transformer.
+핵심 난점은 네트워크가 아닙니다. 데이터입니다. 오디오 데이터셋에는 심한 클래스 불균형, 강한 도메인 shift(clean vs noisy), 레이블 noise("urban babble"과 "restaurant noise"를 누가 구분했나요?)가 있습니다. 문제의 80%는 CNN을 Transformer로 바꾸는 것이 아니라 큐레이션, 증강, 평가입니다.
 
-## The Concept
+## 개념
 
-![Audio classification ladder: k-NN on MFCCs to AST to BEATs](../assets/audio-classification.svg)
+![오디오 분류 사다리: MFCC 기반 k-NN에서 AST와 BEATs까지](../assets/audio-classification.svg)
 
-**k-NN on MFCCs (the 1990s baseline).** Flatten MFCCs per clip, compute cosine similarity to a labeled bank, return majority vote of the top K. Surprisingly strong on clean, small datasets (Speech Commands, ESC-50). Runs with no GPU.
+**MFCC 기반 k-NN(1990년대 baseline).** 클립별 MFCC를 평탄화하고, 레이블이 있는 bank와 cosine similarity를 계산한 뒤, 상위 K개의 다수결을 반환합니다. 깨끗하고 작은 데이터셋(Speech Commands, ESC-50)에서 놀랄 만큼 강합니다. GPU 없이 실행됩니다.
 
-**2D CNN on log-mels (2015-2019).** Treat the `(T, n_mels)` log-mel as an image. Apply ResNet-18 or VGG-style. Global mean pool the time axis. Softmax over classes. Still the baseline in most 2026 kaggle competitions.
+**Log-mel 위의 2D CNN(2015-2019).** `(T, n_mels)` log-mel을 이미지처럼 다룹니다. ResNet-18 또는 VGG 스타일을 적용합니다. 시간 축에 global mean pool을 적용합니다. 클래스에 대해 softmax를 수행합니다. 2026년 대부분의 Kaggle 대회에서도 여전히 baseline입니다.
 
-**Audio Spectrogram Transformer, AST (2021-2024).** Patchify the log-mel (e.g. 16×16 patches), add position embeddings, feed to a ViT. State of the art on AudioSet (mAP 0.485) for supervised learning.
+**Audio Spectrogram Transformer, AST(2021-2024).** Log-mel을 패치화하고(예: 16×16 패치), position embedding을 더한 뒤 ViT에 넣습니다. 지도학습 기준 AudioSet에서 state of the art(mAP 0.485)였습니다.
 
-**BEATs and WavLM-base (2024-2026).** Self-supervised pretraining on millions of hours. Fine-tune on your task with 1-10% of the supervised data you would have needed. In 2026 this is the default starting point for non-speech audio. BEATs-iter3 beats AST by 1-2 mAP on AudioSet while using 1/4 the compute.
+**BEATs와 WavLM-base(2024-2026).** 수백만 시간 규모로 자기지도 사전학습합니다. 원래 필요했을 지도 데이터의 1-10%만으로도 자신의 작업에 fine-tune할 수 있습니다. 2026년에는 비음성 오디오의 기본 출발점입니다. BEATs-iter3는 AudioSet에서 AST보다 1-2 mAP 높으면서 compute는 1/4만 사용합니다.
 
-**Whisper-encoder as a frozen backbone (2024).** Take Whisper's encoder, drop the decoder, attach a linear classifier. Near-SOTA on language ID and simple event classification with zero audio augmentation. The "free lunch" baseline.
+**Frozen backbone으로 쓰는 Whisper encoder(2024).** Whisper의 encoder를 가져오고 decoder를 버린 뒤 linear classifier를 붙입니다. 오디오 증강 없이도 language ID와 단순 event classification에서 near-SOTA입니다. "공짜 점심" baseline입니다.
 
-### Class imbalance is the real challenge
+### 클래스 불균형이 진짜 과제입니다
 
-ESC-50: 50 classes, 40 clips each — balanced, easy. UrbanSound8K: 10 classes, imbalanced 10:1. AudioSet: 632 classes with a 100,000:1 long tail. Techniques that work:
+ESC-50: 50개 클래스, 클래스마다 40개 클립입니다. 균형 잡혀 있고 쉽습니다. UrbanSound8K: 10개 클래스, 10:1 불균형입니다. AudioSet: 632개 클래스와 100,000:1 long tail이 있습니다. 잘 작동하는 기법은 다음과 같습니다.
 
-- Balanced sampling during training (not in evaluation).
-- Mixup: linearly interpolate two clips (and their labels) as augmentation.
-- SpecAugment: mask random time and frequency bands. Simple; critical.
+- 학습 중 balanced sampling을 사용합니다(평가에는 사용하지 않음).
+- Mixup: 두 클립과 그 레이블을 선형 보간하여 증강합니다.
+- SpecAugment: 무작위 시간 및 주파수 band를 mask합니다. 단순하지만 중요합니다.
 
-### Evaluation
+### 평가
 
-- Multiclass exclusive (Speech Commands): top-1 accuracy, top-5 accuracy.
-- Multiclass multi-label (AudioSet, UrbanSound-style): mean average precision (mAP).
-- Heavily imbalanced: per-class recall + macro F1.
+- 배타적 다중 클래스(Speech Commands): top-1 accuracy, top-5 accuracy.
+- 다중 클래스 multi-label(AudioSet, UrbanSound 스타일): mean average precision(mAP).
+- 심한 불균형: 클래스별 recall + macro F1.
 
-2026 numbers you should know:
+알아 두어야 할 2026년 수치는 다음과 같습니다.
 
-| Benchmark | Baseline | SOTA 2026 | Source |
+| 벤치마크 | 기준선 | SOTA 2026 | 출처 |
 |-----------|----------|-----------|--------|
-| ESC-50 | 82% (AST) | 97.0% (BEATs-iter3) | BEATs paper (2024) |
+| ESC-50 | 82% (AST) | 97.0% (BEATs-iter3) | BEATs 논문(2024) |
 | AudioSet mAP | 0.485 (AST) | 0.548 (BEATs-iter3) | HEAR leaderboard 2026 |
-| Speech Commands v2 | 98% (CNN) | 99.0% (Audio-MAE) | HEAR v2 results |
+| Speech Commands v2 | 98% (CNN) | 99.0% (Audio-MAE) | HEAR v2 결과 |
 
-## Build It
+## 직접 만들기
 
-### Step 1: featurize
+### 1단계: 특징화하기
 
 ```python
 def featurize_mfcc(signal, sr, n_mfcc=13, n_mels=40, frame_len=400, hop=160):
@@ -62,7 +62,7 @@ def featurize_mfcc(signal, sr, n_mfcc=13, n_mels=40, frame_len=400, hop=160):
     return [dct_ii(frame, n_mfcc) for frame in log]
 ```
 
-### Step 2: fixed-length summary
+### 2단계: 고정 길이 요약
 
 ```python
 def summarize(mfcc_frames):
@@ -74,9 +74,9 @@ def summarize(mfcc_frames):
     return mean + var
 ```
 
-Simple but strong: mean + variance across time gives a 26-dim fixed embedding for a 13-coef MFCC. Runs instantly. Beat state-of-the-art NN baselines on ESC-50 as recently as 2017.
+단순하지만 강력합니다. 시간 축의 mean + variance는 13계수 MFCC에 대해 26차원 고정 임베딩을 만듭니다. 즉시 실행됩니다. 2017년에도 ESC-50에서 state-of-the-art NN baseline을 이겼습니다.
 
-### Step 3: k-NN
+### 3단계: k-NN
 
 ```python
 def cosine(a, b):
@@ -91,9 +91,9 @@ def knn_classify(q, bank, labels, k=5):
     return votes.most_common(1)[0][0]
 ```
 
-### Step 4: upgrade to CNN on log-mels
+### 4단계: log-mel 위의 CNN으로 업그레이드하기
 
-In PyTorch:
+PyTorch에서는 다음과 같습니다.
 
 ```python
 import torch.nn as nn
@@ -113,9 +113,9 @@ class AudioCNN(nn.Module):
         return self.head(self.body(x).flatten(1))
 ```
 
-3M parameters. Trains in ~10 min on ESC-50 with a single RTX 4090. 80%+ accuracy.
+파라미터 3M개입니다. 단일 RTX 4090에서 ESC-50을 약 10분 만에 학습합니다. 정확도는 80% 이상입니다.
 
-### Step 5: the 2026 default — fine-tune BEATs
+### 5단계: 2026년 기본값 — BEATs fine-tune
 
 ```python
 from transformers import ASTFeatureExtractor, ASTForAudioClassification
@@ -131,49 +131,49 @@ inputs = ext(audio, sampling_rate=16000, return_tensors="pt")
 logits = model(**inputs).logits
 ```
 
-For BEATs, use `microsoft/BEATs-base` via the `beats` library; the transformers API is the same shape.
+BEATs는 `beats` 라이브러리를 통해 `microsoft/BEATs-base`를 사용하세요. transformers API와 형태가 같습니다.
 
-## Use It
+## 활용하기
 
-The 2026 stack:
+2026년 스택은 다음과 같습니다.
 
-| Situation | Start with |
+| 상황 | 시작점 |
 |-----------|-----------|
-| Tiny dataset (<1000 clips) | k-NN on MFCC means (your baseline) + audio augmentation |
-| Medium dataset (1K–100K) | BEATs or AST fine-tune |
-| Large dataset (>100K) | Train from scratch or fine-tune Whisper-encoder |
-| Real-time, edge | 40-MFCC CNN, quantized to int8 (KWS-style) |
-| Multi-label (AudioSet) | BEATs-iter3 with BCE loss + mixup + SpecAugment |
+| 작은 데이터셋(<1000 clips) | MFCC mean 기반 k-NN(자신의 baseline) + 오디오 증강 |
+| 중간 데이터셋(1K-100K) | BEATs 또는 AST fine-tune |
+| 큰 데이터셋(>100K) | 처음부터 학습하거나 Whisper-encoder fine-tune |
+| 실시간, edge | int8로 quantize한 40-MFCC CNN(KWS 스타일) |
+| Multi-label(AudioSet) | BCE loss + mixup + SpecAugment를 적용한 BEATs-iter3 |
 | Language ID | MMS-LID, SpeechBrain VoxLingua107 baseline |
 
-Decision rule: **start with a frozen backbone, not a fresh model**. Fine-tuning a BEATs head gets you 95% of SOTA in hours, not weeks.
+결정 규칙: **새 모델이 아니라 frozen backbone으로 시작하세요**. BEATs head를 fine-tune하면 몇 주가 아니라 몇 시간 안에 SOTA의 95%에 도달합니다.
 
-## Ship It
+## 결과물
 
-Save as `outputs/skill-classifier-designer.md`. Pick architecture, augmentations, class-balance strategy, and eval metric for a given audio classification task.
+`outputs/skill-classifier-designer.md`로 저장합니다. 주어진 오디오 분류 작업에 맞춰 아키텍처, 증강, 클래스 균형 전략, 평가 지표를 고릅니다.
 
-## Exercises
+## 연습문제
 
-1. **Easy.** Run `code/main.py`. It trains the k-NN MFCC baseline on a 4-class synthetic dataset (pure tones at different pitches). Report confusion matrix.
-2. **Medium.** Replace `summarize` with [mean, var, skew, kurtosis]. Does 4-moment pooling beat mean+var on the same synthetic dataset?
-3. **Hard.** Using `torchaudio`, train a 2D CNN on ESC-50 fold 1. Report 5-fold cross-validation accuracy. Add SpecAugment (time mask = 20, freq mask = 10) and report the delta.
+1. **쉬움.** `code/main.py`를 실행하세요. 이 코드는 4클래스 합성 데이터셋(서로 다른 pitch의 순수 tone)에서 k-NN MFCC baseline을 학습합니다. confusion matrix를 보고하세요.
+2. **보통.** `summarize`를 [mean, var, skew, kurtosis]로 바꾸세요. 같은 합성 데이터셋에서 4-moment pooling이 mean+var보다 나은가요?
+3. **어려움.** `torchaudio`를 사용해 ESC-50 fold 1에서 2D CNN을 학습하세요. 5-fold cross-validation accuracy를 보고하세요. SpecAugment(time mask = 20, freq mask = 10)를 추가하고 delta를 보고하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|-----------------|-----------------------|
-| AudioSet | The ImageNet of audio | Google's 2M-clip, 632-class weakly-labeled YouTube dataset. |
-| ESC-50 | Small classification benchmark | 50 classes × 40 clips of environmental sounds. |
-| AST | Audio Spectrogram Transformer | ViT on log-mel patches; 2021 SOTA. |
-| BEATs | Self-supervised audio | Microsoft model, iter3 leads AudioSet as of 2026. |
-| Mixup | Pair augmentation | `x = λ·x1 + (1-λ)·x2; y = λ·y1 + (1-λ)·y2`. |
-| SpecAugment | Mask-based augmentation | Zero-out random time and frequency bands of the spectrogram. |
-| mAP | Main multi-label metric | Mean average precision across classes and thresholds. |
+| AudioSet | 오디오의 ImageNet | Google의 2M 클립, 632클래스 weakly-labeled YouTube 데이터셋. |
+| ESC-50 | 작은 분류 benchmark | 환경음 50클래스 × 40클립. |
+| AST | Audio Spectrogram Transformer | log-mel 패치 위의 ViT; 2021년 SOTA. |
+| BEATs | 자기지도 오디오 | Microsoft 모델, iter3가 2026년 기준 AudioSet 선두. |
+| Mixup | 쌍 증강 | `x = λ·x1 + (1-λ)·x2; y = λ·y1 + (1-λ)·y2`. |
+| SpecAugment | Mask 기반 증강 | 스펙트로그램의 무작위 시간 및 주파수 band를 0으로 만듭니다. |
+| mAP | 주요 multi-label 지표 | 클래스와 threshold 전반의 mean average precision. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Gong, Chung, Glass (2021). AST: Audio Spectrogram Transformer](https://arxiv.org/abs/2104.01778) — the architecture of record from 2021–2024.
-- [Chen et al. (2022, rev. 2024). BEATs: Audio Pre-Training with Acoustic Tokenizers](https://arxiv.org/abs/2212.09058) — the 2024+ default.
-- [Park et al. (2019). SpecAugment](https://arxiv.org/abs/1904.08779) — the dominant audio augmentation.
-- [Piczak (2015). ESC-50 dataset](https://github.com/karolpiczak/ESC-50) — 50-class benchmark that lives on.
-- [Gemmeke et al. (2017). AudioSet](https://research.google.com/audioset/) — 632-class YouTube taxonomy; still the gold standard.
+- [Gong, Chung, Glass (2021). AST: Audio Spectrogram Transformer](https://arxiv.org/abs/2104.01778) — 2021-2024년의 대표 아키텍처.
+- [Chen et al. (2022, rev. 2024). BEATs: Audio Pre-Training with Acoustic Tokenizers](https://arxiv.org/abs/2212.09058) — 2024년 이후 기본값.
+- [Park et al. (2019). SpecAugment](https://arxiv.org/abs/1904.08779) — 지배적인 오디오 증강법.
+- [Piczak (2015). ESC-50 dataset](https://github.com/karolpiczak/ESC-50) — 여전히 쓰이는 50클래스 benchmark.
+- [Gemmeke et al. (2017). AudioSet](https://research.google.com/audioset/) — 632클래스 YouTube taxonomy; 여전히 gold standard입니다.

@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the chain rule in the context of neural networks?",
-    "options": ["A rule for chaining layers together", "If y = f(g(x)), then dy/dx = f'(g(x)) * g'(x) -- multiply derivatives along the path", "A method for initializing weights", "A technique for batching data"],
+    "question": "신경망의 맥락에서 연쇄 법칙은 무엇인가요?",
+    "options": ["층을 서로 연결하는 규칙", "y = f(g(x))라면 dy/dx = f'(g(x)) * g'(x)입니다. 즉 경로를 따라 미분값을 곱합니다", "가중치를 초기화하는 방법", "데이터를 배치로 묶는 기법"],
     "correct": 1,
-    "explanation": "The chain rule lets you compute the derivative of a composite function by multiplying the local derivatives at each step. Backpropagation applies this systematically through the computational graph.",
+    "explanation": "연쇄 법칙은 각 단계의 로컬 미분값을 곱해 합성 함수의 미분을 계산하게 해 줍니다. 백프로퍼게이션은 이를 계산 그래프 전체에 체계적으로 적용합니다.",
     "stage": "pre"
   },
   {
-    "question": "Why is backpropagation more efficient than computing each gradient independently?",
-    "options": ["It uses less memory", "It computes all gradients in a single backward pass instead of one forward pass per parameter", "It only works on small networks", "It avoids using the chain rule"],
+    "question": "백프로퍼게이션이 각 그래디언트를 독립적으로 계산하는 것보다 더 효율적인 이유는 무엇인가요?",
+    "options": ["메모리를 더 적게 사용하기 때문", "파라미터마다 한 번씩 순전파하는 대신 한 번의 역방향 패스로 모든 그래디언트를 계산하기 때문", "작은 네트워크에서만 동작하기 때문", "연쇄 법칙 사용을 피하기 때문"],
     "correct": 1,
-    "explanation": "Computing gradients independently requires one forward pass per parameter (millions of passes for a large network). Backpropagation computes all gradients in one backward pass by reusing intermediate values stored during the forward pass.",
+    "explanation": "그래디언트를 독립적으로 계산하려면 파라미터마다 한 번의 순전파가 필요합니다(큰 네트워크에서는 수백만 번의 패스). 백프로퍼게이션은 순전파 중 저장한 중간값을 재사용해 한 번의 역방향 패스로 모든 그래디언트를 계산합니다.",
     "stage": "pre"
   },
   {
-    "question": "In the backward pass, why do we use '+=' instead of '=' when accumulating gradients?",
-    "options": ["It's a Python convention", "A value might be used in multiple operations, so its gradient is the sum of gradients from all paths", "It prevents overflow", "It makes the code run faster"],
+    "question": "역방향 패스에서 그래디언트를 누적할 때 '=' 대신 '+='를 사용하는 이유는 무엇인가요?",
+    "options": ["Python 관례이기 때문", "하나의 값이 여러 연산에 사용될 수 있으므로 그 그래디언트는 모든 경로에서 온 그래디언트의 합이기 때문", "오버플로를 막기 때문", "코드를 더 빠르게 실행하기 때문"],
     "correct": 1,
-    "explanation": "When a Value is used as input to multiple operations (e.g., x used in both x*w1 and x*w2), its total gradient is the sum of the gradients flowing back from each operation. Using += accumulates these correctly.",
+    "explanation": "Value가 여러 연산의 입력으로 사용될 때(예: x가 x*w1과 x*w2에 모두 사용됨), 전체 그래디언트는 각 연산에서 거슬러 올라오는 그래디언트의 합입니다. +=를 사용하면 이를 올바르게 누적합니다.",
     "stage": "post"
   },
   {
-    "question": "What causes the vanishing gradient problem in deep sigmoid networks?",
-    "options": ["The learning rate is too small", "Sigmoid's derivative has a maximum of 0.25, so gradients shrink exponentially through layers", "The network has too many parameters", "The loss function is poorly chosen"],
+    "question": "깊은 sigmoid 네트워크에서 그래디언트 소실 문제를 일으키는 원인은 무엇인가요?",
+    "options": ["학습률이 너무 작음", "Sigmoid의 미분 최댓값이 0.25라서 그래디언트가 층을 통과하며 지수적으로 작아짐", "네트워크의 파라미터가 너무 많음", "손실 함수를 잘못 선택함"],
     "correct": 1,
-    "explanation": "The sigmoid derivative peaks at 0.25 (when z=0). Each layer multiplies the gradient by at most 0.25, so after 10 layers the gradient is at most 0.25^10 = ~0.000001 of the original signal.",
+    "explanation": "sigmoid 미분은 z=0일 때 0.25로 최대가 됩니다. 각 층은 그래디언트에 최대 0.25를 곱하므로, 10층 뒤의 그래디언트는 원래 신호의 최대 0.25^10 = ~0.000001에 불과합니다.",
     "stage": "post"
   },
   {
-    "question": "Why does topological sort matter in the backward pass?",
-    "options": ["It makes the code cleaner", "It ensures each node's gradient is fully accumulated before propagating to its children", "It speeds up the forward pass", "It reduces memory usage"],
+    "question": "역방향 패스에서 위상 정렬이 중요한 이유는 무엇인가요?",
+    "options": ["코드를 더 깔끔하게 만들기 때문", "각 노드의 그래디언트가 자식으로 전파되기 전에 완전히 누적되도록 보장하기 때문", "순전파 속도를 높이기 때문", "메모리 사용량을 줄이기 때문"],
     "correct": 1,
-    "explanation": "Topological sort ensures we process nodes in the correct order: a node's gradient must be fully accumulated from all downstream paths before we propagate through it. Without this ordering, gradients would be incomplete.",
+    "explanation": "위상 정렬은 노드를 올바른 순서로 처리하게 해 줍니다. 어떤 노드를 통해 전파하기 전에 그 노드의 그래디언트는 모든 하류 경로에서 완전히 누적되어야 합니다. 이 순서가 없으면 그래디언트가 불완전합니다.",
     "stage": "post"
   }
 ]

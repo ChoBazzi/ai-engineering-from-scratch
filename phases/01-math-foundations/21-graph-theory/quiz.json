@@ -2,63 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the adjacency matrix A[i][j] = 1 represent?",
+      "question": "인접 행렬 A[i][j] = 1은 무엇을 나타내나요?",
       "options": [
-        "Node i has degree j",
-        "There is an edge from node i to node j",
-        "Node i and node j have the same label",
-        "The shortest path from i to j has length 1"
+        "노드 i의 차수가 j입니다",
+        "노드 i에서 노드 j로 가는 엣지가 있습니다",
+        "노드 i와 노드 j가 같은 label을 갖습니다",
+        "i에서 j까지의 최단 경로 길이가 1입니다"
       ],
       "correct": 1,
-      "explanation": "The adjacency matrix is the core representation of a graph. A[i][j] = 1 means there is an edge connecting node i to node j. For undirected graphs, the matrix is symmetric (A[i][j] = A[j][i])."
+      "explanation": "인접 행렬은 그래프의 핵심 표현입니다. A[i][j] = 1은 노드 i에서 노드 j로 연결되는 엣지가 있음을 뜻합니다. 무방향 그래프에서는 행렬이 대칭입니다(A[i][j] = A[j][i])."
     },
     {
       "stage": "pre",
-      "question": "What data structure does BFS use and what does it find?",
+      "question": "BFS는 어떤 자료구조를 사용하며 무엇을 찾나요?",
       "options": [
-        "Stack; finds connected components",
-        "Queue; finds shortest paths in unweighted graphs",
-        "Priority queue; finds minimum spanning tree",
-        "Hash map; finds duplicate nodes"
+        "Stack; 연결 성분을 찾습니다",
+        "Queue; 비가중 그래프에서 최단 경로를 찾습니다",
+        "Priority queue; 최소 신장 트리를 찾습니다",
+        "Hash map; 중복 노드를 찾습니다"
       ],
       "correct": 1,
-      "explanation": "BFS uses a queue (FIFO) to explore all neighbors at distance k before moving to distance k+1. This guarantees that the first time a node is discovered, it is via a shortest path from the source."
+      "explanation": "BFS는 queue(FIFO)를 사용해 거리 k에 있는 모든 이웃을 탐색한 뒤 거리 k+1로 이동합니다. 이 때문에 어떤 노드가 처음 발견되는 순간, source에서 그 노드까지의 최단 경로를 통해 발견된 것이 보장됩니다."
     },
     {
       "stage": "post",
-      "question": "The graph Laplacian L = D - A of a connected graph has how many zero eigenvalues?",
+      "question": "연결 그래프의 그래프 라플라시안 L = D - A는 0 고유값을 몇 개 갖나요?",
       "options": [
-        "Zero",
-        "Exactly one",
-        "Equal to the number of nodes",
-        "Equal to the number of edges"
+        "0개",
+        "정확히 1개",
+        "노드 수와 같은 개수",
+        "엣지 수와 같은 개수"
       ],
       "correct": 1,
-      "explanation": "The number of zero eigenvalues of the Laplacian equals the number of connected components. A connected graph has exactly one connected component, so exactly one zero eigenvalue. A graph with k disconnected pieces has k zero eigenvalues."
+      "explanation": "라플라시안의 0 고유값 개수는 연결 성분의 개수와 같습니다. 연결 그래프는 연결 성분이 정확히 하나이므로 0 고유값도 정확히 하나입니다. 연결되지 않은 조각이 k개인 그래프는 0 고유값을 k개 갖습니다."
     },
     {
       "stage": "post",
-      "question": "In GNN message passing, what does h_v^(k+1) = sigma(W * mean({h_u^(k) : u in neighbors(v)})) compute?",
+      "question": "GNN message passing에서 h_v^(k+1) = sigma(W * mean({h_u^(k) : u in neighbors(v)}))는 무엇을 계산하나요?",
       "options": [
-        "The shortest path from v to all other nodes",
-        "A new feature vector for node v by aggregating neighbor features, transforming with learned weights, and applying a nonlinearity",
-        "The degree of node v at layer k+1",
-        "The PageRank score of node v"
+        "v에서 모든 다른 노드까지의 최단 경로",
+        "이웃 feature를 집계하고, 학습된 weight로 변환한 뒤, nonlinearity를 적용해 만든 노드 v의 새 feature vector",
+        "layer k+1에서 노드 v의 차수",
+        "노드 v의 PageRank 점수"
       ],
       "correct": 1,
-      "explanation": "Each node collects features from its neighbors (mean aggregation), multiplies by a learned weight matrix W, and applies an activation function sigma. After k rounds, each node has information from its k-hop neighborhood."
+      "explanation": "각 노드는 이웃의 feature를 모으고(mean aggregation), 학습된 weight matrix W를 곱한 뒤 activation function sigma를 적용합니다. k라운드 후 각 노드는 k-hop 이웃의 정보를 갖습니다."
     },
     {
       "stage": "post",
-      "question": "How does spectral clustering use the Fiedler vector (eigenvector of the second-smallest eigenvalue of L)?",
+      "question": "스펙트럴 클러스터링은 Fiedler vector(L의 두 번째로 작은 고유값의 고유벡터)를 어떻게 사용하나요?",
       "options": [
-        "Nodes with the largest Fiedler vector entries form one cluster",
-        "Nodes with positive Fiedler vector values go in one group, nodes with negative values go in the other",
-        "The Fiedler vector is used as edge weights",
-        "The Fiedler vector determines the number of clusters"
+        "Fiedler vector 항목이 가장 큰 노드들이 하나의 cluster를 형성합니다",
+        "Fiedler vector 값이 양수인 노드는 한 그룹으로, 음수인 노드는 다른 그룹으로 갑니다",
+        "Fiedler vector를 edge weights로 사용합니다",
+        "Fiedler vector가 cluster 개수를 결정합니다"
       ],
       "correct": 1,
-      "explanation": "The Fiedler vector encodes the smoothest non-trivial function on the graph. Nodes in the same tightly-connected cluster get similar values, while nodes separated by a bottleneck get values with opposite signs. The sign split partitions the graph into two clusters."
+      "explanation": "Fiedler vector는 그래프 위의 가장 매끄러운 비자명 함수를 인코딩합니다. 같은 촘촘한 cluster에 있는 노드는 비슷한 값을 얻고, bottleneck으로 분리된 노드는 반대 부호의 값을 얻습니다. 부호로 나누면 그래프가 두 cluster로 분할됩니다."
     }
   ]
 }

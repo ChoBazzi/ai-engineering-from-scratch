@@ -1,54 +1,54 @@
-# MCP Fundamentals — Primitives, Lifecycle, JSON-RPC Base
+# MCP 기초 — 프리미티브, 생명주기, JSON-RPC 기반
 
-> Every integration before MCP was a one-off. The Model Context Protocol, first shipped by Anthropic in November 2024 and now stewarded by the Linux Foundation's Agentic AI Foundation, standardizes discovery and invocation so any client can speak to any server. The 2025-11-25 spec names six primitives (three server, three client), a three-phase lifecycle, and a JSON-RPC 2.0 wire format. Learn those and the rest of the MCP chapter of this phase becomes reading.
+> MCP 이전의 모든 통합은 일회성 연결이었다. 2024년 11월 Anthropic이 처음 공개했고 지금은 Linux Foundation의 Agentic AI Foundation이 관리하는 Model Context Protocol은 discovery와 invocation을 표준화해 어떤 client든 어떤 server와도 통신할 수 있게 한다. 2025-11-25 사양은 여섯 가지 프리미티브(server 세 가지, client 세 가지), 세 단계 생명주기, JSON-RPC 2.0 wire format을 정의한다. 이것들을 익히면 이 phase의 나머지 MCP 장은 사양을 읽어 나가는 일이 된다.
 
 **Type:** Learn
 **Languages:** Python (stdlib, JSON-RPC parser)
 **Prerequisites:** Phase 13 · 01 through 05 (the tool interface and function calling)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Name all six MCP primitives (tools, resources, prompts on the server; roots, sampling, elicitation on the client) and give one use case each.
-- Walk through the three-phase lifecycle (initialize, operation, shutdown) and state who sends which message at each phase.
-- Parse and emit JSON-RPC 2.0 request, response, and notification envelopes.
-- Explain what capability negotiation at `initialize` is and what breaks without it.
+- 여섯 가지 MCP 프리미티브(server의 tools, resources, prompts; client의 roots, sampling, elicitation)를 모두 말하고 각각의 사용 사례를 하나씩 제시한다.
+- 세 단계 생명주기(initialize, operation, shutdown)를 따라가며 각 단계에서 누가 어떤 메시지를 보내는지 설명한다.
+- JSON-RPC 2.0 request, response, notification envelope을 파싱하고 내보낸다.
+- `initialize`에서 이루어지는 capability negotiation이 무엇이며, 그것이 없으면 무엇이 깨지는지 설명한다.
 
-## The Problem
+## 문제
 
-Before MCP, every tool-using agent had its own protocol. Cursor had an MCP-shaped but incompatible tool system. Claude Desktop shipped with a different one. VS Code's Copilot extension had a third. A team that built a "Postgres query" tool wrote the same tool three times, each to a different host's API. Reusing it required copying code.
+MCP 이전에는 tool을 사용하는 agent마다 자체 프로토콜이 있었다. Cursor에는 MCP처럼 생겼지만 호환되지 않는 tool 시스템이 있었다. Claude Desktop은 다른 시스템을 제공했다. VS Code의 Copilot 확장에는 또 다른 시스템이 있었다. "Postgres query" tool을 만든 팀은 같은 tool을 세 번 작성해야 했고, 각각 다른 host API에 맞춰야 했다. 재사용하려면 코드를 복사해야 했다.
 
-The result was a Cambrian explosion of one-off integrations and a ceiling on ecosystem velocity.
+그 결과 일회성 통합이 캄브리아기 폭발처럼 늘어났고, 생태계가 성장하는 속도에는 천장이 생겼다.
 
-MCP fixes this by standardizing the wire format. A single MCP server works in every MCP client: Claude Desktop, ChatGPT, Cursor, VS Code, Gemini, Goose, Zed, Windsurf, 300+ clients by April 2026. 110M monthly SDK downloads. 10,000+ public servers. The Linux Foundation took stewardship in December 2025 under the new Agentic AI Foundation.
+MCP는 wire format을 표준화해 이 문제를 해결한다. 하나의 MCP server는 Claude Desktop, ChatGPT, Cursor, VS Code, Gemini, Goose, Zed, Windsurf 등 모든 MCP client에서 동작한다. 2026년 4월 기준 client는 300개 이상, SDK 월간 다운로드는 1억 1천만 건, 공개 server는 10,000개 이상이다. Linux Foundation은 2025년 12월 새 Agentic AI Foundation 아래에서 관리 주체가 되었다.
 
-The spec revision used in this phase is **2025-11-25**. It adds async Tasks (SEP-1686), URL-mode elicitation (SEP-1036), sampling with tools (SEP-1577), incremental scope consent (SEP-835), and OAuth 2.1 resource-indicator semantics. Phase 13 · 09 through 16 cover those extensions. This lesson stops at the base.
+이 phase에서 사용하는 사양 개정판은 **2025-11-25**다. 이 버전은 async Tasks(SEP-1686), URL-mode elicitation(SEP-1036), sampling with tools(SEP-1577), incremental scope consent(SEP-835), OAuth 2.1 resource-indicator semantics를 추가한다. Phase 13 · 09부터 16까지가 이 확장들을 다룬다. 이 lesson은 기반까지만 다룬다.
 
-## The Concept
+## 개념
 
-### Three server primitives
+### 세 가지 server 프리미티브
 
-1. **Tools.** Callable actions. Same four-step loop from Phase 13 · 01.
-2. **Resources.** Exposed data. Read-only content addressable by URI: `file:///path`, `db://query/...`, custom schemes.
-3. **Prompts.** Reusable templates. Slash-commands in the host UI; server supplies the template, client fills arguments.
+1. **Tools.** 호출 가능한 action이다. Phase 13 · 01의 네 단계 loop와 같다.
+2. **Resources.** 노출된 data다. URI로 주소를 지정할 수 있는 read-only content이며 `file:///path`, `db://query/...`, custom scheme을 쓴다.
+3. **Prompts.** 재사용 가능한 template이다. host UI의 slash-command로 나타나며, server가 template을 제공하고 client가 argument를 채운다.
 
-### Three client primitives
+### 세 가지 client 프리미티브
 
-4. **Roots.** The set of URIs the server is allowed to touch. Client declares them; server respects them.
-5. **Sampling.** Server requests the client's model to perform a completion. Enables server-hosted agent loops without server-side API keys.
-6. **Elicitation.** Server asks the client's user for structured input mid-flight. Forms or URLs (SEP-1036).
+4. **Roots.** server가 접근할 수 있는 URI 집합이다. client가 선언하고 server가 이를 따른다.
+5. **Sampling.** server가 client의 model에게 completion 수행을 요청한다. server-side API key 없이 server-hosted agent loop를 가능하게 한다.
+6. **Elicitation.** server가 진행 중에 client의 사용자에게 structured input을 요청한다. form 또는 URL(SEP-1036)을 사용한다.
 
-Every capability in MCP belongs to exactly one of these six. Phase 13 · 10 through 14 cover each in depth.
+MCP의 모든 capability는 정확히 이 여섯 가지 중 하나에 속한다. Phase 13 · 10부터 14까지가 각각을 깊게 다룬다.
 
 ### Wire format: JSON-RPC 2.0
 
-Every message is a JSON object with these fields:
+모든 메시지는 다음 field를 가진 JSON object다.
 
 - Requests: `{jsonrpc: "2.0", id, method, params}`.
 - Responses: `{jsonrpc: "2.0", id, result | error}`.
-- Notifications: `{jsonrpc: "2.0", method, params}` — no `id`, no response expected.
+- Notifications: `{jsonrpc: "2.0", method, params}` — `id`가 없고 response를 기대하지 않는다.
 
-The base spec has ~15 methods, grouped by primitive. The important ones:
+기본 사양에는 프리미티브별로 묶인 method가 약 15개 있다. 중요한 것들은 다음과 같다.
 
 - `initialize` / `initialized` (handshake)
 - `tools/list`, `tools/call`
@@ -57,23 +57,23 @@ The base spec has ~15 methods, grouped by primitive. The important ones:
 - `sampling/createMessage` (server-to-client)
 - `notifications/tools/list_changed`, `notifications/resources/updated`, `notifications/progress`
 
-### Three-phase lifecycle
+### 세 단계 생명주기
 
 **Phase 1: initialize.**
 
-Client sends `initialize` with its `capabilities` and `clientInfo`. Server responds with its own `capabilities`, `serverInfo`, and the spec version it speaks. Client sends `notifications/initialized` when it has digested the response. From here on, either side can send requests per the negotiated capabilities.
+client는 자신의 `capabilities`와 `clientInfo`를 담아 `initialize`를 보낸다. server는 자신의 `capabilities`, `serverInfo`, 그리고 자신이 사용하는 사양 버전으로 응답한다. client는 response를 처리한 뒤 `notifications/initialized`를 보낸다. 이 시점부터 양쪽은 협상된 capability에 따라 request를 보낼 수 있다.
 
 **Phase 2: operation.**
 
-Bidirectional. Client calls `tools/list` to discover, then `tools/call` to invoke. Server may send `sampling/createMessage` if it declared that capability. Server may send `notifications/tools/list_changed` when its tool set mutates. Client may send `notifications/roots/list_changed` when the user changes root scope.
+양방향이다. client는 discovery를 위해 `tools/list`를 호출한 다음 invocation을 위해 `tools/call`을 호출한다. server는 해당 capability를 선언했다면 `sampling/createMessage`를 보낼 수 있다. server는 tool set이 변경되면 `notifications/tools/list_changed`를 보낼 수 있다. client는 사용자가 root scope를 바꾸면 `notifications/roots/list_changed`를 보낼 수 있다.
 
 **Phase 3: shutdown.**
 
-Either side closes the transport. No structured shutdown method in MCP; the transport (stdio or Streamable HTTP, Phase 13 · 09) carries the end-of-connection signal.
+어느 쪽이든 transport를 닫는다. MCP에는 구조화된 shutdown method가 없다. transport(stdio 또는 Streamable HTTP, Phase 13 · 09)가 연결 종료 신호를 전달한다.
 
 ### Capability negotiation
 
-`capabilities` in the `initialize` handshake is the contract. Example from a server:
+`initialize` handshake의 `capabilities`가 계약이다. server 예시는 다음과 같다.
 
 ```json
 {
@@ -83,7 +83,7 @@ Either side closes the transport. No structured shutdown method in MCP; the tran
 }
 ```
 
-The server declares it can emit `tools/list_changed` notifications and supports `resources/subscribe`. The client agrees by declaring its own:
+server는 `tools/list_changed` notification을 보낼 수 있고 `resources/subscribe`를 지원한다고 선언한다. client는 자신의 capability를 선언해 이에 동의한다.
 
 ```json
 {
@@ -93,74 +93,74 @@ The server declares it can emit `tools/list_changed` notifications and supports 
 }
 ```
 
-If the client does not declare `sampling`, the server must not call `sampling/createMessage`. Symmetric: if the server does not declare `resources.subscribe`, the client must not try to subscribe.
+client가 `sampling`을 선언하지 않으면 server는 `sampling/createMessage`를 호출하면 안 된다. 반대도 같다. server가 `resources.subscribe`를 선언하지 않으면 client는 subscribe를 시도하면 안 된다.
 
-This is what prevents ecosystem drift. A client that does not support sampling is still a valid MCP client; a server that does not call `sampling` is still a valid MCP server. They just do not use that feature together.
+이 규칙이 생태계의 표류를 막는다. sampling을 지원하지 않는 client도 여전히 유효한 MCP client다. `sampling`을 호출하지 않는 server도 여전히 유효한 MCP server다. 둘은 단지 그 feature를 함께 사용하지 않을 뿐이다.
 
-### Structured content and error shapes
+### Structured content와 error shape
 
-`tools/call` returns a `content` array of typed blocks: `text`, `image`, `resource`. Phase 13 · 14 adds MCP Apps (`ui://` interactive UI) to that list.
+`tools/call`은 typed block으로 이루어진 `content` array를 반환한다. block type은 `text`, `image`, `resource`다. Phase 13 · 14는 여기에 MCP Apps(`ui://` interactive UI)를 추가한다.
 
-Errors use JSON-RPC error codes. The spec-defined additions: `-32002` "Resource not found", `-32603` "Internal error", plus MCP-specific error data as `error.data`.
+error는 JSON-RPC error code를 사용한다. 사양에서 추가로 정의한 것은 `-32002` "Resource not found", `-32603` "Internal error", 그리고 `error.data`에 담는 MCP-specific error data다.
 
-### Client capabilities vs tool call details
+### Client capabilities와 tool call 세부사항
 
-A common confusion: `capabilities.tools` is whether the client supports tool-list-changed notifications. Whether the client WILL call specific tools is a runtime choice driven by its model, not a capability flag. The capability flag is the spec-level contract. The model's choice is orthogonal.
+흔한 혼동이 있다. `capabilities.tools`는 client가 tool-list-changed notification을 지원하는지 여부다. client가 특정 tool을 실제로 호출할지는 capability flag가 아니라 model이 runtime에 내리는 선택이다. capability flag는 사양 수준의 계약이다. model의 선택은 별개의 문제다.
 
-### Why JSON-RPC and not REST?
+### 왜 REST가 아니라 JSON-RPC인가?
 
-JSON-RPC 2.0 (2010) is a lightweight bidirectional protocol. REST is client-initiated. MCP needed server-initiated messages (sampling, notifications), so JSON-RPC with its symmetric request/response shape was a natural fit. JSON-RPC also composes cleanly over stdio and WebSocket/Streamable HTTP without re-inventing HTTP's request shape.
+JSON-RPC 2.0(2010)은 가벼운 양방향 프로토콜이다. REST는 client-initiated 방식이다. MCP에는 server-initiated message(sampling, notifications)가 필요했으므로 대칭적인 request/response 형태를 가진 JSON-RPC가 자연스럽게 맞았다. JSON-RPC는 HTTP request 형태를 다시 발명하지 않고도 stdio와 WebSocket/Streamable HTTP 위에서 깔끔하게 조합된다.
 
 ```figure
 mcp-tool-call
 ```
 
-## Use It
+## 사용하기
 
-`code/main.py` ships a minimal JSON-RPC 2.0 parser and emitter, then walks the `initialize` → `tools/list` → `tools/call` → `shutdown` sequence by hand, printing every message. No real transport; just the message shapes. Compare to the spec linked in Further Reading to verify each envelope.
+`code/main.py`는 최소 JSON-RPC 2.0 parser와 emitter를 제공한 뒤, `initialize` → `tools/list` → `tools/call` → `shutdown` sequence를 손으로 따라가며 모든 메시지를 출력한다. 실제 transport는 없고 message shape만 있다. 각 envelope이 맞는지 확인하려면 Further Reading의 사양과 비교하라.
 
-What to look at:
+볼 것:
 
-- `initialize` declares capabilities both ways; the response has `serverInfo` and `protocolVersion: "2025-11-25"`.
-- `tools/list` returns a `tools` array; each entry has `name`, `description`, `inputSchema`.
-- `tools/call` uses `params.name` and `params.arguments`.
-- The response `content` is an array of `{type, text}` blocks.
+- `initialize`는 양쪽 capability를 선언한다. response에는 `serverInfo`와 `protocolVersion: "2025-11-25"`가 있다.
+- `tools/list`는 `tools` array를 반환한다. 각 entry에는 `name`, `description`, `inputSchema`가 있다.
+- `tools/call`은 `params.name`과 `params.arguments`를 사용한다.
+- response의 `content`는 `{type, text}` block의 array다.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-mcp-handshake-tracer.md`. Given a pcap-style transcript of an MCP client-server interaction, the skill annotates each message with which primitive, which lifecycle phase, and which capability it depends on.
+이 lesson은 `outputs/skill-mcp-handshake-tracer.md`를 만든다. MCP client-server 상호작용의 pcap 스타일 transcript가 주어지면, 이 skill은 각 메시지가 어떤 프리미티브, 어떤 생명주기 단계, 어떤 capability에 의존하는지 annotation한다.
 
-## Exercises
+## 연습 문제
 
-1. Run `code/main.py`. Identify the line where capability negotiation happens and describe what would change if the server did not declare `tools.listChanged`.
+1. `code/main.py`를 실행하라. capability negotiation이 일어나는 줄을 찾고, server가 `tools.listChanged`를 선언하지 않았다면 무엇이 달라지는지 설명하라.
 
-2. Extend the parser to handle `notifications/progress`. The message shape: `{method: "notifications/progress", params: {progressToken, progress, total}}`. Emit it while a long-running `tools/call` is in progress and confirm the client handler would display a progress bar.
+2. parser를 확장해 `notifications/progress`를 처리하라. message shape은 `{method: "notifications/progress", params: {progressToken, progress, total}}`다. 오래 실행되는 `tools/call`이 진행 중일 때 이를 emit하고, client handler가 progress bar를 표시할 수 있음을 확인하라.
 
-3. Read the MCP 2025-11-25 spec top to bottom — the whole document is about 80 pages. Identify the one capability flag most servers do NOT need. Hint: it relates to resource subscription.
+3. MCP 2025-11-25 사양을 처음부터 끝까지 읽어라. 문서 전체는 약 80쪽이다. 대부분의 server가 필요로 하지 않는 capability flag 하나를 찾아라. 힌트: resource subscription과 관련 있다.
 
-4. Sketch on paper the primitive a hypothetical "cron job" feature would belong to. (Hint: the server wants the client to invoke it at a scheduled time. None of the six primitives fit today.) MCP's 2026 roadmap has a draft SEP for this.
+4. 가상의 "cron job" feature가 어떤 프리미티브에 속할지 종이에 스케치하라. 힌트: server는 client가 정해진 시간에 그것을 invoke하기를 원한다. 현재 여섯 프리미티브 중 어느 것도 딱 맞지 않는다. MCP의 2026 roadmap에는 이에 대한 draft SEP가 있다.
 
-5. Parse one session log from an open MCP server on GitHub. Count request vs response vs notification messages. Compute what fraction of traffic is lifecycle vs operation.
+5. GitHub의 공개 MCP server에서 session log 하나를 파싱하라. request, response, notification 메시지 수를 세어라. traffic 중 lifecycle과 operation의 비율을 계산하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
-| MCP | "Model Context Protocol" | Open protocol for model-to-tool discovery and invocation |
-| Server primitive | "What a server exposes" | tools (actions), resources (data), prompts (templates) |
-| Client primitive | "What a client lets servers use" | roots (scope), sampling (LLM callbacks), elicitation (user input) |
-| JSON-RPC 2.0 | "The wire format" | Symmetric request/response/notification envelopes |
-| `initialize` handshake | "Capability negotiation" | First message pair; servers and clients declare features they support |
-| `tools/list` | "Discovery" | Client asks server for its current tool set |
-| `tools/call` | "Invocation" | Client asks server to execute a tool with arguments |
-| `notifications/*_changed` | "Mutation events" | Server tells client that its primitive list has changed |
-| Content block | "Typed result" | `{type: "text" \| "image" \| "resource" \| "ui_resource"}` in tool result |
-| SEP | "Spec Evolution Proposal" | Named draft proposal (e.g. SEP-1686 for async Tasks) |
+| 용어 | 사람들이 흔히 하는 말 | 실제 의미 |
+|------|----------------|-----------|
+| MCP | "Model Context Protocol" | model-to-tool discovery와 invocation을 위한 open protocol |
+| Server primitive | "server가 노출하는 것" | tools(action), resources(data), prompts(template) |
+| Client primitive | "client가 server에게 사용하게 해 주는 것" | roots(scope), sampling(LLM callback), elicitation(user input) |
+| JSON-RPC 2.0 | "wire format" | 대칭적인 request/response/notification envelope |
+| `initialize` handshake | "Capability negotiation" | 첫 message pair이며, server와 client가 자신이 지원하는 feature를 선언한다 |
+| `tools/list` | "Discovery" | client가 server에게 현재 tool set을 요청한다 |
+| `tools/call` | "Invocation" | client가 server에게 argument와 함께 tool 실행을 요청한다 |
+| `notifications/*_changed` | "Mutation events" | server가 자신의 primitive list가 바뀌었음을 client에게 알린다 |
+| Content block | "Typed result" | tool result 안의 `{type: "text" \| "image" \| "resource" \| "ui_resource"}` |
+| SEP | "Spec Evolution Proposal" | 이름이 붙은 draft proposal(예: async Tasks를 위한 SEP-1686) |
 
-## Further Reading
+## 더 읽을거리
 
-- [Model Context Protocol — Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) — the canonical spec document
-- [Model Context Protocol — Architecture concepts](https://modelcontextprotocol.io/docs/concepts/architecture) — the six-primitive mental model
-- [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol) — November 2024 launch post
-- [MCP blog — First MCP anniversary](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/) — one-year retrospective and the 2025-11-25 spec changes
-- [WorkOS — MCP 2025-11-25 spec update](https://workos.com/blog/mcp-2025-11-25-spec-update) — summary of SEP-1686, 1036, 1577, 835, and 1724
+- [Model Context Protocol — Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) — canonical spec document
+- [Model Context Protocol — Architecture concepts](https://modelcontextprotocol.io/docs/concepts/architecture) — 여섯 프리미티브 mental model
+- [Anthropic — Introducing the Model Context Protocol](https://www.anthropic.com/news/model-context-protocol) — 2024년 11월 launch post
+- [MCP blog — First MCP anniversary](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/) — 1년 회고와 2025-11-25 사양 변경 사항
+- [WorkOS — MCP 2025-11-25 spec update](https://workos.com/blog/mcp-2025-11-25-spec-update) — SEP-1686, 1036, 1577, 835, 1724 요약

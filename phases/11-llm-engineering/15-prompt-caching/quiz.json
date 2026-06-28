@@ -4,55 +4,55 @@
   "questions": [
     {
       "stage": "post",
-      "question": "What discount does Anthropic apply to cache reads versus the base input rate?",
+      "question": "Anthropic은 cache read에 base input rate 대비 어떤 discount를 적용하나요?",
       "options": [
-        "25% off",
-        "50% off",
-        "75% off",
-        "90% off"
+        "25% 할인",
+        "50% 할인",
+        "75% 할인",
+        "90% 할인"
       ],
       "correct": 3,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "Why must dynamic timestamps go below the cache breakpoint, not above it?",
+      "question": "Dynamic timestamp가 cache breakpoint 위가 아니라 아래에 있어야 하는 이유는 무엇인가요?",
       "options": [
-        "Caches only hit when the prefix is byte-identical; a changing timestamp breaks the match for everything after it",
-        "Timestamps confuse the tokenizer",
-        "They cost more tokens than static text",
-        "Anthropic explicitly rejects timestamps in cached blocks"
+        "Prefix가 byte-identical일 때만 cache hit하며, 바뀌는 timestamp는 그 뒤 모든 내용의 match를 깨뜨리기 때문",
+        "Timestamp가 tokenizer를 혼란스럽게 만들기 때문",
+        "Static text보다 token cost가 더 크기 때문",
+        "Anthropic이 cached block 안의 timestamp를 명시적으로 거부하기 때문"
       ],
       "correct": 0,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "OpenAI's prompt caching is configured how?",
+      "question": "OpenAI의 prompt caching은 어떻게 설정하나요?",
       "options": [
-        "Explicit cache_control markers",
-        "A CachedContent API you create and reference",
-        "Automatic prefix matching with no configuration",
-        "A system-level flag you toggle per project"
+        "명시적 cache_control marker",
+        "직접 만들고 참조하는 CachedContent API",
+        "설정이 필요 없는 automatic prefix matching",
+        "Project마다 toggle하는 system-level flag"
       ],
       "correct": 2,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "For Anthropic, what write premium does the 1-hour extended TTL cost vs the 5-minute default?",
+      "question": "Anthropic에서 1-hour extended TTL은 5-minute default 대비 어떤 write premium이 드나요?",
       "options": [
-        "Same",
-        "2x the write premium (50% over baseline)",
-        "4x the write premium",
-        "No write premium"
+        "같음",
+        "Write premium 2배(baseline 대비 50%)",
+        "Write premium 4배",
+        "Write premium 없음"
       ],
       "correct": 1,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "How many reuses are needed to break even on Anthropic's 25% write premium?",
+      "question": "Anthropic의 25% write premium에서 break even하려면 몇 번의 재사용이 필요한가요?",
       "options": [
         "1",
         "2",

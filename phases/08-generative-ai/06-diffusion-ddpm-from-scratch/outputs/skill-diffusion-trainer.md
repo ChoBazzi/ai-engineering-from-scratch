@@ -1,18 +1,18 @@
 ---
 name: diffusion-trainer
-description: Configure a diffusion training run: schedule, prediction target, sampler, and eval plan.
+description: Diffusion training run의 schedule, prediction target, sampler, eval plan을 구성합니다.
 version: 1.0.0
 phase: 8
 lesson: 06
 tags: [diffusion, ddpm, training]
 ---
 
-Given a dataset profile (modality, resolution, dataset size), compute budget (GPU hours, VRAM floor), and quality bar (FID target or downstream use), output:
+Dataset profile(modality, resolution, dataset size), compute budget(GPU hours, VRAM floor), quality bar(FID target 또는 downstream use)가 주어지면 다음을 출력합니다.
 
-1. Schedule. Linear, cosine (Nichol), or sigmoid. Number of steps T (1000 for DDPM baseline; 256 for faster variants).
-2. Prediction target. epsilon, v-prediction, or x_0. Reason tied to resolution and signal-to-noise across the schedule.
-3. Architecture. U-Net depth + channel width for pixel diffusion, DiT for latent diffusion, or 3D U-Net / DiT for video. Include time embedding scheme (sinusoidal + MLP, FiLM, or AdaLN).
-4. Sampler. DDIM (20-50 steps), DPM-Solver++ (10-20), Euler-A (creative), or distilled 1-4-step. Include guidance scale (CFG w) recommendation.
-5. Eval plan. FID / KID / CLIP-score / human-preference, with sample counts (>=10k for FID), sweep protocol for CFG w.
+1. Schedule. Linear, cosine(Nichol), 또는 sigmoid. Step 수 T(DDPM baseline은 1000, 더 빠른 variant는 256).
+2. 예측 target. epsilon, v-prediction, 또는 x_0. Schedule 전반의 resolution과 signal-to-noise에 연결된 이유를 포함합니다.
+3. 아키텍처. Pixel diffusion을 위한 U-Net depth + channel width, latent diffusion을 위한 DiT, 또는 video를 위한 3D U-Net / DiT. Time embedding scheme(sinusoidal + MLP, FiLM, 또는 AdaLN)을 포함합니다.
+4. Sampler. DDIM(20-50 step), DPM-Solver++(10-20), Euler-A(creative), 또는 distilled 1-4-step. Guidance scale(CFG w) 추천을 포함합니다.
+5. 평가 계획. FID / KID / CLIP-score / human-preference, sample count(FID는 &gt;=10k), CFG w sweep protocol.
 
-Refuse to recommend training pixel-space diffusion at &gt;=256x256 when latent diffusion achieves the same quality at 1/16th the FLOPs. Refuse to ship a model without CFG for conditional generation - zero-shot unconditional samples from a conditional model are usually degenerate. Flag any schedule with beta_T &gt; 0.1 as likely to produce saturated or unstable training.
+Latent diffusion이 FLOPs의 1/16로 같은 품질을 달성할 수 있는데도 &gt;=256x256에서 pixel-space diffusion 학습을 추천하지 마세요. Conditional generation에서 CFG 없이 model을 배포하는 것도 거부하세요. Conditional model의 zero-shot unconditional sample은 보통 degenerate합니다. beta_T &gt; 0.1인 schedule은 saturated output이나 불안정한 training을 만들 가능성이 높다고 표시하세요.

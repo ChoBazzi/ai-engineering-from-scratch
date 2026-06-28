@@ -2,7 +2,7 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the imaginary unit i defined by?",
+      "question": "imaginary unit i는 무엇으로 정의되나요?",
       "options": [
         "i = sqrt(2)",
         "i^2 = -1",
@@ -10,11 +10,11 @@
         "i^2 = 1"
       ],
       "correct": 1,
-      "explanation": "The imaginary unit i is defined by the property i^2 = -1. It extends the real number line into a 2D plane. Geometrically, multiplying by i is a 90-degree rotation — two multiplications (i^2) give a 180-degree rotation, which is -1."
+      "explanation": "imaginary unit i는 i^2 = -1이라는 성질로 정의됩니다. 이것은 real number line을 2D plane으로 확장합니다. 기하학적으로 i를 곱하는 것은 90-degree rotation입니다. 두 번 곱하면(i^2) 180-degree rotation이 되어 -1이 됩니다."
     },
     {
       "stage": "pre",
-      "question": "What does Euler's formula e^(i*theta) equal?",
+      "question": "Euler's formula e^(i*theta)는 무엇과 같나요?",
       "options": [
         "theta + i",
         "cos(theta) + i*sin(theta)",
@@ -22,11 +22,11 @@
         "i^theta"
       ],
       "correct": 1,
-      "explanation": "Euler's formula states e^(i*theta) = cos(theta) + i*sin(theta). This connects complex exponentials to trigonometry and shows that e^(i*theta) traces the unit circle as theta varies."
+      "explanation": "Euler's formula는 e^(i*theta) = cos(theta) + i*sin(theta)라고 말합니다. 이는 complex exponentials와 trigonometry를 연결하고, theta가 변할 때 e^(i*theta)가 unit circle을 따라간다는 것을 보여 줍니다."
     },
     {
       "stage": "post",
-      "question": "What is the result of (3 + 2i)(1 + 4i)?",
+      "question": "(3 + 2i)(1 + 4i)의 결과는 무엇인가요?",
       "options": [
         "3 + 8i",
         "4 + 6i",
@@ -34,23 +34,23 @@
         "5 + 14i"
       ],
       "correct": 2,
-      "explanation": "Using FOIL: (3)(1) + (3)(4i) + (2i)(1) + (2i)(4i) = 3 + 12i + 2i + 8i^2 = 3 + 14i + 8(-1) = 3 + 14i - 8 = -5 + 14i."
+      "explanation": "FOIL을 사용하면 (3)(1) + (3)(4i) + (2i)(1) + (2i)(4i) = 3 + 12i + 2i + 8i^2 = 3 + 14i + 8(-1) = 3 + 14i - 8 = -5 + 14i입니다."
     },
     {
       "stage": "post",
-      "question": "Why are complex numbers used in Rotary Position Embedding (RoPE) for transformers?",
+      "question": "transformers의 Rotary Position Embedding(RoPE)에서 complex numbers를 사용하는 이유는 무엇인가요?",
       "options": [
-        "Complex numbers compress the position encoding to use less memory",
-        "Multiplying query/key vectors by complex rotations encodes relative position as a rotation angle",
-        "Complex numbers are required by the attention softmax function",
-        "RoPE uses imaginary numbers to handle negative positions"
+        "Complex numbers는 position encoding을 압축해 memory를 덜 쓰게 합니다",
+        "query/key vectors에 complex rotations를 곱하면 relative position이 rotation angle로 encoding됩니다",
+        "attention softmax function에는 complex numbers가 필요합니다",
+        "RoPE는 negative positions를 처리하려고 imaginary numbers를 사용합니다"
       ],
       "correct": 1,
-      "explanation": "RoPE multiplies query and key vectors by complex rotation matrices e^(i*m*theta) where m is the position. The relative position between two tokens becomes a rotation angle, and attention naturally becomes sensitive to relative (not absolute) position through complex multiplication."
+      "explanation": "RoPE는 query와 key vectors에 position m을 쓰는 complex rotation matrices e^(i*m*theta)를 곱합니다. 두 토큰 사이의 relative position은 rotation angle이 되고, attention은 complex multiplication을 통해 absolute position이 아니라 relative position에 자연스럽게 민감해집니다."
     },
     {
       "stage": "post",
-      "question": "The N-th roots of unity are N equally spaced points on the unit circle. What is their sum?",
+      "question": "N-th roots of unity는 unit circle 위에 균등하게 배치된 N개의 점입니다. 이들의 합은 무엇인가요?",
       "options": [
         "N",
         "1",
@@ -58,7 +58,7 @@
         "N/2"
       ],
       "correct": 2,
-      "explanation": "The N roots of unity are e^(2*pi*i*k/N) for k = 0, ..., N-1. They are symmetrically distributed around the unit circle, so their vector sum cancels out to zero. This symmetry property is what makes the DFT invertible."
+      "explanation": "N roots of unity는 k = 0, ..., N-1에 대한 e^(2*pi*i*k/N)입니다. 이들은 unit circle 주위에 대칭적으로 분포하므로 vector sum이 서로 상쇄되어 zero가 됩니다. 이 symmetry property가 DFT를 invertible하게 만듭니다."
     }
   ]
 }

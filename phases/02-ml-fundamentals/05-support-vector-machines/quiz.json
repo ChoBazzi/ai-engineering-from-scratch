@@ -2,66 +2,66 @@
   {
     "id": "svm-pre-1",
     "stage": "pre",
-    "question": "What are support vectors in an SVM?",
+    "question": "SVM에서 support vector는 무엇인가요?",
     "options": [
-      "All data points in the training set",
-      "The training points closest to the decision boundary that determine the hyperplane",
-      "The feature vectors after kernel transformation",
-      "The weight vectors learned during training"
+      "training set의 모든 data point",
+      "decision boundary에 가장 가까우며 hyperplane을 결정하는 training point",
+      "kernel transformation 이후의 feature vector",
+      "training 중 학습된 weight vector"
     ],
     "correct": 1,
-    "explanation": "Support vectors are the training points that lie exactly on the margin boundaries. They are the only points that determine the decision hyperplane. Removing non-support-vector points does not change the boundary."
+    "explanation": "Support vector는 margin boundary 위에 정확히 놓인 training point입니다. 이 point들만 decision hyperplane을 결정합니다. support vector가 아닌 point를 제거해도 boundary는 바뀌지 않습니다."
   },
   {
     "id": "svm-pre-2",
     "stage": "pre",
-    "question": "What does the SVM maximize when finding the decision boundary?",
+    "question": "SVM은 decision boundary를 찾을 때 무엇을 maximize하나요?",
     "options": [
-      "The number of correctly classified training points",
-      "The margin -- the distance between the decision boundary and the nearest points of each class",
-      "The total distance from all points to the boundary",
-      "The complexity of the decision boundary"
+      "correctly classified training point의 수",
+      "margin -- decision boundary와 각 class의 가장 가까운 point 사이의 거리",
+      "모든 point에서 boundary까지의 총거리",
+      "decision boundary의 complexity"
     ],
     "correct": 1,
-    "explanation": "SVMs find the hyperplane that maximizes the margin between the two classes. A wider margin leads to better generalization on unseen data."
+    "explanation": "SVM은 두 class 사이의 margin을 maximize하는 hyperplane을 찾습니다. margin이 넓을수록 unseen data에 대한 generalization이 더 좋아집니다."
   },
   {
     "id": "svm-post-1",
     "stage": "post",
-    "question": "What happens when you increase the C parameter in an SVM?",
+    "question": "SVM에서 C parameter를 증가시키면 어떤 일이 일어나나요?",
     "options": [
-      "The margin gets wider and more misclassifications are allowed",
-      "The margin gets narrower, fewer misclassifications are tolerated, and the model may overfit",
-      "The kernel function changes from linear to RBF",
-      "The number of support vectors always increases"
+      "margin이 더 넓어지고 더 많은 misclassification이 허용된다",
+      "margin이 더 좁아지고, 더 적은 misclassification만 허용되며, model이 overfit될 수 있다",
+      "kernel function이 linear에서 RBF로 바뀐다",
+      "support vector 수가 항상 증가한다"
     ],
     "correct": 1,
-    "explanation": "Large C penalizes misclassifications heavily, producing a narrow margin that closely fits the training data. This can lead to overfitting. Small C allows more violations for a wider, more regularized margin."
+    "explanation": "Large C는 misclassification을 강하게 penalize해 training data에 밀착된 narrow margin을 만듭니다. 이는 overfitting으로 이어질 수 있습니다. Small C는 더 넓고 더 regularized된 margin을 위해 더 많은 violation을 허용합니다."
   },
   {
     "id": "svm-post-2",
     "stage": "post",
-    "question": "How does the kernel trick enable SVMs to learn nonlinear boundaries?",
+    "question": "kernel trick은 SVM이 nonlinear boundary를 학습하도록 어떻게 돕나요?",
     "options": [
-      "It replaces the SVM with a neural network",
-      "It computes dot products in a high-dimensional space without explicitly mapping data to that space",
-      "It removes outliers from the dataset before training",
-      "It adds polynomial features to the input data directly"
+      "SVM을 neural network로 대체한다",
+      "data를 그 공간으로 명시적으로 mapping하지 않고 high-dimensional space의 dot product를 계산한다",
+      "training 전에 dataset에서 outlier를 제거한다",
+      "input data에 polynomial feature를 직접 추가한다"
     ],
     "correct": 1,
-    "explanation": "The kernel trick replaces every dot product x_i . x_j with K(x_i, x_j), computing the dot product in a high-dimensional (even infinite-dimensional for RBF) feature space without ever constructing it."
+    "explanation": "kernel trick은 모든 dot product x_i . x_j를 K(x_i, x_j)로 대체해, high-dimensional(RBF의 경우 infinite-dimensional) feature space를 실제로 구성하지 않고 그 공간의 dot product를 계산합니다."
   },
   {
     "id": "svm-post-3",
     "stage": "post",
-    "question": "Hinge loss is zero when y * f(x) >= 1. What does this mean in terms of classification?",
+    "question": "Hinge loss는 y * f(x) >= 1일 때 0입니다. classification 관점에서 이것은 무엇을 의미하나요?",
     "options": [
-      "The point is misclassified",
-      "The point is correctly classified and lies outside the margin",
-      "The point is exactly on the decision boundary",
-      "The point is a noise sample that should be ignored"
+      "point가 misclassified되었다",
+      "point가 correctly classified되었고 margin 밖에 있다",
+      "point가 decision boundary 위에 정확히 있다",
+      "point가 무시해야 할 noise sample이다"
     ],
     "correct": 1,
-    "explanation": "When y * f(x) >= 1, the point is correctly classified AND lies on or beyond the margin boundary. Only points inside the margin or misclassified (y * f(x) < 1) contribute to the hinge loss."
+    "explanation": "y * f(x) >= 1이면 point는 correctly classified되었고 margin boundary 위 또는 그 밖에 있습니다. margin 안에 있거나 misclassified된 point(y * f(x) < 1)만 hinge loss에 기여합니다."
   }
 ]

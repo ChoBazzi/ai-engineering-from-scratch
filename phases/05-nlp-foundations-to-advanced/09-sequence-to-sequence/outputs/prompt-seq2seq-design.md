@@ -1,15 +1,15 @@
 ---
 name: seq2seq-design
-description: Design a sequence-to-sequence pipeline for a given task.
+description: 주어진 task를 위한 sequence-to-sequence pipeline을 설계한다.
 phase: 5
 lesson: 09
 ---
 
-Given a task (translation, summarization, paraphrase, question rewrite), output:
+Task(translation, summarization, paraphrase, question rewrite)가 주어지면 다음을 출력한다.
 
-1. Architecture. Pretrained transformer encoder-decoder (BART, T5, mBART, NLLB) is the default. RNN-based seq2seq only for specific constraints (streaming, edge inference, pedagogy).
-2. Starting checkpoint. Name it (`facebook/bart-base`, `google/flan-t5-base`, `facebook/nllb-200-distilled-600M`). Match checkpoint to task and language coverage.
-3. Decoding strategy. Greedy for deterministic output, beam search (width 4-5) for quality, sampling with temperature for diversity. One sentence justification.
-4. One failure mode to verify before shipping. Exposure bias manifests as generation drift on longer outputs; sample 20 outputs at 90th-percentile length and eyeball.
+1. 아키텍처. Pretrained transformer encoder-decoder(BART, T5, mBART, NLLB)가 default다. RNN-based seq2seq는 특정 constraint(streaming, edge inference, pedagogy)가 있을 때만 사용한다.
+2. 시작 checkpoint. 이름을 명시한다(`facebook/bart-base`, `google/flan-t5-base`, `facebook/nllb-200-distilled-600M`). Checkpoint를 task와 language coverage에 맞춘다.
+3. Decoding 전략. Deterministic output에는 greedy, quality에는 beam search(width 4-5), diversity에는 temperature를 쓰는 sampling을 사용한다. 한 문장으로 근거를 제시한다.
+4. Shipping 전에 확인할 failure mode 하나. Exposure bias는 긴 output에서 generation drift로 나타난다. 90th-percentile length의 output 20개를 sample하고 눈으로 확인한다.
 
-Refuse to recommend training a seq2seq from scratch for under ~1M parallel examples. Flag any pipeline using greedy decoding for user-facing content as fragile (greedy repeats and loops).
+Parallel example이 ~1M개 미만이면 seq2seq를 scratch에서 training하라고 추천하지 않는다. User-facing content에 greedy decoding을 쓰는 pipeline은 fragile하다고 flag한다(greedy는 repeat와 loop를 만든다).

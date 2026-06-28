@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does 'version control' primarily help you do?",
-      "options": ["Speed up code execution", "Track changes to files over time and collaborate with others", "Compress files to save disk space", "Automatically fix bugs in your code"],
+      "question": "'version control'은 주로 무엇을 도와주나요?",
+      "options": ["code 실행 속도를 높인다", "시간에 따른 file 변경 사항을 추적하고 다른 사람과 협업한다", "disk space를 절약하기 위해 file을 압축한다", "code의 bug를 자동으로 수정한다"],
       "correct": 1,
-      "explanation": "Version control systems like git track every change made to files, allowing you to revert to previous states and collaborate with others on the same codebase."
+      "explanation": "git 같은 version control system은 file에 일어난 모든 변경 사항을 추적하므로 이전 상태로 되돌리거나 같은 codebase에서 다른 사람과 협업할 수 있다."
     },
     {
       "stage": "pre",
-      "question": "What is a 'repository' in the context of software development?",
-      "options": ["A cloud storage service like Google Drive", "A collection of files and their complete change history managed by version control", "A database for storing user data", "A package manager for installing libraries"],
+      "question": "software development 맥락에서 'repository'란 무엇인가요?",
+      "options": ["Google Drive 같은 cloud storage service", "version control이 관리하는 file 모음과 그 전체 change history", "user data를 저장하는 database", "library를 설치하는 package manager"],
       "correct": 1,
-      "explanation": "A repository (repo) is a directory tracked by git that contains all project files along with the full history of changes made to those files."
+      "explanation": "repository(repo)는 git이 추적하는 directory로, 모든 project file과 해당 file들에 대한 전체 change history를 포함한다."
     },
     {
       "stage": "post",
-      "question": "What is the correct sequence for saving and backing up your work in git?",
+      "question": "git에서 작업물을 저장하고 backup하는 올바른 순서는 무엇인가요?",
       "options": ["git push, git add, git commit", "git commit, git add, git push", "git add, git commit, git push", "git clone, git add, git push"],
       "correct": 2,
-      "explanation": "First you stage changes with 'git add', then save a snapshot with 'git commit', then upload to the remote with 'git push'. This is the daily workflow."
+      "explanation": "먼저 'git add'로 변경 사항을 stage하고, 그다음 'git commit'으로 snapshot을 저장한 뒤, 'git push'로 remote에 upload한다. 이것이 daily workflow다."
     },
     {
       "stage": "post",
-      "question": "What does 'git checkout -b experiment/new-optimizer' do?",
-      "options": ["Downloads a branch from GitHub called experiment/new-optimizer", "Creates a new branch named experiment/new-optimizer and switches to it", "Deletes the branch experiment/new-optimizer", "Reverts all files to match the experiment/new-optimizer branch"],
+      "question": "'git checkout -b experiment/new-optimizer'는 무엇을 하나요?",
+      "options": ["GitHub에서 experiment/new-optimizer라는 branch를 download한다", "experiment/new-optimizer라는 새 branch를 만들고 그 branch로 전환한다", "experiment/new-optimizer branch를 삭제한다", "모든 file을 experiment/new-optimizer branch와 일치하도록 되돌린다"],
       "correct": 1,
-      "explanation": "The '-b' flag creates a new branch with the given name and immediately switches to it, allowing you to experiment without affecting the main branch."
+      "explanation": "'-b' flag는 주어진 이름으로 새 branch를 만들고 즉시 그 branch로 전환한다. 덕분에 main branch에 영향을 주지 않고 experiment할 수 있다."
     },
     {
       "stage": "post",
-      "question": "Why should you add '.pt', '.pth', and '.safetensors' to your .gitignore?",
-      "options": ["They are Python test files that should not be committed", "They are model checkpoint files that are too large for git and can be re-generated", "They contain sensitive API keys", "Git cannot track binary files of any kind"],
+      "question": "'.pt', '.pth', '.safetensors'를 .gitignore에 추가해야 하는 이유는 무엇인가요?",
+      "options": ["commit하면 안 되는 Python test file이기 때문이다", "git에 넣기에는 너무 크고 다시 생성할 수 있는 model checkpoint file이기 때문이다", "sensitive API key를 포함하기 때문이다", "Git은 어떤 종류의 binary file도 추적할 수 없기 때문이다"],
       "correct": 1,
-      "explanation": "Model checkpoint files (.pt, .pth, .safetensors) are often gigabytes in size. Git is not designed for large binary files, so these should be excluded and re-generated or stored separately."
+      "explanation": "Model checkpoint file(.pt, .pth, .safetensors)은 크기가 수 GB에 이르는 경우가 많다. Git은 큰 binary file을 위해 설계되지 않았으므로 이런 file은 제외하고 다시 생성하거나 별도로 저장해야 한다."
     }
   ]
 }

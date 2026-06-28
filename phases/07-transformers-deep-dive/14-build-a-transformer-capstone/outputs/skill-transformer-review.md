@@ -1,18 +1,18 @@
 ---
 name: transformer-review
-description: Review a transformer-from-scratch implementation against the 13 Phase 7 lessons.
+description: 13개의 Phase 7 lesson 기준으로 transformer-from-scratch 구현을 검토한다.
 version: 1.0.0
 phase: 7
 lesson: 14
 tags: [transformers, review, capstone]
 ---
 
-Given a transformer-from-scratch codebase (PyTorch / JAX), review against the 2026 defaults and flag missing or incorrect pieces:
+transformer-from-scratch 코드베이스(PyTorch / JAX)가 주어지면 2026년 기본값에 비추어 검토하고, 빠졌거나 잘못된 부분을 표시하라.
 
-1. Attention. Causal mask present. Scale by `sqrt(d_head)`. Multi-head split works. Flash Attention used if available. GQA mentioned if d_model ≥ 1024.
-2. Positional encoding. RoPE (preferred 2026) or learned absolute (acceptable for small models). Flag sinusoidal as historical.
-3. Block wiring. Pre-norm (not post-norm). RMSNorm (not LayerNorm). SwiGLU FFN (not ReLU/GELU). Residuals around every sublayer. Biases dropped in linear layers (modern default).
-4. Training. AdamW (or Muon for 2026+), cosine LR schedule with linear warmup, gradient clipping at 1.0, bf16 autocast. Weight tying between token embedding and lm_head.
-5. Loss. Shift-by-one cross-entropy at every position. Mask out padding if any. Log train and val loss at a fixed interval.
+1. attention. causal mask가 있다. `sqrt(d_head)`로 스케일한다. Multi-head split이 동작한다. 가능하면 Flash Attention을 쓴다. d_model ≥ 1024이면 GQA를 언급한다.
+2. positional encoding. RoPE(2026년 선호) 또는 learned absolute(작은 모델에서는 허용). Sinusoidal은 역사적 방식으로 표시한다.
+3. block wiring. pre-norm(post-norm 아님). RMSNorm(LayerNorm 아님). SwiGLU FFN(ReLU/GELU 아님). 모든 sublayer 주변에 residual. Linear layer의 bias는 제거한다(현대 기본값).
+4. training. AdamW(또는 2026+에서는 Muon), linear warmup이 있는 cosine LR schedule, 1.0에서 gradient clipping, bf16 autocast. Token embedding과 lm_head 사이 weight tying.
+5. loss. 모든 위치에서 shift-by-one cross-entropy. padding이 있으면 mask out한다. 고정 간격으로 train과 val loss를 로그한다.
 
-Refuse to sign off on a codebase with any of: post-norm without explicit reason, LayerNorm in 2026 production code without justification, missing causal mask in decoder self-attention, untied embeddings in a small LM. Flag: no validation split, no gradient clipping, LR > 1e-3 without warmup, or a block_size that exceeds positional embedding range without fallback. Recommend running `python code/main.py` end-to-end and checking final val loss lands under 2.5 on tinyshakespeare at nano config.
+다음 중 하나라도 있는 코드베이스에는 승인하지 말라. 명시적 이유 없는 post-norm, 정당화 없는 2026년 production code의 LayerNorm, decoder self-attention의 causal mask 누락, 작은 LM의 untied embeddings. 다음을 표시하라. validation split 없음, gradient clipping 없음, warmup 없이 LR > 1e-3, fallback 없이 positional embedding 범위를 초과하는 block_size. `python code/main.py`를 end-to-end로 실행하고 nano config의 tinyshakespeare에서 최종 val loss가 2.5 미만인지 확인하라고 권장하라.

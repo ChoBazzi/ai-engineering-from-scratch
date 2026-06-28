@@ -1,5 +1,5 @@
-# Phase 1: Math Foundations
+# 1단계: 수학 기초
 
-> The intuition behind every AI algorithm, through code — not textbooks.
+> 교과서가 아니라 코드로 모든 AI 알고리즘 뒤의 직관을 익힙니다.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 수업 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

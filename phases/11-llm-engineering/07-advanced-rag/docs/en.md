@@ -1,178 +1,178 @@
-# Advanced RAG (Chunking, Reranking, Hybrid Search)
+# 고급 RAG(청킹, Reranking, Hybrid Search)
 
-> Basic RAG retrieves the top-k most similar chunks. That works for simple questions. It falls apart for multi-hop reasoning, ambiguous queries, and large corpora. Advanced RAG is the difference between a demo that works on 10 documents and a system that works on 10 million.
+> Basic RAG는 가장 유사한 top-k 청크를 검색합니다. 단순한 질문에는 작동합니다. 하지만 multi-hop reasoning, 모호한 질의, 큰 corpus에서는 무너집니다. Advanced RAG는 문서 10개에서 작동하는 데모와 1천만 개에서 작동하는 시스템의 차이를 만듭니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 11, Lesson 06 (RAG)
 **Time:** ~90 minutes
-**Related:** Phase 5 · 23 (Chunking Strategies for RAG) covers all six chunking algorithms — recursive, semantic, sentence, parent-document, late chunking, contextual retrieval — with Vectara/Anthropic benchmarks. This lesson builds on top: hybrid search, reranking, query transformation.
+**Related:** Phase 5 · 23 (Chunking Strategies for RAG)은 recursive, semantic, sentence, parent-document, late chunking, contextual retrieval 여섯 가지 chunking 알고리즘을 Vectara/Anthropic 벤치마크와 함께 다룹니다. 이 lesson은 그 위에 hybrid search, reranking, query transformation을 쌓습니다.
 
-## Learning Objectives
+## 학습 목표
 
-- Implement advanced chunking strategies (semantic, recursive, parent-child) that preserve document structure and context
-- Build a hybrid search pipeline combining BM25 keyword matching with semantic vector search and a cross-encoder reranker
-- Apply query transformation techniques (HyDE, multi-query, step-back) to improve retrieval on ambiguous or complex questions
-- Diagnose and fix common RAG failures: wrong chunk retrieved, answer not in context, multi-hop reasoning breakdown
+- 문서 구조와 컨텍스트를 보존하는 advanced chunking 전략(semantic, recursive, parent-child)을 구현합니다
+- BM25 keyword matching, semantic vector search, cross-encoder reranker를 결합한 hybrid search 파이프라인을 만듭니다
+- 모호하거나 복잡한 질문의 검색을 개선하기 위해 query transformation 기법(HyDE, multi-query, step-back)을 적용합니다
+- 잘못된 청크 검색, 컨텍스트에 답 없음, multi-hop reasoning 붕괴 같은 흔한 RAG 실패를 진단하고 수정합니다
 
-## The Problem
+## 문제
 
-You built a basic RAG pipeline in Lesson 06. It works for straightforward questions on a small corpus. Now try these:
+Lesson 06에서 basic RAG 파이프라인을 만들었습니다. 작은 corpus의 직선적인 질문에는 잘 작동합니다. 이제 다음을 시도해 보세요.
 
-**Ambiguous query**: "What was revenue last quarter?" Semantic search returns chunks about revenue strategy, revenue projections, and the CFO's thoughts on revenue growth. All semantically similar to the word "revenue." None containing the actual number. The correct chunk says "$47.2M in Q3 2025" but uses the word "earnings" instead of "revenue." The embedding model thinks "revenue strategy" is closer to the query than "Q3 earnings were $47.2M."
+**모호한 질의**: "지난 분기 매출은 얼마였나요?" Semantic search는 매출 전략, 매출 전망, 매출 성장에 대한 CFO의 생각을 담은 청크를 반환합니다. 모두 "revenue"라는 단어와 의미적으로 비슷합니다. 하지만 실제 숫자는 없습니다. 올바른 청크는 "$47.2M in Q3 2025"라고 말하지만 "revenue" 대신 "earnings"라는 단어를 사용합니다. embedding model은 "Q3 earnings were $47.2M"보다 "revenue strategy"가 질의에 더 가깝다고 판단합니다.
 
-**Multi-hop question**: "Which team had the highest customer satisfaction score improvement?" This requires finding the satisfaction scores for each team, comparing them, and identifying the maximum. No single chunk contains the answer. The information is scattered across team reports.
+**Multi-hop 질문**: "고객 만족도 점수가 가장 많이 개선된 팀은 어디인가요?" 각 팀의 만족도 점수를 찾고, 비교하고, 최댓값을 식별해야 합니다. 단일 청크에는 답이 없습니다. 정보가 팀 보고서 전반에 흩어져 있습니다.
 
-**Large corpus problem**: You have 2 million chunks. The correct answer is in chunk #1,847,293. Your top-5 retrieval pulls chunks #14, #89,201, #1,200,000, #44, and #901,333. Close in embedding space, but none containing the answer. At this scale, approximate nearest neighbor search introduces enough error that relevant results get pushed out of the top-k.
+**큰 corpus 문제**: 200만 개 청크가 있습니다. 정답은 #1,847,293 청크에 있습니다. top-5 검색은 #14, #89,201, #1,200,000, #44, #901,333 청크를 가져옵니다. embedding space에서는 가깝지만 답을 포함한 것은 없습니다. 이 규모에서는 approximate nearest neighbor search가 충분한 오류를 도입해 관련 결과가 top-k 밖으로 밀려납니다.
 
-Basic RAG fails because vector similarity is not the same as relevance. A chunk can be semantically similar to a query without being useful for answering it. Advanced RAG addresses this with four techniques: hybrid search (add keyword matching), reranking (score candidates more carefully), query transformation (fix the query before searching), and better chunking (retrieve at the right granularity).
+Basic RAG가 실패하는 이유는 벡터 유사도가 관련성과 같지 않기 때문입니다. 청크는 질의와 의미적으로 비슷해도 답변에는 쓸모없을 수 있습니다. Advanced RAG는 네 가지 기법으로 이를 해결합니다. hybrid search(keyword matching 추가), reranking(후보를 더 신중하게 점수화), query transformation(검색 전에 질의를 고침), 더 나은 chunking(올바른 granularity로 검색)입니다.
 
-## The Concept
+## 개념
 
-### Hybrid Search: Semantic + Keyword
+### Hybrid Search: 의미 기반 + 키워드
 
-Semantic search (vector similarity) is good at understanding meaning. "How do I cancel my subscription?" matches "Steps to terminate your plan" even though they share no words. But it misses exact matches. "Error code E-4021" might not match a chunk containing "E-4021" if the embedding model treats it as noise.
+Semantic search(벡터 유사도)는 의미 이해에 강합니다. "구독을 어떻게 취소하나요?"는 공유 단어가 없어도 "플랜을 종료하는 단계"와 매치됩니다. 하지만 정확한 매치를 놓칩니다. embedding model이 "E-4021"을 잡음으로 취급하면 "Error code E-4021"은 "E-4021"이 들어 있는 청크와 매치되지 않을 수 있습니다.
 
-Keyword search (BM25) is the opposite. It excels at exact matches. "E-4021" matches perfectly. But "cancel my subscription" returns zero results if the document says "terminate your plan."
+Keyword search(BM25)는 반대입니다. 정확한 매치에 뛰어납니다. "E-4021"은 완벽하게 매치됩니다. 하지만 문서가 "terminate your plan"이라고 말한다면 "cancel my subscription"은 결과 0개를 반환합니다.
 
-Hybrid search runs both, then merges the results.
+Hybrid search는 둘 다 실행한 다음 결과를 병합합니다.
 
-**BM25** (Best Matching 25) is the standard keyword search algorithm. It has been the backbone of search engines since the 1990s. The formula:
+**BM25**(Best Matching 25)는 표준 keyword search 알고리즘입니다. 1990년대부터 검색 엔진의 중추였습니다. 공식은 다음과 같습니다.
 
-```
+```text
 BM25(q, d) = sum over terms t in q:
     IDF(t) * (tf(t,d) * (k1 + 1)) / (tf(t,d) + k1 * (1 - b + b * |d| / avgdl))
 ```
 
-Where tf(t,d) is the term frequency of t in document d, IDF(t) is the inverse document frequency, |d| is the document length, avgdl is the average document length, k1 controls term frequency saturation (default 1.2), and b controls length normalization (default 0.75).
+여기서 tf(t,d)는 문서 d에서 term t의 빈도, IDF(t)는 inverse document frequency, |d|는 문서 길이, avgdl은 평균 문서 길이, k1은 term frequency saturation(기본 1.2), b는 length normalization(기본 0.75)을 제어합니다.
 
-In plain terms: BM25 scores documents higher when they contain query terms (especially rare ones), but with diminishing returns for repeated terms. A document with the word "revenue" 50 times is not 50x more relevant than one with it once.
+쉽게 말해 BM25는 문서가 질의 term, 특히 드문 term을 포함할 때 더 높은 점수를 주지만 반복 term에는 체감 수익을 적용합니다. "revenue"라는 단어가 50번 나오는 문서가 한 번 나오는 문서보다 50배 더 관련 있는 것은 아닙니다.
 
 ### Reciprocal Rank Fusion (RRF)
 
-You have two ranked lists: one from vector search, one from BM25. How do you combine them? Reciprocal Rank Fusion is the standard approach.
+두 개의 순위 목록이 있습니다. 하나는 vector search에서, 하나는 BM25에서 왔습니다. 어떻게 결합할까요? Reciprocal Rank Fusion이 표준 접근입니다.
 
-```
+```text
 RRF_score(d) = sum over rankings R:
     1 / (k + rank_R(d))
 ```
 
-Where k is a constant (typically 60) that prevents the top-ranked result from dominating.
+k는 최상위 결과가 지배하지 못하게 막는 상수입니다(보통 60).
 
-A document ranked #1 in vector search and #5 in BM25 gets: 1/(60+1) + 1/(60+5) = 0.0164 + 0.0154 = 0.0318
+vector search에서 #1, BM25에서 #5인 문서는 1/(60+1) + 1/(60+5) = 0.0164 + 0.0154 = 0.0318을 얻습니다.
 
-A document ranked #3 in vector search and #2 in BM25 gets: 1/(60+3) + 1/(60+2) = 0.0159 + 0.0161 = 0.0320
+vector search에서 #3, BM25에서 #2인 문서는 1/(60+3) + 1/(60+2) = 0.0159 + 0.0161 = 0.0320을 얻습니다.
 
-RRF naturally balances the two signals. A document that ranks highly in both lists gets the best score. A document that ranks #1 in one list but is absent from the other gets a moderate score. This is robust because it uses ranks, not raw scores, so differences in score distributions between the two systems do not matter.
+RRF는 두 신호의 균형을 자연스럽게 맞춥니다. 두 목록 모두에서 높은 순위를 받은 문서가 최고의 점수를 얻습니다. 한 목록에서 #1이지만 다른 목록에는 없는 문서는 중간 점수를 얻습니다. raw score가 아니라 rank를 사용하므로 두 시스템 간 점수 분포 차이가 문제가 되지 않아 견고합니다.
 
 ### Reranking
 
-Retrieval (whether vector, keyword, or hybrid) is fast but imprecise. It uses bi-encoders: the query and each document are embedded independently, then compared. The embeddings are computed once and cached. This scales to millions of documents.
+Retrieval(vector, keyword, hybrid 모두)은 빠르지만 부정확합니다. bi-encoder를 사용하기 때문입니다. 질의와 각 문서를 독립적으로 임베딩한 뒤 비교합니다. 임베딩은 한 번 계산되어 캐시됩니다. 이 방식은 수백만 문서까지 확장됩니다.
 
-Reranking uses cross-encoders: the query and a candidate document are fed together into a model that outputs a relevance score. The model sees both texts simultaneously and can capture fine-grained interactions between them. A cross-encoder can understand that "What were Q3 earnings?" is highly relevant to a chunk containing "$47.2M in Q3" even if a bi-encoder missed the connection.
+Reranking은 cross-encoder를 사용합니다. 질의와 후보 문서를 함께 모델에 넣고 관련성 점수를 출력합니다. 모델은 두 텍스트를 동시에 보고 그 사이의 세밀한 상호작용을 포착할 수 있습니다. bi-encoder가 연결을 놓쳤더라도 cross-encoder는 "Q3 earnings는 얼마였나요?"가 "$47.2M in Q3"가 들어 있는 청크와 매우 관련 높다는 점을 이해할 수 있습니다.
 
-The trade-off: cross-encoders are 100-1000x slower than bi-encoders because they process the query-document pair jointly. You cannot pre-compute cross-encoder scores for a million documents. The solution: retrieve a larger candidate set (top-50 from hybrid search), then rerank with a cross-encoder to get the final top-5.
+트레이드오프는 cross-encoder가 query-document 쌍을 함께 처리하기 때문에 bi-encoder보다 100-1000배 느리다는 것입니다. 백만 개 문서에 대한 cross-encoder 점수를 미리 계산할 수는 없습니다. 해결책은 더 큰 후보 집합(hybrid search의 top-50)을 검색한 뒤 cross-encoder로 rerank해 최종 top-5를 얻는 것입니다.
 
 ```mermaid
 graph LR
-    Q["Query"] --> H["Hybrid Search"]
-    H --> C50["Top 50 candidates"]
+    Q["질의"] --> H["Hybrid Search"]
+    H --> C50["Top 50 후보"]
     C50 --> RR["Cross-Encoder Reranker"]
-    RR --> C5["Top 5 final results"]
-    C5 --> P["Build prompt"]
-    P --> LLM["Generate answer"]
+    RR --> C5["최종 Top 5 결과"]
+    C5 --> P["프롬프트 구성"]
+    P --> LLM["답변 생성"]
 ```
 
-Common reranking models (2026 lineup):
-- Cohere Rerank 3.5: managed API, multilingual, best recall gain on mixed corpora
-- Voyage rerank-2.5: managed API, lowest latency of the hosted options
-- Jina-Reranker-v2 Multilingual: open-weight, 100+ languages
-- bge-reranker-v2-m3: open-weight, strong baseline
-- cross-encoder/ms-marco-MiniLM-L-6-v2: open-weight, runs on CPU for prototyping
-- ColBERTv2 / Jina-ColBERT-v2: late-interaction multi-vector rerankers — O(tokens) not O(docs) at scoring time
+일반적인 reranking model(2026 라인업):
+- Cohere Rerank 3.5: 관리형 API, 다국어, 혼합 corpus에서 최고의 recall 개선
+- Voyage rerank-2.5: 관리형 API, hosted 옵션 중 가장 낮은 지연 시간
+- Jina-Reranker-v2 Multilingual: open-weight, 100개 이상 언어
+- bge-reranker-v2-m3: open-weight, 강한 baseline
+- cross-encoder/ms-marco-MiniLM-L-6-v2: open-weight, 프로토타이핑에서 CPU로 실행 가능
+- ColBERTv2 / Jina-ColBERT-v2: late-interaction multi-vector reranker — 점수화 시간이 O(docs)가 아니라 O(tokens)
 
-### Query Transformation
+### 쿼리 변환
 
-Sometimes the problem is not retrieval but the query itself. "What was that thing about the new policy change?" is a terrible search query. It contains no specific terms. The embedding is vague. No retrieval system can find the right documents from this.
+때로는 문제가 검색이 아니라 질의 자체입니다. "새 정책 변경에 관한 그거 뭐였죠?"는 형편없는 검색 질의입니다. 구체적인 용어가 없습니다. 임베딩도 모호합니다. 어떤 검색 시스템도 이 질의만으로는 올바른 문서를 찾을 수 없습니다.
 
-**Query rewriting**: rephrase the user's query into a better search query. An LLM can do this:
+**Query rewriting**: 사용자 질의를 더 나은 검색 질의로 다시 표현합니다. LLM이 이를 수행할 수 있습니다.
 
-```
+```text
 User: "What was that thing about the new policy change?"
 Rewritten: "Recent policy changes and updates"
 ```
 
-**HyDE (Hypothetical Document Embeddings)**: instead of searching with the query, generate a hypothetical answer, embed that, and search for similar real documents.
+**HyDE(Hypothetical Document Embeddings)**: 질의로 검색하는 대신 가상의 답변을 생성하고, 그것을 임베딩한 다음, 비슷한 실제 문서를 검색합니다.
 
-```
+```text
 Query: "What is the refund policy for enterprise?"
 Hypothetical answer: "Enterprise customers are eligible for a full refund
 within 60 days of purchase. Refunds are pro-rated based on the remaining
 subscription period and processed within 5-7 business days."
 ```
 
-Embed the hypothetical answer and search for real documents similar to it. The intuition: the hypothetical answer lives closer in embedding space to the real answer than the original question does. Questions and answers have different linguistic structures. By generating a hypothetical answer, you bridge the gap between "question space" and "answer space" in the embedding.
+가상의 답변을 임베딩하고 이와 비슷한 실제 문서를 검색합니다. 직관은 이렇습니다. 가상의 답변은 원래 질문보다 embedding space에서 실제 답변에 더 가깝습니다. 질문과 답변은 언어 구조가 다릅니다. 가상의 답변을 생성하면 임베딩에서 "question space"와 "answer space" 사이의 간극을 메울 수 있습니다.
 
-HyDE adds one LLM call before retrieval. This increases latency by 500-2000ms. Worth it when retrieval quality is poor on raw queries.
+HyDE는 검색 전에 LLM 호출 하나를 추가합니다. 지연 시간이 500-2000ms 늘어납니다. 원시 질의의 검색 품질이 나쁠 때 그만한 가치가 있습니다.
 
 ### Parent-Child Chunking
 
-Standard chunking forces a trade-off: small chunks for precise retrieval, large chunks for sufficient context. Parent-child chunking eliminates this trade-off.
+표준 chunking은 트레이드오프를 강제합니다. 정밀 검색에는 작은 청크가 좋고 충분한 컨텍스트에는 큰 청크가 좋습니다. Parent-child chunking은 이 트레이드오프를 제거합니다.
 
-Index small chunks (128 tokens) for retrieval. When a small chunk is retrieved, return its parent chunk (512 tokens) for the prompt. The small chunk matches the query precisely. The parent chunk provides enough context for the LLM to generate a good answer.
+검색을 위해 작은 청크(128 tokens)를 색인합니다. 작은 청크가 검색되면 프롬프트에는 그 parent chunk(512 tokens)를 반환합니다. 작은 청크는 질의와 정밀하게 매치됩니다. parent chunk는 LLM이 좋은 답변을 생성하기에 충분한 컨텍스트를 제공합니다.
 
 ```mermaid
 graph TD
-    P["Parent chunk (512 tokens)<br/>Full section about refund policy"]
-    C1["Child chunk (128 tokens)<br/>Standard plan: 30-day refund"]
-    C2["Child chunk (128 tokens)<br/>Enterprise: 60-day pro-rated"]
-    C3["Child chunk (128 tokens)<br/>Processing time: 5-7 days"]
-    C4["Child chunk (128 tokens)<br/>How to submit a request"]
+    P["Parent chunk (512 tokens)<br/>환불 정책 전체 섹션"]
+    C1["Child chunk (128 tokens)<br/>Standard plan: 30일 환불"]
+    C2["Child chunk (128 tokens)<br/>Enterprise: 60일 비례 환불"]
+    C3["Child chunk (128 tokens)<br/>처리 시간: 5-7일"]
+    C4["Child chunk (128 tokens)<br/>요청 제출 방법"]
 
     P --> C1
     P --> C2
     P --> C3
     P --> C4
 
-    Q["Query: enterprise refund?"] -.->|"matches child"| C2
-    C2 -.->|"return parent"| P
+    Q["질의: enterprise refund?"] -.->|"child와 매치"| C2
+    C2 -.->|"parent 반환"| P
 ```
 
-The query "enterprise refund?" matches child chunk C2 precisely. But the prompt receives the full parent chunk P, which includes the surrounding context about processing time and submission process.
+"enterprise refund?" 질의는 child chunk C2와 정밀하게 매치됩니다. 하지만 프롬프트는 처리 시간과 제출 절차에 관한 주변 컨텍스트를 포함한 전체 parent chunk P를 받습니다.
 
-### Metadata Filtering
+### 메타데이터 필터링
 
-Before running vector search, filter the corpus by metadata: date, source, category, author, language. This reduces the search space and prevents irrelevant results.
+vector search를 실행하기 전에 metadata로 corpus를 필터링합니다. 날짜, 출처, 카테고리, 작성자, 언어가 예입니다. 이렇게 하면 검색 공간이 줄고 무관한 결과를 막을 수 있습니다.
 
-"What changed in the security policy last month?" should only search documents from the last 30 days in the security category. Without metadata filtering, you search the entire corpus and might retrieve a 2-year-old security document that happens to be semantically similar.
+"지난달 보안 정책에서 무엇이 바뀌었나요?"는 보안 카테고리의 최근 30일 문서만 검색해야 합니다. metadata filtering이 없으면 전체 corpus를 검색하고 우연히 의미적으로 비슷한 2년 전 보안 문서를 검색할 수 있습니다.
 
-Production RAG systems store metadata alongside each chunk: source document, creation date, category, author, version. Vector databases support pre-filtering by metadata before similarity search, which is critical for performance at scale.
+프로덕션 RAG 시스템은 각 청크와 함께 metadata를 저장합니다. 출처 문서, 생성일, 카테고리, 작성자, 버전이 예입니다. 벡터 데이터베이스는 유사도 검색 전에 metadata로 pre-filtering하는 기능을 지원하며, 이는 대규모 성능에 중요합니다.
 
-### Evaluation
+### 평가
 
-You built a RAG system. How do you know if it works? Three metrics:
+RAG 시스템을 만들었습니다. 작동하는지 어떻게 알 수 있을까요? 세 가지 지표가 있습니다.
 
-**Retrieval relevance (Recall@k)**: for a set of test questions with known relevant documents, what percentage of relevant documents appear in the top-k results? If the answer to a question is in chunk #47, does chunk #47 appear in the top-5?
+**검색 관련성(Recall@k)**: 관련 문서가 알려진 테스트 질문 집합에서 관련 문서의 몇 퍼센트가 top-k 결과에 나타나나요? 질문의 답이 #47 청크에 있다면 #47 청크가 top-5에 나타나나요?
 
-**Faithfulness**: is the generated answer grounded in the retrieved documents? If the retrieved chunks say "60-day refund window" and the model says "90-day refund window," that is a faithfulness failure. The model hallucinated despite having the correct context.
+**Faithfulness**: 생성된 답변이 검색된 문서에 근거하나요? 검색된 청크가 "60-day refund window"라고 말하는데 모델이 "90-day refund window"라고 말한다면 faithfulness 실패입니다. 올바른 컨텍스트가 있음에도 모델이 hallucination한 것입니다.
 
-**Answer correctness**: does the generated answer match the expected answer? This is the end-to-end metric. It combines retrieval quality and generation quality.
+**답변 정확성**: 생성된 답변이 기대 답변과 일치하나요? 이는 end-to-end 지표입니다. 검색 품질과 생성 품질을 결합합니다.
 
-A simple faithfulness check: take each claim in the generated answer and verify it appears (in substance) in the retrieved chunks. If the answer contains a fact not in any retrieved chunk, it is likely hallucinated.
+간단한 faithfulness check는 생성된 답변의 각 claim을 가져와 검색된 청크에 실질적으로 나타나는지 확인하는 것입니다. 답변에 검색된 어떤 청크에도 없는 사실이 포함되어 있다면 hallucination일 가능성이 큽니다.
 
 ```mermaid
 graph TD
-    subgraph "Evaluation Framework"
-        Q["Test questions<br/>+ expected answers<br/>+ relevant doc IDs"]
-        Q --> Ret["Retrieval evaluation<br/>Recall@k: are right<br/>docs retrieved?"]
-        Q --> Faith["Faithfulness evaluation<br/>Is answer grounded<br/>in retrieved docs?"]
-        Q --> Correct["Correctness evaluation<br/>Does answer match<br/>expected answer?"]
+    subgraph "평가 프레임워크"
+        Q["테스트 질문<br/>+ 기대 답변<br/>+ 관련 doc ID"]
+        Q --> Ret["검색 평가<br/>Recall@k: 올바른 문서를<br/>검색했는가?"]
+        Q --> Faith["Faithfulness 평가<br/>답변이 검색된 문서에<br/>근거하는가?"]
+        Q --> Correct["정확성 평가<br/>답변이 기대 답변과<br/>일치하는가?"]
     end
 ```
 
-## Build It
+## 직접 구현하기
 
-### Step 1: BM25 Implementation
+### 1단계: BM25 구현
 
 ```python
 import math
@@ -228,7 +228,7 @@ class BM25:
         return scores[:top_k]
 ```
 
-### Step 2: Reciprocal Rank Fusion
+### 2단계: Reciprocal Rank Fusion
 
 ```python
 def reciprocal_rank_fusion(ranked_lists, k=60):
@@ -242,7 +242,7 @@ def reciprocal_rank_fusion(ranked_lists, k=60):
     return fused
 ```
 
-### Step 3: Hybrid Search Pipeline
+### 3단계: Hybrid Search 파이프라인
 
 ```python
 def hybrid_search(query, chunks, vector_embeddings, vocab, idf, bm25_index, top_k=5, fusion_k=60):
@@ -253,9 +253,9 @@ def hybrid_search(query, chunks, vector_embeddings, vocab, idf, bm25_index, top_
     return fused[:top_k]
 ```
 
-### Step 4: Simple Reranker
+### 4단계: 간단한 Reranker
 
-In production, you would use a cross-encoder model. Here we build a reranker that scores query-document relevance using word overlap, term importance, and phrase matching.
+프로덕션에서는 cross-encoder model을 사용합니다. 여기서는 단어 겹침, term 중요도, phrase matching을 사용해 query-document 관련성을 점수화하는 reranker를 만듭니다.
 
 ```python
 def rerank(query, candidates, chunks):
@@ -297,7 +297,7 @@ def rerank(query, candidates, chunks):
     return scored
 ```
 
-### Step 5: HyDE (Hypothetical Document Embeddings)
+### 5단계: HyDE(Hypothetical Document Embeddings)
 
 ```python
 def hyde_generate_hypothesis(query):
@@ -329,7 +329,7 @@ def hyde_search(query, chunks, vector_embeddings, vocab, idf, top_k=5):
     return results, hypothesis
 ```
 
-### Step 6: Parent-Child Chunking
+### 6단계: Parent-Child Chunking
 
 ```python
 def create_parent_child_chunks(text, parent_size=200, child_size=50):
@@ -360,7 +360,7 @@ def create_parent_child_chunks(text, parent_size=200, child_size=50):
     return parents, children, child_to_parent
 ```
 
-### Step 7: Faithfulness Evaluation
+### 7단계: 충실도 평가
 
 ```python
 def evaluate_faithfulness(answer, retrieved_chunks):
@@ -415,9 +415,9 @@ def evaluate_retrieval_recall(queries_with_relevant, retrieval_fn, k=5):
     return avg_recall, results
 ```
 
-## Use It
+## 활용하기
 
-With a real cross-encoder for reranking:
+reranking에 실제 cross-encoder를 사용하면 다음과 같습니다.
 
 ```python
 from sentence_transformers import CrossEncoder
@@ -432,7 +432,7 @@ def rerank_with_cross_encoder(query, candidates, chunks, top_k=5):
     return scored[:top_k]
 ```
 
-With Cohere's managed reranker:
+Cohere의 관리형 reranker를 사용하면 다음과 같습니다.
 
 ```python
 import cohere
@@ -450,7 +450,7 @@ def rerank_with_cohere(query, candidates, chunks, top_k=5):
     return [(candidates[r.index][0], r.relevance_score) for r in response.results]
 ```
 
-For HyDE with a real LLM:
+실제 LLM으로 HyDE를 사용하면 다음과 같습니다.
 
 ```python
 import anthropic
@@ -469,7 +469,7 @@ def hyde_with_llm(query):
     return response.content[0].text
 ```
 
-For production hybrid search with Weaviate:
+Weaviate로 프로덕션 hybrid search를 수행하면 다음과 같습니다.
 
 ```python
 import weaviate
@@ -484,48 +484,48 @@ response = collection.query.hybrid(
 )
 ```
 
-The alpha parameter controls the balance: 0.0 = pure keyword (BM25), 1.0 = pure vector, 0.5 = equal weight. Most production systems use alpha between 0.3 and 0.7.
+alpha 파라미터는 균형을 제어합니다. 0.0 = 순수 keyword(BM25), 1.0 = 순수 vector, 0.5 = 동일 가중치입니다. 대부분의 프로덕션 시스템은 0.3과 0.7 사이의 alpha를 사용합니다.
 
-## Ship It
+## 배포하기
 
-This lesson produces:
-- `outputs/prompt-advanced-rag-debugger.md` -- a prompt for diagnosing and fixing RAG quality issues
-- `outputs/skill-advanced-rag.md` -- a skill for building production-grade RAG with hybrid search and reranking
+이 lesson은 다음을 만듭니다.
+- `outputs/prompt-advanced-rag-debugger.md` -- RAG 품질 문제를 진단하고 수정하기 위한 프롬프트
+- `outputs/skill-advanced-rag.md` -- hybrid search와 reranking으로 프로덕션급 RAG를 만들기 위한 skill
 
-## Exercises
+## 연습 문제
 
-1. Compare BM25 vs vector search vs hybrid search on the sample documents. For each of the 5 test queries, record which approach returns the most relevant chunk in position #1. Hybrid search should win on at least 3 out of 5.
+1. 샘플 문서에서 BM25, vector search, hybrid search를 비교하세요. 5개 테스트 질의 각각에 대해 어떤 접근이 가장 관련 있는 청크를 #1 위치에 반환하는지 기록합니다. Hybrid search는 5개 중 최소 3개에서 이겨야 합니다.
 
-2. Implement a metadata filter. Add a "category" field to each document (security, billing, api, product). Before running vector search, filter chunks to only the relevant category. Test with "What encryption is used?" and verify it only searches security-category chunks.
+2. metadata filter를 구현하세요. 각 문서에 "category" 필드(security, billing, api, product)를 추가합니다. vector search를 실행하기 전에 관련 카테고리 청크만 남기도록 필터링합니다. "What encryption is used?"로 테스트하고 security 카테고리 청크만 검색하는지 확인하세요.
 
-3. Build a full HyDE pipeline using the simple generate function from Lesson 06. Compare retrieval quality (top-3 relevance) between direct query search and HyDE search on all 5 test queries. HyDE should improve results for vague queries.
+3. Lesson 06의 simple generate 함수를 사용해 전체 HyDE 파이프라인을 만드세요. 5개 테스트 질의 전체에서 직접 질의 검색과 HyDE 검색의 검색 품질(top-3 relevance)을 비교합니다. HyDE는 모호한 질의의 결과를 개선해야 합니다.
 
-4. Implement the parent-child chunking strategy on the sample documents. Use child_size=30 and parent_size=100. Search with child chunks but return parent chunks in the prompt. Compare the generated answers to standard chunking with chunk_size=50.
+4. 샘플 문서에 parent-child chunking 전략을 구현하세요. child_size=30, parent_size=100을 사용합니다. child chunk로 검색하되 프롬프트에는 parent chunk를 반환합니다. 생성된 답변을 chunk_size=50인 표준 chunking과 비교하세요.
 
-5. Create an evaluation dataset: 10 questions with known answer chunks. Measure Recall@3, Recall@5, and Recall@10 for (a) vector search only, (b) BM25 only, (c) hybrid search, (d) hybrid + reranking. Plot the results and identify where reranking helps most.
+5. 평가 데이터셋을 만드세요. 알려진 답변 청크가 있는 질문 10개를 준비합니다. (a) vector search only, (b) BM25 only, (c) hybrid search, (d) hybrid + reranking에 대해 Recall@3, Recall@5, Recall@10을 측정합니다. 결과를 플로팅하고 reranking이 가장 도움이 되는 지점을 식별하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| BM25 | "Keyword search" | A probabilistic ranking algorithm that scores documents by term frequency, inverse document frequency, and document length normalization |
-| Hybrid search | "Best of both worlds" | Running semantic (vector) and keyword (BM25) search in parallel, then merging results with rank fusion |
-| Reciprocal Rank Fusion | "Merge ranked lists" | Combining multiple ranked lists by summing 1/(k + rank) for each document across all lists |
-| Reranking | "Second pass scoring" | Using a more expensive cross-encoder model to re-score a candidate set from initial retrieval |
-| Cross-encoder | "Joint query-document model" | A model that takes a query and document as a single input, producing a relevance score; more accurate than bi-encoders but too slow for full corpus search |
-| Bi-encoder | "Independent embedding model" | A model that embeds queries and documents independently; fast because embeddings are precomputed, but less accurate than cross-encoders |
-| HyDE | "Search with a fake answer" | Generate a hypothetical answer to the query, embed it, and search for real documents similar to it |
-| Parent-child chunking | "Small search, big context" | Index small chunks for precise retrieval but return the larger parent chunk to provide sufficient context |
-| Metadata filtering | "Narrow before searching" | Filtering documents by attributes (date, source, category) before running vector search to reduce the search space |
-| Faithfulness | "Did it stay grounded" | Whether the generated answer is supported by the retrieved documents, as opposed to hallucinated from the model's training data |
+| BM25 | "Keyword search" | term frequency, inverse document frequency, document length normalization으로 문서에 점수를 매기는 확률적 ranking 알고리즘입니다 |
+| Hybrid search | "두 세계의 장점" | semantic(vector) search와 keyword(BM25) search를 병렬로 실행한 뒤 rank fusion으로 결과를 병합하는 것입니다 |
+| Reciprocal Rank Fusion | "순위 목록 병합" | 모든 목록에서 각 문서에 대해 1/(k + rank)를 합산해 여러 순위 목록을 결합하는 것입니다 |
+| Reranking | "두 번째 pass 점수화" | 초기 검색의 후보 집합을 더 비싼 cross-encoder model로 다시 점수화하는 것입니다 |
+| Cross-encoder | "공동 query-document 모델" | 질의와 문서를 단일 입력으로 받아 관련성 점수를 생성하는 모델입니다. bi-encoder보다 정확하지만 전체 corpus 검색에는 너무 느립니다 |
+| Bi-encoder | "독립 embedding model" | 질의와 문서를 독립적으로 임베딩하는 모델입니다. 임베딩을 미리 계산하므로 빠르지만 cross-encoder보다 덜 정확합니다 |
+| HyDE | "가짜 답변으로 검색" | 질의에 대한 가상의 답변을 생성하고, 이를 임베딩한 뒤, 이와 비슷한 실제 문서를 검색하는 것입니다 |
+| Parent-child chunking | "작게 검색하고 크게 컨텍스트 제공" | 정밀 검색을 위해 작은 청크를 색인하지만 충분한 컨텍스트를 제공하기 위해 더 큰 parent chunk를 반환하는 것입니다 |
+| Metadata filtering | "검색 전에 좁히기" | vector search를 실행하기 전에 날짜, 출처, 카테고리 같은 속성으로 문서를 필터링해 검색 공간을 줄이는 것입니다 |
+| Faithfulness | "근거를 유지했는가" | 생성된 답변이 모델 학습 데이터에서 hallucination한 것이 아니라 검색된 문서에 의해 뒷받침되는지 여부입니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- Robertson & Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond" (2009) -- the definitive reference for BM25, explaining the probabilistic foundations behind the formula
-- Cormack et al., "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods" (2009) -- the original RRF paper showing it beats more complex fusion methods
-- Gao et al., "Precise Zero-Shot Dense Retrieval without Relevance Labels" (2022) -- the HyDE paper demonstrating that hypothetical document embeddings improve retrieval without any training data
-- Nogueira & Cho, "Passage Re-ranking with BERT" (2019) -- showed cross-encoder reranking on top of BM25 significantly improves retrieval quality
-- [Khattab et al., "DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines" (2023)](https://arxiv.org/abs/2310.03714) -- treats prompt construction and weight selection as an optimization problem over retrieval pipelines; read this for "program LLMs" instead of "prompt LLMs."
-- [Edge et al., "From Local to Global: A Graph RAG Approach to Query-Focused Summarization" (Microsoft Research 2024)](https://arxiv.org/abs/2404.16130) -- GraphRAG paper: entity-relation extraction + Leiden community detection for query-focused summarization; the global vs local retrieval distinction.
-- [Asai et al., "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection" (ICLR 2024)](https://arxiv.org/abs/2310.11511) -- self-evaluating RAG with reflection tokens; the agentic frontier past static retrieve-then-generate.
-- [LangChain Query Construction blog](https://blog.langchain.dev/query-construction/) -- how to translate natural-language queries into structured database queries (Text-to-SQL, Cypher) as a pre-retrieval step.
+- Robertson & Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond" (2009) -- BM25의 결정적 참고문헌이며 공식 뒤의 확률적 기반을 설명합니다
+- Cormack et al., "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods" (2009) -- 더 복잡한 fusion 방법보다 RRF가 낫다는 것을 보인 원래 RRF 논문입니다
+- Gao et al., "Precise Zero-Shot Dense Retrieval without Relevance Labels" (2022) -- 가상의 문서 임베딩이 학습 데이터 없이도 검색을 개선한다는 것을 보인 HyDE 논문입니다
+- Nogueira & Cho, "Passage Re-ranking with BERT" (2019) -- BM25 위의 cross-encoder reranking이 검색 품질을 크게 높인다는 것을 보였습니다
+- [Khattab et al., "DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines" (2023)](https://arxiv.org/abs/2310.03714) -- 프롬프트 구성과 가중치 선택을 검색 파이프라인 위의 최적화 문제로 다룹니다. "prompt LLMs"가 아니라 "program LLMs" 관점으로 읽으세요.
+- [Edge et al., "From Local to Global: A Graph RAG Approach to Query-Focused Summarization" (Microsoft Research 2024)](https://arxiv.org/abs/2404.16130) -- GraphRAG 논문입니다. query-focused summarization을 위한 entity-relation extraction + Leiden community detection과 global vs local retrieval 구분을 다룹니다.
+- [Asai et al., "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection" (ICLR 2024)](https://arxiv.org/abs/2310.11511) -- reflection token을 사용하는 self-evaluating RAG입니다. 정적 retrieve-then-generate 이후의 agentic frontier입니다.
+- [LangChain Query Construction blog](https://blog.langchain.dev/query-construction/) -- retrieval 전 단계로 자연어 질의를 구조화된 데이터베이스 질의(Text-to-SQL, Cypher)로 변환하는 방법입니다.

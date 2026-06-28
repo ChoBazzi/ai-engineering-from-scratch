@@ -1,135 +1,135 @@
-# Long-Video Understanding at Million-Token Context
+# 백만 토큰 컨텍스트에서의 장시간 비디오 이해
 
-> A 1-hour 4K video at 24 FPS, patched and embedded, produces on the order of 60 million tokens. A 2-hour podcast episode transcribed is 30,000 tokens. A full Blu-ray feature film, even compressed with aggressive pooling, is hundreds of thousands of tokens. Google's Gemini 1.5 (March 2024) opened this era with a 10-million-token context, doing reliable needle-in-a-haystack recall over hour-long videos. LWM (Liu et al., February 2024) showed ring attention's scaling path. LongVILA and Video-XL scaled ingestion further. VideoAgent swapped raw context for agentic retrieval. Each approach is a different trade-off on compute, recall, and engineering complexity. This lesson reads them side by side.
+> 24 FPS의 1시간 4K video를 patch하고 embed하면 대략 6천만 token이 생긴다. 2시간짜리 podcast episode transcript는 30,000 token이다. 전체 Blu-ray 장편 영화는 aggressive pooling으로 압축해도 수십만 token이다. Google의 Gemini 1.5(2024년 3월)는 1천만 token context로 이 시대를 열었고, hour-long video에서 reliable needle-in-a-haystack recall을 수행했다. LWM(Liu et al., 2024년 2월)은 ring attention의 scaling path를 보여 주었다. LongVILA와 Video-XL은 ingestion을 더 확장했다. VideoAgent는 raw context를 agentic retrieval로 바꾸었다. 각 접근은 compute, recall, engineering complexity에서 서로 다른 trade-off를 갖는다. 이 lesson은 이를 나란히 읽는다.
 
 **Type:** Build
 **Languages:** Python (stdlib, needle-in-haystack simulator + agentic-retrieval router)
 **Prerequisites:** Phase 12 · 17 (video temporal tokens)
 **Time:** ~180 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Compute total visual-token counts for long-form video at varying FPS and pooling.
-- Explain the three scaling paths: brute context (Gemini 1.5), ring attention (LWM), token compression (LongVILA / Video-XL).
-- Compare raw-context video VLMs vs agentic-retrieval video VLMs (VideoAgent) on accuracy and latency.
-- Design a needle-in-a-haystack test for a 30-minute video and measure recall at a specific minute.
+- 다양한 FPS와 pooling에서 long-form video의 총 visual-token count를 계산한다.
+- 세 가지 scaling path를 설명한다: brute context(Gemini 1.5), ring attention(LWM), token compression(LongVILA / Video-XL).
+- raw-context video VLM과 agentic-retrieval video VLM(VideoAgent)을 accuracy와 latency 관점에서 비교한다.
+- 30분 video용 needle-in-a-haystack test를 설계하고 특정 minute에서 recall을 측정한다.
 
-## The Problem
+## 문제
 
-A single frame of Qwen2.5-VL-sized patches at 384 native resolution is ~729 tokens. At 3x3 pooling that's 81 tokens per frame. A 30-minute clip at 1 FPS = 1800 frames = 145,800 tokens. Doable by 2025 open VLMs, tight. At 2 FPS, 291,600 tokens — only the biggest contexts fit.
+384 native resolution에서 Qwen2.5-VL 크기의 patch를 쓰는 single frame은 약 729 token이다. 3x3 pooling을 적용하면 frame당 81 token이다. 1 FPS의 30분 clip = 1800 frame = 145,800 token이다. 2025년 오픈 VLM으로 가능하지만 빡빡하다. 2 FPS면 291,600 token이고, 가장 큰 context만 수용할 수 있다.
 
-A 2-hour movie at 1 FPS is 583k tokens. Beyond most 2026 open models; requires Gemini 2.5 Pro or pooling more aggressively.
+1 FPS의 2시간 영화는 583k token이다. 대부분의 2026년 오픈 모델 범위를 넘는다. Gemini 2.5 Pro가 필요하거나 pooling을 더 강하게 해야 한다.
 
-Three scaling paths emerged.
+세 가지 scaling path가 등장했다.
 
-## The Concept
+## 개념
 
-### Path 1: Brute context (Gemini 1.5, Claude Opus)
+### 경로 1: brute context(Gemini 1.5, Claude Opus)
 
-Throw hardware at the problem. Scale context to millions of tokens, process everything in one forward pass.
+문제에 hardware를 던진다. context를 수백만 token으로 키우고 모든 것을 한 번의 forward pass로 처리한다.
 
-Gemini 1.5 Pro launched with 1M tokens; Gemini 1.5 Ultra to 10M; Gemini 2.5 Pro in 2026 does hours of video reliably. The paper (arXiv:2403.05530) documents needle-in-a-haystack recall at 99.7% up to ~9.5M tokens.
+Gemini 1.5 Pro는 1M token으로 출시되었다. Gemini 1.5 Ultra는 10M까지 갔고, 2026년의 Gemini 2.5 Pro는 수 시간 video를 안정적으로 처리한다. 논문(arXiv:2403.05530)은 약 9.5M token까지 99.7%의 needle-in-a-haystack recall을 기록한다.
 
-Engineering: a custom attention implementation with memory hierarchy (local + global + sparse) plus MoE expert routing for long-context efficiency. Not published in full detail. Not open-source.
+Engineering: memory hierarchy(local + global + sparse)를 갖춘 custom attention implementation과 long-context efficiency를 위한 MoE expert routing. 전체 상세는 공개되지 않았다. open-source도 아니다.
 
-### Path 2: Ring attention (LWM, LongVILA)
+### 경로 2: ring attention(LWM, LongVILA)
 
-Ring attention distributes long sequences across devices in a "ring" where each device holds a chunk. Attention across the full sequence happens by each device sending its chunk to the next in a ring pattern, computing partial attention, and aggregating.
+Ring attention은 긴 sequence를 device 여러 대에 분산한다. 각 device는 chunk를 하나 들고, 전체 sequence에 대한 attention은 각 device가 자기 chunk를 ring pattern으로 다음 device에 보내며 partial attention을 계산하고 aggregation하는 방식으로 수행된다.
 
-LWM (Liu et al., 2024) trained a 1M-token context model this way. Training compute scales linearly with context, not quadratically — the quadratic hit on attention is amortized across the ring's devices.
+LWM(Liu et al., 2024)은 이 방식으로 1M-token context model을 학습했다. 학습 compute는 context에 대해 quadratic이 아니라 linear로 scale된다. attention의 quadratic hit가 ring의 device들에 걸쳐 amortize되기 때문이다.
 
-LongVILA (arXiv:2408.10188) adapted the pattern to VLMs. 1400-frame videos at 192 tokens per frame = 268k context, trained with ring attention across 8-way parallelism.
+LongVILA(arXiv:2408.10188)는 이 패턴을 VLM에 맞게 적용했다. frame당 192 token인 1400-frame video = 268k context를 8-way parallelism의 ring attention으로 학습했다.
 
-### Path 3: Token compression (Video-XL, LongVA)
+### 경로 3: 토큰 압축(Video-XL, LongVA)
 
-Cheaper than brute context: compress aggressively before the LLM sees the sequence.
+brute context보다 싸다. LLM이 sequence를 보기 전에 강하게 압축한다.
 
-Video-XL (arXiv:2409.14485) uses a visual summary token: each clip of N frames produces a single "summary" token that attends over the N. At inference, the LLM sees one summary token per clip, drastically shrinking the context.
+Video-XL(arXiv:2409.14485)은 visual summary token을 사용한다. N frame의 각 clip은 N에 attend하는 하나의 "summary" token을 만든다. 추론 때 LLM은 clip마다 summary token 하나만 보므로 context가 크게 줄어든다.
 
-LongVA extends LLM context from 200k to 2M with a "long context transfer" technique. Train on long-context text, transfer to long-context video via shared representation.
+LongVA는 "long context transfer" 기법으로 LLM context를 200k에서 2M으로 확장한다. long-context text로 학습한 뒤, shared representation을 통해 long-context video로 전이한다.
 
-Token compression trades off recall at specific timestamps for scalability. The model knows generally what happened but sometimes misses exact frames.
+Token compression은 특정 timestamp의 recall을 scalability와 맞바꾼다. 모델은 전반적으로 무슨 일이 있었는지는 알지만 exact frame을 놓치기도 한다.
 
-### Path 4: Agentic retrieval (VideoAgent)
+### 경로 4: 에이전트형 검색(VideoAgent)
 
-Do not feed the full video to the LLM. Instead, treat the video as a database and use an LLM to query it.
+전체 video를 LLM에 넣지 않는다. 대신 video를 database처럼 다루고 LLM이 query하게 한다.
 
-VideoAgent (arXiv:2403.10517):
+VideoAgent(arXiv:2403.10517):
 
-1. LLM reads the question.
-2. LLM asks a retrieval tool for relevant clips ("show me segments with a cat").
-3. Tool returns matching clip timestamps.
-4. LLM reads those clips via a VLM.
-5. LLM composes the answer or asks follow-up queries.
+1. LLM이 question을 읽는다.
+2. LLM이 retrieval tool에 관련 clip을 요청한다("고양이가 있는 segment를 보여 줘").
+3. Tool이 matching clip timestamp를 반환한다.
+4. LLM이 VLM을 통해 해당 clip을 읽는다.
+5. LLM이 answer를 구성하거나 follow-up query를 요청한다.
 
-This is the LLM-as-agent pattern applied to long video. Cheaper inference (only relevant clips encoded), harder engineering (retrieval quality becomes the bottleneck).
+이것은 long video에 적용한 LLM-as-agent 패턴이다. 추론은 더 싸다(relevant clip만 encode). engineering은 더 어렵다(retrieval quality가 bottleneck이 된다).
 
-### Needle-in-a-haystack benchmarks
+### Needle-in-a-haystack 벤치마크
 
-The standard long-context test: insert a unique visual or textual marker at a random point in the video, then ask a query that requires recalling it.
+표준 long-context test는 video의 random point에 unique visual 또는 textual marker를 삽입한 뒤, 그것을 기억해야 답할 수 있는 query를 묻는 것이다.
 
-Metric: Recall@k across video length and marker position.
+Metric: video length와 marker position 전반의 Recall@k.
 
-Gemini 2.5 Pro scores >99% recall at up to 90-minute videos. Open 72B models (Qwen2.5-VL-72B, InternVL3-78B) score ~85-90% at 30 minutes and degrade past 60.
+Gemini 2.5 Pro는 최대 90분 video에서 >99% recall을 기록한다. 오픈 72B 모델(Qwen2.5-VL-72B, InternVL3-78B)은 30분에서 약 85-90%이고, 60분을 넘으면 degrade된다.
 
-VideoAgent can match or beat raw-context models at 2+ hours because retrieval hits the needle if the tool is good.
+VideoAgent는 tool이 needle을 잘 찾는다면 2시간 이상에서도 raw-context model과 맞먹거나 이길 수 있다.
 
-### Which path to pick
+### 어떤 path를 고를 것인가
 
-For a 15-minute clip at frontier accuracy: open 72B + native context usually works. Pick Qwen2.5-VL-72B.
+frontier accuracy가 필요한 15분 clip: open 72B + native context가 보통 동작한다. Qwen2.5-VL-72B를 고른다.
 
-For 30-minute to 1-hour content: LongVILA or Video-XL for open; Gemini 2.5 Pro for closed. The quality bar matters — frontier goes closed.
+30분-1시간 content: open에서는 LongVILA 또는 Video-XL, closed에서는 Gemini 2.5 Pro. quality bar가 중요하다면 frontier는 closed로 간다.
 
-For 2+ hour content: VideoAgent or similar retrieval patterns. Alternatively, summarize to smaller chunks and feed hierarchical summaries.
+2시간 이상 content: VideoAgent 또는 유사 retrieval pattern. 대안으로 더 작은 chunk로 summarize하고 hierarchical summary를 넣는다.
 
 ### 2026 production pattern
 
-In practice, production long-video pipelines are hybrid:
+실무 long-video pipeline은 보통 hybrid다.
 
-1. Run dynamic-FPS sampling + aggressive pooling on the entire video (get a 100k-token global representation).
-2. Pass to a 72B VLM for a global summary.
-3. If user asks detailed questions, run agentic retrieval using the summary as an index.
+1. 전체 video에 dynamic-FPS sampling + aggressive pooling을 실행한다(100k-token global representation 확보).
+2. 72B VLM에 넣어 global summary를 만든다.
+3. 사용자가 세부 질문을 하면 summary를 index로 사용해 agentic retrieval을 실행한다.
 
-This combines brute-context for global understanding and retrieval for local detail.
+이는 global understanding에는 brute-context를, local detail에는 retrieval을 결합한다.
 
-## Use It
+## 활용하기
 
 `code/main.py`:
 
-- Computes token budgets for videos from 1 minute to 3 hours at varying FPS + pooling.
-- Simulates a needle-in-a-haystack run: inject a marker at a random timestamp, ask a question, score recall.
-- Includes an agentic-retrieval router simulator that picks specific clips to feed to a downstream VLM.
+- 1분부터 3시간까지 video에 대해 다양한 FPS + pooling에서 token budget을 계산한다.
+- needle-in-a-haystack run을 시뮬레이션한다. random timestamp에 marker를 주입하고, question을 묻고, recall을 score한다.
+- 특정 clip을 downstream VLM에 넣도록 고르는 agentic-retrieval router simulator를 포함한다.
 
-Run the budget table and feel the scale gap.
+budget table을 실행하고 scale gap을 체감하라.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-long-video-strategy-planner.md`. Given a video duration and query complexity, it picks between brute-context, compression, and agentic retrieval, and computes the latency + quality expectations.
+이 lesson은 `outputs/skill-long-video-strategy-planner.md`를 만든다. video duration과 query complexity가 주어지면 brute-context, compression, agentic retrieval 중에서 고르고 latency + quality expectation을 계산한다.
 
-## Exercises
+## 연습 문제
 
-1. A 45-minute lecture at 1 FPS, 81 tokens per frame. Total tokens? Fits in which models' contexts?
+1. 45분 lecture, 1 FPS, frame당 81 token. 총 token은 얼마인가? 어떤 model context에 들어가는가?
 
-2. Design a needle-in-a-haystack test: at what minute do you inject the marker, and what is the exact query format?
+2. needle-in-a-haystack test를 설계하라. marker를 몇 분 지점에 삽입하고, exact query format은 무엇인가?
 
-3. Compare brute-context Qwen2.5-VL-72B (80k context) to VideoAgent (Claude 3.5 + retrieval) on a 1-hour video. Which wins on recall? Which wins on latency?
+3. 1시간 video에서 brute-context Qwen2.5-VL-72B(80k context)와 VideoAgent(Claude 3.5 + retrieval)를 비교하라. recall은 어느 쪽이 이기는가? latency는 어느 쪽이 이기는가?
 
-4. Ring attention's memory cost scales linearly in sequence length and linearly in device count. Explain why and what fails if you drop the ring-rotation phase.
+4. Ring attention의 memory cost는 sequence length에 선형이고 device count에도 선형이다. 그 이유와 ring-rotation phase를 제거하면 무엇이 실패하는지 설명하라.
 
-5. Read Gemini 1.5 Section 5 on needle-in-a-haystack. What did the paper find about recall at the 1M vs 10M token boundary?
+5. Gemini 1.5 Section 5의 needle-in-a-haystack을 읽어라. 논문은 1M vs 10M token boundary에서 recall에 대해 무엇을 발견했는가?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 부르는 말 | 실제 의미 |
 |------|-----------------|------------------------|
-| Brute context | "Just more tokens" | Scale LLM context to millions of tokens; process everything in one pass |
-| Ring attention | "LWM-style parallel" | Distributed attention pattern where each device holds a chunk and rotates |
-| Token compression | "Summary tokens" | Reduce per-clip tokens via a learned compressor before the LLM |
-| Needle-in-haystack | "NIH test" | Insert a unique marker at a random point, ask model to recall it at test time |
-| Agentic retrieval | "LLM as query planner" | LLM asks a retrieval tool for relevant clips, reads them via a VLM, composes answer |
-| VideoAgent | "Retrieval pattern for video" | Canonical agentic-retrieval design: question -> tool -> clip -> answer |
+| Brute context | "Just more tokens" | LLM context를 수백만 token까지 확장하고 모든 것을 한 번에 처리하는 방식 |
+| Ring attention | "LWM-style parallel" | 각 device가 chunk를 들고 rotate하는 distributed attention pattern |
+| Token compression | "Summary tokens" | LLM 전에 learned compressor로 clip당 token을 줄이는 방식 |
+| Needle-in-haystack | "NIH test" | random point에 unique marker를 삽입하고 test time에 모델이 기억하는지 묻는 평가 |
+| Agentic retrieval | "LLM as query planner" | LLM이 retrieval tool에 relevant clip을 요청하고 VLM으로 읽은 뒤 answer를 구성하는 방식 |
+| VideoAgent | "Retrieval pattern for video" | question -> tool -> clip -> answer로 이어지는 canonical agentic-retrieval design |
 
-## Further Reading
+## 더 읽을거리
 
 - [Gemini Team — Gemini 1.5 (arXiv:2403.05530)](https://arxiv.org/abs/2403.05530)
 - [Liu et al. — LWM / RingAttention (arXiv:2402.08268)](https://arxiv.org/abs/2402.08268)

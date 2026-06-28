@@ -1,30 +1,30 @@
-# Matrix Transformations
+# 행렬 변환
 
-> A matrix is a machine that reshapes space. Learn what it does to every point, and you understand the whole transformation.
+> 행렬은 공간의 모양을 바꾸는 기계입니다. 모든 점에 무엇을 하는지 알면 전체 변환을 이해할 수 있습니다.
 
 **Type:** Build
 **Languages:** Python, Julia
 **Prerequisites:** Phase 1, Lessons 01-02 (Linear Algebra Intuition, Vectors & Matrices Operations)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Construct rotation, scaling, shearing, and reflection matrices and apply them to 2D and 3D points
-- Compose multiple transformations by matrix multiplication and verify that order matters
-- Compute eigenvalues and eigenvectors of 2x2 matrices from the characteristic equation
-- Explain why eigenvalues determine PCA directions, RNN stability, and spectral clustering behavior
+- rotation, scaling, shearing, reflection 행렬을 구성하고 2D와 3D 점에 적용합니다.
+- 행렬 곱셈으로 여러 변환을 합성하고 순서가 중요하다는 점을 검증합니다.
+- characteristic equation으로 2x2 행렬의 eigenvalues와 eigenvectors를 계산합니다.
+- eigenvalues가 PCA 방향, RNN 안정성, spectral clustering 동작을 결정하는 이유를 설명합니다.
 
-## The Problem
+## 문제
 
-You read about PCA and see "find the eigenvectors of the covariance matrix." You read about model stability and see "check if all eigenvalues have magnitude less than 1." You read about data augmentation and see "apply a random rotation." None of this makes sense until you understand what matrices do to space geometrically.
+PCA를 읽다 보면 "공분산 행렬의 eigenvectors를 찾으라"는 말을 봅니다. 모델 안정성을 읽다 보면 "모든 eigenvalues의 크기가 1보다 작은지 확인하라"는 말을 봅니다. 데이터 증강을 읽다 보면 "무작위 rotation을 적용하라"는 말을 봅니다. 행렬이 공간에 기하학적으로 무엇을 하는지 이해하기 전까지는 이 말들이 이해되지 않습니다.
 
-Matrices are not just grids of numbers. They are spatial machines. A rotation matrix spins points. A scaling matrix stretches them. A shearing matrix tilts them. Every transformation a neural network applies to data is one of these operations or a composition of them. This lesson makes those operations concrete.
+행렬은 단순한 숫자 격자가 아닙니다. 공간을 다루는 기계입니다. rotation matrix는 점을 회전시킵니다. scaling matrix는 점을 늘립니다. shearing matrix는 점을 기울입니다. 신경망이 데이터에 적용하는 모든 변환은 이런 연산 중 하나이거나 그 합성입니다. 이 레슨은 그 연산들을 구체적으로 만듭니다.
 
-## The Concept
+## 개념
 
-### Transformations as matrices
+### 행렬로 보는 변환
 
-Every linear transformation in 2D can be written as a 2x2 matrix. The matrix tells you exactly where the basis vectors [1, 0] and [0, 1] end up. Everything else follows.
+2D의 모든 선형 변환은 2x2 행렬로 쓸 수 있습니다. 행렬은 기저 벡터 [1, 0]과 [0, 1]이 정확히 어디로 가는지 알려 줍니다. 나머지는 모두 거기서 따라옵니다.
 
 ```mermaid
 graph LR
@@ -43,9 +43,9 @@ graph LR
     e2 --> M --> e2p
 ```
 
-### Rotation
+### 회전
 
-A 2D rotation by angle theta keeps distances and angles intact. It moves every point along a circular arc.
+각도 theta만큼의 2D 회전은 거리와 각도를 그대로 유지합니다. 모든 점을 원호를 따라 이동시킵니다.
 
 ```mermaid
 graph LR
@@ -64,9 +64,9 @@ graph LR
     B --> R --> Bp
 ```
 
-In 3D, you rotate around an axis. Each axis has its own rotation matrix:
+3D에서는 어떤 축을 중심으로 회전합니다. 각 축에는 고유한 회전 행렬이 있습니다:
 
-```
+```text
 Rz(theta) = | cos  -sin  0 |     Rotate around z-axis
             | sin   cos  0 |     (x-y plane spins, z stays)
             |  0     0   1 |
@@ -80,9 +80,9 @@ Ry(theta) = |  cos  0  sin |     Rotate around y-axis
             | -sin  0  cos |
 ```
 
-### Scaling
+### 스케일링
 
-Scaling stretches or compresses along each axis independently.
+스케일링은 각 축 방향으로 독립적으로 늘리거나 압축합니다.
 
 ```mermaid
 graph LR
@@ -101,9 +101,9 @@ graph LR
     B --> S --> Bp
 ```
 
-### Shearing
+### 전단
 
-Shearing tilts one axis while keeping the other fixed. It turns rectangles into parallelograms.
+전단은 한 축을 고정한 채 다른 축을 기울입니다. 직사각형을 평행사변형으로 바꿉니다.
 
 ```mermaid
 graph LR
@@ -122,13 +122,13 @@ graph LR
     B --> Sh --> Bp
 ```
 
-Shear matrices:
-- `Shx = [[1, k], [0, 1]]` shifts x by k * y
-- `Shy = [[1, 0], [k, 1]]` shifts y by k * x
+전단 행렬:
+- `Shx = [[1, k], [0, 1]]`는 x를 k * y만큼 이동합니다.
+- `Shy = [[1, 0], [k, 1]]`는 y를 k * x만큼 이동합니다.
 
-### Reflection
+### 반사
 
-Reflection mirrors points across an axis or line.
+반사는 점을 축이나 선을 기준으로 거울처럼 뒤집습니다.
 
 ```mermaid
 graph LR
@@ -144,13 +144,13 @@ graph LR
     A --> R --> Ap
 ```
 
-Reflection matrices:
-- Reflect across y-axis: `[[-1, 0], [0, 1]]`
-- Reflect across x-axis: `[[1, 0], [0, -1]]`
+반사 행렬:
+- y-axis 기준 반사: `[[-1, 0], [0, 1]]`
+- x-axis 기준 반사: `[[1, 0], [0, -1]]`
 
-### Composition: chaining transformations
+### 합성: 변환 연결하기
 
-Applying transformation A then B is the same as multiplying their matrices: `result = B @ A @ point`. Order matters. Rotate then scale gives different results than scale then rotate.
+변환 A를 적용한 뒤 B를 적용하는 것은 행렬을 곱하는 것과 같습니다: `result = B @ A @ point`. 순서가 중요합니다. 회전 후 스케일링은 스케일링 후 회전과 다른 결과를 냅니다.
 
 ```mermaid
 graph LR
@@ -159,7 +159,7 @@ graph LR
     end
 ```
 
-Composed: `S @ R = [[0, -2], [0.5, 0]]`
+합성 결과: `S @ R = [[0, -2], [0.5, 0]]`
 
 ```mermaid
 graph LR
@@ -168,15 +168,15 @@ graph LR
     end
 ```
 
-Composed: `R @ S = [[0, -0.5], [2, 0]]`
+합성 결과: `R @ S = [[0, -0.5], [2, 0]]`
 
-Different results. Matrix multiplication is not commutative.
+결과가 다릅니다. 행렬 곱셈은 교환법칙을 만족하지 않습니다.
 
-### Eigenvalues and eigenvectors
+### 고유값과 고유벡터
 
-Most vectors change direction when a matrix hits them. Eigenvectors are special: the matrix only scales them, never rotates them. The scaling factor is the eigenvalue.
+대부분의 벡터는 행렬이 곱해지면 방향이 바뀝니다. 고유벡터는 특별합니다. 행렬이 방향은 회전시키지 않고 스케일만 바꿉니다. 그 스케일 배율이 고유값입니다.
 
-```
+```text
 A @ v = lambda * v
 
 v is the eigenvector (direction that survives)
@@ -192,13 +192,13 @@ Eigenvector [1, -1] with eigenvalue 1:
   A @ [1,-1] = [1, -1] = 1 * [1, -1]  (same direction, unchanged)
 ```
 
-The matrix stretches space by 3x along [1, 1] and keeps [1, -1] unchanged. Every other direction is a mix of these two.
+이 행렬은 [1, 1] 방향으로 공간을 3배 늘리고 [1, -1] 방향은 그대로 둡니다. 다른 모든 방향은 이 둘의 혼합입니다.
 
-### Eigendecomposition
+### 고유분해
 
-If a matrix has n linearly independent eigenvectors, it can be decomposed:
+행렬이 n개의 선형 독립 eigenvectors를 가지면 다음처럼 분해할 수 있습니다:
 
-```
+```text
 A = V @ D @ V^(-1)
 
 V = matrix whose columns are eigenvectors
@@ -208,19 +208,19 @@ V^(-1) = inverse of V
 This says: rotate into eigenvector coordinates, scale along each axis, rotate back.
 ```
 
-### Why eigenvalues matter
+### 고유값이 중요한 이유
 
-**PCA.** The eigenvectors of the covariance matrix are the principal components. The eigenvalues tell you how much variance each component captures. Sort by eigenvalue, keep the top k, and you have dimensionality reduction.
+**PCA.** 공분산 행렬의 eigenvectors가 principal components입니다. eigenvalues는 각 성분이 얼마나 많은 분산을 포착하는지 알려 줍니다. eigenvalue 기준으로 정렬해 상위 k개를 유지하면 차원 축소가 됩니다.
 
-**Stability.** In recurrent networks and dynamical systems, eigenvalues with magnitude > 1 cause outputs to explode. Magnitude < 1 causes them to vanish. This is the vanishing/exploding gradient problem stated in one sentence.
+**안정성.** recurrent networks와 dynamical systems에서 크기가 1보다 큰 eigenvalues는 출력 폭주를 일으킵니다. 크기가 1보다 작으면 사라지게 만듭니다. 이것이 vanishing/exploding gradient 문제를 한 문장으로 말한 것입니다.
 
-**Spectral methods.** Graph neural networks use eigenvalues of the adjacency matrix. Spectral clustering uses eigenvalues of the Laplacian. The eigenvectors reveal the structure of the graph.
+**Spectral methods.** Graph neural networks는 adjacency matrix의 eigenvalues를 사용합니다. Spectral clustering은 Laplacian의 eigenvalues를 사용합니다. eigenvectors는 그래프 구조를 드러냅니다.
 
-### Determinant as volume scaling factor
+### 부피 스케일링 계수로서의 행렬식
 
-The determinant of a transformation matrix tells you how much it scales area (2D) or volume (3D).
+변환 행렬의 행렬식은 면적(2D) 또는 부피(3D)를 얼마나 스케일하는지 알려 줍니다.
 
-```
+```text
 det = 1:   area preserved (rotation)
 det = 2:   area doubled
 det = 0:   space crushed to lower dimension (singular)
@@ -236,9 +236,9 @@ det = -1:  area preserved but orientation flipped (reflection)
 matrix-transform
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Transformation matrices from scratch (Python)
+### Step 1: 변환 행렬을 처음부터 만들기 (Python)
 
 ```python
 import math
@@ -289,7 +289,7 @@ reflected = mat_vec_mul(reflection_y(), [2.0, 1.0])
 print(f"Reflect (2,1) across y: ({reflected[0]:.1f}, {reflected[1]:.1f})")
 ```
 
-### Step 2: Composition of transformations
+### Step 2: 변환의 합성
 
 ```python
 R = rotation_2d(math.pi / 2)
@@ -307,9 +307,9 @@ print(f"Scale then rotate 90: ({result2[0]:.2f}, {result2[1]:.2f})")
 print(f"Same? {result1 == result2}")
 ```
 
-### Step 3: Eigenvalues from scratch (2x2)
+### Step 3: 고유값을 처음부터 계산하기 (2x2)
 
-For a 2x2 matrix `[[a, b], [c, d]]`, eigenvalues solve the characteristic equation: `lambda^2 - (a+d)*lambda + (ad - bc) = 0`.
+2x2 행렬 `[[a, b], [c, d]]`의 eigenvalues는 characteristic equation `lambda^2 - (a+d)*lambda + (ad - bc) = 0`의 해입니다.
 
 ```python
 def eigenvalues_2x2(matrix):
@@ -354,7 +354,7 @@ for val in vals:
     print(f"    l*v = {[round(x,4) for x in scaled]}")
 ```
 
-### Step 4: Determinant as volume scaling factor
+### Step 4: 부피 스케일링 계수로서의 행렬식
 
 ```python
 def det_2x2(matrix):
@@ -370,9 +370,9 @@ print(f"det(singular)     = {det_2x2(singular):.1f}")
 print("Singular: columns are proportional, space collapses to a line.")
 ```
 
-## Use It
+## 활용하기
 
-NumPy handles all of this with optimized routines.
+NumPy는 이 모든 것을 최적화된 루틴으로 처리합니다.
 
 ```python
 import numpy as np
@@ -411,7 +411,7 @@ print(f"Original:\n{B}")
 print(f"Reconstructed:\n{reconstructed}")
 ```
 
-### 3D rotations with NumPy
+### NumPy로 3D 회전 다루기
 
 ```python
 def rotation_3d_z(theta):
@@ -431,35 +431,35 @@ print(f"Rotate 90 around z: {np.round(rotated_z, 4)}")
 print(f"Rotate 90 around x: {np.round(rotated_x, 4)}")
 ```
 
-## Ship It
+## 결과물
 
-This lesson builds the geometric foundation for PCA (Phase 2) and neural network weight analysis. The eigenvalue/eigenvector code built here is the same algorithm that powers dimensionality reduction, spectral clustering, and stability analysis in production ML systems.
+이 레슨은 PCA(Phase 2)와 신경망 가중치 분석을 위한 기하학적 기반을 만듭니다. 여기서 만든 eigenvalue/eigenvector 코드는 production ML 시스템의 차원 축소, spectral clustering, 안정성 분석을 가능하게 하는 것과 같은 알고리즘입니다.
 
-## Exercises
+## 연습 문제
 
-1. Apply rotation, scaling, and shearing to a unit square (corners at [0,0], [1,0], [1,1], [0,1]). Print the transformed corners for each. Verify that rotation preserves distances between corners.
+1. 단위 정사각형(꼭짓점 [0,0], [1,0], [1,1], [0,1])에 rotation, scaling, shearing을 적용하세요. 각각에 대해 변환된 꼭짓점을 출력하세요. rotation이 꼭짓점 사이의 거리를 보존하는지 검증하세요.
 
-2. Find the eigenvalues of the matrix [[4, 2], [1, 3]] by hand using the characteristic equation. Then verify with your from-scratch function and with NumPy.
+2. characteristic equation을 사용해 행렬 [[4, 2], [1, 3]]의 eigenvalues를 손으로 구하세요. 그런 다음 직접 만든 함수와 NumPy로 검증하세요.
 
-3. Create a composition of three transformations (rotate 30 degrees, scale by [1.5, 0.8], shear with kx=0.3) and apply it to 8 points arranged in a circle. Print before and after coordinates. Compute the determinant of the composed matrix and verify it equals the product of the individual determinants.
+3. 세 변환(30도 회전, [1.5, 0.8] 스케일링, kx=0.3 전단)을 합성하고 원 위에 배치된 8개 점에 적용하세요. 변환 전후 좌표를 출력하세요. 합성 행렬의 행렬식을 계산하고 개별 행렬식의 곱과 같은지 검증하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Rotation matrix | "Spins things" | An orthogonal matrix that moves points along circular arcs while preserving distances and angles. Determinant is always 1. |
-| Scaling matrix | "Makes things bigger" | A diagonal matrix that stretches or compresses independently along each axis. Determinant is the product of scale factors. |
-| Shearing matrix | "Slants things" | A matrix that shifts one coordinate proportionally to another, turning rectangles into parallelograms. Determinant is 1. |
-| Reflection | "Mirrors things" | A matrix that flips space across an axis or plane. Determinant is -1. |
-| Composition | "Do two things" | Multiplying transformation matrices to chain operations. Order matters: B @ A means apply A first, then B. |
-| Eigenvector | "Special direction" | A direction that the matrix only scales, never rotates. The transformation's fingerprint. |
-| Eigenvalue | "How much it stretches" | The scalar factor by which the matrix scales its eigenvector. Can be negative (flip) or complex (rotation). |
-| Eigendecomposition | "Break the matrix apart" | Writing a matrix as V @ D @ V^(-1), separating it into its fundamental scaling directions and magnitudes. |
-| Determinant | "A single number from a matrix" | The factor by which the transformation scales area (2D) or volume (3D). Zero means the transformation is irreversible. |
-| Characteristic equation | "Where eigenvalues come from" | det(A - lambda * I) = 0. The polynomial whose roots are the eigenvalues. |
+| Rotation matrix | "회전시키는 것" | 거리와 각도를 보존하면서 점을 원호를 따라 이동시키는 직교 행렬입니다. 행렬식은 항상 1입니다. |
+| Scaling matrix | "크게 만드는 것" | 각 축 방향으로 독립적으로 늘리거나 압축하는 대각 행렬입니다. 행렬식은 scale factors의 곱입니다. |
+| Shearing matrix | "기울이는 것" | 한 좌표를 다른 좌표에 비례해 이동시켜 직사각형을 평행사변형으로 만드는 행렬입니다. 행렬식은 1입니다. |
+| Reflection | "거울처럼 뒤집기" | 공간을 축이나 평면을 기준으로 뒤집는 행렬입니다. 행렬식은 -1입니다. |
+| Composition | "두 가지 하기" | 변환 행렬을 곱해 연산을 연결하는 것입니다. 순서가 중요합니다. B @ A는 A를 먼저 적용한 뒤 B를 적용한다는 뜻입니다. |
+| Eigenvector | "특별한 방향" | 행렬이 회전시키지 않고 스케일만 바꾸는 방향입니다. 변환의 지문입니다. |
+| Eigenvalue | "얼마나 늘리는가" | 행렬이 eigenvector를 스케일하는 스칼라 계수입니다. 음수(뒤집기)나 복소수(회전)일 수 있습니다. |
+| Eigendecomposition | "행렬을 쪼개기" | 행렬을 V @ D @ V^(-1)로 써서 근본적인 스케일 방향과 크기로 분리하는 것입니다. |
+| Determinant | "행렬에서 나온 단일 숫자" | 변환이 면적(2D) 또는 부피(3D)를 스케일하는 계수입니다. 0이면 변환을 되돌릴 수 없습니다. |
+| Characteristic equation | "고유값이 나오는 곳" | det(A - lambda * I) = 0. 근이 eigenvalues인 다항식입니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [3Blue1Brown: Linear Transformations](https://www.3blue1brown.com/lessons/linear-transformations) -- visual intuition for how matrices reshape space
-- [3Blue1Brown: Eigenvectors and Eigenvalues](https://www.3blue1brown.com/lessons/eigenvalues) -- the best visual explanation of what eigenvectors mean geometrically
-- [MIT 18.06 Lecture 21: Eigenvalues and Eigenvectors](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/) -- Gilbert Strang's classic treatment
+- [3Blue1Brown: Linear Transformations](https://www.3blue1brown.com/lessons/linear-transformations) -- 행렬이 공간을 어떻게 바꾸는지에 대한 시각적 직관
+- [3Blue1Brown: Eigenvectors and Eigenvalues](https://www.3blue1brown.com/lessons/eigenvalues) -- eigenvectors가 기하학적으로 무엇을 뜻하는지에 대한 최고의 시각적 설명
+- [MIT 18.06 Lecture 21: Eigenvalues and Eigenvectors](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/) -- Gilbert Strang의 고전적 설명

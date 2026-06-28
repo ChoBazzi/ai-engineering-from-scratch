@@ -1,336 +1,180 @@
-# Constitutional AI and Self-Improvement
+# Constitutional AI와 Self-Improvement
 
-> RLHF needs humans in the loop. Constitutional AI replaces most of them with the model itself. Write a list of principles, have the model critique its own outputs against those principles, and train on the critiques. DeepSeek-R1 pushed this further in 2025: let the model generate millions of reasoning traces, grade them with a rule, and run GRPO on the outcome. Most of the "alignment work" in a 2026 frontier model is the model alignment itself. This lesson builds both loops.
+> RLHF는 loop 안에 사람이 필요합니다. Constitutional AI는 그 대부분을 모델 자신으로 대체합니다. 원칙 목록을 쓰고, 모델이 그 원칙에 비춰 자기 output을 critique하고, critique로 다시 학습합니다. DeepSeek-R1은 2025년에 이를 더 밀어붙였습니다. 모델이 수백만 reasoning trace를 만들게 하고, rule로 채점한 뒤, outcome 위에서 GRPO를 실행합니다.
 
 **Type:** Build
 **Languages:** Python (stdlib + numpy)
 **Prerequisites:** Phase 10, Lessons 06-08 (SFT, RLHF, DPO)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement the Constitutional AI two-stage loop: self-critique plus self-revision, then preference training on the revised pairs
-- Derive the GRPO objective (DeepSeek-R1's group-relative policy optimization) and contrast it with PPO's value-function baseline
-- Generate verifiable reasoning traces with rule-based outcome rewards and score them without a separate reward model
-- Decide when self-improvement beats human preference data and when it collapses into mode seeking
+- Constitutional AI의 두 단계 loop(self-critique + self-revision, revised pair 위의 preference training)를 구현합니다
+- GRPO(DeepSeek-R1의 group-relative policy optimization) objective를 유도하고 PPO의 value-function baseline과 대조합니다
+- rule-based outcome reward로 verifiable reasoning trace를 생성하고 별도 reward model 없이 score합니다
+- self-improvement가 human preference data보다 나은 경우와 mode seeking으로 붕괴하는 경우를 구분합니다
 
-## The Problem
+## 문제
 
-You built RLHF in Lesson 07 and DPO in Lesson 08. Both depend on the same expensive input: human preference pairs. Anthropic's InstructGPT-era pipeline used roughly 33,000 comparisons. Llama 2 Chat used over 1.5 million. Claude 3 used more. This data is slow, expensive, and biased toward whatever the annotators happened to believe on the day they were rating.
+Lesson 07의 RLHF와 Lesson 08의 DPO는 모두 비싼 input에 의존합니다. human preference pair입니다. InstructGPT-era pipeline은 약 33,000개 comparison을 썼고, Llama 2 Chat은 150만 개가 넘는 comparison을 썼습니다. Claude 3는 더 많이 썼습니다. 이 data는 느리고 비싸며 annotator bias를 담습니다.
 
-The 2022 Constitutional AI paper asked a simple question. What if the model generates the preference labels itself? Give it a list of written principles -- the "constitution" -- and have it critique its own responses. The critiques become the training signal.
+Constitutional AI는 "model이 preference label을 직접 만들면 어떨까?"라고 묻습니다. written principle, 즉 constitution을 주고 model이 자기 response를 critique하게 합니다. 그 critique가 training signal이 됩니다.
 
-In 2024, DeepSeek took the idea further. They showed that for any task with a verifiable outcome (math with a known answer, code that either passes tests or fails, a game that either wins or loses), you can skip the critic entirely. Generate many candidate solutions. Grade each one with a deterministic rule. Run a policy-gradient algorithm on the rewards. DeepSeek-R1 was trained this way with almost no human preference data and matched o1-class reasoning performance.
+DeepSeek는 2024-2025년에 verifiable outcome이 있는 task에서는 critic도 건너뛸 수 있음을 보였습니다. math는 정답이 맞는지, code는 test를 통과하는지, game은 이겼는지 졌는지 rule로 확인할 수 있습니다. candidate solution을 많이 생성하고 deterministic rule로 grade한 뒤 reward 위에서 policy-gradient algorithm을 실행합니다. DeepSeek-R1은 거의 human preference data 없이 o1-class reasoning performance에 근접했습니다.
 
-These two loops -- Constitutional AI for subjective behavior and rule-based RL for verifiable behavior -- are the dominant alignment recipes of 2026. The human preference budget that used to go into RLHF now pays for a much smaller step: picking the constitution and picking the reward rules.
+## 개념
 
-## The Concept
+### Constitutional AI loop
 
-### The Constitutional AI Loop
+Bai et al. (2022)의 pipeline은 두 stage입니다.
 
-Bai et al. (2022) structured the pipeline in two stages.
+**Stage 1: Supervised Learning from AI Feedback (SL-CAI).** helpful하지만 harmful할 수 있는 SFT model에서 시작합니다. potentially harmful request에 대해 response를 생성하고, 같은 model이 constitutional principle에 비춰 critique한 뒤 revised response를 씁니다. `(prompt, revised_response)` pair로 fine-tune합니다.
 
-**Stage 1: Supervised Learning from AI Feedback (SL-CAI).** Start with an SFT model that is helpful but possibly harmful. Prompt it with potentially harmful requests. For each response, ask the *same model* to critique its response against a constitutional principle, then revise. Fine-tune on the revised responses. The dataset is (prompt, revised_response) pairs.
-
-**Stage 2: Reinforcement Learning from AI Feedback (RLAIF).** Sample pairs of responses. Ask the model which one better follows the constitution. The pairwise preferences train a reward model. Then run PPO or DPO on the model using that reward. The key difference from RLHF: the preferences came from the model, not from humans.
+**Stage 2: Reinforcement Learning from AI Feedback (RLAIF).** response pair를 sample하고 model에게 constitution을 기준으로 어느 쪽이 나은지 판단하게 합니다. 이 pairwise preference로 reward model을 학습하고 PPO 또는 DPO를 실행합니다. RLHF와의 차이는 preference가 사람에게서 오지 않고 model에게서 온다는 점입니다.
 
 ```mermaid
 graph TD
-    subgraph SL["Stage 1: SL-CAI"]
-        P1["Harmful prompt"] --> R1["Initial response\n(possibly harmful)"]
-        R1 --> C1["Model critiques\nagainst principle"]
-        C1 --> REV["Model revises\nresponse"]
-        REV --> SFT["SFT on\n(prompt, revised)"]
-    end
-
-    subgraph RL["Stage 2: RLAIF"]
-        P2["Prompt"] --> S1["Sample response A"]
-        P2 --> S2["Sample response B"]
-        S1 --> J["Model judges\nA vs B via constitution"]
-        S2 --> J
-        J --> RM["Preference dataset"]
-        RM --> TRAIN["DPO / PPO training"]
-    end
-
-    SL --> RL
-
-    style P1 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style REV fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style P2 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style TRAIN fill:#1a1a2e,stroke:#51cf66,color:#fff
+    P1["Harmful prompt"] --> R1["Initial response"]
+    R1 --> C1["Critique against constitution"]
+    C1 --> REV["Revised response"]
+    REV --> SFT["SFT on revised data"]
+    P2["Prompt"] --> A["Response A"]
+    P2 --> B["Response B"]
+    A --> J["Constitutional judge"]
+    B --> J
+    J --> PREF["Preference dataset"]
+    PREF --> TRAIN["DPO / PPO"]
 ```
 
-The constitution is the lever. Anthropic's original had 16 principles (later expanded). A principle reads like "Please choose the response that is least likely to be objectionable to anyone from a wide variety of cultural backgrounds." You pick the principle for each step, sometimes at random, sometimes based on the prompt category.
-
-### What the Constitution Actually Does
-
-The constitution moves the alignment contract from *data* to *text*. Changing behavior under RLHF means re-labeling thousands of pairs. Changing behavior under CAI means editing a paragraph. This is the main practical win.
-
-It has a cost. The model's self-judgments are only as good as its starting calibration. If the SFT model has blind spots -- for instance, it cannot recognize manipulative phrasing -- the critique step inherits those blind spots. CAI compresses the alignment loop but cannot amplify signal past the base model's ceiling. This is why every production CAI pipeline still uses some human preference data, typically 5-10% the volume of pure RLHF.
+constitution은 alignment contract를 data에서 text로 옮깁니다. RLHF에서 behavior를 바꾸려면 수천 pair를 다시 label해야 하지만 CAI에서는 paragraph를 수정할 수 있습니다. 비용은 있습니다. model의 self-judgment는 시작 model의 calibration 이상으로 좋아질 수 없습니다. blind spot이 있으면 critique step도 그 blind spot을 물려받습니다. 그래서 production CAI pipeline도 보통 pure RLHF 대비 5-10% 정도의 human preference data를 계속 섞습니다.
 
 ### GRPO: Group-Relative Policy Optimization
 
-DeepSeek introduced GRPO in the DeepSeekMath paper (2024) and used it as the backbone of DeepSeek-R1 (2025). GRPO is a variant of PPO that removes the value function.
+DeepSeekMath(2024)와 DeepSeek-R1(2025)은 value function을 제거한 PPO variant인 GRPO를 사용했습니다.
 
-Recall PPO's objective (from Lesson 07):
+PPO objective는 다음과 같습니다.
 
-```
+```text
 L_PPO = E[min(r(theta) * A, clip(r(theta), 1-eps, 1+eps) * A)]
 ```
 
-where `A` is the advantage, typically estimated with GAE using a learned value network `V(s)`. The value network is a second model the same size as the policy. It doubles memory and introduces its own training loop.
+여기서 `A`는 보통 learned value network `V(s)`로 추정한 advantage입니다. value network는 policy와 같은 크기의 두 번째 model이므로 memory를 두 배로 쓰고 별도 training loop도 필요합니다.
 
-GRPO throws out the value function. For each prompt, it samples a group of G responses (typically G=16 or 64). The reward for each response is computed, then normalized within the group:
+GRPO는 value function을 버립니다. prompt마다 G개 response(보통 16 또는 64)를 sample하고 reward를 계산한 뒤 group 안에서 normalize합니다.
 
-```
+```text
 A_i = (r_i - mean(r_1, ..., r_G)) / std(r_1, ..., r_G)
-```
-
-The advantage is the z-score of the response's reward relative to its siblings. No value function. The group acts as its own baseline.
-
-```
 L_GRPO = E[min(r(theta) * A_group, clip(r(theta), 1-eps, 1+eps) * A_group)] - beta * KL(pi || pi_ref)
 ```
 
-The KL penalty against the reference model is still there, same as PPO. The clip ratio is still there. What's gone is the separate critic.
+advantage는 같은 prompt에서 나온 sibling response 대비 reward의 z-score입니다. group 자체가 baseline입니다. KL penalty와 clip ratio는 PPO처럼 남아 있지만 separate critic은 사라집니다.
 
-### Why GRPO Matters for Reasoning
+### Reasoning에서 GRPO가 중요한 이유
 
-For reasoning tasks the reward is often sparse and binary: the final answer is right or wrong. A value function trained on sparse binary rewards is a waste -- it cannot learn useful intermediate estimates because nearly every state has the same expected return until the final step. GRPO's group normalization gives you an immediate relative signal: among 16 attempts on the same math problem, which attempts were above average for this problem?
+reasoning task의 reward는 대개 sparse하고 binary입니다. final answer가 맞거나 틀립니다. sparse binary reward 위에서 value function은 유용한 intermediate estimate를 배우기 어렵습니다. GRPO의 group normalization은 같은 problem에 대한 16개 attempt 중 어느 attempt가 상대적으로 나은지 즉시 알려 줍니다.
 
-This is the exact shape of signal you get from rule-based rewards:
+rule-based reward의 예:
 
-- **Math**: sympy or a symbolic checker decides if the final answer matches.
-- **Code**: a test suite decides pass/fail.
-- **Formatting**: a regex decides whether the answer is in the required XML tag.
-- **Multi-step proofs**: a proof assistant (Lean, Coq) decides validity.
+- **Math**: sympy 또는 symbolic checker가 final answer match를 확인합니다.
+- **Code**: test suite가 pass/fail을 결정합니다.
+- **Formatting**: regex가 required XML tag 안에 answer가 있는지 확인합니다.
+- **Multi-step proofs**: Lean, Coq 같은 proof assistant가 validity를 판정합니다.
 
-DeepSeek-R1-Zero was trained with only two rewards: accuracy on math benchmarks and format compliance (answer inside `<answer>` tags). No human preferences. No critic model. The "aha moment" the DeepSeek paper described -- the model spontaneously learning to self-check and backtrack -- emerged from GRPO on sparse rule rewards alone.
+DeepSeek-R1-Zero는 math accuracy와 format compliance(`<answer>` tag 안의 answer) 두 reward만으로 학습되었습니다. human preference도 critic model도 없었습니다. paper의 "aha moment", 즉 model이 self-check와 backtrack을 스스로 배우는 현상은 sparse rule reward 위의 GRPO에서 나왔습니다.
 
-### Process Reward Models vs Outcome Reward Models
+### Process Reward Model vs Outcome Reward Model
 
-You still have a design choice: reward the final answer (Outcome Reward Model, ORM) or reward each intermediate step (Process Reward Model, PRM).
-
-| Axis | ORM | PRM |
+| 축 | ORM | PRM |
 |------|-----|-----|
-| Signal per trace | 1 number | N numbers (one per step) |
-| Supervision source | Final answer check | Step-level labels or self-judging |
-| Training cost | Cheap | Expensive |
-| Credit assignment | Sparse, noisy | Dense, targeted |
-| Reward hacking risk | Lower | Higher (model optimizes PRM artifacts) |
-| Used by | DeepSeek-R1, R1-Zero | OpenAI o1 (allegedly), Math-Shepherd |
+| Signal per trace | 1 number | N numbers(one per step) |
+| Supervision source | final answer check | step-level label 또는 self-judging |
+| Training cost | cheap | expensive |
+| Credit assignment | sparse, noisy | dense, targeted |
+| Reward hacking risk | lower | higher |
+| Used by | DeepSeek-R1, R1-Zero | OpenAI o1(알려진 바), Math-Shepherd |
 
-The 2024-2025 consensus was that ORMs plus GRPO scale better than PRMs. PRMs are more sample-efficient per token but require expensive step-labeled data and tend to collapse into shortcut behaviors (writing steps that look good to the PRM but don't advance the proof). For most teams, ORM + GRPO is the first thing to try.
+2024-2025년 consensus는 ORM + GRPO가 PRM보다 scale하기 쉽다는 쪽이었습니다. PRM은 token당 sample-efficient하지만 step-labeled data가 비싸고, proof를 진전시키지 않으면서 PRM이 좋아할 step을 쓰는 shortcut behavior로 무너지기 쉽습니다.
 
-### Self-Improvement: The Feedback Multiplier
+### Self-Improvement: Feedback multiplier
 
-Once you have the two-loop pattern (critique/revise and group-relative RL with rule rewards), you can chain them.
+critique/revise loop와 rule reward 기반 group-relative RL을 연결하면 self-improvement loop가 됩니다.
 
-1. Start with an SFT model.
-2. Generate many candidate responses per prompt.
-3. Score them with a rule-based reward (for verifiable tasks) or a constitutional critic (for subjective tasks).
-4. Keep the top candidates as new SFT data or as preference pairs.
-5. Fine-tune. Go to step 2 with the improved model.
+1. SFT model에서 시작합니다.
+2. prompt마다 candidate response를 많이 생성합니다.
+3. verifiable task는 rule-based reward, subjective task는 constitutional critic으로 score합니다.
+4. top candidate를 새 SFT data 또는 preference pair로 보존합니다.
+5. fine-tune하고 더 나아진 model로 2단계로 돌아갑니다.
 
-DeepSeek called this "rejection sampling fine-tuning" when applied after R1-Zero. Anthropic called an earlier version of this "constitutional AI distillation." The pattern is: each iteration amplifies the signal already in the model. It does not add new signal. If the model cannot solve problem class X at all, no amount of self-improvement will create that capability.
+이 loop는 model 안에 이미 있는 signal을 증폭합니다. 새로운 signal을 만들지는 않습니다. model이 문제 class X를 전혀 풀 수 없다면 self-improvement만으로 그 capability가 생기지 않습니다.
 
-The danger is mode collapse. Self-generated data is always a narrower distribution than the training corpus. After 3-5 rounds of self-distillation, models typically lose diversity on creative tasks, become overconfident, and exhibit characteristic "AI voice" (repeated phrasings, formulaic structure). Production pipelines mix self-generated data with a small fraction of fresh human data to keep the distribution honest.
+위험은 mode collapse입니다. self-generated data는 training corpus보다 분포가 좁습니다. self-distillation을 3-5 round 반복하면 creative task에서 diversity를 잃고, overconfidence와 formulaic한 "AI voice"가 늘어납니다. production pipeline은 작은 비율의 fresh human data를 섞어 distribution을 유지합니다.
 
 ```mermaid
 graph LR
-    M0["SFT Model v0"] --> G["Generate G responses\nper prompt"]
-    G --> S["Score with rule\nor constitution"]
+    M0["SFT Model v0"] --> G["Generate G responses"]
+    G --> S["Score with rule or constitution"]
     S --> F["Filter / rank"]
-    F --> T["Fine-tune\n(SFT or GRPO)"]
-    T --> M1["SFT Model v1"]
-    M1 -.->|iterate| G
-
-    H["Human data\n(small fraction)"] --> T
-
-    style M0 fill:#1a1a2e,stroke:#e94560,color:#fff
-    style M1 fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style H fill:#1a1a2e,stroke:#0f3460,color:#fff
+    F --> T["Fine-tune"]
+    T --> M1["Model v1"]
+    M1 -.-> G
+    H["Human data"] --> T
 ```
 
-### When To Use What
+### 무엇을 언제 쓸까
 
-- **Pure CAI**: Subjective behavior (tone, safety, refusal style). You have a well-defined constitution. You don't have clean verifiable outcomes.
-- **GRPO + ORM**: Verifiable tasks (math, code, structured extraction). You can cheaply check correctness. Reward is sparse and binary.
-- **DPO on self-generated pairs**: Hybrid. Use the constitution to produce preference pairs, then train with DPO (Lesson 08) instead of PPO/GRPO.
-- **Full RLHF**: Still appropriate when you need multi-objective tradeoffs that neither a rule nor a short constitution can express.
+- **Pure CAI**: tone, safety, refusal style 같은 subjective behavior. constitution이 명확하고 verifiable outcome이 없습니다.
+- **GRPO + ORM**: math, code, structured extraction 같은 verifiable task. correctness를 싸게 확인할 수 있습니다.
+- **DPO on self-generated pairs**: constitution으로 preference pair를 만들고 PPO/GRPO 대신 DPO를 사용합니다.
+- **Full RLHF**: rule이나 짧은 constitution으로 표현하기 어려운 multi-objective tradeoff가 필요할 때 여전히 적합합니다.
 
-Most 2026 frontier pipelines run all four. CAI for safety layers. GRPO for the reasoning post-training pass. DPO for the preference polish. Small RLHF passes for residual behaviors that resist the other methods.
+2026년 frontier pipeline은 보통 네 가지를 모두 씁니다. safety layer에는 CAI, reasoning post-training에는 GRPO, preference polish에는 DPO, 남은 행동에는 작은 RLHF pass를 씁니다.
 
-## Build It
+## 직접 만들기
 
-The code implements three things in pure Python + numpy. A Constitutional AI self-critique loop. A rule-based reward checker for simple arithmetic. A minimal GRPO trainer that runs on a tiny language model from Lesson 04.
+`code/main.py`는 pure Python + numpy로 세 가지를 구현합니다.
 
-### Step 1: The Constitution
+- Constitutional AI self-critique loop
+- simple arithmetic을 위한 rule-based reward checker
+- Lesson 04의 tiny language model 위에서 도는 minimal GRPO trainer
 
-A list of principles. In production, each line would be richer and category-tagged. For the lesson, keep it short.
+constitution은 짧은 principle list입니다. real system에서는 각 principle이 더 길고 category-tagged입니다. self-critique는 실제 LLM call 대신 handwritten rubric으로 simulate해 외부 API 없이 실행됩니다. arithmetic reward는 final numeric answer가 expected value와 맞는지 regex와 `eval`로 확인합니다.
 
-```python
-CONSTITUTION = [
-    "The response must directly answer the question asked, without hedging.",
-    "The response must not include unnecessary filler or padding.",
-    "If the question has a single numeric answer, state the number plainly.",
-    "The response must not refuse a reasonable, benign request.",
-]
+GRPO trainer는 같은 prompt에서 여러 candidate를 생성하고 reward를 group z-score로 normalize합니다. reward std가 0이면 group에는 학습 signal이 없으므로 skip하거나 downweight해야 합니다. epsilon으로 나누고 signal이 있는 척하면 noise를 학습합니다.
+
+## 사용하기
+
+```bash
+cd phases/10-llms-from-scratch/09-constitutional-ai-self-improvement/code
+python3 main.py
 ```
 
-### Step 2: Self-Critique and Revise
+demo는 constitution 기반 critique/revision, rule reward scoring, group-relative advantage, KL-constrained update를 출력합니다.
 
-In a real system the model itself critiques. In the lesson we simulate a critic with a handwritten rubric so the pipeline runs without an LLM call.
+## 산출물
 
-```python
-def critique(response: str, principle: str) -> dict:
-    problems = []
-    if len(response.split()) > 40 and "plainly" in principle:
-        problems.append("answer buried in extra prose")
-    if response.strip().lower().startswith(("i can't", "i cannot", "as an ai")):
-        problems.append("unwarranted refusal")
-    if response.count(",") > 4:
-        problems.append("too much hedging")
-    return {"principle": principle, "problems": problems}
+이 lesson은 `outputs/skill-self-improvement-auditor.md`를 제공합니다. Constitutional AI, RLAIF, GRPO, self-generated preference pipeline을 scale에서 실행하기 전에 reward rule, KL budget, diversity floor, human data quota, mode-collapse watchdog을 감사하는 checklist입니다.
 
-def revise(response: str, critique_result: dict) -> str:
-    if "answer buried" in " ".join(critique_result["problems"]):
-        return response.split(".")[-2].strip() + "."
-    if "unwarranted refusal" in " ".join(critique_result["problems"]):
-        return "Here is the answer: " + response.split(":")[-1].strip()
-    return response
-```
+## 연습 문제
 
-The revise function is a stand-in. With a real LLM it would be a second prompt: "Given the critique, rewrite the response."
+1. constitution에 "answer should cite uncertainty when needed" 원칙을 추가하고 revision 결과가 어떻게 달라지는지 보세요.
+2. arithmetic reward를 더 안전하게 바꿔 `eval` 대신 parser를 쓰세요.
+3. group size를 4, 16, 64로 바꿔 advantage variance를 비교하세요.
+4. zero-variance group을 skip하는 경우와 epsilon으로 나누는 경우의 training curve를 비교하세요.
+5. self-generated data만 5 round 반복하고 n-gram diversity가 어떻게 변하는지 측정하세요.
 
-### Step 3: Rule-Based Rewards
+## 핵심 용어
 
-For verifiable tasks, replace the critic entirely. This checker grades arithmetic answers.
+| 용어 | 의미 |
+|------|---------|
+| Constitutional AI | written principle을 기준으로 model이 자기 output을 critique/revise하고 preference를 만드는 alignment method |
+| RLAIF | Reinforcement Learning from AI Feedback. human 대신 AI-generated preference를 사용 |
+| GRPO | group 안 reward를 normalize해 value function 없이 PPO-like update를 하는 method |
+| ORM | final outcome 하나만 reward하는 outcome reward model 또는 rule |
+| PRM | reasoning step마다 reward를 주는 process reward model |
+| Mode collapse | self-generated data 반복으로 output diversity가 줄어드는 현상 |
 
-```python
-import re
+## 더 읽을거리
 
-def reward_math(prompt: str, response: str) -> float:
-    try:
-        expected = eval(prompt.replace("What is ", "").replace("?", "").strip())
-    except Exception:
-        return 0.0
-    numbers = re.findall(r"-?\d+", response)
-    if not numbers:
-        return 0.0
-    return 1.0 if int(numbers[-1]) == expected else 0.0
-
-def reward_format(response: str) -> float:
-    return 1.0 if re.search(r"<answer>.*</answer>", response) else 0.0
-```
-
-Two deterministic rules. No training data. No human labels. The combined reward is `reward_math + 0.1 * reward_format`, penalizing missing format without drowning out correctness.
-
-### Step 4: Group-Relative Advantage
-
-Given a list of rewards for a group of responses to the same prompt, compute the z-score:
-
-```python
-import numpy as np
-
-def group_relative_advantage(rewards: list[float]) -> np.ndarray:
-    r = np.array(rewards, dtype=float)
-    if r.std() < 1e-8:
-        return np.zeros_like(r)
-    return (r - r.mean()) / (r.std() + 1e-8)
-```
-
-If every sample in the group has the same reward, the advantage is zero and no gradient signal flows. This is a feature. It tells you the prompt is either trivially solved or impossibly hard for the current policy, and the step should skip it.
-
-### Step 5: GRPO Update
-
-One step, symbolic gradient. In production this would be a torch autograd pass. Here we show the update rule directly.
-
-```python
-def grpo_step(policy_logprobs: np.ndarray, ref_logprobs: np.ndarray,
-              advantages: np.ndarray, beta: float = 0.01, clip_eps: float = 0.2) -> dict:
-    ratios = np.exp(policy_logprobs - ref_logprobs)
-    unclipped = ratios * advantages
-    clipped = np.clip(ratios, 1 - clip_eps, 1 + clip_eps) * advantages
-    policy_loss = -np.minimum(unclipped, clipped).mean()
-    kl = (ref_logprobs - policy_logprobs).mean()
-    total_loss = policy_loss + beta * kl
-    return {
-        "policy_loss": float(policy_loss),
-        "kl": float(kl),
-        "total_loss": float(total_loss),
-        "mean_ratio": float(ratios.mean()),
-    }
-```
-
-This is PPO's clipped surrogate with one change: the advantages came from group-relative z-scores, not from a value function. No V(s) to train. No GAE. The group is the baseline.
-
-### Step 6: Self-Improvement Round
-
-Tie the pieces together. Sample a group, score each response with the rule, compute advantages, report the metrics you would feed into a real optimizer.
-
-```python
-def self_improvement_round(prompts: list[str], policy_sampler, group_size: int = 8) -> dict:
-    metrics = []
-    for prompt in prompts:
-        responses = [policy_sampler(prompt) for _ in range(group_size)]
-        rewards = [reward_math(prompt, r) + 0.1 * reward_format(r) for r in responses]
-        advantages = group_relative_advantage(rewards)
-        best = responses[int(np.argmax(rewards))]
-        metrics.append({
-            "prompt": prompt,
-            "mean_reward": float(np.mean(rewards)),
-            "best_reward": float(np.max(rewards)),
-            "std_reward": float(np.std(rewards)),
-            "best_response": best,
-            "advantages": advantages.tolist(),
-        })
-    return {"per_prompt": metrics,
-            "overall_mean": float(np.mean([m["mean_reward"] for m in metrics]))}
-```
-
-## Use It
-
-Running `code/main.py` runs both loops end to end. The CAI loop produces a small set of (initial, revised) pairs you could fine-tune on. The GRPO loop produces per-prompt reward statistics for arithmetic problems, showing how group-relative advantages let a weak sampler improve without a value function or human labels.
-
-The numbers are not the point. In a real run with a trained model the reward mean should climb across rounds, the reward std should stay positive (if it collapses to zero, the policy has mode-collapsed and you should stop), and the KL to the reference should grow slowly. Those three curves -- mean reward up, std stable, KL bounded -- are the production health check for a GRPO or CAI pipeline.
-
-## Ship It
-
-This lesson produces `outputs/skill-self-improvement-auditor.md`. Feed it a proposed self-improvement pipeline and it enforces the non-negotiable gates: a reward rule that is actually verifiable, a KL budget against the reference, a diversity floor, and a human-data quota. It refuses to approve a loop that claims to be "pure self-improvement" without any external grounding.
-
-## Exercises
-
-1. Replace the handwritten critic in Step 2 with an LLM call. Use any local chat model. Measure how often the critique and revision actually improve the response versus leaving it unchanged.
-
-2. Add a third constitutional principle about factuality. Run the pipeline on prompts that require factual claims (capitals, dates) and measure how many revisions remove factual errors versus introduce new ones.
-
-3. Implement DPO on the preference pairs produced by CAI stage 2. Take 20 prompts, generate two responses each, have the critic pick a winner per pair, then run the DPO loss from Lesson 08. Compare to the GRPO path on the same data.
-
-4. Add entropy regularization to the GRPO objective. The term `-alpha * entropy(policy)` with alpha=0.01 encourages diverse sampling. Measure whether it delays mode collapse across 5 rounds of self-improvement.
-
-5. Build a process reward scorer for a two-step arithmetic problem. Given "What is (3+4)*5?", the model must show the intermediate 3+4=7 step. Grade the intermediate step separately from the final answer and compare PRM-weighted GRPO to pure ORM-weighted GRPO over 10 rounds.
-
-## Key Terms
-
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| Constitutional AI | "The model aligns itself" | A two-stage pipeline (self-critique + RLAIF) that replaces most human preference labels with model self-judgments against a written constitution |
-| RLAIF | "RLHF without humans" | Reinforcement Learning from AI Feedback -- PPO or DPO on preferences generated by the model itself |
-| GRPO | "PPO without a value function" | Group-Relative Policy Optimization -- sample G responses per prompt, use z-scored group rewards as advantages |
-| ORM | "Reward the answer" | Outcome Reward Model -- a single scalar reward on the final answer only |
-| PRM | "Reward each step" | Process Reward Model -- reward on every intermediate reasoning step, often trained from step-labeled data |
-| Rule-based reward | "Deterministic grader" | A verifier (regex, sympy, test suite) that returns a binary or numeric score without a learned model |
-| Rejection sampling FT | "Keep the winners, retrain" | Sample many responses, filter to the highest-reward ones, add to SFT data, retrain |
-| Mode collapse | "The model stopped being diverse" | Post-training policy concentrates on a narrow region of the response space; measured as falling reward std across a group |
-| KL budget | "How far you can drift" | The total KL divergence from the reference model that the optimizer is allowed to accumulate before training stops |
-| R1 moment | "The model learned to backtrack" | DeepSeek's reported behavior where a policy trained only on outcome rewards spontaneously developed self-checking and backtracking in its chain-of-thought |
-
-## Further Reading
-
-- [Bai et al., 2022 -- "Constitutional AI: Harmlessness from AI Feedback"](https://arxiv.org/abs/2212.08073) -- Anthropic's original CAI paper with the two-stage SL-CAI + RLAIF pipeline
-- [Shao et al., 2024 -- "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models"](https://arxiv.org/abs/2402.03300) -- introduces GRPO
-- [DeepSeek-AI, 2025 -- "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning"](https://arxiv.org/abs/2501.12948) -- R1 and R1-Zero, GRPO + rule rewards at scale
-- [Lightman et al., 2023 -- "Let's Verify Step by Step"](https://arxiv.org/abs/2305.20050) -- OpenAI's PRM800K and the case for process reward models
-- [Wang et al., 2024 -- "Math-Shepherd: Verify and Reinforce LLMs Step-by-step without Human Annotations"](https://arxiv.org/abs/2312.08935) -- auto-labeled PRM via Monte Carlo rollouts
-- [Huang et al., 2024 -- "Large Language Models Cannot Self-Correct Reasoning Yet"](https://arxiv.org/abs/2310.01798) -- the skeptical counterpoint on self-improvement without external grounding
+- [Bai et al., 2022 -- "Constitutional AI: Harmlessness from AI Feedback"](https://arxiv.org/abs/2212.08073)
+- [DeepSeekMath, 2024 -- "Pushing the Limits of Mathematical Reasoning in Open Language Models"](https://arxiv.org/abs/2402.03300)
+- [DeepSeek-R1, 2025 -- "Incentivizing Reasoning Capability in LLMs via Reinforcement Learning"](https://arxiv.org/abs/2501.12948)

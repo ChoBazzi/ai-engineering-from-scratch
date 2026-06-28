@@ -1,10 +1,10 @@
 {
   "lesson": "24-agent-observability-platforms",
-  "title": "Agent Observability: Langfuse, Phoenix, Opik",
+  "title": "에이전트 Observability: Langfuse, Phoenix, Opik",
   "questions": [
     {
       "stage": "pre",
-      "question": "What license does Langfuse ship under after the June 2025 open-sourcing of formerly commercial modules?",
+      "question": "2025년 6월 기존 commercial module을 open-source화한 뒤 Langfuse는 어떤 license로 제공되는가?",
       "options": [
         "GPLv3",
         "MIT",
@@ -12,23 +12,23 @@
         "Apache 2.0"
       ],
       "correct": 1,
-      "explanation": "Langfuse is MIT, including LLM-as-a-judge, annotation queues, prompt experiments, and Playground after June 2025."
+      "explanation": "Langfuse는 2025년 6월 이후 LLM-as-a-judge, annotation queues, prompt experiments, Playground를 포함해 MIT다."
     },
     {
       "stage": "pre",
-      "question": "What is Arize Phoenix strongest at according to the lesson?",
+      "question": "이 lesson에 따르면 Arize Phoenix는 무엇에 가장 강한가?",
       "options": [
         "Prompt versioning",
-        "Deep agent-specific evaluation: trace clustering, anomaly detection, RAG retrieval relevancy, OpenInference auto-instrumentation",
+        "깊은 agent-specific evaluation: trace clustering, anomaly detection, RAG retrieval relevancy, OpenInference auto-instrumentation",
         "Automated optimization loop",
-        "Static analysis of code"
+        "code static analysis"
       ],
       "correct": 1,
-      "explanation": "Phoenix focuses on behavioral drift and RAG evaluation with OpenInference auto-instrumentation."
+      "explanation": "Phoenix는 OpenInference auto-instrumentation과 함께 behavioral drift 및 RAG evaluation에 초점을 둔다."
     },
     {
       "stage": "check",
-      "question": "Which platform pairs automated prompt optimization with guardrails (PII redaction, topical constraints) and LLM-judge hallucination detection?",
+      "question": "automated prompt optimization을 guardrails(PII redaction, topical constraints) 및 LLM-judge hallucination detection과 결합하는 platform은 무엇인가?",
       "options": [
         "Langfuse",
         "Phoenix",
@@ -36,11 +36,11 @@
         "Jaeger"
       ],
       "correct": 2,
-      "explanation": "Opik centers on the optimization + guardrail loop."
+      "explanation": "Opik은 optimization + guardrail loop에 중심을 둔다."
     },
     {
       "stage": "check",
-      "question": "Which platform does the lesson recommend for an all-in-one with prompt management?",
+      "question": "이 lesson은 prompt management가 있는 all-in-one으로 어떤 platform을 추천하는가?",
       "options": [
         "Langfuse",
         "Phoenix",
@@ -48,43 +48,43 @@
         "Datadog APM"
       ],
       "correct": 0,
-      "explanation": "Langfuse covers tracing + prompt management + evals + session replay end-to-end."
+      "explanation": "Langfuse는 tracing + prompt management + evals + session replay를 end-to-end로 포괄한다."
     },
     {
       "stage": "check",
-      "question": "What does the lesson say about vendor-published platform benchmarks?",
+      "question": "이 lesson은 vendor가 공개한 platform benchmark에 대해 무엇이라고 말하는가?",
       "options": [
-        "They are definitive",
-        "Take them as directional; measure your own corpus",
-        "They are forbidden by OpenTelemetry",
-        "Only Opik's are reliable"
+        "결정적인 근거다",
+        "방향성으로만 받아들이고 자신의 corpus에서 직접 측정하라",
+        "OpenTelemetry가 금지한다",
+        "Opik의 benchmark만 신뢰할 수 있다"
       ],
       "correct": 1,
-      "explanation": "Even the cited 14x gap between Opik and Langfuse should be measured on your own data before deciding."
+      "explanation": "인용된 Opik과 Langfuse의 14배 차이도 결정 전에 자신의 data에서 측정해야 한다."
     },
     {
       "stage": "post",
-      "question": "Why is tracing without evaluation considered expensive logging?",
+      "question": "evaluation 없는 tracing이 비싼 logging으로 간주되는 이유는 무엇인가?",
       "options": [
-        "Disk costs more than CPU",
-        "You see runs but you do not score them, so regressions are invisible and bisection is impossible",
-        "Providers charge for spans",
-        "Spans cannot be replayed"
+        "disk가 CPU보다 비싸기 때문이다",
+        "run은 보이지만 score하지 않으므로 regression이 보이지 않고 bisection이 불가능하기 때문이다",
+        "provider가 span에 과금하기 때문이다",
+        "span은 replay할 수 없기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Evals are what turn traces into actionable quality signals."
+      "explanation": "eval은 trace를 실행 가능한 quality signal로 바꾼다."
     },
     {
       "stage": "post",
-      "question": "What is the lesson's warning about self-rolled LLM-judges?",
+      "question": "이 lesson이 자체 제작 LLM-judge에 대해 경고하는 내용은 무엇인가?",
       "options": [
-        "They are forbidden by Apache 2.0",
-        "CRITIC applies: judges need external grounding for factual verification or they rubber-stamp",
-        "They only work in TypeScript",
-        "They must run on GPUs"
+        "Apache 2.0에서 금지된다",
+        "CRITIC이 적용된다. judge는 factual verification을 위한 external grounding이 필요하며, 없으면 대충 승인한다",
+        "TypeScript에서만 작동한다",
+        "GPU에서 실행해야 한다"
       ],
       "correct": 1,
-      "explanation": "Without external tool-grounded verification, LLM-judges drift toward rubber-stamping (CRITIC, Lesson 5)."
+      "explanation": "external tool-grounded verification이 없으면 LLM-judge는 대충 승인하는 쪽으로 drift한다(CRITIC, Lesson 5)."
     }
   ]
 }

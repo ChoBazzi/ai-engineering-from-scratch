@@ -1,39 +1,39 @@
-# Structured Outputs: JSON, Schema Validation, Constrained Decoding
+# 구조화 출력: JSON, 스키마 검증, constrained decoding
 
-> Your LLM returns a string. Your application needs JSON. That gap has crashed more production systems than any model hallucination. Structured output is the bridge between natural language and typed data. Get it right and your LLM becomes a reliable API. Get it wrong and you're parsing free-text with regex at 3am.
+> LLM은 문자열을 반환합니다. 애플리케이션은 JSON을 필요로 합니다. 이 간극은 model hallucination보다 더 많은 production system을 망가뜨렸습니다. structured output은 자연어와 typed data 사이의 다리입니다. 제대로 만들면 LLM이 신뢰할 수 있는 API가 됩니다. 잘못 만들면 새벽 3시에 free-text를 regex로 파싱하게 됩니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 10, Lessons 01-05 (LLMs from Scratch)
 **Time:** ~90 minutes
-**Related:** Phase 5 · 20 (Structured Outputs & Constrained Decoding) covers the decoder-level theory (FSM/CFG logit processors, Outlines, XGrammar). This lesson focuses on the production SDK surface (OpenAI `response_format`, Anthropic tool use, Instructor) — read Phase 5 · 20 first if you want to understand what is happening below the API.
+**Related:** Phase 5 · 20 (Structured Outputs & Constrained Decoding)는 decoder-level theory(FSM/CFG logit processor, Outlines, XGrammar)를 다룹니다. 이 lesson은 production SDK surface(OpenAI `response_format`, Anthropic tool use, Instructor)에 집중합니다. API 아래에서 무슨 일이 일어나는지 이해하고 싶다면 Phase 5 · 20을 먼저 읽으세요.
 
-## Learning Objectives
+## 학습 목표
 
-- Implement JSON-mode and schema-constrained outputs using OpenAI and Anthropic API parameters
-- Build a Pydantic validation layer that rejects malformed LLM outputs and retries with error feedback
-- Explain how constrained decoding forces valid JSON at the token level without post-processing
-- Design robust extraction prompts that reliably convert unstructured text into typed data structures
+- OpenAI와 Anthropic API parameter로 JSON-mode와 schema-constrained output을 구현합니다.
+- malformed LLM output을 거부하고 error feedback으로 retry하는 Pydantic validation layer를 만듭니다.
+- constrained decoding이 post-processing 없이 token level에서 valid JSON을 강제하는 방식을 설명합니다.
+- unstructured text를 typed data structure로 안정적으로 변환하는 robust extraction prompt를 설계합니다.
 
-## The Problem
+## 문제
 
-You ask an LLM: "Extract the product name, price, and availability from this text." It responds:
+LLM에게 "이 텍스트에서 product name, price, availability를 추출해"라고 요청합니다. 모델은 이렇게 답합니다.
 
-```
+```text
 The product is the Sony WH-1000XM5 headphones, which cost $348.00 and are currently in stock.
 ```
 
-That is a perfectly correct answer. It is also completely useless to your application. Your inventory system needs `{"product": "Sony WH-1000XM5", "price": 348.00, "in_stock": true}`. You need a JSON object with specific keys, specific types, and specific value constraints. You do not need a sentence.
+완전히 맞는 답입니다. 그러나 애플리케이션에는 쓸모가 없습니다. inventory system은 `{"product": "Sony WH-1000XM5", "price": 348.00, "in_stock": true}`가 필요합니다. 특정 key, type, value constraint를 가진 JSON object가 필요하지 문장이 필요한 것이 아닙니다.
 
-The naive solution: add "Respond in JSON" to your prompt. This works 90% of the time. The other 10% the model wraps the JSON in markdown code fences, or adds a preamble like "Here's the JSON:", or produces syntactically invalid JSON because it closed a bracket early. Your JSON parser crashes. Your pipeline breaks. You add try/except and a retry loop. The retry sometimes produces different data. Now you have a consistency problem on top of a parsing problem.
+순진한 해결책은 prompt에 "Respond in JSON"을 추가하는 것입니다. 90%는 작동합니다. 나머지 10%에서는 모델이 JSON을 markdown code fence로 감싸거나, "Here's the JSON:" 같은 preamble을 붙이거나, bracket을 일찍 닫아 syntactically invalid JSON을 만듭니다. JSON parser가 crash하고 pipeline이 깨집니다. try/except와 retry loop를 추가하면 retry가 가끔 다른 데이터를 생성합니다. 이제 parsing problem 위에 consistency problem까지 생깁니다.
 
-This is not a prompt engineering problem. It is a decoding problem. The model generates tokens left to right. At each position, it picks the most likely next token from a vocabulary of 100K+ options. Most of those options would produce invalid JSON at any given position. If the model just emitted `{"price":`, the next token must be a digit, a quote (for string), `null`, `true`, `false`, or a negative sign. Anything else produces invalid JSON. Without constraints, the model might pick a perfectly reasonable English word that is catastrophically wrong syntactically.
+이것은 prompt engineering 문제가 아니라 decoding 문제입니다. 모델은 token을 왼쪽에서 오른쪽으로 생성합니다. 각 위치에서 100K개 이상의 vocabulary 중 다음 token을 고릅니다. 그중 대부분은 해당 위치에서 invalid JSON을 만듭니다. 모델이 방금 `{"price":`를 출력했다면 다음 token은 digit, quote(string), `null`, `true`, `false`, negative sign 중 하나여야 합니다. 그 외는 syntactically invalid입니다. 제약이 없으면 모델은 영어로 그럴듯하지만 syntax상 치명적인 token을 고를 수 있습니다.
 
-## The Concept
+## 개념
 
-### The Structured Output Spectrum
+### 구조화 출력 스펙트럼
 
-There are four levels of structured output control, each more reliable than the last.
+structured output control에는 네 단계가 있으며 뒤로 갈수록 reliability가 높습니다.
 
 ```mermaid
 graph LR
@@ -50,17 +50,17 @@ graph LR
     style D fill:#1a1a2e,stroke:#0f3460,color:#fff
 ```
 
-**Prompt-based** ("Respond in valid JSON"): no enforcement. The model usually complies but sometimes does not. Reliability: ~90%. Failure mode: markdown fences, preamble text, truncated output, wrong structure.
+**Prompt-based**("Respond in valid JSON"): 강제가 없습니다. 모델은 보통 따르지만 가끔 실패합니다. failure mode는 markdown fence, preamble text, truncated output, wrong structure입니다.
 
-**JSON mode**: the API guarantees the output is valid JSON. OpenAI's `response_format: { type: "json_object" }` enables this. The output will parse without errors. But it may not match your expected schema -- extra keys, wrong types, missing fields.
+**JSON mode**: API가 output이 valid JSON임을 보장합니다. OpenAI의 `response_format: { type: "json_object" }`가 여기에 해당합니다. parse error는 사라지지만 expected schema와 맞는지는 보장하지 않습니다.
 
-**Schema mode**: the API takes a JSON Schema and guarantees the output matches it. In 2026 every major provider supports this natively: OpenAI's `response_format: { type: "json_schema", json_schema: {...} }` (also as `tool_choice="required"`), Anthropic's tool use with `input_schema`, and Gemini's `response_schema` + `response_mime_type: "application/json"`. The output has the exact keys, types, and constraints you specified.
+**Schema mode**: API가 JSON Schema를 받고 output이 그 schema와 일치함을 보장합니다. 2026년 현재 주요 provider는 모두 이를 native로 지원합니다. OpenAI는 `response_format: { type: "json_schema", json_schema: {...} }`, Anthropic은 `input_schema`가 있는 tool use, Gemini는 `response_schema`와 `response_mime_type: "application/json"`을 사용합니다.
 
-**Constrained decoding**: at each token position during generation, the decoder masks out all tokens that would produce invalid output. If the schema requires a number and the model is about to emit a letter, that token is set to probability zero. The model can only produce tokens that lead to valid output. This is what OpenAI's structured output mode and libraries like Outlines and Guidance implement under the hood.
+**Constrained decoding**: generation 중 각 token position에서 invalid output으로 이어지는 token을 mask out합니다. schema가 number를 요구하는데 모델이 letter를 내려고 하면 그 token의 probability가 0이 됩니다. OpenAI structured output mode와 Outlines, Guidance 같은 library가 내부에서 구현하는 방식입니다.
 
-### JSON Schema: The Contract Language
+### JSON Schema: 계약 언어
 
-JSON Schema is how you tell the model (or validation layer) what shape the output must have. Every major structured output system uses it.
+JSON Schema는 output shape를 모델 또는 validation layer에 알려주는 방법입니다. 모든 주요 structured output system이 사용합니다.
 
 ```json
 {
@@ -78,13 +78,11 @@ JSON Schema is how you tell the model (or validation layer) what shape the outpu
 }
 ```
 
-This schema says: the output must be an object with a string `product`, a non-negative number `price`, a boolean `in_stock`, and an optional array of string `categories`. Any output that does not match gets rejected.
+이 schema는 output이 string `product`, 0 이상 number `price`, boolean `in_stock`, optional string array `categories`를 가진 object여야 한다고 말합니다. 맞지 않는 output은 거부됩니다. nested object, typed array, enum, regex pattern, `oneOf`/`anyOf`/`allOf` 같은 polymorphic output도 표현할 수 있습니다.
 
-Schemas handle the hard cases: nested objects, arrays with typed items, enums (constrain a string to specific values), pattern matching (regex on strings), and combinators (oneOf, anyOf, allOf for polymorphic outputs).
+### Pydantic 패턴
 
-### The Pydantic Pattern
-
-In Python, you do not write JSON Schema by hand. You define a Pydantic model and it generates the schema for you.
+Python에서는 JSON Schema를 손으로 쓰지 않습니다. Pydantic model을 정의하면 schema가 자동 생성됩니다.
 
 ```python
 from pydantic import BaseModel
@@ -96,11 +94,11 @@ class Product(BaseModel):
     categories: list[str] = []
 ```
 
-This produces the same JSON Schema as above. The Instructor library (and OpenAI's SDK) accept Pydantic models directly: pass the model class, get back a validated instance. If the LLM output does not match, Instructor retries automatically.
+Instructor library와 OpenAI SDK는 Pydantic model을 직접 받을 수 있습니다. model class를 넘기면 validated instance를 돌려받습니다. LLM output이 맞지 않으면 Instructor가 자동으로 retry합니다.
 
-### Function Calling / Tool Use
+### 함수 호출 / 도구 사용
 
-An alternative interface for the same problem. Instead of asking the model to produce JSON directly, you define "tools" (functions) with typed parameters. The model outputs a function call with structured arguments. OpenAI calls this "function calling." Anthropic calls it "tool use." The result is the same: structured data.
+같은 문제의 다른 interface입니다. 모델에게 JSON을 직접 만들라고 하는 대신 typed parameter가 있는 "tool"(function)을 정의합니다. 모델은 structured argument가 있는 function call을 출력합니다. OpenAI는 function calling, Anthropic은 tool use라고 부릅니다. 결과는 같습니다. structured data입니다.
 
 ```mermaid
 graph TD
@@ -117,27 +115,27 @@ graph TD
     style R fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-Tool use is preferred when the model needs to choose which function to call, not just fill in parameters. If you have 10 different extraction schemas and the model must pick the right one based on the input, tool use gives you both the schema selection and the structured output.
+tool use는 모델이 parameter를 채우기만 하는 것이 아니라 어떤 function을 호출할지 선택해야 할 때 선호됩니다. extraction schema가 10개 있고 input에 따라 모델이 하나를 고르게 해야 한다면 tool use가 schema selection과 structured output을 함께 제공합니다.
 
-### Common Failure Modes
+### 흔한 실패 mode
 
-Even with schema enforcement, structured outputs can fail in subtle ways.
+schema enforcement가 있어도 subtle failure는 남습니다.
 
-**Hallucinated values**: the output matches the schema but contains invented data. The model produces `{"price": 299.99}` when the text says $348. Schema validation cannot catch this -- the type is correct, the value is wrong.
+**Hallucinated values**: output은 schema와 맞지만 데이터가 invented입니다. text는 $348이라고 말하는데 모델이 `{"price": 299.99}`를 냅니다. type은 맞으므로 schema validation은 잡지 못합니다.
 
-**Enum confusion**: you constrain a field to `["in_stock", "out_of_stock", "preorder"]`. The model outputs `"available"` -- semantically correct, but not in the allowed set. Good constrained decoding prevents this. Prompt-based approaches do not.
+**Enum confusion**: field를 `["in_stock", "out_of_stock", "preorder"]`로 제한했는데 모델이 `"available"`을 냅니다. 의미는 맞지만 allowed set이 아닙니다. constrained decoding은 이를 막지만 prompt-based 접근은 막지 못합니다.
 
-**Nested object depth**: deeply nested schemas (4+ levels) produce more errors. Each level of nesting is another place where the model can lose track of structure.
+**Nested object depth**: 깊게 nested된 schema(4+ level)는 error를 더 많이 만듭니다. nesting level마다 모델이 structure를 잃을 지점이 늘어납니다.
 
-**Array length**: the model may produce too many or too few items in an array. Schemas support `minItems` and `maxItems` but not all providers enforce them at the decoding level.
+**Array length**: 모델이 array item을 너무 많이 또는 너무 적게 만들 수 있습니다. schema는 `minItems`, `maxItems`를 지원하지만 모든 provider가 decoding level에서 강제하지는 않습니다.
 
-**Optional field omission**: the model omits fields that are technically optional but semantically important for your use case. Set them as required in the schema even if the data is sometimes missing -- force the model to produce `null` explicitly.
+**Optional field omission**: technically optional이지만 use case상 중요한 field를 모델이 생략합니다. data가 없을 때도 `null`을 명시적으로 내도록 required로 두는 편이 낫습니다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: JSON Schema Validator
+### 1단계: JSON Schema 검증기
 
-Build a validator from scratch that checks whether a Python object matches a JSON Schema. This is what runs on the output side to verify compliance.
+Python object가 JSON Schema와 맞는지 확인하는 validator를 scratch에서 만듭니다. output side에서 compliance를 검증하는 역할입니다.
 
 ```python
 import json
@@ -146,67 +144,13 @@ def validate_schema(data, schema):
     errors = []
     _validate(data, schema, "", errors)
     return errors
-
-def _validate(data, schema, path, errors):
-    schema_type = schema.get("type")
-
-    if schema_type == "object":
-        if not isinstance(data, dict):
-            errors.append(f"{path}: expected object, got {type(data).__name__}")
-            return
-        for key in schema.get("required", []):
-            if key not in data:
-                errors.append(f"{path}.{key}: required field missing")
-        properties = schema.get("properties", {})
-        for key, value in data.items():
-            if key in properties:
-                _validate(value, properties[key], f"{path}.{key}", errors)
-
-    elif schema_type == "array":
-        if not isinstance(data, list):
-            errors.append(f"{path}: expected array, got {type(data).__name__}")
-            return
-        min_items = schema.get("minItems", 0)
-        max_items = schema.get("maxItems", float("inf"))
-        if len(data) < min_items:
-            errors.append(f"{path}: array has {len(data)} items, minimum is {min_items}")
-        if len(data) > max_items:
-            errors.append(f"{path}: array has {len(data)} items, maximum is {max_items}")
-        items_schema = schema.get("items", {})
-        for i, item in enumerate(data):
-            _validate(item, items_schema, f"{path}[{i}]", errors)
-
-    elif schema_type == "string":
-        if not isinstance(data, str):
-            errors.append(f"{path}: expected string, got {type(data).__name__}")
-            return
-        enum_values = schema.get("enum")
-        if enum_values and data not in enum_values:
-            errors.append(f"{path}: '{data}' not in allowed values {enum_values}")
-
-    elif schema_type == "number":
-        if not isinstance(data, (int, float)):
-            errors.append(f"{path}: expected number, got {type(data).__name__}")
-            return
-        minimum = schema.get("minimum")
-        maximum = schema.get("maximum")
-        if minimum is not None and data < minimum:
-            errors.append(f"{path}: {data} is less than minimum {minimum}")
-        if maximum is not None and data > maximum:
-            errors.append(f"{path}: {data} is greater than maximum {maximum}")
-
-    elif schema_type == "boolean":
-        if not isinstance(data, bool):
-            errors.append(f"{path}: expected boolean, got {type(data).__name__}")
-
-    elif schema_type == "integer":
-        if not isinstance(data, int) or isinstance(data, bool):
-            errors.append(f"{path}: expected integer, got {type(data).__name__}")
 ```
 
-### Step 2: Pydantic-Style Model to Schema
+전체 구현은 `code/main.py`에 있습니다. object, array, string, number, boolean, integer type을 확인하고 required field, enum, min/max, minItems/maxItems를 검증합니다.
 
-Build a minimal class-to-schema converter. Define a Python class and generate its JSON Schema automatically.
+### 2단계: Pydantic 스타일 모델에서 스키마로
+
+Python class처럼 field를 정의하고 JSON Schema를 자동 생성하는 최소 converter를 만듭니다.
 
 ```python
 class SchemaField:
@@ -217,53 +161,13 @@ class SchemaField:
         self.enum = enum
         self.minimum = minimum
         self.maximum = maximum
-
-def python_type_to_schema(field):
-    type_map = {
-        str: "string",
-        int: "integer",
-        float: "number",
-        bool: "boolean",
-    }
-
-    schema = {}
-
-    if field.field_type in type_map:
-        schema["type"] = type_map[field.field_type]
-    elif field.field_type == list:
-        schema["type"] = "array"
-        schema["items"] = {"type": "string"}
-    elif isinstance(field.field_type, dict):
-        schema = field.field_type
-
-    if field.enum:
-        schema["enum"] = field.enum
-    if field.minimum is not None:
-        schema["minimum"] = field.minimum
-    if field.maximum is not None:
-        schema["maximum"] = field.maximum
-
-    return schema
-
-def model_to_schema(name, fields):
-    properties = {}
-    required = []
-
-    for field_name, field in fields.items():
-        properties[field_name] = python_type_to_schema(field)
-        if field.required:
-            required.append(field_name)
-
-    return {
-        "type": "object",
-        "properties": properties,
-        "required": required,
-    }
 ```
 
-### Step 3: Constrained Token Filter
+이 layer는 `str`, `int`, `float`, `bool`, `list`를 JSON Schema type으로 바꾸고 required list를 채웁니다. production에서는 Pydantic을 쓰지만, 직접 만들어보면 schema generation이 얼마나 단순한 contract인지 알 수 있습니다.
 
-Simulate constrained decoding. Given a partial JSON string and a schema, determine which token categories are valid at the current position.
+### 3단계: constrained token 필터
+
+partial JSON string과 schema가 있을 때 현재 위치에서 어떤 token category가 valid한지 계산해 constrained decoding을 simulation합니다.
 
 ```python
 def next_valid_tokens(partial_json, schema):
@@ -279,83 +183,16 @@ def next_valid_tokens(partial_json, schema):
         pass
 
     last_char = stripped[-1] if stripped else ""
-
-    if last_char == "{":
-        return ['"', "}"]
-    elif last_char == '"':
-        if stripped.endswith('":'):
-            return ['"', "0-9", "true", "false", "null", "[", "{"]
-        return ["a-z", '"']
-    elif last_char == ":":
-        return [" ", '"', "0-9", "true", "false", "null", "[", "{"]
-    elif last_char == ",":
-        return [" ", '"', "{", "["]
-    elif last_char in "0123456789":
-        return ["0-9", ".", ",", "}", "]"]
-    elif last_char == "}":
-        return [",", "}", "]", "<EOS>"]
-    elif last_char == "]":
-        return [",", "}", "<EOS>"]
-    elif last_char == "[":
-        return ['"', "0-9", "true", "false", "null", "{", "[", "]"]
-    else:
-        return ["any"]
-
-def demonstrate_constrained_decoding():
-    partial_states = [
-        '',
-        '{',
-        '{"product"',
-        '{"product":',
-        '{"product": "Sony"',
-        '{"product": "Sony",',
-        '{"product": "Sony", "price":',
-        '{"product": "Sony", "price": 348',
-        '{"product": "Sony", "price": 348}',
-    ]
-
-    print(f"{'Partial JSON':<45} {'Valid Next Tokens'}")
-    print("-" * 80)
-    for state in partial_states:
-        valid = next_valid_tokens(state, {})
-        display = state if state else "(empty)"
-        print(f"{display:<45} {valid}")
+    ...
 ```
 
-### Step 4: Extraction Pipeline
+실제 decoder는 character category가 아니라 tokenizer vocabulary 전체를 mask합니다. 하지만 원리는 같습니다. 현재 prefix가 grammar의 어느 state에 있는지 추적하고, 다음 state로 이어질 수 없는 token을 금지합니다.
 
-Combine everything into an extraction pipeline: define a schema, simulate an LLM producing structured output, validate the output, and handle retries.
+### 4단계: 추출 파이프라인
+
+schema를 정의하고, LLM이 structured output을 만드는 과정을 simulation하고, output을 validate하고, 실패하면 retry합니다.
 
 ```python
-def simulate_llm_extraction(text, schema, attempt=0):
-    if "headphones" in text.lower() or "sony" in text.lower():
-        if attempt == 0:
-            return '{"product": "Sony WH-1000XM5", "price": 348.00, "in_stock": true, "categories": ["audio", "headphones"]}'
-        return '{"product": "Sony WH-1000XM5", "price": 348.00, "in_stock": true}'
-
-    if "laptop" in text.lower():
-        return '{"product": "MacBook Pro 16", "price": 2499.00, "in_stock": false, "categories": ["computers"]}'
-
-    return '{"product": "Unknown", "price": 0, "in_stock": false}'
-
-def extract_with_retry(text, schema, max_retries=3):
-    for attempt in range(max_retries):
-        raw = simulate_llm_extraction(text, schema, attempt)
-
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError as e:
-            print(f"  Attempt {attempt + 1}: JSON parse error -- {e}")
-            continue
-
-        errors = validate_schema(data, schema)
-        if not errors:
-            return data
-
-        print(f"  Attempt {attempt + 1}: Schema validation errors -- {errors}")
-
-    return None
-
 product_schema = {
     "type": "object",
     "properties": {
@@ -368,60 +205,11 @@ product_schema = {
 }
 ```
 
-### Step 5: Run the Full Pipeline
+pipeline은 raw string을 `json.loads()`로 parse하고 `validate_schema()`로 shape를 검사합니다. parse error나 validation error가 있으면 retry합니다. production에서는 이 error를 model context로 다시 보내 "이 오류를 고쳐라"라고 요청합니다.
 
-```python
-def run_demo():
-    print("=" * 60)
-    print("  Structured Output Pipeline Demo")
-    print("=" * 60)
+## 사용하기
 
-    print("\n--- Schema Definition ---")
-    product_fields = {
-        "product": SchemaField(str),
-        "price": SchemaField(float, minimum=0),
-        "in_stock": SchemaField(bool),
-        "categories": SchemaField(list, required=False),
-    }
-    generated_schema = model_to_schema("Product", product_fields)
-    print(json.dumps(generated_schema, indent=2))
-
-    print("\n--- Schema Validation ---")
-    test_cases = [
-        ({"product": "Test", "price": 10.0, "in_stock": True}, "Valid object"),
-        ({"product": "Test", "price": -5.0, "in_stock": True}, "Negative price"),
-        ({"product": "Test", "in_stock": True}, "Missing price"),
-        ({"product": "Test", "price": "ten", "in_stock": True}, "String as price"),
-        ("not an object", "String instead of object"),
-    ]
-
-    for data, label in test_cases:
-        errors = validate_schema(data, product_schema)
-        status = "PASS" if not errors else f"FAIL: {errors}"
-        print(f"  {label}: {status}")
-
-    print("\n--- Constrained Decoding Simulation ---")
-    demonstrate_constrained_decoding()
-
-    print("\n--- Extraction Pipeline ---")
-    texts = [
-        "The Sony WH-1000XM5 headphones are priced at $348 and currently available.",
-        "The new MacBook Pro 16-inch laptop costs $2499 but is sold out.",
-        "This is a random sentence with no product info.",
-    ]
-
-    for text in texts:
-        print(f"\n  Input: {text[:60]}...")
-        result = extract_with_retry(text, product_schema)
-        if result:
-            print(f"  Output: {json.dumps(result)}")
-        else:
-            print(f"  Output: FAILED after retries")
-```
-
-## Use It
-
-### OpenAI Structured Outputs
+### OpenAI 구조화 출력
 
 ```python
 # from openai import OpenAI
@@ -442,14 +230,11 @@ def run_demo():
 #     ],
 #     response_format=Product,
 # )
-#
-# product = response.choices[0].message.parsed
-# print(product.product, product.price, product.in_stock)
 ```
 
-OpenAI's structured output mode uses constrained decoding internally. Every token the model generates is guaranteed to produce output matching the Pydantic schema. No retries needed. No validation needed. The constraint is baked into the decoding process.
+OpenAI structured output mode는 내부적으로 constrained decoding을 사용합니다. 모델이 생성하는 모든 token은 Pydantic schema와 맞는 output으로 이어져야 합니다. retry도 별도 validation도 필요 없습니다. constraint가 decoding process에 baked in되어 있습니다.
 
-### Anthropic Tool Use
+### Anthropic tool use
 
 ```python
 # import anthropic
@@ -476,9 +261,9 @@ OpenAI's structured output mode uses constrained decoding internally. Every toke
 # )
 ```
 
-Anthropic achieves structured output through tool use. The model emits a tool call with structured arguments that match the input_schema. Same result, different API surface.
+Anthropic은 tool use로 structured output을 구현합니다. 모델은 `input_schema`와 맞는 structured argument를 가진 tool call을 냅니다. 같은 결과, 다른 API surface입니다.
 
-### Instructor Library
+### Instructor 라이브러리
 
 ```python
 # pip install instructor
@@ -500,49 +285,45 @@ Anthropic achieves structured output through tool use. The model emits a tool ca
 # )
 ```
 
-Instructor wraps any LLM client and adds automatic retries with validation. If the first attempt fails validation, it sends the errors back to the model as context and asks it to fix the output. This works with any provider, not just OpenAI.
+Instructor는 어떤 LLM client든 감싸서 Pydantic validation과 automatic retry를 추가합니다. 첫 시도가 validation에 실패하면 error를 context로 model에 다시 보내 output을 고치게 합니다. OpenAI뿐 아니라 여러 provider에서 작동합니다.
 
-## Ship It
+## 결과물
 
-This lesson produces `outputs/prompt-structured-extractor.md` -- a reusable prompt template that extracts structured data from any text given a schema definition. Feed it a JSON Schema and unstructured text, and it returns validated JSON.
+이 lesson은 `outputs/prompt-structured-extractor.md`를 만듭니다. schema definition과 unstructured text를 넣으면 validated JSON을 돌려주는 reusable prompt template입니다.
 
-It also produces `outputs/skill-structured-outputs.md` -- a decision framework for choosing the right structured output strategy based on your provider, reliability requirements, and schema complexity.
+또한 `outputs/skill-structured-outputs.md`를 만듭니다. provider, reliability requirement, schema complexity에 따라 올바른 structured output strategy를 고르는 decision framework입니다.
 
-## Exercises
+## 연습문제
 
-1. Extend the schema validator to support `oneOf` (the data must match exactly one of several schemas). This handles polymorphic outputs -- for example, a field that can be either a `Product` or a `Service` object with different shapes.
+1. schema validator에 `oneOf` 지원을 추가하세요. data가 여러 schema 중 정확히 하나와 맞아야 합니다. 예를 들어 field가 shape가 다른 `Product` 또는 `Service` object일 수 있는 polymorphic output을 처리합니다.
+2. 두 schema를 비교해 breaking change(removed required fields, changed types)와 non-breaking change(added optional fields, relaxed constraints)를 식별하는 "schema diff" tool을 만드세요.
+3. 더 현실적인 constrained decoding simulator를 구현하세요. JSON Schema와 100-token vocabulary(letters, digits, punctuation, keywords)가 주어졌을 때 generation을 step by step으로 진행하며 각 위치에서 invalid token을 mask하세요. 각 step에서 vocabulary 중 몇 %가 valid한지 측정하세요.
+4. extraction eval suite를 만드세요. hand-labeled JSON output이 있는 product description 50개를 만들고 pipeline을 실행해 exact match, field-level accuracy, type compliance를 측정하세요. 어떤 field가 가장 추출하기 어려운지 찾으세요.
+5. extraction pipeline에 "confidence score"를 추가하세요. 각 extracted field에 대해 token probability 또는 3회 extraction consistency를 기반으로 confidence를 추정하고 low-confidence field를 human review 대상으로 표시하세요.
 
-2. Build a "schema diff" tool that compares two schemas and identifies breaking changes (removed required fields, changed types) versus non-breaking changes (added optional fields, relaxed constraints). This is essential for versioning your extraction schemas in production.
+## 핵심 용어
 
-3. Implement a more realistic constrained decoding simulator. Given a JSON Schema and a vocabulary of 100 tokens (letters, digits, punctuation, keywords), walk through generation step by step, masking invalid tokens at each position. Measure what percentage of the vocabulary is valid at each step.
+| Term | 사람들이 흔히 말하는 것 | 실제 의미 |
+|------|------------------------|----------|
+| JSON mode | "JSON을 반환함" | syntactically valid JSON output은 보장하지만 특정 schema는 강제하지 않는 API flag |
+| Structured output | "typed JSON" | 올바른 key, type, constraint를 가진 특정 JSON Schema와 일치하는 output |
+| Constrained decoding | "guided generation" | 각 token position에서 invalid output으로 이어지는 token을 mask해 schema compliance를 보장하는 방식 |
+| JSON Schema | "JSON template" | JSON data의 structure, type, constraint를 선언적으로 설명하는 language |
+| Pydantic | "Python dataclasses+" | type validation이 있는 data model을 정의하고 JSON Schema를 생성하는 Python library |
+| Function calling | "tool use" | free text 대신 name + typed argument로 구성된 structured function invocation을 LLM이 출력하는 방식 |
+| Instructor | "LLM용 Pydantic" | validation failure 시 automatic retry와 함께 validated Pydantic instance를 반환하도록 LLM client를 감싸는 library |
+| Token masking | "vocabulary filtering" | generation 중 특정 token probability를 0으로 만들어 모델이 생성하지 못하게 하는 것 |
+| Schema compliance | "shape가 맞음" | required field, correct type, constraint 내 value, disallowed extra field 없음 |
+| Retry loop | "될 때까지 다시 시도" | validation error를 model에 보내 output을 고치게 하는 방식 |
 
-4. Build an extraction eval suite. Create 50 product descriptions with hand-labeled JSON outputs. Run your extraction pipeline on all 50 and measure exact match, field-level accuracy, and type compliance. Identify which fields are hardest to extract correctly.
+## 더 읽을거리
 
-5. Add "confidence scores" to your extraction pipeline. For each extracted field, estimate how confident the model is (based on token probabilities, or by running extraction 3 times and measuring consistency). Flag low-confidence fields for human review.
-
-## Key Terms
-
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| JSON mode | "Returns JSON" | API flag that guarantees syntactically valid JSON output, but does not enforce any particular schema |
-| Structured output | "Typed JSON" | Output that matches a specific JSON Schema with correct keys, types, and constraints |
-| Constrained decoding | "Guided generation" | At each token position, mask out tokens that would produce invalid output -- guarantees 100% schema compliance |
-| JSON Schema | "A JSON template" | A declarative language for describing the structure, types, and constraints of JSON data (used by OpenAPI, JSON Forms, etc.) |
-| Pydantic | "Python dataclasses+" | Python library that defines data models with type validation, used by FastAPI and Instructor to generate JSON Schemas |
-| Function calling | "Tool use" | LLM outputs a structured function invocation (name + typed arguments) instead of free text -- OpenAI and Anthropic both support this |
-| Instructor | "Pydantic for LLMs" | Python library that wraps LLM clients to return validated Pydantic instances, with automatic retry on validation failure |
-| Token masking | "Filtering the vocabulary" | Setting specific token probabilities to zero during generation so the model cannot produce them |
-| Schema compliance | "Matches the shape" | The output has every required field, correct types, values within constraints, and no extra disallowed fields |
-| Retry loop | "Try again until it works" | Send validation errors back to the model and ask it to fix the output -- Instructor does this automatically, up to a configurable max |
-
-## Further Reading
-
-- [OpenAI Structured Outputs Guide](https://platform.openai.com/docs/guides/structured-outputs) -- official documentation for JSON Schema-based constrained decoding in the OpenAI API
-- [Willard & Louf, 2023 -- "Efficient Guided Generation for Large Language Models"](https://arxiv.org/abs/2307.09702) -- the Outlines paper, describing how to compile JSON Schemas into finite state machines for token-level constraints
-- [Instructor documentation](https://python.useinstructor.com/) -- the standard library for getting structured outputs from any LLM with Pydantic validation and retries
-- [Anthropic Tool Use Guide](https://docs.anthropic.com/en/docs/tool-use) -- how Claude implements structured output via tool use with JSON Schema input_schema
-- [JSON Schema specification](https://json-schema.org/) -- the full spec for the schema language used by every major structured output system
-- [Outlines library](https://github.com/outlines-dev/outlines) -- open-source constrained generation using regex and JSON Schema compiled to finite state machines
-- [Dong et al., "XGrammar: Flexible and Efficient Structured Generation Engine for Large Language Models" (MLSys 2025)](https://arxiv.org/abs/2411.15100) -- the current state-of-the-art grammar engine; pushdown-automaton compilation that masks tokens at ~100 ns / token.
-- [Beurer-Kellner et al., "Prompting Is Programming: A Query Language for Large Language Models" (LMQL)](https://arxiv.org/abs/2212.06094) -- the LMQL paper framing constrained decoding as a query language with type and value constraints.
-- [Microsoft Guidance (framework docs)](https://github.com/guidance-ai/guidance) -- template-driven constrained generation; vendor-agnostic complement to Outlines and XGrammar.
+- [OpenAI Structured Outputs Guide](https://platform.openai.com/docs/guides/structured-outputs): OpenAI API의 JSON Schema 기반 constrained decoding 공식 문서
+- [Willard & Louf, 2023 -- "Efficient Guided Generation for Large Language Models"](https://arxiv.org/abs/2307.09702): JSON Schema를 finite state machine으로 compile해 token-level constraint를 거는 Outlines 논문
+- [Instructor documentation](https://python.useinstructor.com/): Pydantic validation과 retry로 structured output을 얻는 표준 Python library
+- [Anthropic Tool Use Guide](https://docs.anthropic.com/en/docs/tool-use): Claude가 JSON Schema `input_schema`를 가진 tool use로 structured output을 구현하는 방식
+- [JSON Schema specification](https://json-schema.org/): 주요 structured output system이 사용하는 schema language 전체 spec
+- [Outlines library](https://github.com/outlines-dev/outlines): regex와 JSON Schema를 FSM으로 compile하는 open-source constrained generation
+- [Dong et al., "XGrammar: Flexible and Efficient Structured Generation Engine for Large Language Models" (MLSys 2025)](https://arxiv.org/abs/2411.15100): token mask를 약 100 ns/token에 수행하는 최신 grammar engine
+- [Beurer-Kellner et al., "Prompting Is Programming: A Query Language for Large Language Models" (LMQL)](https://arxiv.org/abs/2212.06094): constrained decoding을 type과 value constraint가 있는 query language로 다룬 논문
+- [Microsoft Guidance (framework docs)](https://github.com/guidance-ai/guidance): Outlines와 XGrammar를 보완하는 vendor-agnostic template-driven constrained generation framework

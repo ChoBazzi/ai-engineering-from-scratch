@@ -1,223 +1,223 @@
-# Debugging Neural Networks
+# 신경망 디버깅
 
-> Your network compiled. It ran. It produced a number. The number is wrong and nothing crashed. Welcome to the hardest kind of debugging -- the kind where there is no error message.
+> 네트워크가 컴파일되었습니다. 실행도 되었습니다. 숫자도 나왔습니다. 그런데 그 숫자가 틀렸고, 아무것도 크래시되지 않았습니다. 오류 메시지가 없는 가장 어려운 종류의 디버깅에 오신 것을 환영합니다.
 
 **Type:** Build
 **Languages:** Python, PyTorch
-**Prerequisites:** Phase 03 Lessons 01-10 (especially backpropagation, loss functions, optimizers)
+**Prerequisites:** Phase 03 Lessons 01-10 (특히 역전파, 손실 함수, 옵티마이저)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Diagnose common neural network failures (NaN loss, flat loss curve, overfitting, oscillation) using systematic debugging strategies
-- Apply the "overfit one batch" technique to verify that your model architecture and training loop are correct
-- Inspect gradient magnitudes, activation distributions, and weight norms to identify vanishing/exploding gradient problems
-- Build a debugging checklist that covers data pipeline, model architecture, loss function, optimizer, and learning rate issues
+- 체계적인 디버깅 전략으로 흔한 신경망 실패(NaN 손실, 평평한 손실 곡선, 과적합, 진동)를 진단합니다
+- 모델 아키텍처와 학습 루프가 올바른지 확인하기 위해 "한 배치 과적합" 기법을 적용합니다
+- 그래디언트 크기, 활성화 분포, 가중치 노름을 검사하여 그래디언트 소실/폭주 문제를 식별합니다
+- 데이터 파이프라인, 모델 아키텍처, 손실 함수, 옵티마이저, 학습률 문제를 포괄하는 디버깅 체크리스트를 만듭니다
 
-## The Problem
+## 문제
 
-Traditional software crashes when it is broken. A null pointer throws an exception. A type mismatch fails at compile time. An off-by-one error produces a clearly wrong output.
+전통적인 소프트웨어는 망가지면 크래시됩니다. 널 포인터는 예외를 던집니다. 타입 불일치는 컴파일 시간에 실패합니다. 오프바이원 오류는 명백히 잘못된 출력을 냅니다.
 
-Neural networks do not give you that luxury.
+신경망은 그런 친절함을 제공하지 않습니다.
 
-A broken neural network runs to completion, prints a loss value, and outputs predictions. The loss might decrease. The predictions might look plausible. But the model is silently wrong -- learning shortcuts, memorizing noise, or converging to a useless local minimum. Google researchers estimated that 60-70% of ML debugging time is spent on "silent" bugs that produce no errors but degrade model quality.
+망가진 신경망도 끝까지 실행되고, 손실 값을 출력하고, 예측을 내놓습니다. 손실이 줄어들 수도 있습니다. 예측이 그럴듯해 보일 수도 있습니다. 하지만 모델은 조용히 틀렸습니다. 지름길을 학습하거나, 노이즈를 외우거나, 쓸모없는 지역 최솟값으로 수렴합니다. Google 연구자들은 ML 디버깅 시간의 60-70%가 오류는 만들지 않지만 모델 품질을 떨어뜨리는 "조용한" 버그에 쓰인다고 추정했습니다.
 
-The difference between a working model and a broken one is often a single misplaced line: a missing `zero_grad()`, a transposed dimension, a learning rate off by 10x. the canonical "Recipe for Training Neural Networks" (2019) opens with this: "The most common neural net mistakes are bugs that don't crash."
+작동하는 모델과 망가진 모델의 차이는 종종 잘못 놓인 한 줄입니다. 빠진 `zero_grad()`, 전치된 차원, 10배 빗나간 학습률 같은 것들입니다. 표준적인 글인 "Recipe for Training Neural Networks" (2019)는 이렇게 시작합니다. "가장 흔한 신경망 실수는 크래시를 일으키지 않는 버그다."
 
-This lesson teaches you to find those bugs.
+이 레슨은 그런 버그를 찾는 법을 가르칩니다.
 
-## The Concept
+## 개념
 
-### The Debugging Mindset
+### 디버깅 사고방식
 
-Forget print-and-pray debugging. Neural network debugging requires a systematic approach because the feedback loop is slow (minutes to hours per training run) and the symptoms are ambiguous (bad loss could mean 20 different things).
+찍어 보고 기도하는 식의 디버깅은 잊으세요. 신경망 디버깅에는 체계적인 접근이 필요합니다. 피드백 루프가 느리고(학습 실행 한 번에 몇 분에서 몇 시간), 증상이 모호하기 때문입니다(나쁜 손실은 20가지 다른 의미일 수 있습니다).
 
-The golden rule: **start simple, add complexity one piece at a time, and verify each piece independently.**
+황금률은 이것입니다. **단순하게 시작하고, 복잡성을 한 조각씩 더하며, 각 조각을 독립적으로 검증하세요.**
 
 ```mermaid
 flowchart TD
-    A["Loss not decreasing"] --> B{"Check learning rate"}
-    B -->|"Too high"| C["Loss oscillates or explodes"]
-    B -->|"Too low"| D["Loss barely moves"]
-    B -->|"Reasonable"| E{"Check gradients"}
-    E -->|"All zeros"| F["Dead ReLUs or vanishing gradients"]
-    E -->|"NaN/Inf"| G["Exploding gradients"]
-    E -->|"Normal"| H{"Check data pipeline"}
-    H -->|"Labels shuffled"| I["Random-chance accuracy"]
-    H -->|"Preprocessing bug"| J["Model learns noise"]
-    H -->|"Data is fine"| K{"Check architecture"}
-    K -->|"Too small"| L["Underfitting"]
-    K -->|"Too deep"| M["Optimization difficulty"]
+    A["손실이 감소하지 않음"] --> B{"학습률 확인"}
+    B -->|"너무 높음"| C["손실이 진동하거나 폭주"]
+    B -->|"너무 낮음"| D["손실이 거의 움직이지 않음"]
+    B -->|"적절함"| E{"그래디언트 확인"}
+    E -->|"전부 0"| F["죽은 ReLU 또는 그래디언트 소실"]
+    E -->|"NaN/Inf"| G["그래디언트 폭주"]
+    E -->|"정상"| H{"데이터 파이프라인 확인"}
+    H -->|"레이블이 섞임"| I["무작위 수준 정확도"]
+    H -->|"전처리 버그"| J["모델이 노이즈를 학습"]
+    H -->|"데이터가 정상"| K{"아키텍처 확인"}
+    K -->|"너무 작음"| L["과소적합"]
+    K -->|"너무 깊음"| M["최적화 어려움"]
 ```
 
-### Symptom 1: Loss Not Decreasing
+### 증상 1: 손실이 감소하지 않음
 
-This is the most common complaint. The training loop runs, epochs tick by, and the loss stays flat or oscillates wildly.
+가장 흔한 불만입니다. 학습 루프는 돌아가고 에폭은 지나가지만, 손실은 평평하게 머물거나 심하게 진동합니다.
 
-**Wrong learning rate.** Too high: loss oscillates or jumps to NaN. Too low: loss decreases so slowly it looks flat. For Adam, start at 1e-3. For SGD, start at 1e-1 or 1e-2. Always try 3 learning rates spanning 10x each (e.g., 1e-2, 1e-3, 1e-4) before concluding something else is wrong.
+**잘못된 학습률.** 너무 높으면 손실이 진동하거나 NaN으로 튑니다. 너무 낮으면 손실이 너무 천천히 감소해서 평평해 보입니다. Adam은 1e-3에서 시작하세요. SGD는 1e-1 또는 1e-2에서 시작하세요. 다른 문제가 있다고 결론 내리기 전에 항상 10배 간격의 학습률 3개(예: 1e-2, 1e-3, 1e-4)를 시도하세요.
 
-**Dead ReLUs.** If a ReLU neuron receives a large negative input, it outputs 0 and its gradient is 0. It never activates again. If enough neurons die, the network cannot learn. Check: print the fraction of activations that are exactly 0 after each ReLU layer. If >50% are dead, switch to LeakyReLU or reduce the learning rate.
+**죽은 ReLU.** ReLU 뉴런이 큰 음수 입력을 받으면 0을 출력하고 그래디언트도 0이 됩니다. 다시는 활성화되지 않습니다. 충분히 많은 뉴런이 죽으면 네트워크는 학습할 수 없습니다. 확인 방법: 각 ReLU 레이어 뒤에서 정확히 0인 활성화의 비율을 출력하세요. 50%를 넘으면 LeakyReLU로 바꾸거나 학습률을 낮추세요.
 
-**Vanishing gradients.** In deep networks with sigmoid or tanh activations, gradients shrink exponentially as they propagate backward. By the time they reach the first layer, they are ~0. The first layers stop learning. Fix: use ReLU/GELU, add residual connections, or use batch normalization.
+**그래디언트 소실.** sigmoid 또는 tanh 활성화를 쓰는 깊은 네트워크에서는 그래디언트가 뒤로 전파되면서 지수적으로 작아집니다. 첫 번째 레이어에 도달할 때쯤에는 거의 0입니다. 앞쪽 레이어가 학습을 멈춥니다. 해결: ReLU/GELU를 쓰고, 잔차 연결을 추가하거나, 배치 정규화를 사용하세요.
 
-**Exploding gradients.** The opposite problem -- gradients grow exponentially. Common in RNNs and very deep networks. Loss jumps to NaN. Fix: gradient clipping (`torch.nn.utils.clip_grad_norm_`), lower learning rate, or add normalization.
+**그래디언트 폭주.** 반대 문제입니다. 그래디언트가 지수적으로 커집니다. RNN과 매우 깊은 네트워크에서 흔합니다. 손실이 NaN으로 튑니다. 해결: 그래디언트 클리핑(`torch.nn.utils.clip_grad_norm_`), 더 낮은 학습률, 또는 정규화를 추가하세요.
 
-### Symptom 2: Loss Decreasing But Model is Bad
+### 증상 2: 손실은 감소하지만 모델이 나쁨
 
-The loss goes down. Training accuracy hits 99%. But test accuracy is 55%. Or the model produces nonsensical outputs on real data.
+손실은 내려갑니다. 학습 정확도는 99%에 도달합니다. 하지만 테스트 정확도는 55%입니다. 또는 모델이 실제 데이터에서 말이 안 되는 출력을 만듭니다.
 
-**Overfitting.** The model memorizes training data instead of learning patterns. Gap between training and validation loss grows over time. Fix: more data, dropout, weight decay, early stopping, data augmentation.
+**과적합.** 모델이 패턴을 배우는 대신 학습 데이터를 외웁니다. 시간이 지날수록 학습 손실과 검증 손실의 차이가 커집니다. 해결: 더 많은 데이터, 드롭아웃, 가중치 감쇠, 조기 종료, 데이터 증강.
 
-**Data leakage.** Test data leaked into training. Accuracy is suspiciously high. Common causes: shuffling before splitting, preprocessing with statistics from the full dataset, duplicate samples across splits. Fix: split first, preprocess second, check for duplicates.
+**데이터 누수.** 테스트 데이터가 학습에 새어 들어갔습니다. 정확도가 의심스러울 만큼 높습니다. 흔한 원인: 분할 전에 셔플하기, 전체 데이터셋 통계로 전처리하기, 분할 사이에 중복 샘플이 있음. 해결: 먼저 분할하고, 그다음 전처리하고, 중복을 확인하세요.
 
-**Label errors.** 5-10% of labels in most real datasets are wrong (Northcutt et al., 2021 -- "Pervasive Label Errors in Test Sets"). The model learns the noise. Fix: use confident learning to find and fix mislabeled examples, or use loss truncation to ignore high-loss samples.
+**레이블 오류.** 대부분의 실제 데이터셋에서는 레이블의 5-10%가 잘못되어 있습니다(Northcutt et al., 2021 -- "Pervasive Label Errors in Test Sets"). 모델은 그 노이즈를 학습합니다. 해결: confident learning으로 잘못 레이블링된 예제를 찾아 고치거나, 손실 절단으로 손실이 큰 샘플을 무시하세요.
 
-### Symptom 3: NaN or Inf in Loss
+### 증상 3: 손실의 NaN 또는 Inf
 
-The loss value becomes `nan` or `inf`. Training is dead.
+손실 값이 `nan` 또는 `inf`가 됩니다. 학습은 멈춘 것입니다.
 
-**Learning rate too high.** Gradient updates overshoot so far that weights explode. Fix: reduce by 10x.
+**학습률이 너무 높음.** 그래디언트 업데이트가 너무 크게 빗나가 가중치가 폭주합니다. 해결: 10배 낮추세요.
 
-**log(0) or log(negative).** Cross-entropy loss computes `log(p)`. If your model outputs exactly 0 or a negative probability, the log explodes. Fix: clamp predictions to `[eps, 1-eps]` where `eps=1e-7`.
+**log(0) 또는 log(음수).** 크로스 엔트로피 손실은 `log(p)`를 계산합니다. 모델이 정확히 0 또는 음수 확률을 출력하면 로그가 폭주합니다. 해결: 예측을 `[eps, 1-eps]`로 클램프하세요. 여기서 `eps=1e-7`입니다.
 
-**Division by zero.** Batch normalization divides by standard deviation. A batch with constant values has std=0. Fix: add epsilon to the denominator (PyTorch does this by default, but custom implementations might not).
+**0으로 나누기.** 배치 정규화는 표준편차로 나눕니다. 값이 모두 같은 배치는 std=0입니다. 해결: 분모에 epsilon을 더하세요(PyTorch는 기본으로 이렇게 하지만, 직접 구현한 코드는 아닐 수 있습니다).
 
-**Numerical overflow.** Large activations fed into `exp()` produce Inf. Softmax is especially prone. Fix: subtract the max before exponentiating (the log-sum-exp trick).
+**수치 오버플로.** 큰 활성화가 `exp()`에 들어가면 Inf가 만들어집니다. Softmax가 특히 취약합니다. 해결: 지수화를 하기 전에 최댓값을 빼세요(log-sum-exp 트릭).
 
-### Technique 1: Gradient Checking
+### 기법 1: 그래디언트 검사
 
-Compare your analytical gradients (from backprop) to numerical gradients (from finite differences). If they disagree, your backward pass has a bug.
+해석적 그래디언트(역전파에서 나온 값)를 수치 그래디언트(유한 차분에서 나온 값)와 비교하세요. 둘이 맞지 않으면 backward pass에 버그가 있습니다.
 
-Numerical gradient for parameter `w`:
+파라미터 `w`에 대한 수치 그래디언트:
 
-```
+```text
 grad_numerical = (loss(w + eps) - loss(w - eps)) / (2 * eps)
 ```
 
-Agreement metric (relative difference):
+일치도 지표(상대 차이):
 
-```
+```text
 rel_diff = |grad_analytical - grad_numerical| / max(|grad_analytical|, |grad_numerical|, 1e-8)
 ```
 
-If `rel_diff < 1e-5`: correct. If `rel_diff > 1e-3`: almost certainly a bug.
+`rel_diff < 1e-5`이면 올바릅니다. `rel_diff > 1e-3`이면 거의 확실히 버그입니다.
 
 ```mermaid
 flowchart LR
-    A["Parameter w"] --> B["w + eps"]
+    A["파라미터 w"] --> B["w + eps"]
     A --> C["w - eps"]
-    B --> D["Forward pass"]
-    C --> E["Forward pass"]
+    B --> D["순전파"]
+    C --> E["순전파"]
     D --> F["loss+"]
     E --> G["loss-"]
     F --> H["(loss+ - loss-) / 2eps"]
     G --> H
-    H --> I["Compare to backprop gradient"]
+    H --> I["역전파 그래디언트와 비교"]
 ```
 
-### Technique 2: Activation Statistics
+### 기법 2: 활성화 통계
 
-Monitor the mean and standard deviation of activations after each layer during training. Healthy networks maintain activations with mean near 0 and std near 1 (after normalization) or at least bounded.
+학습 중 각 레이어 뒤의 활성화 평균과 표준편차를 모니터링하세요. 건강한 네트워크는 평균이 0 근처이고 표준편차가 1 근처인 활성화(정규화 이후)를 유지하거나, 적어도 값이 제한되어 있습니다.
 
-| Health indicator | Mean | Std | Diagnosis |
+| 건강 지표 | 평균 | 표준편차 | 진단 |
 |-----------------|------|-----|-----------|
-| Healthy | ~0 | ~1 | Network is learning normally |
-| Saturated | >>0 or <<0 | ~0 | Activations stuck at extreme values |
-| Dead | 0 | 0 | Neurons are dead (all zeros) |
-| Exploding | >>10 | >>10 | Activations growing without bound |
+| 건강함 | ~0 | ~1 | 네트워크가 정상적으로 학습 중 |
+| 포화됨 | >>0 또는 <<0 | ~0 | 활성화가 극단값에 고정됨 |
+| 죽음 | 0 | 0 | 뉴런이 죽음(전부 0) |
+| 폭주 | >>10 | >>10 | 활성화가 제한 없이 커짐 |
 
-### Technique 3: Gradient Flow Visualization
+### 기법 3: 그래디언트 흐름 시각화
 
-Plot the average gradient magnitude for each layer. In a healthy network, gradient magnitudes should be roughly similar across layers. If early layers have gradients 1000x smaller than later layers, you have vanishing gradients.
+각 레이어의 평균 그래디언트 크기를 그리세요. 건강한 네트워크에서는 레이어 전반의 그래디언트 크기가 대체로 비슷해야 합니다. 앞쪽 레이어의 그래디언트가 뒤쪽 레이어보다 1000배 작다면 그래디언트 소실이 있는 것입니다.
 
 ```mermaid
 graph LR
-    subgraph "Healthy Gradient Flow"
-        L1["Layer 1<br/>grad: 0.05"] --- L2["Layer 2<br/>grad: 0.04"] --- L3["Layer 3<br/>grad: 0.06"] --- L4["Layer 4<br/>grad: 0.05"]
+    subgraph "건강한 그래디언트 흐름"
+        L1["레이어 1<br/>grad: 0.05"] --- L2["레이어 2<br/>grad: 0.04"] --- L3["레이어 3<br/>grad: 0.06"] --- L4["레이어 4<br/>grad: 0.05"]
     end
 ```
 
 ```mermaid
 graph LR
-    subgraph "Vanishing Gradient Flow"
-        V1["Layer 1<br/>grad: 0.0001"] --- V2["Layer 2<br/>grad: 0.003"] --- V3["Layer 3<br/>grad: 0.02"] --- V4["Layer 4<br/>grad: 0.08"]
+    subgraph "소실되는 그래디언트 흐름"
+        V1["레이어 1<br/>grad: 0.0001"] --- V2["레이어 2<br/>grad: 0.003"] --- V3["레이어 3<br/>grad: 0.02"] --- V4["레이어 4<br/>grad: 0.08"]
     end
 ```
 
-### Technique 4: The Overfit-One-Batch Test
+### 기법 4: 한 배치 과적합 테스트
 
-The single most important debugging technique in deep learning.
+딥러닝에서 가장 중요한 단일 디버깅 기법입니다.
 
-Take one small batch (8-32 samples). Train on it for 100+ iterations. The loss should go to nearly zero and training accuracy should hit 100%. If it does not, your model or training loop has a fundamental bug -- do not proceed to full training.
+작은 배치 하나(8-32개 샘플)를 가져오세요. 그 배치로 100회 이상 반복 학습합니다. 손실은 거의 0으로 가야 하고 학습 정확도는 100%에 도달해야 합니다. 그렇지 않다면 모델 또는 학습 루프에 근본적인 버그가 있습니다. 전체 학습으로 진행하지 마세요.
 
-This test catches:
-- Broken loss functions
-- Broken backward passes
-- Architecture too small to represent the data
-- Optimizer not connected to model parameters
-- Data and labels misaligned
+이 테스트는 다음을 잡아냅니다.
+- 망가진 손실 함수
+- 망가진 backward pass
+- 데이터를 표현하기에 너무 작은 아키텍처
+- 모델 파라미터에 연결되지 않은 옵티마이저
+- 어긋난 데이터와 레이블
 
-This takes 30 seconds to run and saves hours of debugging full training runs.
+실행에는 30초가 걸리지만, 전체 학습 실행을 디버깅하는 몇 시간을 절약해 줍니다.
 
-### Technique 5: Learning Rate Finder
+### 기법 5: 학습률 탐색기
 
-Leslie Smith (2017) proposed sweeping the learning rate from very small (1e-7) to very large (10) over one epoch while recording the loss. Plot loss vs learning rate. The optimal learning rate is roughly 10x smaller than the rate where loss starts decreasing fastest.
+Leslie Smith (2017)는 한 에폭 동안 학습률을 매우 작은 값(1e-7)에서 매우 큰 값(10)까지 훑으면서 손실을 기록하는 방법을 제안했습니다. 손실 대 학습률을 그리세요. 최적 학습률은 손실이 가장 빠르게 감소하기 시작하는 지점보다 대략 10배 작은 값입니다.
 
 ```mermaid
 graph TD
-    subgraph "LR Finder Plot"
+    subgraph "LR 탐색기 플롯"
         direction LR
         A["1e-7: loss=2.3"] --> B["1e-5: loss=2.3"]
         B --> C["1e-3: loss=1.8"]
-        C --> D["1e-2: loss=0.9 -- steepest"]
+        C --> D["1e-2: loss=0.9 -- 가장 가파름"]
         D --> E["1e-1: loss=0.5"]
-        E --> F["1.0: loss=NaN -- too high"]
+        E --> F["1.0: loss=NaN -- 너무 높음"]
     end
 ```
 
-Best LR in this example: ~1e-3 (one order of magnitude before the steepest point).
+이 예시의 최적 LR: ~1e-3(가장 가파른 지점보다 한 자릿수 작은 값).
 
-### Common PyTorch Bugs
+### 흔한 PyTorch 버그
 
-These are the bugs that waste the most collective hours in the PyTorch community:
+PyTorch 커뮤니티 전체에서 가장 많은 시간을 낭비하게 만드는 버그들입니다.
 
-| Bug | Symptom | Fix |
+| 버그 | 증상 | 해결 |
 |-----|---------|-----|
-| Forgetting `optimizer.zero_grad()` | Gradients accumulate across batches, loss oscillates | Add `optimizer.zero_grad()` before `loss.backward()` |
-| Forgetting `model.eval()` at test time | Dropout and batch norm behave differently, test accuracy varies between runs | Add `model.eval()` and `torch.no_grad()` |
-| Wrong tensor shapes | Silent broadcasting produces wrong results, no error | Print shapes after every operation during debugging |
-| CPU/GPU mismatch | `RuntimeError: expected CUDA tensor` | Use `.to(device)` on model AND data |
-| Not detaching tensors | Computation graph grows forever, OOM | Use `.detach()` or `with torch.no_grad()` |
-| In-place operations breaking autograd | `RuntimeError: modified by in-place operation` | Replace `x += 1` with `x = x + 1` |
-| Data not normalized | Loss stuck at random-chance level | Normalize inputs to mean=0, std=1 |
-| Labels as wrong dtype | Cross-entropy expects `Long`, got `Float` | Cast labels: `labels.long()` |
+| `optimizer.zero_grad()`를 잊음 | 그래디언트가 배치 사이에 누적되고 손실이 진동함 | `loss.backward()` 전에 `optimizer.zero_grad()` 추가 |
+| 테스트 시점에 `model.eval()`을 잊음 | 드롭아웃과 배치 정규화가 다르게 동작하고, 실행마다 테스트 정확도가 달라짐 | `model.eval()`과 `torch.no_grad()` 추가 |
+| 잘못된 텐서 shape | 조용한 브로드캐스팅이 오류 없이 잘못된 결과를 만듦 | 디버깅 중 모든 연산 뒤에서 shape 출력 |
+| CPU/GPU 불일치 | `RuntimeError: expected CUDA tensor` | 모델과 데이터 모두에 `.to(device)` 사용 |
+| 텐서를 detach하지 않음 | 계산 그래프가 끝없이 커져 OOM 발생 | `.detach()` 또는 `with torch.no_grad()` 사용 |
+| 인플레이스 연산이 autograd를 깨뜨림 | `RuntimeError: modified by in-place operation` | `x += 1`을 `x = x + 1`로 교체 |
+| 데이터가 정규화되지 않음 | 손실이 무작위 수준에 고정됨 | 입력을 mean=0, std=1로 정규화 |
+| 레이블 dtype이 잘못됨 | Cross-entropy는 `Long`을 기대하지만 `Float`를 받음 | 레이블 캐스팅: `labels.long()` |
 
-### The Master Debugging Table
+### 마스터 디버깅 표
 
-| Symptom | Likely cause | First thing to try |
+| 증상 | 가능성 높은 원인 | 먼저 시도할 것 |
 |---------|-------------|-------------------|
-| Loss stuck at -log(1/num_classes) | Model predicting uniform distribution | Check data pipeline, verify labels match inputs |
-| Loss NaN after a few steps | Learning rate too high | Reduce LR by 10x |
-| Loss NaN immediately | log(0) or division by zero | Add epsilon to log/division operations |
-| Loss oscillating wildly | LR too high or batch size too small | Reduce LR, increase batch size |
-| Loss decreasing then plateaus | LR too high for fine-tuning phase | Add LR schedule (cosine or step decay) |
-| Training acc high, test acc low | Overfitting | Add dropout, weight decay, more data |
-| Training acc = test acc = chance | Model not learning anything | Run overfit-one-batch test |
-| Training acc = test acc but both low | Underfitting | Bigger model, more layers, more features |
-| Gradients all zero | Dead ReLUs or detached computation graph | Switch to LeakyReLU, check `.requires_grad` |
-| Out of memory during training | Batch too large or graph not freed | Reduce batch size, use `torch.no_grad()` for eval |
+| 손실이 -log(1/num_classes)에 고정 | 모델이 균등 분포를 예측함 | 데이터 파이프라인 확인, 레이블이 입력과 맞는지 검증 |
+| 몇 스텝 뒤 손실 NaN | 학습률이 너무 높음 | LR을 10배 낮춤 |
+| 즉시 손실 NaN | log(0) 또는 0으로 나누기 | log/나누기 연산에 epsilon 추가 |
+| 손실이 심하게 진동 | LR이 너무 높거나 배치 크기가 너무 작음 | LR 낮추기, 배치 크기 늘리기 |
+| 손실이 감소하다가 정체 | 파인튜닝 단계에 LR이 너무 높음 | LR 스케줄 추가(cosine 또는 step decay) |
+| 학습 acc 높음, 테스트 acc 낮음 | 과적합 | 드롭아웃, 가중치 감쇠, 더 많은 데이터 추가 |
+| 학습 acc = 테스트 acc = chance | 모델이 아무것도 학습하지 않음 | 한 배치 과적합 테스트 실행 |
+| 학습 acc = 테스트 acc이지만 둘 다 낮음 | 과소적합 | 더 큰 모델, 더 많은 레이어, 더 많은 특징 |
+| 그래디언트가 전부 0 | 죽은 ReLU 또는 detach된 계산 그래프 | LeakyReLU로 전환, `.requires_grad` 확인 |
+| 학습 중 메모리 부족 | 배치가 너무 크거나 그래프가 해제되지 않음 | 배치 크기 줄이기, eval에 `torch.no_grad()` 사용 |
 
 ```figure
 learning-curves
 ```
 
-## Build It
+## 직접 만들기
 
-A diagnostic toolkit that monitors activations, gradients, and loss curves. You will deliberately break a network and use the toolkit to diagnose each problem.
+활성화, 그래디언트, 손실 곡선을 모니터링하는 진단 도구 모음입니다. 의도적으로 네트워크를 망가뜨린 뒤 이 도구 모음으로 각 문제를 진단합니다.
 
-### Step 1: The NetworkDebugger Class
+### 단계 1: NetworkDebugger 클래스
 
-Hooks into a PyTorch model to record activation and gradient statistics per layer.
+PyTorch 모델에 hook을 걸어 레이어별 활성화와 그래디언트 통계를 기록합니다.
 
 ```python
 import torch
@@ -340,7 +340,7 @@ class NetworkDebugger:
         self.hooks.clear()
 ```
 
-### Step 2: The Overfit-One-Batch Test
+### 단계 2: 한 배치 과적합 테스트
 
 ```python
 def overfit_one_batch(model, x_batch, y_batch, criterion, lr=0.01, steps=200):
@@ -371,7 +371,7 @@ def overfit_one_batch(model, x_batch, y_batch, criterion, lr=0.01, steps=200):
     return True
 ```
 
-### Step 3: Learning Rate Finder
+### 단계 3: 학습률 탐색기
 
 ```python
 def find_learning_rate(model, x_data, y_data, criterion, start_lr=1e-7, end_lr=10, steps=100):
@@ -421,7 +421,7 @@ def find_learning_rate(model, x_data, y_data, criterion, start_lr=1e-7, end_lr=1
     return results
 ```
 
-### Step 4: Gradient Checker
+### 단계 4: 그래디언트 검사기
 
 ```python
 def _flat_to_multi_index(flat_idx, shape):
@@ -495,9 +495,9 @@ def gradient_check(model, x, y, criterion, eps=1e-4):
     return overall_max_diff
 ```
 
-### Step 5: Deliberately Broken Networks
+### 단계 5: 의도적으로 망가뜨린 네트워크
 
-Now apply the toolkit to broken networks and diagnose each one.
+이제 망가진 네트워크에 도구 모음을 적용하고 각각을 진단합니다.
 
 ```python
 def demo_broken_networks():
@@ -593,9 +593,9 @@ def demo_broken_networks():
     gradient_check(model_grad, x[:4], y[:4], criterion)
 ```
 
-## Use It
+## 활용하기
 
-### PyTorch Built-in Tools
+### PyTorch 내장 도구
 
 ```python
 import torch
@@ -617,7 +617,7 @@ for name, param in model.named_parameters():
         print(f"{name}: grad_mean={param.grad.abs().mean():.2e}")
 ```
 
-### Weights & Biases Integration
+### Weights & Biases 통합
 
 ```python
 import wandb
@@ -654,58 +654,58 @@ for epoch in range(100):
             writer.add_histogram(f"gradients/{name}", param.grad, epoch)
 ```
 
-### The Debug Checklist (Before Full Training)
+### 디버그 체크리스트(전체 학습 전)
 
-1. Run overfit-one-batch test. If it fails, stop.
-2. Print model summary -- verify parameter count is reasonable.
-3. Run a single forward pass with random data -- check output shape.
-4. Train for 5 epochs -- verify loss decreases.
-5. Check activation statistics -- no dead layers, no explosions.
-6. Check gradient flow -- no vanishing, no exploding.
-7. Verify data pipeline -- print 5 random samples with labels.
+1. 한 배치 과적합 테스트를 실행합니다. 실패하면 멈춥니다.
+2. 모델 요약을 출력합니다. 파라미터 수가 합리적인지 확인합니다.
+3. 무작위 데이터로 순전파를 한 번 실행합니다. 출력 shape를 확인합니다.
+4. 5 에폭 동안 학습합니다. 손실이 감소하는지 확인합니다.
+5. 활성화 통계를 확인합니다. 죽은 레이어도, 폭주도 없어야 합니다.
+6. 그래디언트 흐름을 확인합니다. 소실도, 폭주도 없어야 합니다.
+7. 데이터 파이프라인을 검증합니다. 레이블과 함께 무작위 샘플 5개를 출력합니다.
 
-## Ship It
+## 배포하기
 
-This lesson produces:
-- `outputs/prompt-nn-debugger.md` -- a prompt for diagnosing neural network training failures
-- `outputs/skill-debug-checklist.md` -- a decision-tree checklist for debugging training issues
+이 레슨은 다음을 만듭니다.
+- `outputs/prompt-nn-debugger.md` -- 신경망 학습 실패를 진단하기 위한 프롬프트
+- `outputs/skill-debug-checklist.md` -- 학습 문제 디버깅을 위한 결정 트리 체크리스트
 
-Key deployment patterns for debugging:
-- Add monitoring hooks to production training scripts
-- Log activation and gradient statistics to W&B or TensorBoard every N steps
-- Implement automatic alerts for NaN loss, dead neurons (>80% zero), or gradient explosion
-- Always run the overfit-one-batch test when changing architectures or data pipelines
+디버깅을 위한 핵심 배포 패턴:
+- 프로덕션 학습 스크립트에 모니터링 hook 추가
+- N 스텝마다 활성화와 그래디언트 통계를 W&B 또는 TensorBoard에 기록
+- NaN 손실, 죽은 뉴런(0이 80% 초과), 그래디언트 폭주에 대한 자동 알림 구현
+- 아키텍처나 데이터 파이프라인을 바꿀 때는 항상 한 배치 과적합 테스트 실행
 
-## Exercises
+## 연습 문제
 
-1. **Add an exploding gradient detector.** Modify the `NetworkDebugger` to detect when gradients exceed a threshold and automatically suggest a gradient clipping value. Test it on a 20-layer network with no normalization.
+1. **그래디언트 폭주 감지기를 추가하세요.** 그래디언트가 임계값을 넘을 때 감지하고 그래디언트 클리핑 값을 자동으로 제안하도록 `NetworkDebugger`를 수정하세요. 정규화가 없는 20레이어 네트워크에서 테스트하세요.
 
-2. **Build a dead neuron resurrector.** Write a function that identifies dead ReLU neurons (always outputting 0) and reinitializes their incoming weights with Kaiming initialization. Show that this recovers a network where >70% of neurons are dead.
+2. **죽은 뉴런 복구기를 만드세요.** 죽은 ReLU 뉴런(항상 0을 출력)을 식별하고 들어오는 가중치를 Kaiming 초기화로 다시 초기화하는 함수를 작성하세요. 뉴런의 70% 초과가 죽은 네트워크가 복구됨을 보이세요.
 
-3. **Implement the learning rate finder with plotting.** Extend `find_learning_rate` to save results as a CSV and write a separate script that reads the CSV and displays the LR vs loss curve using matplotlib. Identify the optimal LR for ResNet-18 on CIFAR-10.
+3. **플로팅이 포함된 학습률 탐색기를 구현하세요.** 결과를 CSV로 저장하도록 `find_learning_rate`를 확장하고, CSV를 읽어 matplotlib으로 LR 대 손실 곡선을 표시하는 별도 스크립트를 작성하세요. CIFAR-10의 ResNet-18에 대한 최적 LR을 식별하세요.
 
-4. **Create a data pipeline validator.** Write a function that checks for: duplicate samples across train/test splits, label distribution imbalance (>10:1 ratio), input normalization (mean near 0, std near 1), and NaN/Inf values in the data. Run it on a deliberately corrupted dataset.
+4. **데이터 파이프라인 검증기를 만드세요.** train/test 분할 사이의 중복 샘플, 레이블 분포 불균형(10:1 초과 비율), 입력 정규화(평균 0 근처, 표준편차 1 근처), 데이터의 NaN/Inf 값을 확인하는 함수를 작성하세요. 의도적으로 손상한 데이터셋에서 실행하세요.
 
-5. **Debug a real failure.** Take the mini-framework from Lesson 10, introduce a subtle bug (e.g., transpose the weight matrix in backward), and use gradient checking to locate exactly which parameter has incorrect gradients. Document the debugging process.
+5. **실제 실패를 디버깅하세요.** Lesson 10의 미니 프레임워크를 가져와 미묘한 버그(예: backward에서 가중치 행렬 전치)를 넣고, 그래디언트 검사를 사용해 어떤 파라미터의 그래디언트가 잘못되었는지 정확히 찾아내세요. 디버깅 과정을 문서화하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Silent bug | "It runs but gives bad results" | A bug that produces no error but degrades model quality -- the dominant failure mode in ML |
-| Dead ReLU | "The neurons died" | A ReLU neuron whose input is always negative, so it outputs 0 and receives 0 gradient permanently |
-| Vanishing gradients | "Early layers stop learning" | Gradients shrink exponentially through layers, making weights in early layers effectively frozen |
-| Exploding gradients | "Loss went to NaN" | Gradients grow exponentially through layers, causing weight updates so large they overflow |
-| Gradient checking | "Verify backprop is correct" | Comparing analytical gradients from backprop to numerical gradients from finite differences |
-| Overfit-one-batch | "The most important debug test" | Training on a single small batch to verify the model CAN learn -- if it cannot, something is fundamentally broken |
-| LR finder | "Sweep to find the right learning rate" | Exponentially increasing the learning rate over one epoch and picking the rate just before loss diverges |
-| Data leakage | "Test data leaked into training" | When information from the test set contaminates training, producing artificially high accuracy |
-| Activation statistics | "Monitor layer health" | Tracking mean, std, and zero-fraction of each layer's output to detect dead, saturated, or exploding neurons |
-| Gradient clipping | "Cap the gradient magnitude" | Scaling gradients down when their norm exceeds a threshold, preventing exploding gradient updates |
+| 조용한 버그 | "실행은 되지만 나쁜 결과가 나온다" | 오류는 만들지 않지만 모델 품질을 떨어뜨리는 버그. ML의 지배적인 실패 모드 |
+| 죽은 ReLU | "뉴런이 죽었다" | 입력이 항상 음수라서 0을 출력하고 영구적으로 0 그래디언트를 받는 ReLU 뉴런 |
+| 그래디언트 소실 | "앞쪽 레이어가 학습을 멈춘다" | 그래디언트가 레이어를 지나며 지수적으로 작아져 앞쪽 레이어의 가중치가 사실상 고정됨 |
+| 그래디언트 폭주 | "손실이 NaN이 되었다" | 그래디언트가 레이어를 지나며 지수적으로 커져 가중치 업데이트가 너무 커지고 오버플로가 발생함 |
+| 그래디언트 검사 | "역전파가 올바른지 검증한다" | 역전파의 해석적 그래디언트를 유한 차분의 수치 그래디언트와 비교하는 것 |
+| 한 배치 과적합 | "가장 중요한 디버그 테스트" | 모델이 학습할 수 있는지 확인하기 위해 작은 배치 하나로 학습하는 것. 할 수 없다면 근본적으로 망가진 부분이 있음 |
+| LR 탐색기 | "올바른 학습률을 찾기 위해 훑는다" | 한 에폭 동안 학습률을 지수적으로 키우고 손실이 발산하기 직전의 학습률을 고르는 것 |
+| 데이터 누수 | "테스트 데이터가 학습에 새어 들어갔다" | 테스트 세트의 정보가 학습을 오염시켜 인위적으로 높은 정확도를 만드는 상황 |
+| 활성화 통계 | "레이어 건강 상태를 모니터링한다" | 죽은 뉴런, 포화된 뉴런, 폭주하는 뉴런을 감지하기 위해 각 레이어 출력의 평균, 표준편차, 0 비율을 추적하는 것 |
+| 그래디언트 클리핑 | "그래디언트 크기를 제한한다" | 그래디언트 노름이 임계값을 넘을 때 아래로 스케일링하여 그래디언트 폭주 업데이트를 막는 것 |
 
-## Further Reading
+## 더 읽을거리
 
-- Smith, "Cyclical Learning Rates for Training Neural Networks" (2017) -- the paper introducing the learning rate range test (LR finder)
-- Northcutt et al., "Pervasive Label Errors in Test Sets Destabilize Machine Learning Benchmarks" (2021) -- demonstrates that 3-6% of labels in ImageNet, CIFAR-10, and other major benchmarks are wrong
-- Zhang et al., "Understanding Deep Learning Requires Rethinking Generalization" (2017) -- the paper showing neural networks can memorize random labels, which is why the overfit-one-batch test works
-- PyTorch documentation on `torch.autograd.detect_anomaly` and `torch.autograd.set_detect_anomaly` for built-in NaN/Inf detection
+- Smith, "Cyclical Learning Rates for Training Neural Networks" (2017) -- 학습률 범위 테스트(LR 탐색기)를 소개한 논문
+- Northcutt et al., "Pervasive Label Errors in Test Sets Destabilize Machine Learning Benchmarks" (2021) -- ImageNet, CIFAR-10 및 다른 주요 벤치마크의 레이블 중 3-6%가 잘못되어 있음을 보임
+- Zhang et al., "Understanding Deep Learning Requires Rethinking Generalization" (2017) -- 신경망이 무작위 레이블을 외울 수 있음을 보여 주는 논문이며, 이것이 한 배치 과적합 테스트가 작동하는 이유임
+- 내장 NaN/Inf 감지를 위한 `torch.autograd.detect_anomaly`와 `torch.autograd.set_detect_anomaly`에 관한 PyTorch 문서

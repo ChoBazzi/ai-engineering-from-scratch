@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lesson - AI Engineering from Scratch</title>
+  <title>레슨 - AI Engineering from Scratch</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23fafaf5'/><rect x='2' y='2' width='28' height='28' fill='none' stroke='%233553ff' stroke-width='1.2'/><text x='6' y='22' font-size='14' font-family='monospace' fill='%233553ff'>AI</text></svg>">
-  <meta name="description" content="A lesson from the AI Engineering from Scratch curriculum. 503 lessons across 20 phases, four languages, every algorithm built from raw math.">
+  <meta name="description" content="AI Engineering from Scratch 커리큘럼의 lesson입니다. 20개 phase, 503개 lesson, 네 언어, 모든 알고리즘을 원시 수학에서 직접 구현합니다.">
   <link rel="canonical" href="https://aiengineeringfromscratch.com/lesson.html">
   <meta property="og:title" content="AI Engineering from Scratch · Lesson">
-  <meta property="og:description" content="503 lessons. 20 phases. Write the backprop, the tokenizer, the attention mechanism, and the agent loop by hand.">
+  <meta property="og:description" content="503개 lesson. 20개 phase. backprop, tokenizer, attention mechanism, agent loop를 직접 작성합니다.">
   <meta property="og:image" content="https://aiengineeringfromscratch.com/og-image.png?v=3">
   <!-- og:url omitted intentionally: lesson.html is a static template that loads the lesson body client-side via ?path=. Static hosting cannot template the URL, so we let crawlers fall back to the request URL (which is the lesson-specific share link). -->
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="AI Engineering from Scratch">
-  <meta name="twitter:description" content="503 lessons. 20 phases. Build it from raw math, by hand.">
+  <meta name="twitter:description" content="503개 lesson. 20개 phase. 원시 수학에서 직접 만듭니다.">
   <meta name="twitter:image" content="https://aiengineeringfromscratch.com/og-image.png?v=3">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1564,7 +1564,7 @@
 </head>
 <body>
 
-  <a href="#main" class="skip-link">Skip to content</a>
+  <a href="#main" class="skip-link">본문으로 건너뛰기</a>
 
   <div class="scroll-progress" id="scrollProgress"></div>
 
@@ -1574,10 +1574,10 @@
         <span class="logo-icon" aria-hidden="true"></span> AI / FROM SCRATCH
       </a>
       <nav class="header-nav">
-        <a href="index.html#contents">Contents</a>
-        <a href="catalog.html">Catalog</a>
-        <a href="prereqs.html">Roadmap</a>
-        <a href="glossary.html">Glossary</a>
+        <a href="index.html#contents">목차</a>
+        <a href="catalog.html">카탈로그</a>
+        <a href="prereqs.html">로드맵</a>
+        <a href="glossary.html">용어집</a>
         <a href="https://github.com/rohitg00/ai-engineering-from-scratch" target="_blank" rel="noopener" class="header-github">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
           <svg class="star-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.896l-7.416 3.517 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
@@ -1585,7 +1585,7 @@
         </a>
       </nav>
       <button class="search-toggle" type="button" data-cmd-palette
-        aria-label="Search (⌘K)" title="Search (⌘K)">
+        aria-label="검색 (⌘K)" title="검색 (⌘K)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2.5"
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1593,20 +1593,20 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </button>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" type="button">
+      <button class="theme-toggle" id="themeToggle" aria-label="테마 전환" type="button">
         <span class="theme-icon" id="themeIcon">N</span>
       </button>
     </div>
   </header>
 
-  <button class="lesson-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">&#9776;</button>
+  <button class="lesson-sidebar-toggle" id="sidebarToggle" aria-label="사이드바 전환">&#9776;</button>
 
   <div class="mermaid-modal-overlay" id="mermaidModalOverlay" aria-hidden="true">
-    <div class="mermaid-modal" role="dialog" aria-modal="true" aria-label="Expanded diagram">
+    <div class="mermaid-modal" role="dialog" aria-modal="true" aria-label="확대된 다이어그램">
       <div class="mermaid-modal-header">
-        <div class="mermaid-modal-title" id="mermaidModalTitle">Diagram</div>
+        <div class="mermaid-modal-title" id="mermaidModalTitle">다이어그램</div>
         <div class="mermaid-modal-actions">
-          <button class="mermaid-btn" type="button" id="mermaidModalClose">Close</button>
+          <button class="mermaid-btn" type="button" id="mermaidModalClose">닫기</button>
         </div>
       </div>
       <div class="mermaid-modal-body" id="mermaidModalBody"><div class="mermaid-modal-center" id="mermaidModalCenter"></div></div>
@@ -1619,7 +1619,7 @@
       <div class="lesson-content" id="lessonContent">
         <div class="lesson-loading" id="lessonLoading">
           <div class="spinner"></div>
-          <div class="lesson-loading-text">Loading lesson...</div>
+          <div class="lesson-loading-text">레슨 로딩 중...</div>
         </div>
       </div>
     </main>
@@ -1701,7 +1701,7 @@
       var lessonPath = params.get('path');
 
       if (!lessonPath) {
-        showError('No lesson path specified', 'Add ?path=phases/01-math-foundations/01-linear-algebra-intuition to the URL.');
+        showError('lesson path가 지정되지 않았습니다', 'URL에 ?path=phases/01-math-foundations/01-linear-algebra-intuition 를 추가하세요.');
         return;
       }
 
@@ -1870,7 +1870,7 @@
               renderLesson(md);
             } catch (err) {
               console.error('renderLesson failed', err);
-              showError('Render error', 'Loaded the lesson markdown but failed to render it. Details in the browser console.');
+              showError('Render error', 'lesson markdown을 불러왔지만 렌더링하지 못했습니다. 자세한 내용은 browser console에 있습니다.');
               return;
             }
             fetch(quizUrl)
@@ -1883,13 +1883,13 @@
               });
           })
           .catch(function () {
-            showError('Lesson not found', 'Could not fetch the lesson at <code>' + escapeHtml(path) + '</code>. It may not have been written yet.');
+            showError('lesson을 찾을 수 없습니다', '<code>' + escapeHtml(path) + '</code>의 lesson을 가져오지 못했습니다. 아직 작성되지 않았을 수 있습니다.');
           });
       }
 
       function showError(title, msg) {
         var el = document.getElementById('lessonContent');
-        el.innerHTML = '<div class="lesson-error"><h2>' + title + '</h2><p>' + msg + '</p><a href="index.html" class="btn btn-primary">Back to Home</a></div>';
+        el.innerHTML = '<div class="lesson-error"><h2>' + title + '</h2><p>' + msg + '</p><a href="index.html" class="btn btn-primary">홈으로 돌아가기</a></div>';
       }
 
       function lessonDescription(md) {
@@ -1904,7 +1904,7 @@
             return p.replace(/[*_`]/g, '').slice(0, 200);
           }
         }
-        return '503 lessons. 20 phases. Build it from raw math, by hand.';
+        return '503개 lesson. 20개 phase. 원시 수학에서 직접 만듭니다.';
       }
 
       // Client-side per-lesson SEO. Robust indexing comes with build-time
@@ -1937,8 +1937,8 @@
               inLanguage: 'en', isAccessibleForFree: true,
               isPartOf: { '@type': 'Course', name: 'AI Engineering from Scratch', url: ORIGIN } },
             { '@type': 'BreadcrumbList', itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN },
-              { '@type': 'ListItem', position: 2, name: 'Catalog', item: ORIGIN + '/catalog.html' },
+              { '@type': 'ListItem', position: 1, name: '홈', item: ORIGIN },
+              { '@type': 'ListItem', position: 2, name: '카탈로그', item: ORIGIN + '/catalog.html' },
               { '@type': 'ListItem', position: 3, name: title, item: url }
             ] }
           ]
@@ -2024,8 +2024,8 @@
           return candidate;
         }
 
-        var html = '<div class="toc-header">On this page</div>';
-        html += '<nav aria-label="On this page"><ul class="toc-nav">';
+        var html = '<div class="toc-header">이 페이지에서</div>';
+        html += '<nav aria-label="이 페이지에서"><ul class="toc-nav">';
         for (var i = 0; i < headings.length; i++) {
           var heading = headings[i];
           var level = heading.tagName.toLowerCase();
@@ -2272,7 +2272,7 @@
                 out += '<div class="mermaid-container">';
                 out += '<div class="mermaid-block" data-mermaid-index="' + mermaidBlocks + '">';
                 out += '<div class="mermaid-toolbar">';
-                out += '<button type="button" class="mermaid-btn mermaid-expand" data-mermaid-index="' + mermaidBlocks + '">Expand</button>';
+                out += '<button type="button" class="mermaid-btn mermaid-expand" data-mermaid-index="' + mermaidBlocks + '">확대</button>';
                 out += '</div>';
                 out += '<pre class="mermaid mermaid-source" id="mermaid-' + mermaidBlocks + '">' + escapeHtml(raw) + '</pre>';
                 out += '<div class="mermaid-render" id="mermaid-render-' + mermaidBlocks + '"></div>';
@@ -2350,7 +2350,7 @@
                   break;
                 }
               }
-              out += '<div class="learning-objectives"><div class="learning-objectives-title">&#127919; Learning Objectives</div><ul>';
+              out += '<div class="learning-objectives"><div class="learning-objectives-title">&#127919; 학습 목표</div><ul>';
               for (var oi = 0; oi < objItems.length; oi++) {
                 out += '<li>' + inlineFormat(objItems[oi]) + '</li>';
               }
@@ -2362,7 +2362,7 @@
               out += flushLabChallenge();
               inLabChallenge = true;
               out += '<div class="lab-challenge">';
-              out += '<h2 id="' + slug2 + '">&#128171; Lab Challenge</h2>';
+              out += '<h2 id="' + slug2 + '">&#128171; 랩 챌린지</h2>';
               continue;
             }
             out += flushLabChallenge();
@@ -2497,7 +2497,7 @@
       function renderCodeBlock(code, lang) {
         var highlighted = highlightSyntax(escapeHtml(code), lang);
         var langLabel = lang ? '<span class="code-lang">' + escapeHtml(lang) + '</span>' : '';
-        return '<pre>' + langLabel + '<button class="code-copy" data-code="' + escapeAttr(code) + '">Copy</button><code>' + highlighted + '</code></pre>';
+        return '<pre>' + langLabel + '<button class="code-copy" data-code="' + escapeAttr(code) + '">복사</button><code>' + highlighted + '</code></pre>';
       }
 
       function highlightSyntax(code, lang) {
@@ -2545,8 +2545,8 @@
           btn.addEventListener('click', function () {
             var code = btn.getAttribute('data-code');
             navigator.clipboard.writeText(code).then(function () {
-              btn.textContent = 'Copied!';
-              setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+              btn.textContent = '복사됨!';
+              setTimeout(function () { btn.textContent = '복사'; }, 1500);
             });
           });
         });
@@ -2657,7 +2657,7 @@
           var target = document.getElementById('mermaid-render-' + idx);
           if (!target) return;
           var def = mermaidPreprocess(pre.textContent);
-          target.innerHTML = '<div class="panel-loading">Rendering diagram...</div>';
+          target.innerHTML = '<div class="panel-loading">다이어그램 렌더링 중...</div>';
 
           var token = ++mermaidRenderSeq;
           target._mermaidRenderToken = token;
@@ -2667,7 +2667,7 @@
             target.innerHTML = result.svg;
           }).catch(function () {
             if (target._mermaidRenderToken !== token) return;
-            target.innerHTML = '<p style="color:var(--text-muted);font-style:italic;">Diagram could not be rendered.</p>';
+            target.innerHTML = '<p style="color:var(--text-muted);font-style:italic;">다이어그램을 렌더링할 수 없습니다.</p>';
           });
         });
       }
@@ -2747,7 +2747,7 @@
         lastMermaidTrigger = triggerEl || document.activeElement;
         openMermaidIndex = idx;
 
-        if (title) title.textContent = 'Diagram';
+        if (title) title.textContent = '다이어그램';
 
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden', 'false');
@@ -2770,7 +2770,7 @@
         if (!pre) return;
         var def = mermaidPreprocess(pre.textContent);
 
-        center.innerHTML = '<div class="panel-loading">Rendering diagram...</div>';
+        center.innerHTML = '<div class="panel-loading">다이어그램 렌더링 중...</div>';
         var token = ++mermaidRenderSeq;
         center._mermaidRenderToken = token;
 
@@ -2779,7 +2779,7 @@
           center.innerHTML = result.svg;
         }).catch(function () {
           if (center._mermaidRenderToken !== token) return;
-          center.innerHTML = '<p style="color:var(--text-muted);font-style:italic;">Diagram could not be rendered.</p>';
+          center.innerHTML = '<p style="color:var(--text-muted);font-style:italic;">다이어그램을 렌더링할 수 없습니다.</p>';
         });
       }
 
@@ -2809,9 +2809,9 @@
         var buildH2 = article.querySelector('#build-it, #build');
         var keyTermsH2 = article.querySelector('#key-terms');
 
-        var preQuizHtml = buildQuizHtml(questions.filter(function (q) { return q.stage === 'pre'; }), 'pre', 'Pre-Lesson Check');
-        var checkQuizHtml = buildQuizHtml(questions.filter(function (q) { return q.stage === 'check'; }), 'check', 'Mid-Lesson Check');
-        var postQuizHtml = buildQuizHtml(questions.filter(function (q) { return q.stage === 'post'; }), 'post', 'Post-Lesson Quiz');
+        var preQuizHtml = buildQuizHtml(questions.filter(function (q) { return q.stage === 'pre'; }), 'pre', 'lesson 전 확인');
+        var checkQuizHtml = buildQuizHtml(questions.filter(function (q) { return q.stage === 'check'; }), 'check', 'lesson 중간 확인');
+        var postQuizHtml = buildQuizHtml(questions.filter(function (q) { return q.stage === 'post'; }), 'post', 'lesson 후 quiz');
 
         if (!preQuizHtml && !checkQuizHtml && !postQuizHtml) {
           var allHtml = buildQuizHtml(questions, 'all', 'Quiz');
@@ -2932,7 +2932,7 @@
         }
         var scoreEl = section.querySelector('.quiz-score');
         if (scoreEl) {
-          scoreEl.textContent = correctCount + '/' + allQs.length + ' correct';
+          scoreEl.textContent = correctCount + '/' + allQs.length + ' 정답';
           scoreEl.style.display = 'block';
         }
       }
@@ -2977,7 +2977,7 @@
         var nav = '<div class="lesson-nav-bottom">';
         if (prev) {
           nav += '<a class="lesson-nav-btn prev" href="lesson.html?path=' + prev.path + '">';
-          nav += '<span class="nav-label">&larr; Previous</span>';
+          nav += '<span class="nav-label">&larr; 이전</span>';
           nav += '<span class="nav-title">' + escapeHtml(prev.lessonName) + '</span>';
           nav += '</a>';
         } else {
@@ -2985,7 +2985,7 @@
         }
         if (next) {
           nav += '<a class="lesson-nav-btn next" href="lesson.html?path=' + next.path + '">';
-          nav += '<span class="nav-label">Next &rarr;</span>';
+          nav += '<span class="nav-label">다음 &rarr;</span>';
           nav += '<span class="nav-title">' + escapeHtml(next.lessonName) + '</span>';
           nav += '</a>';
         }
@@ -3063,13 +3063,13 @@
       function renderOutputsPanel(container) {
         var panel = document.createElement('div');
         panel.className = 'ai-panel';
-        panel.innerHTML = '<div class="ai-panel-header"><div class="ai-panel-icon">O</div><div class="ai-panel-title">What This Lesson Ships</div></div><div class="ai-panel-subtitle">Prompts, skills, and artifacts you can use right now</div><div id="outputsContent" class="panel-loading">Loading outputs...</div>';
+        panel.innerHTML = '<div class="ai-panel-header"><div class="ai-panel-icon">O</div><div class="ai-panel-title">이 lesson이 제공하는 것</div></div><div class="ai-panel-subtitle">지금 바로 쓸 수 있는 prompt, skill, artifact</div><div id="outputsContent" class="panel-loading">output 로딩 중...</div>';
         container.appendChild(panel);
 
         ghApiFetch(lessonPath + '/outputs', function (err, data) {
           var el = document.getElementById('outputsContent');
           if (err || !data || !Array.isArray(data) || data.length === 0) {
-            el.innerHTML = '<div class="panel-fallback"><a href="https://github.com/rohitg00/ai-engineering-from-scratch/tree/main/' + lessonPath + '" target="_blank" rel="noopener">View lesson on GitHub</a></div>';
+            el.innerHTML = '<div class="panel-fallback"><a href="https://github.com/rohitg00/ai-engineering-from-scratch/tree/main/' + lessonPath + '" target="_blank" rel="noopener">GitHub에서 lesson 보기</a></div>';
             return;
           }
 
@@ -3081,7 +3081,7 @@
             var installId = 'install-hint-' + idx;
             var installHint = '';
             if (type === 'prompt') {
-              installHint = 'Paste into Claude, Cursor, Codex, OpenClaw, Hermes, or any agent that reads prompts';
+              installHint = 'Claude, Cursor, Codex, OpenClaw, Hermes 또는 prompt를 읽는 agent에 붙여넣으세요';
             } else if (type === 'skill') {
               var skillName = file.name.replace(/\.md$/, '').replace(/^skill-/, '');
               installHint = 'npx skills add rohitg00/ai-engineering-from-scratch --skill ' + skillName;
@@ -3090,11 +3090,11 @@
             html += '<div class="output-card">';
             html += '<div class="output-badge ' + badgeClass + '">' + badgeText + '</div>';
             html += '<div class="output-card-name">' + escapeHtml(file.name) + '</div>';
-            html += '<div class="output-desc" id="desc-' + idx + '">Loading description...</div>';
+            html += '<div class="output-desc" id="desc-' + idx + '">설명 로딩 중...</div>';
             html += '<div class="output-actions">';
-            html += '<a class="output-btn" href="' + file.html_url + '" target="_blank" rel="noopener">View on GitHub</a>';
+            html += '<a class="output-btn" href="' + file.html_url + '" target="_blank" rel="noopener">GitHub에서 보기</a>';
             if (installHint) {
-              html += '<button class="output-btn" onclick="var h=document.getElementById(\'' + installId + '\');h.classList.toggle(\'visible\')">Install</button>';
+              html += '<button class="output-btn" onclick="var h=document.getElementById(\'' + installId + '\');h.classList.toggle(\'visible\')">설치</button>';
             }
             html += '</div>';
             if (installHint) {
@@ -3121,13 +3121,13 @@
       function renderCodePanel(container) {
         var panel = document.createElement('div');
         panel.className = 'ai-panel';
-        panel.innerHTML = '<div class="ai-panel-header"><div class="ai-panel-icon">C</div><div class="ai-panel-title">Run the Code</div></div><div class="ai-panel-subtitle">Executable files from this lesson</div><div id="codeContent" class="panel-loading">Loading code files...</div>';
+        panel.innerHTML = '<div class="ai-panel-header"><div class="ai-panel-icon">C</div><div class="ai-panel-title">코드 실행</div></div><div class="ai-panel-subtitle">이 lesson의 실행 가능한 파일</div><div id="codeContent" class="panel-loading">코드 파일 로딩 중...</div>';
         container.appendChild(panel);
 
         ghApiFetch(lessonPath + '/code', function (err, data) {
           var el = document.getElementById('codeContent');
           if (err || !data || !Array.isArray(data) || data.length === 0) {
-            el.innerHTML = '<div class="panel-fallback"><a href="https://github.com/rohitg00/ai-engineering-from-scratch/tree/main/' + lessonPath + '" target="_blank" rel="noopener">View lesson on GitHub</a></div>';
+            el.innerHTML = '<div class="panel-fallback"><a href="https://github.com/rohitg00/ai-engineering-from-scratch/tree/main/' + lessonPath + '" target="_blank" rel="noopener">GitHub에서 lesson 보기</a></div>';
             return;
           }
 
@@ -3141,8 +3141,8 @@
             html += '<div class="code-card-size">' + formatSize(file.size) + '</div>';
             html += '<div class="code-card-run">' + escapeHtml(runCmd) + '</div>';
             html += '<div class="code-card-actions">';
-            html += '<a class="code-card-btn" href="' + file.html_url + '" target="_blank" rel="noopener">View on GitHub</a>';
-            html += '<button class="code-card-btn code-card-copy" data-command="' + escapeAttr(runCmd) + '">Copy command</button>';
+            html += '<a class="code-card-btn" href="' + file.html_url + '" target="_blank" rel="noopener">GitHub에서 보기</a>';
+            html += '<button class="code-card-btn code-card-copy" data-command="' + escapeAttr(runCmd) + '">command 복사</button>';
             html += '</div>';
             html += '</div>';
           });
@@ -3152,8 +3152,8 @@
             btn.addEventListener('click', function () {
               var command = btn.getAttribute('data-command');
               navigator.clipboard.writeText(command).then(function () {
-                btn.textContent = 'Copied!';
-                setTimeout(function () { btn.textContent = 'Copy command'; }, 1500);
+                btn.textContent = '복사됨!';
+                setTimeout(function () { btn.textContent = 'command 복사'; }, 1500);
               });
             });
           });
@@ -3167,64 +3167,64 @@
 
         if (pathLower.indexOf('math') >= 0 || pathLower.indexOf('linear-algebra') >= 0 || pathLower.indexOf('calculus') >= 0) {
           return [
-            { q: 'What does a dot product measure between two vectors?', opts: ['Their sum', 'How aligned they are', 'Their cross product', 'The distance between them'], answer: 1, explain: 'The dot product measures the similarity or alignment between two vectors. When it is zero, the vectors are orthogonal.' },
-            { q: 'What does the gradient of a function point toward?', opts: ['The minimum', 'The steepest ascent', 'The nearest saddle point', 'A random direction'], answer: 1, explain: 'The gradient always points in the direction of steepest increase. Gradient descent moves opposite to the gradient to find minima.' },
-            { q: 'A matrix with shape (3, 5) multiplied by (5, 2) produces what shape?', opts: ['(3, 2)', '(5, 5)', '(3, 5)', '(2, 3)'], answer: 0, explain: 'Matrix multiplication: (m, n) x (n, p) = (m, p). So (3, 5) x (5, 2) = (3, 2).' }
+            { q: '두 vector 사이의 dot product는 무엇을 측정하나요?', opts: ['두 vector의 합', '얼마나 같은 방향을 향하는지', '두 vector의 cross product', '두 vector 사이의 거리'], answer: 1, explain: 'dot product는 두 vector의 similarity 또는 alignment를 측정합니다. 값이 0이면 두 vector는 orthogonal입니다.' },
+            { q: '함수의 gradient는 어느 방향을 가리키나요?', opts: ['minimum', '가장 가파른 상승 방향', '가장 가까운 saddle point', '무작위 방향'], answer: 1, explain: 'gradient는 항상 가장 가파르게 증가하는 방향을 가리킵니다. gradient descent는 minimum을 찾기 위해 gradient의 반대 방향으로 이동합니다.' },
+            { q: 'shape가 (3, 5)인 matrix에 (5, 2)를 곱하면 어떤 shape가 나오나요?', opts: ['(3, 2)', '(5, 5)', '(3, 5)', '(2, 3)'], answer: 0, explain: 'matrix multiplication은 (m, n) x (n, p) = (m, p)입니다. 따라서 (3, 5) x (5, 2) = (3, 2)입니다.' }
           ];
         }
 
         if (pathLower.indexOf('ml') >= 0 || pathLower.indexOf('regression') >= 0 || pathLower.indexOf('classification') >= 0 || pathLower.indexOf('supervised') >= 0) {
           return [
-            { q: 'What is the purpose of a loss function in machine learning?', opts: ['To generate data', 'To measure how wrong predictions are', 'To select features', 'To split data'], answer: 1, explain: 'A loss function quantifies the difference between predicted and actual values. The optimizer minimizes this value during training.' },
-            { q: 'Why do we split data into train and test sets?', opts: ['To save memory', 'To evaluate generalization on unseen data', 'To make training faster', 'To reduce the dataset size'], answer: 1, explain: 'The test set acts as unseen data, revealing whether the model memorized training data or learned generalizable patterns.' },
-            { q: 'What does overfitting mean?', opts: ['The model is too simple', 'The model memorizes training data but fails on new data', 'The model trains too slowly', 'The loss is too low'], answer: 1, explain: 'Overfitting occurs when a model performs well on training data but poorly on new data because it learned noise rather than signal.' }
+            { q: 'machine learning에서 loss function의 목적은 무엇인가요?', opts: ['data 생성', 'prediction이 얼마나 틀렸는지 측정', 'feature 선택', 'data 분할'], answer: 1, explain: 'loss function은 predicted value와 actual value의 차이를 정량화합니다. optimizer는 training 중 이 값을 최소화합니다.' },
+            { q: 'data를 train set과 test set으로 나누는 이유는 무엇인가요?', opts: ['memory 절약', '보지 못한 data에서 generalization 평가', 'training 속도 향상', 'dataset 크기 축소'], answer: 1, explain: 'test set은 unseen data 역할을 하며, model이 training data를 외웠는지 generalizable pattern을 배웠는지 드러냅니다.' },
+            { q: 'overfitting은 무엇을 뜻하나요?', opts: ['model이 너무 단순함', 'model이 training data는 외우지만 새 data에는 실패함', 'model training이 너무 느림', 'loss가 너무 낮음'], answer: 1, explain: 'overfitting은 model이 signal이 아니라 noise를 배워 training data에서는 잘 동작하지만 새 data에서는 성능이 낮을 때 발생합니다.' }
           ];
         }
 
         if (pathLower.indexOf('deep-learning') >= 0 || pathLower.indexOf('neural') >= 0 || pathLower.indexOf('backprop') >= 0 || pathLower.indexOf('activation') >= 0) {
           return [
-            { q: 'What does backpropagation compute?', opts: ['Forward predictions', 'The gradient of the loss with respect to each weight', 'The learning rate', 'New training data'], answer: 1, explain: 'Backpropagation uses the chain rule to compute how much each weight contributed to the error, then adjusts weights accordingly.' },
-            { q: 'Why do neural networks need non-linear activation functions?', opts: ['To speed up training', 'Without them, stacking layers is equivalent to a single linear layer', 'To reduce memory usage', 'To normalize outputs'], answer: 1, explain: 'Without non-linearities, any composition of linear layers collapses to a single linear transformation. Activations like ReLU let the network learn complex patterns.' },
-            { q: 'What does the learning rate control?', opts: ['How many epochs to train', 'The size of each weight update step', 'The number of layers', 'The batch size'], answer: 1, explain: 'The learning rate scales the gradient update. Too large causes divergence, too small causes slow or stuck training.' }
+            { q: 'backpropagation은 무엇을 계산하나요?', opts: ['forward prediction', '각 weight에 대한 loss의 gradient', 'learning rate', '새 training data'], answer: 1, explain: 'backpropagation은 chain rule로 각 weight가 error에 얼마나 기여했는지 계산한 뒤 그에 맞춰 weight를 조정합니다.' },
+            { q: 'neural network에 non-linear activation function이 필요한 이유는 무엇인가요?', opts: ['training 속도를 높이기 위해', '없으면 layer를 쌓아도 single linear layer와 같아지기 때문에', 'memory 사용량을 줄이기 위해', 'output을 normalize하기 위해'], answer: 1, explain: 'non-linearity가 없으면 linear layer의 어떤 composition도 하나의 linear transformation으로 붕괴합니다. ReLU 같은 activation은 network가 복잡한 pattern을 배우게 합니다.' },
+            { q: 'learning rate는 무엇을 제어하나요?', opts: ['training할 epoch 수', '각 weight update step의 크기', 'layer 수', 'batch size'], answer: 1, explain: 'learning rate는 gradient update를 scale합니다. 너무 크면 divergence가 생기고, 너무 작으면 training이 느리거나 멈출 수 있습니다.' }
           ];
         }
 
         if (pathLower.indexOf('llm') >= 0 || pathLower.indexOf('transformer') >= 0 || pathLower.indexOf('attention') >= 0 || pathLower.indexOf('tokeniz') >= 0 || pathLower.indexOf('fine-tun') >= 0) {
           return [
-            { q: 'What does self-attention allow a transformer to do?', opts: ['Process tokens in order', 'Weight the importance of every token relative to every other token', 'Reduce vocabulary size', 'Compress the model'], answer: 1, explain: 'Self-attention computes pairwise relevance scores across all positions, allowing the model to relate distant tokens without recurrence.' },
-            { q: 'Why do LLMs use tokenizers instead of raw characters?', opts: ['Characters are too large', 'Tokens compress frequent patterns into single units, reducing sequence length', 'Tokenizers are faster to train', 'Characters cannot be embedded'], answer: 1, explain: 'Subword tokenizers like BPE balance vocabulary size against sequence length, making common words single tokens while handling rare words as pieces.' },
-            { q: 'What is the key difference between pre-training and fine-tuning?', opts: ['Pre-training uses labeled data', 'Pre-training learns general language; fine-tuning adapts to a specific task', 'Fine-tuning uses more data', 'There is no difference'], answer: 1, explain: 'Pre-training learns language patterns from massive unlabeled text. Fine-tuning takes that foundation and specializes it on smaller, task-specific data.' }
+            { q: 'self-attention은 transformer가 무엇을 할 수 있게 하나요?', opts: ['token을 순서대로 처리', '모든 token을 다른 모든 token과 비교해 중요도를 가중', 'vocabulary size 감소', 'model 압축'], answer: 1, explain: 'self-attention은 모든 position 사이의 pairwise relevance score를 계산해, recurrence 없이도 먼 token을 연결할 수 있게 합니다.' },
+            { q: 'LLM이 raw character 대신 tokenizer를 쓰는 이유는 무엇인가요?', opts: ['character가 너무 크기 때문에', 'token이 빈번한 pattern을 single unit으로 압축해 sequence length를 줄이기 때문에', 'tokenizer가 더 빠르게 학습되기 때문에', 'character는 embedding할 수 없기 때문에'], answer: 1, explain: 'BPE 같은 subword tokenizer는 vocabulary size와 sequence length의 균형을 맞춥니다. 흔한 단어는 single token으로 만들고 rare word는 조각으로 처리합니다.' },
+            { q: 'pre-training과 fine-tuning의 핵심 차이는 무엇인가요?', opts: ['pre-training은 labeled data를 사용함', 'pre-training은 일반 언어를 배우고 fine-tuning은 특정 task에 적응함', 'fine-tuning은 더 많은 data를 사용함', '차이가 없음'], answer: 1, explain: 'pre-training은 대규모 unlabeled text에서 language pattern을 배웁니다. fine-tuning은 그 foundation을 더 작은 task-specific data에 특화합니다.' }
           ];
         }
 
         if (pathLower.indexOf('rag') >= 0 || pathLower.indexOf('retrieval') >= 0 || pathLower.indexOf('embed') >= 0 || pathLower.indexOf('vector') >= 0) {
           return [
-            { q: 'What is the core idea behind RAG?', opts: ['Training a larger model', 'Retrieving relevant context before generating a response', 'Using more GPUs', 'Reducing model size'], answer: 1, explain: 'RAG (Retrieval-Augmented Generation) grounds LLM responses in retrieved documents, reducing hallucination and enabling knowledge updates without retraining.' },
-            { q: 'What do embedding models produce?', opts: ['Text summaries', 'Dense vector representations of text', 'Token counts', 'Grammar corrections'], answer: 1, explain: 'Embedding models map text into fixed-dimensional vectors where semantic similarity corresponds to geometric proximity.' },
-            { q: 'Why use cosine similarity for comparing embeddings?', opts: ['It is the only metric', 'It measures angular similarity regardless of vector magnitude', 'It is faster than dot product', 'It works with integers only'], answer: 1, explain: 'Cosine similarity normalizes for magnitude, focusing on direction. Two texts about the same topic will have high cosine similarity regardless of length.' }
+            { q: 'RAG의 핵심 아이디어는 무엇인가요?', opts: ['더 큰 model 학습', 'response 생성 전에 관련 context retrieval', '더 많은 GPU 사용', 'model size 감소'], answer: 1, explain: 'RAG(Retrieval-Augmented Generation)는 LLM response를 retrieved document에 grounding해 hallucination을 줄이고 retraining 없이 지식 업데이트를 가능하게 합니다.' },
+            { q: 'embedding model은 무엇을 생성하나요?', opts: ['text summary', 'text의 dense vector representation', 'token count', 'grammar correction'], answer: 1, explain: 'embedding model은 text를 fixed-dimensional vector로 mapping합니다. 여기서 semantic similarity는 geometric proximity에 대응합니다.' },
+            { q: 'embedding 비교에 cosine similarity를 쓰는 이유는 무엇인가요?', opts: ['유일한 metric이기 때문에', 'vector magnitude와 무관하게 angular similarity를 측정하기 때문에', 'dot product보다 빠르기 때문에', 'integer에서만 동작하기 때문에'], answer: 1, explain: 'cosine similarity는 magnitude를 normalize하고 direction에 집중합니다. 같은 topic에 대한 두 text는 길이와 무관하게 높은 cosine similarity를 갖습니다.' }
           ];
         }
 
         if (pathLower.indexOf('agent') >= 0 || pathLower.indexOf('tool') >= 0 || pathLower.indexOf('mcp') >= 0) {
           return [
-            { q: 'What distinguishes an AI agent from a simple chatbot?', opts: ['Agents are faster', 'Agents can take actions and use tools autonomously', 'Agents use bigger models', 'There is no difference'], answer: 1, explain: 'Agents have a loop: observe, decide, act. They can call tools, read files, search the web, and chain multiple steps to complete complex tasks.' },
-            { q: 'What is MCP (Model Context Protocol)?', opts: ['A model training format', 'A standardized protocol for connecting AI models to tools and data sources', 'A compression algorithm', 'A testing framework'], answer: 1, explain: 'MCP provides a universal interface between AI assistants and external tools/data, replacing one-off integrations with a standard protocol.' },
-            { q: 'Why is tool-use important for LLMs?', opts: ['It reduces cost', 'It lets LLMs access real-time information and take actions beyond text generation', 'It makes responses shorter', 'It removes hallucinations entirely'], answer: 1, explain: 'Tools extend LLMs beyond their training data cutoff, enabling real-time lookups, calculations, code execution, and interaction with external systems.' }
+            { q: 'AI agent와 단순 chatbot을 구분하는 것은 무엇인가요?', opts: ['agent가 더 빠름', 'agent가 자율적으로 action을 취하고 tool을 사용할 수 있음', 'agent가 더 큰 model을 사용함', '차이가 없음'], answer: 1, explain: 'agent에는 observe, decide, act loop가 있습니다. tool을 호출하고, file을 읽고, web을 검색하고, 여러 step을 연결해 복잡한 task를 완료할 수 있습니다.' },
+            { q: 'MCP(Model Context Protocol)는 무엇인가요?', opts: ['model training format', 'AI model을 tool 및 data source에 연결하는 standardized protocol', 'compression algorithm', 'testing framework'], answer: 1, explain: 'MCP는 AI assistant와 external tool/data 사이의 universal interface를 제공합니다. 일회성 integration을 standard protocol로 대체합니다.' },
+            { q: 'LLM에서 tool-use가 중요한 이유는 무엇인가요?', opts: ['cost를 줄이기 때문에', 'LLM이 real-time information에 접근하고 text generation을 넘어 action을 취할 수 있게 하기 때문에', 'response를 더 짧게 만들기 때문에', 'hallucination을 완전히 제거하기 때문에'], answer: 1, explain: 'tool은 LLM을 training data cutoff 너머로 확장해 real-time lookup, calculation, code execution, external system interaction을 가능하게 합니다.' }
           ];
         }
 
         if (pathLower.indexOf('eval') >= 0 || pathLower.indexOf('safety') >= 0 || pathLower.indexOf('alignment') >= 0 || pathLower.indexOf('deploy') >= 0) {
           return [
-            { q: 'Why are evals critical for production AI systems?', opts: ['To save money', 'To measure performance objectively before and after changes', 'To make the model bigger', 'Evals are optional'], answer: 1, explain: 'Evals are the tests of AI engineering. Without them, you cannot know if a change improved or regressed quality. They should run on every code change.' },
-            { q: 'What does "alignment" mean in AI safety?', opts: ['Aligning text on screen', 'Ensuring AI systems act according to human intentions and values', 'Making models faster', 'Using the same training data'], answer: 1, explain: 'Alignment ensures that as AI systems become more capable, they remain helpful, honest, and harmless, acting in accordance with human goals.' },
-            { q: 'What is a guardrail in the context of deployed LLMs?', opts: ['A physical barrier', 'A check that prevents harmful, off-topic, or policy-violating outputs', 'A backup model', 'A caching layer'], answer: 1, explain: 'Guardrails filter inputs and outputs at runtime, catching toxicity, prompt injection, PII leaks, and other risks before they reach the user.' }
+            { q: 'production AI system에서 eval이 중요한 이유는 무엇인가요?', opts: ['돈을 아끼기 위해', '변경 전후의 performance를 객관적으로 측정하기 위해', 'model을 더 크게 만들기 위해', 'eval은 선택 사항임'], answer: 1, explain: 'eval은 AI engineering의 test입니다. eval 없이는 변경이 quality를 개선했는지 악화했는지 알 수 없습니다. 모든 code change에서 실행해야 합니다.' },
+            { q: 'AI safety에서 "alignment"는 무엇을 뜻하나요?', opts: ['화면의 text 정렬', 'AI system이 human intention과 value에 따라 동작하게 하는 것', 'model을 더 빠르게 만드는 것', '같은 training data를 쓰는 것'], answer: 1, explain: 'alignment는 AI system이 더 capable해져도 helpful, honest, harmless하게 남아 human goal에 따라 행동하도록 보장합니다.' },
+            { q: 'deployed LLM 맥락에서 guardrail은 무엇인가요?', opts: ['물리적 barrier', 'harmful, off-topic, policy-violating output을 막는 check', 'backup model', 'caching layer'], answer: 1, explain: 'guardrail은 runtime에서 input과 output을 filter해 toxicity, prompt injection, PII leak 등 risk가 user에게 닿기 전에 잡습니다.' }
           ];
         }
 
         return [
-          { q: 'What does "from scratch" mean in this course?', opts: ['Using no computer', 'Building each concept by implementing it yourself, not just reading theory', 'Starting from assembly language', 'Only using pen and paper'], answer: 1, explain: 'This course follows a Build-Use-Ship methodology: first understand by building it, then apply it, then ship it as a real artifact.' },
-          { q: 'Why does this course combine math, ML, and engineering?', opts: ['To make it longer', 'Because real AI engineering requires all three to build production systems', 'Math is just for fun', 'Engineering is optional'], answer: 1, explain: 'Production AI systems require mathematical foundations (for understanding), ML knowledge (for modeling), and engineering skills (for deployment and reliability).' },
-          { q: 'What is the "Ship" step in the Build-Use-Ship framework?', opts: ['Mailing physical goods', 'Creating a reusable artifact like a prompt, skill, or tool from what you learned', 'Publishing a paper', 'Deleting your code'], answer: 2, explain: 'The Ship step turns your learning into something tangible: a prompt, skill file, MCP tool, or CLI utility that others (or future you) can use immediately.' }
+          { q: '이 course에서 "from scratch"는 무엇을 뜻하나요?', opts: ['computer를 전혀 쓰지 않음', '이론만 읽지 않고 각 concept를 직접 구현해 봄', 'assembly language부터 시작함', '종이와 펜만 사용함'], answer: 1, explain: '이 course는 Build-Use-Ship 방법론을 따릅니다. 먼저 만들어서 이해하고, 적용하고, 실제 artifact로 ship합니다.' },
+          { q: '이 course가 math, ML, engineering을 함께 다루는 이유는 무엇인가요?', opts: ['더 길게 만들기 위해', '실제 AI engineering은 production system을 만들기 위해 셋 모두가 필요하기 때문에', 'math는 재미용이기 때문에', 'engineering은 선택 사항이기 때문에'], answer: 1, explain: 'production AI system에는 이해를 위한 mathematical foundation, modeling을 위한 ML knowledge, deployment와 reliability를 위한 engineering skill이 필요합니다.' },
+          { q: 'Build-Use-Ship framework에서 "Ship" step은 무엇인가요?', opts: ['물리적 상품 발송', '배운 내용으로 prompt, skill, tool 같은 reusable artifact 생성', '논문 출판', 'code 삭제'], answer: 1, explain: 'Ship step은 학습을 prompt, skill file, MCP tool, CLI utility처럼 다른 사람이나 미래의 자신이 바로 쓸 수 있는 tangible artifact로 바꿉니다.' }
         ];
       }
 
@@ -3239,14 +3239,14 @@
           phase = fl.phaseSlug || '';
         }
 
-        var html = '<div class="ai-panel-header"><div class="ai-panel-icon">Q</div><div class="ai-panel-title">Test Your Understanding</div></div>';
-        html += '<div class="ai-panel-subtitle">Did you get it?</div>';
+        var html = '<div class="ai-panel-header"><div class="ai-panel-icon">Q</div><div class="ai-panel-title">이해도 확인</div></div>';
+        html += '<div class="ai-panel-subtitle">핵심을 잡았나요?</div>';
         html += '<div class="quiz-container" id="quizContainer">';
 
         var letters = ['A', 'B', 'C', 'D'];
         questions.forEach(function (q, qi) {
           html += '<div class="quiz-question" id="quiz-q-' + qi + '">';
-          html += '<div class="quiz-question-num">Question ' + (qi + 1) + ' of ' + questions.length + '</div>';
+          html += '<div class="quiz-question-num">문항 ' + (qi + 1) + ' / ' + questions.length + '</div>';
           html += '<div class="quiz-question-text">' + escapeHtml(q.q) + '</div>';
           html += '<div class="quiz-options">';
           q.opts.forEach(function (opt, oi) {
@@ -3260,8 +3260,8 @@
           html += '</div>';
         });
 
-        html += '<div class="quiz-score" id="quizScore"><div class="quiz-score-number" id="quizScoreNum">0/' + questions.length + '</div><div class="quiz-score-label">Complete all questions to see your score</div></div>';
-        html += '<div class="quiz-deeper">Want a deeper quiz? Run <code>/check-understanding ' + escapeHtml(phase) + '</code> in Claude, Cursor, Codex, OpenClaw, Hermes, or any agent with the curriculum skills installed</div>';
+        html += '<div class="quiz-score" id="quizScore"><div class="quiz-score-number" id="quizScoreNum">0/' + questions.length + '</div><div class="quiz-score-label">점수를 보려면 모든 문항을 완료하세요</div></div>';
+        html += '<div class="quiz-deeper">더 깊은 quiz가 필요하면 curriculum skills가 설치된 Claude, Cursor, Codex, OpenClaw, Hermes 또는 다른 agent에서 <code>/check-understanding ' + escapeHtml(phase) + '</code>를 실행하세요</div>';
         html += '</div>';
 
         panel.innerHTML = html;
@@ -3305,8 +3305,8 @@
           if (scoreEl && scoreNum) {
             scoreNum.textContent = window._quizCorrect + '/' + questions.length;
             scoreEl.querySelector('.quiz-score-label').textContent =
-              window._quizCorrect === questions.length ? 'Perfect score!' :
-              window._quizCorrect >= 2 ? 'Great work!' : 'Keep studying!';
+              window._quizCorrect === questions.length ? '만점입니다!' :
+              window._quizCorrect >= 2 ? '좋습니다!' : '계속 학습하세요!';
             scoreEl.classList.add('visible');
           }
         }
@@ -3331,7 +3331,7 @@
           }
         }
 
-        var html = '<div class="ai-panel-header"><div class="ai-panel-icon">P</div><div class="ai-panel-title">Learning Path</div></div>';
+        var html = '<div class="ai-panel-header"><div class="ai-panel-icon">P</div><div class="ai-panel-title">학습 경로</div></div>';
         html += '<div class="ai-panel-subtitle">Phase ' + String(phase.id).padStart(2, '0') + ': ' + escapeHtml(phase.name) + '</div>';
 
         // Window: 2 before current + current + 2 after, cap at 5 visible.
@@ -3345,7 +3345,7 @@
 
         html += '<div class="learning-timeline">';
         if (hiddenBefore > 0) {
-          html += '<span class="timeline-ellipsis" title="' + hiddenBefore + ' earlier lessons">&laquo; ' + hiddenBefore + '</span>';
+          html += '<span class="timeline-ellipsis" title="이전 lesson ' + hiddenBefore + '개">&laquo; ' + hiddenBefore + '</span>';
           html += '<div class="timeline-line done"></div>';
         }
         visible.forEach(function (item, vIdx) {
@@ -3370,7 +3370,7 @@
         });
         if (hiddenAfter > 0) {
           html += '<div class="timeline-line"></div>';
-          html += '<span class="timeline-ellipsis" title="' + hiddenAfter + ' later lessons">' + hiddenAfter + ' &raquo;</span>';
+          html += '<span class="timeline-ellipsis" title="이후 lesson ' + hiddenAfter + '개">' + hiddenAfter + ' &raquo;</span>';
         }
         html += '</div>';
 
@@ -3379,11 +3379,11 @@
         var pct = Math.round((completedCount / totalCount) * 100);
 
         html += '<div class="phase-progress-bar"><div class="phase-progress-fill" style="width:' + pct + '%"></div></div>';
-        html += '<div class="phase-progress-text">You\'ve completed ' + completedCount + ' of ' + totalCount + ' lessons in this phase</div>';
+        html += '<div class="phase-progress-text">이 phase에서 ' + completedCount + ' / ' + totalCount + ' lessons를 완료했습니다</div>';
 
         if (completedCount >= totalCount && phaseIdx < PHASES.length - 1) {
           var nextPhase = PHASES[phaseIdx + 1];
-          html += '<div class="phase-complete-callout visible">Ready for Phase ' + String(nextPhase.id).padStart(2, '0') + ': ' + escapeHtml(nextPhase.name) + '</div>';
+          html += '<div class="phase-complete-callout visible">Phase ' + String(nextPhase.id).padStart(2, '0') + ': ' + escapeHtml(nextPhase.name) + '로 넘어갈 준비가 됐습니다</div>';
         }
 
         panel.innerHTML = html;
@@ -3404,22 +3404,22 @@
         var phaseIdx = current.phaseIndex;
         var phase = PHASES[phaseIdx];
 
-        var html = '<div class="ai-panel-header"><div class="ai-panel-icon">N</div><div class="ai-panel-title">Continue Learning</div></div>';
+        var html = '<div class="ai-panel-header"><div class="ai-panel-icon">N</div><div class="ai-panel-title">계속 학습하기</div></div>';
         html += '<div class="continue-panel">';
 
         if (!next || !next.path) {
-          html += '<div class="phase-finished">\u2705 You finished this phase!</div>';
+          html += '<div class="phase-finished">\u2705 이 phase를 완료했습니다!</div>';
         }
 
         html += '<div class="continue-links">';
 
         var phaseSlug = extractPhaseSlug(phase, phaseIdx);
         var firstLesson = phase.lessons[0] ? extractLessonSlug(phase.lessons[0], 0) : '';
-        html += '<a class="continue-link" href="lesson.html?path=phases/' + phaseSlug + '/' + firstLesson + '">Browse all Phase ' + String(phase.id).padStart(2, '0') + ' lessons</a>';
-        html += '<a class="continue-link" href="catalog.html">Full course catalog</a>';
+        html += '<a class="continue-link" href="lesson.html?path=phases/' + phaseSlug + '/' + firstLesson + '">Phase ' + String(phase.id).padStart(2, '0') + ' lesson 전체 보기</a>';
+        html += '<a class="continue-link" href="catalog.html">전체 course catalog</a>';
         html += '</div>';
 
-        html += '<div class="continue-callout">Run <code>/find-your-level</code> in Claude, Cursor, Codex, OpenClaw, Hermes, or any agent with the curriculum skills installed for a personalized learning path</div>';
+        html += '<div class="continue-callout">개인화된 학습 경로가 필요하면 curriculum skills가 설치된 Claude, Cursor, Codex, OpenClaw, Hermes 또는 다른 agent에서 <code>/find-your-level</code>를 실행하세요</div>';
         html += '</div>';
 
         panel.innerHTML = html;

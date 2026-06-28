@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the difference between prompt engineering and context engineering?",
-    "options": ["They are the same thing", "A prompt is the user's query; context is everything in the model's window: system prompt, tools, retrieved docs, history, and the prompt itself", "Context engineering is about database design", "Prompt engineering is more advanced"],
+    "question": "프롬프트 엔지니어링과 context engineering의 차이는 무엇인가요?",
+    "options": ["둘은 같은 것입니다", "프롬프트는 사용자의 질의이고, 컨텍스트는 시스템 프롬프트, 도구, 검색된 문서, 기록, 프롬프트 자체처럼 모델 창 안에 들어가는 모든 것입니다", "Context engineering은 데이터베이스 설계에 관한 것입니다", "프롬프트 엔지니어링이 더 고급입니다"],
     "correct": 1,
-    "explanation": "Prompt engineering focuses on crafting the user instruction. Context engineering manages the entire input to the model: what goes in, what stays out, in what order, and how to allocate the limited context window.",
+    "explanation": "프롬프트 엔지니어링은 사용자 지시를 잘 작성하는 데 초점을 둡니다. Context engineering은 모델에 들어가는 전체 입력을 관리합니다. 무엇을 넣고, 무엇을 빼며, 어떤 순서로 둘지, 제한된 컨텍스트 창을 어떻게 배분할지를 다룹니다.",
     "stage": "pre"
   },
   {
-    "question": "Why does context window order matter for LLM performance?",
-    "options": ["It doesn't -- LLMs process all tokens equally", "LLMs have recency and primacy biases, paying more attention to the beginning and end of the context window", "Alphabetical order helps the model search faster", "Order only matters for code"],
+    "question": "컨텍스트 창의 순서가 LLM 성능에 중요한 이유는 무엇인가요?",
+    "options": ["중요하지 않습니다. LLM은 모든 토큰을 동일하게 처리합니다", "LLM에는 최신성 및 초두성 편향이 있어 컨텍스트 창의 시작과 끝에 더 주의를 기울입니다", "알파벳순 정렬은 모델이 더 빠르게 검색하도록 돕습니다", "순서는 코드에서만 중요합니다"],
     "correct": 1,
-    "explanation": "Research shows LLMs attend more to the start and end of the context window ('lost in the middle' phenomenon). Placing the most important information at the beginning or end of context improves utilization.",
+    "explanation": "연구에 따르면 LLM은 컨텍스트 창의 시작과 끝에 더 많이 주의를 기울입니다('lost in the middle' 현상). 가장 중요한 정보를 컨텍스트의 시작이나 끝에 배치하면 활용도가 높아집니다.",
     "stage": "pre"
   },
   {
-    "question": "A coding assistant uses 22,700 tokens of a 128K context window. Why is budget management still important?",
-    "options": ["128K should be enough for any use case", "Long conversations, large code files, and retrieved documentation can quickly fill the window; without budget management, critical context gets truncated", "Token counting is inaccurate", "Only the prompt matters"],
+    "question": "코딩 어시스턴트가 128K 컨텍스트 창 중 22,700토큰을 사용합니다. 그런데도 예산 관리가 중요한 이유는 무엇인가요?",
+    "options": ["128K는 어떤 사용 사례에도 충분해야 합니다", "긴 대화, 큰 코드 파일, 검색된 문서는 창을 빠르게 채울 수 있으며, 예산 관리가 없으면 중요한 컨텍스트가 잘립니다", "토큰 계산은 부정확합니다", "프롬프트만 중요합니다"],
     "correct": 1,
-    "explanation": "22,700 tokens is the baseline. A 50-turn conversation adds 30K+ tokens. Retrieving a large codebase adds 50K+. Tool call results add more. Without active management, the window fills and oldest context is lost.",
+    "explanation": "22,700토큰은 기준선일 뿐입니다. 50턴 대화는 30K개 이상의 토큰을 더합니다. 큰 코드베이스를 검색하면 50K개 이상이 추가됩니다. 도구 호출 결과도 더해집니다. 적극적으로 관리하지 않으면 창이 가득 차고 가장 오래된 컨텍스트가 사라집니다.",
     "stage": "post"
   },
   {
-    "question": "What is the sliding window strategy for conversation history?",
-    "options": ["Moving the model to a different server", "Keeping only the N most recent turns in context and dropping older turns, optionally summarizing them first", "Processing the conversation in fixed-size chunks", "Expanding the context window dynamically"],
+    "question": "대화 기록에 대한 sliding window 전략은 무엇인가요?",
+    "options": ["모델을 다른 서버로 옮기는 것", "가장 최근 N개 턴만 컨텍스트에 유지하고 오래된 턴은 버리되, 필요하면 먼저 요약하는 것", "대화를 고정 크기 청크로 처리하는 것", "컨텍스트 창을 동적으로 확장하는 것"],
     "correct": 1,
-    "explanation": "Sliding window keeps the K most recent conversation turns in full context. Older turns are either dropped or replaced with a summary. This bounds memory usage while preserving the most relevant recent context.",
+    "explanation": "Sliding window는 가장 최근 K개의 대화 턴을 전체 컨텍스트로 유지합니다. 더 오래된 턴은 버리거나 요약으로 대체합니다. 이렇게 하면 가장 관련 있는 최근 컨텍스트를 보존하면서 메모리 사용량에 상한을 둘 수 있습니다.",
     "stage": "post"
   },
   {
-    "question": "How should a context assembler allocate tokens across components?",
-    "options": ["Equal allocation to each component", "Dynamically based on query type: a simple question needs less retrieval context; a complex question needs more, with generation headroom always reserved", "Maximize retrieval context always", "Minimize system prompt tokens"],
+    "question": "컨텍스트 assembler는 컴포넌트 간에 토큰을 어떻게 배분해야 하나요?",
+    "options": ["각 컴포넌트에 동일하게 배분합니다", "질의 유형에 따라 동적으로 배분합니다. 단순한 질문은 검색 컨텍스트가 적게 필요하고 복잡한 질문은 더 많이 필요하며, 생성 여유분은 항상 예약해야 합니다", "항상 검색 컨텍스트를 최대화합니다", "시스템 프롬프트 토큰을 최소화합니다"],
     "correct": 1,
-    "explanation": "A simple factual question might need 500 tokens of retrieved context. A complex analysis might need 10,000. A good context assembler adjusts allocation dynamically while always reserving headroom for the model's response.",
+    "explanation": "단순한 사실 질문에는 검색된 컨텍스트 500토큰이면 충분할 수 있습니다. 복잡한 분석에는 10,000토큰이 필요할 수 있습니다. 좋은 컨텍스트 assembler는 모델 응답을 위한 여유분을 항상 남겨 두면서 배분을 동적으로 조정합니다.",
     "stage": "post"
   }
 ]

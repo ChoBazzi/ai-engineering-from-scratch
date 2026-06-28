@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the chain rule in calculus state?",
-      "options": ["The derivative of a sum is the sum of derivatives", "The derivative of composed functions is the product of their individual derivatives", "The integral of a product is the product of integrals", "Functions can only be differentiated if they are linear"],
+      "question": "미적분에서 연쇄 법칙은 무엇을 말하나요?",
+      "options": ["합의 도함수는 도함수들의 합입니다", "합성 함수의 도함수는 각 함수 도함수들의 곱입니다", "곱의 적분은 적분들의 곱입니다", "함수는 선형일 때만 미분할 수 있습니다"],
       "correct": 1,
-      "explanation": "For y = f(g(x)), the chain rule says dy/dx = f'(g(x)) * g'(x). You multiply the derivatives at each link in the chain. This is the mathematical basis of backpropagation."
+      "explanation": "y = f(g(x))에 대해 연쇄 법칙은 dy/dx = f'(g(x)) * g'(x)라고 말합니다. 체인의 각 연결 지점에서 도함수를 곱합니다. 이것이 역전파의 수학적 기반입니다."
     },
     {
       "stage": "pre",
-      "question": "What is a computational graph?",
-      "options": ["A plot of loss vs training steps", "A directed graph where nodes are operations and edges carry values forward or gradients backward", "A diagram showing the architecture of a neural network", "A graph database used for storing training data"],
+      "question": "계산 그래프란 무엇인가요?",
+      "options": ["손실과 학습 step의 관계를 나타낸 플롯", "노드는 연산이고 간선은 값을 앞으로 전달하거나 그래디언트를 뒤로 전달하는 방향 그래프", "신경망 아키텍처를 보여 주는 다이어그램", "학습 데이터를 저장하는 데 쓰는 그래프 데이터베이스"],
       "correct": 1,
-      "explanation": "A computational graph represents the sequence of operations in a computation. Data flows forward through the graph, and gradients flow backward during backpropagation."
+      "explanation": "계산 그래프는 계산에서 수행되는 연산의 순서를 나타냅니다. 데이터는 그래프를 따라 앞으로 흐르고, 역전파 중 그래디언트는 뒤로 흐릅니다."
     },
     {
       "stage": "post",
-      "question": "Why does PyTorch use reverse-mode autodiff (backpropagation) instead of forward-mode?",
-      "options": ["Reverse mode is more numerically accurate", "Reverse mode computes all gradients in one backward pass, while forward mode needs one pass per input variable -- neural networks have millions of inputs but one loss output", "Reverse mode uses less memory", "Forward mode cannot handle non-linear functions"],
+      "question": "PyTorch가 forward-mode 대신 reverse-mode autodiff(역전파)를 사용하는 이유는 무엇인가요?",
+      "options": ["reverse mode가 수치적으로 더 정확하기 때문입니다", "reverse mode는 한 번의 backward pass로 모든 그래디언트를 계산하지만, forward mode는 입력 변수마다 한 번씩 pass가 필요합니다. 신경망은 입력은 수백만 개지만 loss 출력은 하나입니다", "reverse mode가 메모리를 더 적게 쓰기 때문입니다", "forward mode는 비선형 함수를 처리할 수 없기 때문입니다"],
       "correct": 1,
-      "explanation": "Neural networks have millions of weight inputs but produce a single scalar loss. Reverse mode needs one backward pass total. Forward mode would need one pass per weight -- millions of passes -- making it impractical."
+      "explanation": "신경망은 수백만 개의 가중치 입력을 갖지만 하나의 스칼라 loss를 만듭니다. reverse mode는 전체에 대해 backward pass 한 번이면 충분합니다. forward mode는 가중치마다 한 번씩, 즉 수백만 번의 pass가 필요하므로 비현실적입니다."
     },
     {
       "stage": "post",
-      "question": "In the Value class autograd engine, why does the backward function use '+=' instead of '=' for accumulating gradients?",
-      "options": ["To average the gradients across multiple samples", "Because a value used in multiple operations receives gradient contributions from each one, which must be summed", "To prevent numerical overflow in the gradients", "Because Python does not support the '=' operator in closures"],
+      "question": "Value 클래스 autograd 엔진에서 backward 함수가 그래디언트를 누적할 때 '=' 대신 '+='를 사용하는 이유는 무엇인가요?",
+      "options": ["여러 샘플에 걸쳐 그래디언트를 평균내기 위해서입니다", "여러 연산에 사용된 값은 각 연산에서 그래디언트 기여를 받으며, 이를 모두 합해야 하기 때문입니다", "그래디언트의 수치 오버플로를 막기 위해서입니다", "Python이 클로저에서 '=' 연산자를 지원하지 않기 때문입니다"],
       "correct": 1,
-      "explanation": "When a value feeds into multiple operations (e.g., x used in both x*y and x+z), its total gradient is the sum of all incoming gradient contributions. Using '=' would overwrite earlier contributions."
+      "explanation": "어떤 값이 여러 연산으로 들어가면(예: x가 x*y와 x+z 모두에 사용됨), 전체 그래디언트는 들어오는 모든 그래디언트 기여의 합입니다. '='를 쓰면 앞선 기여를 덮어써 버립니다."
     },
     {
       "stage": "post",
-      "question": "What is gradient checking and when should you use it?",
-      "options": ["Checking that gradients are below a threshold to prevent exploding gradients", "Comparing autodiff gradients against numerical finite-difference gradients to verify correctness of the backward pass", "Checking that all parameters received non-zero gradients during training", "Monitoring gradient magnitudes during training to detect vanishing gradients"],
+      "question": "gradient checking이란 무엇이며 언제 사용해야 하나요?",
+      "options": ["폭주하는 그래디언트를 막기 위해 그래디언트가 임계값 아래인지 확인하는 것", "backward pass의 정확성을 검증하기 위해 autodiff 그래디언트를 수치적 유한 차분 그래디언트와 비교하는 것", "학습 중 모든 파라미터가 0이 아닌 그래디언트를 받았는지 확인하는 것", "사라지는 그래디언트를 감지하기 위해 학습 중 그래디언트 크기를 모니터링하는 것"],
       "correct": 1,
-      "explanation": "Gradient checking computes numerical derivatives via (f(x+h) - f(x-h)) / 2h and compares them to autodiff gradients. Use it when adding new operations to your autograd engine or debugging training failures."
+      "explanation": "gradient checking은 (f(x+h) - f(x-h)) / 2h로 수치 도함수를 계산한 뒤 autodiff 그래디언트와 비교합니다. autograd 엔진에 새 연산을 추가하거나 학습 실패를 디버깅할 때 사용합니다."
     }
   ]
 }

@@ -1,37 +1,37 @@
 [
   {
-    "question": "Why can't you build a useful deep network using only linear layers (no activation functions)?",
-    "options": ["Linear layers are too slow", "Stacking linear layers collapses to a single linear transformation, giving no benefit from depth", "Linear layers don't have biases", "Linear layers can't handle batched data"],
+    "question": "선형층만 사용하고 활성화 함수 없이 유용한 깊은 네트워크를 만들 수 없는 이유는 무엇인가요?",
+    "options": ["선형층이 너무 느리기 때문", "선형층을 쌓아도 하나의 선형 변환으로 접히므로 깊이의 이점이 없기 때문", "선형층에는 편향이 없기 때문", "선형층은 배치 데이터를 처리할 수 없기 때문"],
     "correct": 1,
-    "explanation": "y = W2(W1*x + b1) + b2 simplifies to y = Ax + c. No matter how many linear layers you stack, the result is equivalent to one linear layer. Activation functions break this composability.",
+    "explanation": "y = W2(W1*x + b1) + b2는 y = Ax + c로 단순화됩니다. 선형층을 아무리 많이 쌓아도 결과는 하나의 선형층과 같습니다. 활성화 함수는 이 합성 가능성을 깨뜨립니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the output range of the ReLU activation function?",
+    "question": "ReLU 활성화 함수의 출력 범위는 무엇인가요?",
     "options": ["(-1, 1)", "(0, 1)", "[0, infinity)", "(-infinity, infinity)"],
     "correct": 2,
-    "explanation": "ReLU(x) = max(0, x). It outputs 0 for all negative inputs and passes positive inputs unchanged, giving a range of [0, infinity).",
+    "explanation": "ReLU(x) = max(0, x)입니다. 모든 음수 입력에는 0을 출력하고 양수 입력은 그대로 통과시키므로 범위는 [0, infinity)입니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the 'dead neuron' problem in ReLU networks?",
-    "options": ["Neurons that compute too slowly", "Neurons whose input is permanently negative, producing zero output and zero gradient forever", "Neurons that produce NaN values", "Neurons with zero bias"],
+    "question": "ReLU 네트워크에서 '죽은 뉴런' 문제는 무엇인가요?",
+    "options": ["계산이 너무 느린 뉴런", "입력이 영구히 음수라서 출력과 그래디언트가 영원히 0인 뉴런", "NaN 값을 생성하는 뉴런", "편향이 0인 뉴런"],
     "correct": 1,
-    "explanation": "If a ReLU neuron's weighted input is always negative (due to bad initialization or large negative bias), it outputs 0 with gradient 0. It can never recover because zero gradient means zero update.",
+    "explanation": "ReLU 뉴런의 가중 입력이 항상 음수라면(나쁜 초기화나 큰 음수 편향 때문에), 출력은 0이고 그래디언트도 0입니다. 그래디언트가 0이면 업데이트도 0이므로 회복할 수 없습니다.",
     "stage": "post"
   },
   {
-    "question": "Which activation function is the default for hidden layers in modern transformers like GPT and BERT?",
+    "question": "GPT와 BERT 같은 현대 transformer의 은닉층 기본 활성화 함수는 무엇인가요?",
     "options": ["Sigmoid", "ReLU", "GELU", "Tanh"],
     "correct": 2,
-    "explanation": "GELU (Gaussian Error Linear Unit) is the default activation in transformers. It provides smooth gradient flow, avoids dead neurons, and has been shown to outperform ReLU in language models.",
+    "explanation": "GELU(Gaussian Error Linear Unit)는 transformer의 기본 활성화 함수입니다. 매끄러운 그래디언트 흐름을 제공하고, 죽은 뉴런을 피하며, 언어 모델에서 ReLU보다 좋은 성능을 보이는 것으로 알려져 있습니다.",
     "stage": "post"
   },
   {
-    "question": "Why is softmax used only in the output layer and never in hidden layers?",
-    "options": ["It's too slow for hidden layers", "It converts a vector into a probability distribution (values sum to 1), which is needed for classification output but not for intermediate representations", "It causes exploding gradients", "It only works with two classes"],
+    "question": "softmax가 은닉층에는 쓰이지 않고 출력층에만 쓰이는 이유는 무엇인가요?",
+    "options": ["은닉층에 쓰기에는 너무 느리기 때문", "벡터를 확률분포(값의 합이 1)로 바꾸는데, 이는 분류 출력에는 필요하지만 중간 표현에는 필요하지 않기 때문", "그래디언트 폭주를 일으키기 때문", "두 클래스에서만 동작하기 때문"],
     "correct": 1,
-    "explanation": "Softmax normalizes a vector so all values are in (0,1) and sum to 1, creating a probability distribution. Hidden layers need to preserve and transform information, not compress it into probabilities.",
+    "explanation": "Softmax는 모든 값이 (0,1)에 있고 합이 1이 되도록 벡터를 정규화해 확률분포를 만듭니다. 은닉층은 정보를 보존하고 변환해야지 확률로 압축해서는 안 됩니다.",
     "stage": "post"
   }
 ]

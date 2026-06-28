@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is autograd in PyTorch?",
-    "options": ["A data loading library", "An automatic differentiation engine that records operations and computes gradients without manual backward implementations", "A model compression tool", "A hyperparameter tuning framework"],
+    "question": "PyTorch에서 autograd란 무엇인가요?",
+    "options": ["데이터 로딩 라이브러리", "연산을 기록하고 수동 backward 구현 없이 그래디언트를 계산하는 자동 미분 엔진", "모델 압축 도구", "하이퍼파라미터 튜닝 프레임워크"],
     "correct": 1,
-    "explanation": "PyTorch's autograd builds a computational graph during forward computation and automatically computes gradients when you call .backward(). This eliminates the need to manually implement backward() in each module.",
+    "explanation": "PyTorch의 autograd는 forward 계산 중 computational graph를 만들고 .backward()를 호출하면 그래디언트를 자동으로 계산합니다. 그래서 각 모듈에 backward()를 수동으로 구현할 필요가 없어집니다.",
     "stage": "pre"
   },
   {
-    "question": "What does torch.no_grad() do and when should you use it?",
-    "options": ["It prevents overfitting", "It disables gradient tracking for inference, saving memory and computation when you don't need to train", "It freezes all model weights", "It enables GPU acceleration"],
+    "question": "torch.no_grad()는 무엇을 하며 언제 사용해야 하나요?",
+    "options": ["오버피팅을 방지합니다", "학습이 필요 없을 때 추론을 위한 그래디언트 추적을 비활성화해 메모리와 계산을 절약합니다", "모든 모델 weight를 고정합니다", "GPU 가속을 활성화합니다"],
     "correct": 1,
-    "explanation": "During inference, you don't need gradients. torch.no_grad() disables gradient tracking, which saves the memory that would be used to store the computational graph and speeds up computation.",
+    "explanation": "추론 중에는 그래디언트가 필요 없습니다. torch.no_grad()는 그래디언트 추적을 비활성화해 computational graph 저장에 쓰일 메모리를 절약하고 계산 속도를 높입니다.",
     "stage": "pre"
   },
   {
-    "question": "What does nn.Linear(784, 256) create in PyTorch?",
-    "options": ["A ReLU activation layer", "A fully connected layer with a (256, 784) weight matrix and a (256,) bias vector", "A dropout layer with p=784/256", "A batch normalization layer"],
+    "question": "PyTorch에서 nn.Linear(784, 256)은 무엇을 만드나요?",
+    "options": ["ReLU activation layer", "(256, 784) weight matrix와 (256,) bias vector를 가진 fully connected layer", "p=784/256인 dropout layer", "batch normalization layer"],
     "correct": 1,
-    "explanation": "nn.Linear(in_features, out_features) creates a layer that computes y = x @ W^T + b, with W of shape (256, 784) and b of shape (256,). This is the PyTorch equivalent of the Layer class you built from scratch.",
+    "explanation": "nn.Linear(in_features, out_features)는 shape이 (256, 784)인 W와 shape이 (256,)인 b로 y = x @ W^T + b를 계산하는 layer를 만듭니다. 이것은 직접 만든 Layer 클래스의 PyTorch 대응 요소입니다.",
     "stage": "post"
   },
   {
-    "question": "Which PyTorch method computes gradients for all parameters in the computational graph?",
+    "question": "computational graph의 모든 파라미터에 대한 그래디언트를 계산하는 PyTorch 메서드는 무엇인가요?",
     "options": ["optimizer.step()", "model.forward()", "loss.backward()", "optimizer.zero_grad()"],
     "correct": 2,
-    "explanation": "loss.backward() traverses the computational graph in reverse, computing dL/dp for every parameter p that requires gradients. optimizer.step() then uses these gradients to update the parameters.",
+    "explanation": "loss.backward()는 computational graph를 역방향으로 순회하며 그래디언트가 필요한 모든 파라미터 p에 대해 dL/dp를 계산합니다. 그런 다음 optimizer.step()이 이 그래디언트를 사용해 파라미터를 업데이트합니다.",
     "stage": "post"
   },
   {
-    "question": "Why is PyTorch's training loop significantly faster than the pure-Python mini framework?",
-    "options": ["PyTorch uses a different algorithm", "PyTorch runs operations as optimized C++/CUDA kernels on GPU, while pure Python loops are interpreted one operation at a time", "PyTorch uses smaller data types", "PyTorch skips the backward pass"],
+    "question": "PyTorch의 학습 루프가 순수 Python 미니 프레임워크보다 훨씬 빠른 이유는 무엇인가요?",
+    "options": ["PyTorch가 다른 알고리즘을 사용하기 때문입니다", "PyTorch는 연산을 GPU의 최적화된 C++/CUDA 커널로 실행하지만, 순수 Python 루프는 연산을 하나씩 인터프리터로 실행하기 때문입니다", "PyTorch가 더 작은 데이터 타입을 사용하기 때문입니다", "PyTorch가 backward pass를 건너뛰기 때문입니다"],
     "correct": 1,
-    "explanation": "PyTorch delegates matrix operations to highly optimized C++ and CUDA kernels that run on GPU with massive parallelism. Pure Python executes loops sequentially with interpreter overhead on each operation.",
+    "explanation": "PyTorch는 행렬 연산을 GPU에서 대규모 병렬성으로 실행되는 고도로 최적화된 C++ 및 CUDA 커널에 위임합니다. 순수 Python은 각 연산마다 인터프리터 overhead를 내며 루프를 순차적으로 실행합니다.",
     "stage": "post"
   }
 ]

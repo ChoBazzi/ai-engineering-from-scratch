@@ -1,37 +1,37 @@
 [
   {
-    "question": "Why is getting structured JSON output from LLMs challenging?",
-    "options": ["LLMs can't generate JSON", "LLMs generate free-form text token by token and can produce invalid JSON (missing brackets, wrong types, extra text) at any point", "JSON is too complex for LLMs", "LLMs only output plain text"],
+    "question": "LLM에서 구조화된 JSON 출력을 얻는 것이 어려운 이유는 무엇인가요?",
+    "options": ["LLM은 JSON을 생성할 수 없기 때문", "LLM은 자유 형식 텍스트를 토큰 단위로 생성하므로 어느 지점에서든 잘못된 JSON(누락된 괄호, 잘못된 타입, 추가 텍스트)을 만들 수 있기 때문", "JSON이 LLM에게 너무 복잡하기 때문", "LLM은 plain text만 출력하기 때문"],
     "correct": 1,
-    "explanation": "LLMs generate tokens autoregressively. They might add a trailing comma, forget a closing bracket, include markdown formatting around JSON, or hallucinate extra fields. Each token is independent, so structural validity isn't guaranteed.",
+    "explanation": "LLM은 토큰을 autoregressive하게 생성합니다. trailing comma를 붙이거나, 닫는 괄호를 잊거나, JSON 주위에 markdown 형식을 넣거나, 추가 필드를 hallucinate할 수 있습니다. 각 토큰 생성은 독립적이므로 구조적 유효성이 보장되지 않습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is constrained decoding?",
-    "options": ["Limiting the model's vocabulary size", "Restricting which tokens the model can generate at each step to ensure the output conforms to a grammar or schema", "Using a smaller model", "Compressing the output"],
+    "question": "constrained decoding이란 무엇인가요?",
+    "options": ["모델의 vocabulary 크기를 제한하는 것", "출력이 grammar나 schema를 따르도록 각 단계에서 모델이 생성할 수 있는 토큰을 제한하는 것", "더 작은 모델을 사용하는 것", "출력을 압축하는 것"],
     "correct": 1,
-    "explanation": "Constrained decoding masks out invalid tokens at each generation step. After an opening brace, only valid JSON keys are allowed. After a colon, only valid value tokens. This guarantees structural validity at the token level.",
+    "explanation": "constrained decoding은 각 생성 단계에서 유효하지 않은 토큰을 mask out합니다. 여는 중괄호 뒤에는 유효한 JSON key만 허용되고, 콜론 뒤에는 유효한 값 토큰만 허용됩니다. 이 방식은 토큰 수준에서 구조적 유효성을 보장합니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the benefit of using Pydantic models for LLM output validation?",
-    "options": ["They make API calls faster", "They define typed schemas that automatically validate, parse, and reject malformed LLM outputs with clear error messages", "They reduce token usage", "They improve model accuracy"],
+    "question": "LLM 출력 검증에 Pydantic 모델을 사용하는 이점은 무엇인가요?",
+    "options": ["API 호출을 더 빠르게 만든다", "typed schema를 정의해 잘못된 LLM 출력을 명확한 오류 메시지와 함께 자동 검증, 파싱, 거부한다", "토큰 사용량을 줄인다", "모델 정확도를 높인다"],
     "correct": 1,
-    "explanation": "Pydantic enforces types, required fields, value constraints, and nested structures. When the LLM produces invalid output, Pydantic gives specific error messages that can be fed back to the model for self-correction.",
+    "explanation": "Pydantic은 타입, 필수 필드, 값 제약, 중첩 구조를 강제합니다. LLM이 잘못된 출력을 만들면 Pydantic은 구체적인 오류 메시지를 제공하고, 이를 모델에 다시 전달해 self-correction을 유도할 수 있습니다.",
     "stage": "post"
   },
   {
-    "question": "What should you do when the LLM returns invalid JSON despite instructions?",
-    "options": ["Switch to a different model", "Implement a retry loop that sends the validation error back to the model as context for a corrected attempt", "Manually fix the JSON", "Increase the temperature"],
+    "question": "지시했는데도 LLM이 잘못된 JSON을 반환하면 어떻게 해야 하나요?",
+    "options": ["다른 모델로 바꾼다", "수정 시도를 위한 컨텍스트로 검증 오류를 모델에 다시 보내는 retry loop를 구현한다", "JSON을 수동으로 고친다", "temperature를 높인다"],
     "correct": 1,
-    "explanation": "A retry loop with error feedback works well: parse the output, catch validation errors, send the error message back as context ('Your output had this error: ... Please fix it'). Most models self-correct on the second attempt.",
+    "explanation": "오류 피드백이 있는 retry loop가 잘 작동합니다. 출력을 파싱하고, 검증 오류를 잡고, 오류 메시지를 컨텍스트로 다시 보냅니다('Your output had this error: ... Please fix it'). 대부분의 모델은 두 번째 시도에서 스스로 수정합니다.",
     "stage": "post"
   },
   {
-    "question": "When should you use the API's native JSON mode vs prompt-based JSON extraction?",
-    "options": ["Always use native JSON mode", "Use native mode for guaranteed structure; use prompt-based for complex extraction where you need the model to reason about what to extract", "Always use prompt-based extraction", "They produce identical results"],
+    "question": "API의 native JSON mode와 prompt-based JSON extraction은 각각 언제 사용해야 하나요?",
+    "options": ["항상 native JSON mode를 사용한다", "구조 보장이 필요하면 native mode를 사용하고, 무엇을 추출할지 모델이 reasoning해야 하는 복잡한 extraction에는 prompt-based 방식을 사용한다", "항상 prompt-based extraction을 사용한다", "둘은 동일한 결과를 만든다"],
     "correct": 1,
-    "explanation": "Native JSON mode (OpenAI's response_format, Anthropic's tool_use) guarantees valid JSON structure. Prompt-based extraction is more flexible for complex reasoning about which fields to populate. Use native mode when structure matters most.",
+    "explanation": "native JSON mode(OpenAI의 response_format, Anthropic의 tool_use)는 유효한 JSON 구조를 보장합니다. prompt-based extraction은 어떤 필드를 채울지에 대한 복잡한 reasoning이 필요할 때 더 유연합니다. 구조가 가장 중요할 때 native mode를 사용하세요.",
     "stage": "post"
   }
 ]

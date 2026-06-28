@@ -1,38 +1,38 @@
-# Data Pipelines for Pre-Training
+# Pre-Training을 위한 Data Pipeline
 
-> The model is a mirror. It reflects whatever data you feed it. Feed it garbage, it reflects garbage with perfect fluency.
+> 모델은 거울입니다. 넣어준 데이터를 그대로 비춥니다. 쓰레기를 넣으면, 완벽하게 유창한 쓰레기를 비춥니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 10, Lessons 01-02 (Tokenizers, Building a Tokenizer)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Build a streaming data pipeline that tokenizes, chunks, shuffles, and batches terabytes of text without loading it all into memory
-- Implement data quality filters (deduplication, language detection, content filtering) used in real pre-training pipelines
-- Create fixed-length training sequences with proper attention masks and document boundary handling
-- Profile pipeline throughput to ensure the dataloader keeps up with GPU training speed
+- terabyte 규모 텍스트를 전부 메모리에 올리지 않고 tokenization, chunking, shuffling, batching하는 streaming data pipeline을 만듭니다
+- 실제 pre-training pipeline에서 쓰는 data quality filter(deduplication, language detection, content filtering)를 구현합니다
+- 적절한 attention mask와 document boundary 처리를 갖춘 fixed-length training sequence를 만듭니다
+- dataloader가 GPU training speed를 따라가는지 확인하기 위해 pipeline throughput을 profile합니다
 
-## The Problem
+## 문제
 
-You have a tokenizer. Now you need data.
+tokenizer가 생겼습니다. 이제 데이터가 필요합니다.
 
-Not a dataset. Not a CSV file. Terabytes of text -- cleaned, deduplicated, filtered for quality, tokenized into fixed-length sequences, and served in randomized batches fast enough that your 8-GPU cluster never waits for the next batch.
+dataset 하나나 CSV 파일이 아닙니다. terabyte 규모 텍스트입니다. 정제되고, deduplicate되고, 품질 기준으로 filtering되고, fixed-length sequence로 tokenization되고, 8-GPU cluster가 다음 batch를 기다리지 않을 만큼 빠르게 randomized batch로 제공되어야 합니다.
 
-Most people think training an LLM is about the model architecture. It is not. Llama 3 used 15.6 trillion tokens. GPT-3 used 300 billion. DeepSeek-V2 used 8.1 trillion. The architecture across all three is roughly the same: stacked transformer blocks with attention and feedforward layers. The difference in output quality comes overwhelmingly from the data.
+대부분의 사람은 LLM training이 model architecture의 문제라고 생각합니다. 아닙니다. Llama 3는 15.6조 token을 사용했습니다. GPT-3는 3000억을 사용했습니다. DeepSeek-V2는 8.1조를 사용했습니다. 세 모델의 architecture는 대략 같습니다. attention과 feedforward layer를 쌓은 transformer block입니다. 출력 품질의 차이는 압도적으로 데이터에서 옵니다.
 
-The Chinchilla paper from DeepMind made this precise. For a given compute budget, there is an optimal ratio of model parameters to training tokens. Chinchilla showed that most models in 2022 were dramatically undertrained -- they had too many parameters for the amount of data they saw. A 70B parameter model trained on 1.4 trillion tokens (Chinchilla-optimal) outperformed a 280B model trained on 300 billion tokens (Gopher).
+DeepMind의 Chinchilla 논문은 이를 정밀하게 만들었습니다. 주어진 compute budget에서 model parameter와 training token 사이에는 최적 비율이 있습니다. Chinchilla는 2022년의 대부분 모델이 크게 undertrained였음을 보였습니다. 본 데이터 양에 비해 parameter가 너무 많았던 것입니다. 1.4조 token으로 학습한 70B parameter 모델(Chinchilla-optimal)은 3000억 token으로 학습한 280B 모델(Gopher)을 능가했습니다.
 
-Your data pipeline determines whether your model learns language or learns noise.
+data pipeline은 모델이 언어를 배울지 noise를 배울지를 결정합니다.
 
-## The Concept
+## 개념
 
-### Where the Data Comes From
+### 데이터는 어디서 오는가
 
-Every large language model is trained on a mix of sources. The exact composition is a closely guarded secret for most labs, but we know enough to understand the categories.
+모든 대규모 언어 모델은 여러 source의 혼합으로 학습됩니다. 정확한 구성은 대부분 lab에서 엄격히 보호하는 비밀이지만, category를 이해할 만큼은 알려져 있습니다.
 
-| Source | Size | Quality | Used By |
+| Source | 크기 | 품질 | 사용한 모델 |
 |--------|------|---------|---------|
 | Common Crawl | ~250 TB raw | Low (needs heavy filtering) | GPT-3, Llama, most open models |
 | Wikipedia | ~20 GB | High | Every major LLM |
@@ -42,27 +42,27 @@ Every large language model is trained on a mix of sources. The exact composition
 | StackOverflow, Reddit | ~100 GB | Medium | Llama, Falcon |
 | Curated web (C4, RefinedWeb) | ~5 TB | Medium-High (pre-filtered) | T5, Falcon |
 
-Llama 3 disclosed its data mix: roughly 50% web data, 25% code, 13% books and academic papers, 8% math data, and 4% multilingual web data. The total was 15.6 trillion tokens from sources exceeding 5 TB of raw text.
+Llama 3는 data mix를 공개했습니다. 대략 web data 50%, code 25%, books and academic papers 13%, math data 8%, multilingual web data 4%입니다. 총량은 raw text 5TB를 넘는 source에서 나온 15.6조 token이었습니다.
 
-The ratio matters as much as the total size. Too much web data and the model becomes a Reddit parrot. Too little code and it cannot program. Too little math and it fails at reasoning. Getting this mix right is one of the hardest parts of training an LLM, and there is no formula -- it requires experimentation and evaluation.
+총량만큼이나 비율도 중요합니다. web data가 너무 많으면 모델은 Reddit 반복기가 됩니다. code가 너무 적으면 programming을 못합니다. math가 너무 적으면 reasoning에 실패합니다. 이 mix를 맞추는 것은 LLM training에서 가장 어려운 부분 중 하나이며 공식은 없습니다. 실험과 평가가 필요합니다.
 
-### Data Cleaning
+### Data cleaning
 
-Raw web data is filthy. A typical Common Crawl dump contains:
+raw web data는 지저분합니다. 일반적인 Common Crawl dump에는 다음이 포함됩니다.
 
-- HTML tags and JavaScript
-- Boilerplate headers, footers, navigation menus
-- Duplicate pages (exact and near-duplicate)
-- Machine-generated spam
-- Personally identifiable information (PII)
-- Low-quality text (lists of keywords, SEO spam)
-- Non-text content encoded as text
+- HTML tag와 JavaScript
+- boilerplate header, footer, navigation menu
+- duplicate page(exact 및 near-duplicate)
+- machine-generated spam
+- personally identifiable information(PII)
+- 저품질 텍스트(keyword list, SEO spam)
+- 텍스트로 encoding된 non-text content
 
-Cleaning this is not optional. It is the difference between a model that generates coherent paragraphs and one that outputs HTML tags mixed with product listings.
+이를 cleaning하는 것은 선택 사항이 아닙니다. 일관된 문단을 생성하는 모델과 제품 listing이 섞인 HTML tag를 출력하는 모델의 차이입니다.
 
 ```mermaid
 graph TD
-    A[Raw Text] --> B[HTML Strip]
+    A[Raw Text] --> B[HTML 제거]
     B --> C[Language Detection]
     C --> D[Quality Filter]
     D --> E[Deduplication]
@@ -78,30 +78,30 @@ graph TD
     style G fill:#1a1a2e,stroke:#e94560,color:#fff
 ```
 
-Each step eliminates a category of noise:
+각 단계는 특정 noise category를 제거합니다.
 
-**HTML stripping:** Remove all markup. Keep only the visible text content. Libraries like `trafilatura` or `readability` extract article content while discarding navigation, ads, and boilerplate.
+**HTML stripping:** 모든 markup을 제거합니다. 보이는 text content만 유지합니다. `trafilatura` 또는 `readability` 같은 library는 navigation, 광고, boilerplate를 버리고 article content를 추출합니다.
 
-**Language detection:** Use fastText's language identification model (lid.176.bin) to classify each document. Filter to your target languages. A document classified as English with less than 0.8 confidence probably is not clean English.
+**Language detection:** fastText의 language identification model(lid.176.bin)로 각 문서를 분류합니다. 목표 언어만 남깁니다. 영어로 분류되었지만 confidence가 0.8 미만인 문서는 깨끗한 영어가 아닐 가능성이 큽니다.
 
-**Quality filtering:** This is where it gets interesting. RefinedWeb (the dataset behind Falcon) uses a perplexity-based filter: train a small language model on Wikipedia, then score each document. High perplexity means the document is unlike Wikipedia -- likely spam, keyword lists, or machine-generated content. Documents with perplexity above a threshold get removed.
+**Quality filtering:** 흥미로운 부분입니다. Falcon의 기반 dataset인 RefinedWeb은 perplexity-based filter를 사용합니다. Wikipedia로 작은 language model을 학습한 뒤 각 문서를 scoring합니다. perplexity가 높다는 것은 문서가 Wikipedia와 다르다는 뜻입니다. spam, keyword list, machine-generated content일 가능성이 큽니다. threshold보다 높은 perplexity의 문서는 제거됩니다.
 
-**Deduplication:** The single most impactful cleaning step. Common Crawl contains enormous numbers of duplicated pages -- legal disclaimers, cookie notices, terms of service. Training on duplicates wastes compute and can cause the model to memorize and regurgitate specific passages verbatim.
+**Deduplication:** 가장 영향력이 큰 단일 cleaning step입니다. Common Crawl에는 legal disclaimer, cookie notice, terms of service 같은 duplicated page가 엄청나게 많습니다. duplicate로 학습하면 compute를 낭비하고 모델이 특정 passage를 그대로 암기해 재생성하게 할 수 있습니다.
 
-**PII removal:** Names, email addresses, phone numbers, social security numbers. Regex-based detection for structured PII, NER models for names in context.
+**PII removal:** 이름, email address, phone number, social security number를 제거합니다. structured PII에는 regex-based detection을, context 안의 이름에는 NER model을 사용합니다.
 
-### Deduplication with MinHash
+### MinHash를 이용한 Deduplication
 
-Exact deduplication is easy: hash each document, remove duplicates. But near-duplicates are the real problem. Two copies of the same news article with slightly different ads around it are near-duplicates. The content is 95% identical, but byte-for-byte they differ.
+exact deduplication은 쉽습니다. 각 문서를 hash하고 duplicate를 제거하면 됩니다. 하지만 진짜 문제는 near-duplicate입니다. 주변 광고만 조금 다른 같은 뉴스 기사 두 개는 near-duplicate입니다. 내용은 95% 동일하지만 byte-for-byte로는 다릅니다.
 
-MinHash + Locality-Sensitive Hashing (LSH) solves this efficiently.
+MinHash + Locality-Sensitive Hashing(LSH)이 이를 효율적으로 해결합니다.
 
 ```mermaid
 graph LR
-    A[Document] --> B[Shingling]
+    A[문서] --> B[Shingling]
     B --> C[MinHash Signature]
-    C --> D[LSH Buckets]
-    D --> E[Candidate Pairs]
+    C --> D[LSH Bucket]
+    D --> E[Candidate Pair]
     E --> F[Jaccard Similarity]
     F --> G[Deduplicated Set]
 
@@ -114,25 +114,25 @@ graph LR
     style G fill:#1a1a2e,stroke:#e94560,color:#fff
 ```
 
-The idea:
+아이디어는 다음과 같습니다.
 
-1. **Shingling:** Convert each document into a set of n-grams (e.g., 5-grams of words or characters). "the quick brown fox" with 3-word shingles becomes {"the quick brown", "quick brown fox"}.
+1. **Shingling:** 각 문서를 n-gram set으로 변환합니다(예: 단어 또는 문자 5-gram). 3-word shingle을 쓰면 "the quick brown fox"는 {"the quick brown", "quick brown fox"}가 됩니다.
 
-2. **MinHash:** For each document's shingle set, compute k hash values. Each hash value is the minimum hash across all shingles under a different hash function. This creates a fixed-size "signature" that approximates the Jaccard similarity between any two documents.
+2. **MinHash:** 각 문서의 shingle set에 대해 k개의 hash 값을 계산합니다. 각 hash 값은 서로 다른 hash function 아래 모든 shingle 중 최소 hash입니다. 이렇게 두 문서 사이의 Jaccard similarity를 근사하는 fixed-size "signature"를 만듭니다.
 
-3. **LSH:** Group documents into buckets based on bands of their MinHash signature. Documents in the same bucket are candidate near-duplicates. This avoids comparing every pair -- you only compare candidates.
+3. **LSH:** MinHash signature의 band를 기준으로 문서를 bucket으로 묶습니다. 같은 bucket의 문서는 candidate near-duplicate입니다. 모든 pair를 비교하지 않고 candidate만 비교하게 해줍니다.
 
-4. **Verify:** For each candidate pair, compute exact Jaccard similarity. Remove one copy if similarity exceeds a threshold (typically 0.8).
+4. **Verify:** 각 candidate pair에 대해 exact Jaccard similarity를 계산합니다. similarity가 threshold(보통 0.8)를 넘으면 한 copy를 제거합니다.
 
-The Llama team reported removing approximately 38% of their web data through deduplication. That is not a small number. More than a third of Common Crawl is duplicate or near-duplicate content.
+Llama team은 deduplication으로 web data의 약 38%를 제거했다고 보고했습니다. 작은 숫자가 아닙니다. Common Crawl의 3분의 1 이상이 duplicate 또는 near-duplicate content입니다.
 
-### Sequence Packing
+### Sequence packing
 
-Your model expects fixed-length input sequences. Your documents are variable length. Some are 50 tokens. Some are 50,000 tokens.
+모델은 fixed-length input sequence를 기대합니다. 문서는 variable length입니다. 어떤 문서는 50 token이고, 어떤 문서는 50,000 token입니다.
 
-Naive approach: pad every document to the maximum sequence length. This wastes enormous compute on padding tokens that contribute nothing to learning.
+naive approach는 모든 문서를 최대 sequence length까지 padding하는 것입니다. 이는 학습에 아무 기여도 하지 않는 padding token에 엄청난 compute를 낭비합니다.
 
-Better approach: pack multiple documents into a single sequence, separated by end-of-sequence tokens. A 2048-token sequence might contain three short documents concatenated with [EOS] tokens between them.
+더 나은 접근은 여러 문서를 하나의 sequence에 pack하고 end-of-sequence token으로 구분하는 것입니다. 2048-token sequence 하나에는 [EOS] token으로 이어 붙인 짧은 문서 세 개가 들어갈 수 있습니다.
 
 ```mermaid
 graph TD
@@ -155,35 +155,35 @@ graph TD
     style B1 fill:#1a1a2e,stroke:#16c784,color:#fff
 ```
 
-The attention mask must be set correctly. Tokens from Document A should not attend to tokens from Document B within the same packed sequence. This requires a block-diagonal attention mask.
+attention mask는 올바르게 설정되어야 합니다. 같은 packed sequence 안에서도 Document A의 token이 Document B의 token에 attention하면 안 됩니다. 이를 위해 block-diagonal attention mask가 필요합니다.
 
-Long documents get truncated or split into chunks at sequence boundaries. The split point matters: splitting mid-sentence forces the model to see incomplete thoughts. Some pipelines align splits to paragraph or sentence boundaries when possible.
+긴 문서는 sequence boundary에서 truncate되거나 chunk로 나뉩니다. split point는 중요합니다. 문장 중간에서 자르면 모델은 불완전한 생각을 보게 됩니다. 일부 pipeline은 가능하면 paragraph 또는 sentence boundary에 split을 맞춥니다.
 
-### The Chinchilla Scaling Law
+### Chinchilla scaling law
 
-For a fixed compute budget C (measured in FLOPs), the optimal model size N and dataset size D follow:
+고정 compute budget C(FLOPs 단위)에서 최적 model size N과 dataset size D는 다음을 따릅니다.
 
-```
+```text
 N_opt ~ C^0.5
 D_opt ~ C^0.5
 ```
 
-In practice, this means you should scale model size and dataset size roughly equally. A model with 10x more parameters needs roughly 10x more training tokens to reach the same loss.
+실제로는 model size와 dataset size를 대략 동일하게 scale해야 한다는 뜻입니다. parameter가 10배 많은 모델은 같은 loss에 도달하기 위해 대략 10배 많은 training token이 필요합니다.
 
-| Model | Parameters | Training Tokens | Chinchilla-Optimal? |
+| Model | Parameter | Training token | Chinchilla-optimal 여부 |
 |-------|-----------|----------------|-------------------|
 | GPT-3 | 175B | 300B | No (undertrained 3-4x) |
 | Chinchilla | 70B | 1.4T | Yes (by design) |
 | Llama 2 | 70B | 2T | Overtrained (intentionally) |
 | Llama 3 | 70B | 15T | Heavily overtrained |
 
-Llama 3 deliberately violates the Chinchilla law. Meta found that overtraining on more data -- far beyond the compute-optimal ratio -- produces better models for inference. The extra training cost is paid once, but the smaller model is cheaper to serve forever. This is sometimes called the "inference-optimal" scaling approach, and it has become the industry standard since 2024.
+Llama 3는 의도적으로 Chinchilla law를 위반합니다. Meta는 compute-optimal ratio를 훨씬 넘는 더 많은 데이터로 overtraining하면 inference에 더 좋은 모델이 나온다는 것을 발견했습니다. 추가 training cost는 한 번만 지불하지만, 더 작은 모델은 계속 더 저렴하게 serving할 수 있습니다. 이를 "inference-optimal" scaling approach라고 부르기도 하며, 2024년 이후 업계 표준이 되었습니다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: Text Cleaning
+### 1단계: Text Cleaning
 
-Strip HTML, normalize whitespace, remove non-text content. We will use a public domain text (Project Gutenberg) as our small corpus.
+HTML을 제거하고, 공백을 정규화하고, non-text content를 제거합니다. 작은 corpus로 public domain text(Project Gutenberg)를 사용하겠습니다.
 
 ```python
 import re
@@ -209,11 +209,11 @@ def quality_filter(text, min_words=50, max_ratio_caps=0.3, max_ratio_special=0.1
     return True
 ```
 
-The quality filter catches SEO spam (ALL CAPS), machine-generated noise (high special character ratio), and stub pages (too short). These three checks alone remove a surprising amount of garbage from web crawls.
+quality filter는 SEO spam(ALL CAPS), machine-generated noise(높은 특수 문자 비율), stub page(너무 짧음)를 잡아냅니다. 이 세 가지 검사만으로도 web crawl에서 놀랄 만큼 많은 쓰레기를 제거합니다.
 
-### Step 2: MinHash Deduplication
+### 2단계: MinHash Deduplication
 
-Implement MinHash from scratch. No external libraries required -- just `hashlib`.
+MinHash를 처음부터 구현합니다. 외부 library는 필요 없고 `hashlib`만 있으면 됩니다.
 
 ```python
 import hashlib
@@ -280,11 +280,11 @@ def deduplicate(documents, threshold=0.8, num_hashes=128, bands=16):
     return [doc for idx, doc in enumerate(documents) if idx not in removed], len(removed)
 ```
 
-The `num_hashes=128` and `bands=16` parameters control the precision-recall tradeoff. More hashes give more accurate similarity estimates. More bands increase recall (catch more duplicates) at the cost of more false positives. These values work well for typical web text.
+`num_hashes=128`과 `bands=16` parameter는 precision-recall tradeoff를 제어합니다. hash가 많을수록 similarity 추정이 더 정확합니다. band가 많을수록 recall이 증가해 더 많은 duplicate를 잡지만 false positive도 늘어납니다. 이 값들은 일반적인 web text에 잘 맞습니다.
 
-### Step 3: Tokenize and Pack Sequences
+### 3단계: Tokenize and Pack Sequences
 
-Take the clean, deduplicated text, tokenize it, and pack into fixed-length sequences for training.
+깨끗하고 deduplicate된 텍스트를 가져와 tokenization하고 training용 fixed-length sequence로 pack합니다.
 
 ```python
 def tokenize_corpus(documents, tokenizer):
@@ -310,9 +310,9 @@ def pack_sequences(token_ids, seq_length, pad_id=0):
     return sequences, attention_masks
 ```
 
-### Step 4: DataLoader for Training
+### Step 4: Training용 DataLoader
 
-Yield randomized batches of packed sequences. This is what the training loop consumes.
+packed sequence의 randomized batch를 yield합니다. training loop가 소비하는 것이 이것입니다.
 
 ```python
 import random
@@ -338,9 +338,9 @@ class PreTrainingDataLoader:
             yield batch_seqs, batch_masks
 ```
 
-### Step 5: Dataset Statistics
+### 5단계: Dataset Statistics
 
-Compute the numbers that matter: total tokens, unique tokens, compression ratio, document length distribution.
+중요한 숫자를 계산합니다. total tokens, unique tokens, compression ratio, document length distribution입니다.
 
 ```python
 from collections import Counter
@@ -380,15 +380,15 @@ def compute_statistics(documents, token_ids, sequences, tokenizer_vocab_size):
     return stats
 ```
 
-Compression ratio tells you how efficient the tokenizer is on this corpus. English text typically compresses to about 3-4 characters per token. If you see 1.5 characters per token, your tokenizer is splitting too aggressively. If you see 8+, it has learned very domain-specific merges.
+compression ratio는 이 corpus에서 tokenizer가 얼마나 효율적인지 알려줍니다. 영어 텍스트는 보통 token당 3-4자로 압축됩니다. token당 1.5자가 보이면 tokenizer가 너무 공격적으로 분리하는 것입니다. 8 이상이면 매우 domain-specific한 merge를 학습한 것입니다.
 
-Sequence utilization tells you how much of your packed sequences is real data versus padding. Below 90% means your packing is inefficient -- you are wasting compute on padding tokens.
+sequence utilization은 packed sequence 중 실제 데이터와 padding의 비율을 알려줍니다. 90% 미만이면 packing이 비효율적이라는 뜻입니다. padding token에 compute를 낭비하고 있습니다.
 
-## Use It
+## 활용하기
 
-### Compare With HuggingFace Datasets
+### HuggingFace Datasets와 비교
 
-Load the same corpus through HuggingFace's datasets library and compare the pipeline speed.
+같은 corpus를 HuggingFace datasets library로 load하고 pipeline speed를 비교합니다.
 
 ```python
 from datasets import load_dataset
@@ -410,38 +410,38 @@ total_tokens = sum(len(t) for t in tokenized["input_ids"])
 print(f"HuggingFace: {total_tokens:,} tokens in {hf_time:.2f}s ({total_tokens/hf_time:,.0f} tokens/sec)")
 ```
 
-The HuggingFace pipeline uses Rust tokenizers under the hood and parallel processing across 4 cores. Your pure Python pipeline will be 10-50x slower. That gap is why production teams use compiled tokenizers. The algorithm is the same. The implementation language is the difference.
+HuggingFace pipeline은 내부에서 Rust tokenizer를 사용하고 4개 core에 걸쳐 parallel processing을 수행합니다. 순수 Python pipeline은 10-50배 느릴 것입니다. 이 격차 때문에 production team은 compiled tokenizer를 사용합니다. algorithm은 같습니다. 구현 언어가 차이를 만듭니다.
 
-## Ship It
+## 산출물
 
-This lesson produces a prompt for validating and debugging data quality in LLM training pipelines. See `outputs/prompt-data-quality-checker.md`.
+이 lesson은 LLM training pipeline의 data quality를 검증하고 debug하기 위한 prompt를 산출합니다. `outputs/prompt-data-quality-checker.md`를 참고하세요.
 
-## Exercises
+## 연습문제
 
-1. **Easy:** Add language detection to the cleaning pipeline using a simple heuristic (character set analysis). Filter to only English documents and measure how many documents get removed.
-2. **Medium:** Implement exact deduplication using SHA-256 hashes alongside the MinHash near-deduplication. Compare the number of duplicates caught by each method on a web-scraped corpus.
-3. **Hard:** Build a perplexity-based quality filter. Train a small bigram language model on Wikipedia text, score each document by perplexity, and remove the bottom 20%. Compare model output quality when training on filtered vs unfiltered data.
+1. **Easy:** 간단한 heuristic(character set analysis)을 사용해 cleaning pipeline에 language detection을 추가하세요. 영어 문서만 남기고 몇 개 문서가 제거되는지 측정하세요.
+2. **Medium:** MinHash near-deduplication과 함께 SHA-256 hash를 사용한 exact deduplication을 구현하세요. web-scraped corpus에서 각 방법이 잡은 duplicate 수를 비교하세요.
+3. **Hard:** perplexity-based quality filter를 만드세요. Wikipedia text로 작은 bigram language model을 학습하고, 각 문서를 perplexity로 scoring한 뒤 하위 20%를 제거하세요. filtered data와 unfiltered data로 학습했을 때 model output quality를 비교하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Common Crawl | "The internet" | A non-profit that crawls the web monthly -- ~250TB raw, the starting point for most LLM training data |
-| MinHash | "Some hashing trick" | A technique to estimate Jaccard similarity between sets using fixed-size signatures -- enables near-duplicate detection at scale |
-| LSH | "Locality-Sensitive Hashing" | A method to group similar items into the same bucket -- reduces pairwise comparisons from O(n^2) to near-linear |
-| Sequence packing | "Concatenating documents" | Fitting multiple documents into fixed-length sequences with proper attention masks -- eliminates padding waste |
-| Chinchilla scaling | "Train on more data" | For a fixed compute budget, optimal performance requires scaling model size and training tokens roughly equally |
-| Fertility | "Tokens per word" | Average number of tokens per word -- 1.3 for English in GPT-4, higher for non-Latin scripts |
-| Data mixing | "Choosing training data" | The ratio of code vs text vs math vs multilingual data -- no formula, requires experimentation |
-| Perplexity filter | "Quality scoring" | Use a small language model to score documents -- high perplexity means the text is unlike clean reference data |
-| Deduplication | "Removing copies" | Eliminating exact and near-duplicate documents -- typically removes 30-40% of raw web data |
-| Attention mask | "Which tokens to look at" | A binary mask that prevents attention across document boundaries in packed sequences |
+| Common Crawl | "인터넷" | 매월 web을 crawl하는 비영리 조직입니다. raw 약 250TB이며 대부분 LLM training data의 출발점입니다 |
+| MinHash | "hashing trick" | fixed-size signature로 set 간 Jaccard similarity를 추정하는 기법입니다. scale에서 near-duplicate detection을 가능하게 합니다 |
+| LSH | "Locality-Sensitive Hashing" | 유사한 item을 같은 bucket으로 묶는 방법입니다. pairwise comparison을 O(n^2)에서 near-linear로 줄입니다 |
+| Sequence packing | "문서 이어 붙이기" | 여러 문서를 proper attention mask와 함께 fixed-length sequence에 맞춰 넣습니다. padding 낭비를 제거합니다 |
+| Chinchilla scaling | "더 많은 데이터로 학습" | fixed compute budget에서 최적 성능에는 model size와 training token을 대략 동일하게 scale해야 합니다 |
+| Fertility | "단어당 token 수" | 단어당 평균 token 수입니다. GPT-4의 영어는 1.3이며 non-Latin script는 더 높습니다 |
+| Data mixing | "training data 선택" | code vs text vs math vs multilingual data 비율입니다. 공식은 없고 실험이 필요합니다 |
+| Perplexity filter | "품질 scoring" | 작은 language model로 문서를 scoring합니다. 높은 perplexity는 텍스트가 깨끗한 reference data와 다르다는 뜻입니다 |
+| Deduplication | "copy 제거" | exact 및 near-duplicate 문서를 제거합니다. 보통 raw web data의 30-40%를 제거합니다 |
+| Attention mask | "어떤 token을 볼지" | packed sequence에서 document boundary를 가로지르는 attention을 막는 binary mask입니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Hoffmann et al., 2022 -- Training Compute-Optimal Large Language Models (Chinchilla)](https://arxiv.org/abs/2203.15556) -- the paper that changed how we think about data scale
-- [Penedo et al., 2023 -- The RefinedWeb Dataset for Falcon LLM](https://arxiv.org/abs/2306.01116) -- how to filter Common Crawl to high quality
-- [Touvron et al., 2023 -- Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288) -- data pipeline details for Llama 2
-- [Lee et al., 2022 -- Deduplicating Training Data Makes Language Models Better](https://arxiv.org/abs/2107.06499) -- why deduplication matters more than you think
-- [Broder, 1997 -- On the Resemblance and Containment of Documents](https://ieeexplore.ieee.org/document/666900) -- the original MinHash paper
-- [Meta, 2024 -- Llama 3 Technical Report](https://arxiv.org/abs/2407.21783) -- 15.6T tokens, data mixing ratios, filtering pipeline
+- [Hoffmann et al., 2022 -- Training Compute-Optimal Large Language Models (Chinchilla)](https://arxiv.org/abs/2203.15556) -- data scale에 대한 사고방식을 바꾼 논문
+- [Penedo et al., 2023 -- The RefinedWeb Dataset for Falcon LLM](https://arxiv.org/abs/2306.01116) -- Common Crawl을 고품질로 filtering하는 방법
+- [Touvron et al., 2023 -- Llama 2: Open Foundation and Fine-Tuned Chat Models](https://arxiv.org/abs/2307.09288) -- Llama 2의 data pipeline 세부사항
+- [Lee et al., 2022 -- Deduplicating Training Data Makes Language Models Better](https://arxiv.org/abs/2107.06499) -- deduplication이 생각보다 더 중요한 이유
+- [Broder, 1997 -- On the Resemblance and Containment of Documents](https://ieeexplore.ieee.org/document/666900) -- 원래의 MinHash 논문
+- [Meta, 2024 -- Llama 3 Technical Report](https://arxiv.org/abs/2407.21783) -- 15.6T token, data mixing ratio, filtering pipeline

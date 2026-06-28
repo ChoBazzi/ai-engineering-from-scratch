@@ -2,63 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the main difference between relative depth and metric depth?",
+      "question": "relative depth와 metric depth의 주요 차이는 무엇인가요?",
       "options": [
-        "Relative depth is always lower resolution",
-        "There is no difference",
-        "Metric depth uses grayscale output; relative uses colour",
-        "Relative depth gives only ordered distances without real-world units; metric depth gives distances in metres and requires the model to have learnt absolute scale from training data"
+        "Relative depth는 항상 더 낮은 해상도입니다",
+        "차이가 없습니다",
+        "Metric depth는 grayscale output을 사용하고 relative depth는 colour를 사용합니다",
+        "Relative depth는 실제 단위 없이 정렬된 거리만 제공합니다. metric depth는 metre 단위 거리를 제공하며 모델이 training data에서 absolute scale을 학습해야 합니다"
       ],
       "correct": 3,
-      "explanation": "Relative depth preserves ordering and ratios but has no anchor to real-world units \u2014 a MiDaS or Depth Anything prediction needs alignment before you can compare it to a ground-truth measurement in metres. Metric depth models (ZoeDepth, UniDepth, Metric3D) output calibrated distances at the cost of sensitivity to camera intrinsics and training data coverage."
+      "explanation": "Relative depth는 순서와 비율을 보존하지만 실제 단위에 anchor가 없습니다. MiDaS나 Depth Anything prediction은 metre 단위 ground-truth measurement와 비교하기 전에 alignment가 필요합니다. Metric depth models(ZoeDepth, UniDepth, Metric3D)는 calibrated distance를 출력하지만 camera intrinsics와 training data coverage에 민감합니다."
     },
     {
       "stage": "pre",
-      "question": "Depth Anything V3 uses a frozen DINOv2 encoder plus a DPT-style decoder. Why freeze the encoder?",
+      "question": "Depth Anything V3는 frozen DINOv2 encoder와 DPT 스타일 decoder를 사용합니다. 왜 encoder를 freeze하나요?",
       "options": [
-        "DINOv2 would otherwise learn bad features",
-        "DINOv2's self-supervised features already encode scene structure, texture gradients, and object semantics that correlate with depth; freezing them lets the decoder train with a small head on limited depth-supervised data while keeping the encoder's strong generalisation",
-        "Compute savings at training time only",
-        "Freezing is a legal requirement"
+        "그렇지 않으면 DINOv2가 나쁜 features를 학습하기 때문입니다",
+        "DINOv2의 self-supervised features는 depth와 상관관계가 있는 scene structure, texture gradients, object semantics를 이미 encode합니다. 이를 freeze하면 decoder가 제한된 depth-supervised data에서 작은 head만 학습하면서 encoder의 강한 generalisation을 유지할 수 있습니다",
+        "training time의 compute 절약만을 위해서입니다",
+        "법적 요구사항이기 때문입니다"
       ],
       "correct": 1,
-      "explanation": "Self-supervised ViTs like DINOv2 / DINOv3 already have features that transfer to dense tasks with minimal fine-tuning. A frozen encoder plus a lightweight depth decoder means you train a tiny number of parameters on depth data, and you inherit DINOv2's cross-domain generalisation (indoor, outdoor, medical, satellite) for free. Fine-tuning the backbone sometimes hurts if the depth dataset is narrower than DINOv2's pretraining distribution."
+      "explanation": "DINOv2 / DINOv3 같은 self-supervised ViT는 최소한의 fine-tuning만으로 dense tasks에 transfer되는 features를 이미 갖고 있습니다. frozen encoder와 lightweight depth decoder는 아주 적은 수의 parameters만 depth data에서 학습하게 하며, DINOv2의 cross-domain generalisation(indoor, outdoor, medical, satellite)을 사실상 그대로 가져옵니다. depth dataset이 DINOv2의 pretraining distribution보다 좁으면 backbone fine-tuning이 오히려 해로울 때도 있습니다."
     },
     {
       "stage": "post",
-      "question": "To lift a pixel (u, v) with predicted depth d to 3D, you use X = (u - cx) * d / fx, Y = (v - cy) * d / fy, Z = d. What are fx, fy, cx, cy?",
+      "question": "예측 depth d를 가진 pixel (u, v)를 3D로 들어 올리려면 X = (u - cx) * d / fx, Y = (v - cy) * d / fy, Z = d를 사용합니다. fx, fy, cx, cy는 무엇인가요?",
       "options": [
-        "Pinhole camera intrinsics \u2014 focal lengths and principal point in pixels, from EXIF metadata or camera calibration",
+        "Pinhole camera intrinsics입니다. pixel 단위 focal lengths와 principal point이며 EXIF metadata 또는 camera calibration에서 얻습니다",
         "Training loss weights",
         "Normalisation constants",
-        "Weights learned by the depth decoder"
+        "Depth decoder가 학습한 weights"
       ],
       "correct": 0,
-      "explanation": "The pinhole-camera formula needs the camera intrinsics. fx, fy are the focal lengths in pixel units; cx, cy are the principal point (usually near image centre). Without intrinsics you can only assume a generic FOV (~60 degrees) which is enough for visualisation but not for measurement. Many 2026 pipelines estimate intrinsics automatically from image content (Perspective Fields, UniDepth)."
+      "explanation": "pinhole-camera formula에는 camera intrinsics가 필요합니다. fx, fy는 pixel 단위의 focal lengths이고 cx, cy는 principal point입니다(보통 image centre 근처). intrinsics가 없으면 generic FOV(~60 degrees)만 가정할 수 있습니다. 이는 visualisation에는 충분하지만 measurement에는 충분하지 않습니다. 많은 2026 pipeline은 image content에서 intrinsics를 자동으로 추정합니다(Perspective Fields, UniDepth)."
     },
     {
       "stage": "post",
-      "question": "When evaluating a relative-depth model (MiDaS, Depth Anything), why do you apply scale-and-shift alignment before computing AbsRel?",
+      "question": "relative-depth model(MiDaS, Depth Anything)을 평가할 때 AbsRel을 계산하기 전에 scale-and-shift alignment를 적용하는 이유는 무엇인가요?",
       "options": [
-        "To inflate the metric score",
-        "Relative-depth predictions have arbitrary scale and offset; aligning them to ground truth via least-squares fit of a * pred + b = target gives a fair measurement of the ordering quality that relative models are actually trained to produce",
-        "To enable GPU inference",
-        "Pytorch cannot compute AbsRel without alignment"
+        "metric score를 부풀리기 위해서입니다",
+        "Relative-depth predictions는 scale과 offset이 임의입니다. a * pred + b = target의 least-squares fit으로 ground truth에 align하면 relative models가 실제로 학습해 생성하는 ordering quality를 공정하게 측정할 수 있습니다",
+        "GPU inference를 활성화하기 위해서입니다",
+        "Pytorch는 alignment 없이 AbsRel을 계산할 수 없기 때문입니다"
       ],
       "correct": 1,
-      "explanation": "MiDaS-style models produce outputs where only the ordering and ratios are meaningful. Directly computing AbsRel without alignment measures the scale mismatch, not the model's actual quality. Least-squares alignment fits a linear transform that minimises squared error; the residual after alignment is what you report. Every MiDaS / Depth Anything paper uses this protocol."
+      "explanation": "MiDaS 스타일 모델은 ordering과 ratios만 의미 있는 output을 만듭니다. alignment 없이 AbsRel을 직접 계산하면 모델의 실제 품질이 아니라 scale mismatch를 측정하게 됩니다. Least-squares alignment는 squared error를 최소화하는 linear transform을 맞춥니다. alignment 이후의 residual이 보고할 값입니다. 모든 MiDaS / Depth Anything 논문은 이 protocol을 사용합니다."
     },
     {
       "stage": "post",
-      "question": "Your Depth Anything prediction on a glass-fronted reception desk reports believable but clearly wrong depth for the glass region. Why?",
+      "question": "glass-fronted reception desk에 대한 Depth Anything prediction이 glass 영역에서 그럴듯하지만 명확히 틀린 depth를 보고합니다. 이유는 무엇인가요?",
       "options": [
-        "The model is broken",
-        "The model was trained without glass data",
-        "Glass, mirrors, and highly reflective surfaces break the monocular cues the model relies on; the network sees the texture / content behind the glass and reports a plausible depth consistent with that, not the real glass surface distance",
-        "Your image resolution is wrong"
+        "모델이 고장났기 때문입니다",
+        "모델이 glass data 없이 학습되었기 때문입니다",
+        "Glass, mirrors, highly reflective surfaces는 모델이 의존하는 monocular cues를 깨뜨립니다. network는 glass 뒤의 texture / content를 보고 실제 glass surface distance가 아니라 그 내용과 일관된 그럴듯한 depth를 보고합니다",
+        "image resolution이 틀렸기 때문입니다"
       ],
       "correct": 2,
-      "explanation": "Monocular depth relies on texture gradients, occlusion ordering, and perspective cues. Reflective or transparent surfaces confuse all of them: a mirror shows a scene with its own depth; glass shows content behind it. The model fills in a plausible depth and is confidently wrong. This is a fundamental limit of monocular depth, not a bug. Fix by fusing with stereo, LiDAR, or polarisation cameras when materials like glass matter."
+      "explanation": "Monocular depth는 texture gradients, occlusion ordering, perspective cues에 의존합니다. reflective 또는 transparent surfaces는 이 모든 것을 혼란스럽게 만듭니다. mirror는 자체 depth를 가진 scene을 보여주고, glass는 뒤에 있는 content를 보여줍니다. 모델은 그럴듯한 depth를 채워 넣고 확신 있게 틀립니다. 이는 monocular depth의 근본적 한계이지 bug가 아닙니다. glass 같은 material이 중요하면 stereo, LiDAR, polarisation cameras와 fuse해서 해결합니다."
     }
   ]
 }

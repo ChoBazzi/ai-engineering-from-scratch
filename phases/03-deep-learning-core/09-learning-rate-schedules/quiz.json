@@ -1,37 +1,62 @@
 [
   {
-    "question": "Why is a constant learning rate usually suboptimal for training neural networks?",
-    "options": ["It uses too much memory", "It's either too high for late training (causes oscillation) or too low for early training (wastes compute)", "Constant learning rates cause overfitting", "They only work with SGD"],
+    "question": "constant learning rate가 neural network 학습에서 보통 최적이 아닌 이유는 무엇인가요?",
+    "options": [
+      "memory를 너무 많이 사용하기 때문",
+      "학습 후반에는 너무 높아 진동을 만들거나, 학습 초반에는 너무 낮아 계산을 낭비하기 때문",
+      "constant learning rate가 overfitting을 일으키기 때문",
+      "SGD에서만 작동하기 때문"
+    ],
     "correct": 1,
-    "explanation": "The optimal step size changes during training. Early on, large steps cover ground quickly. Late in training, small steps are needed to settle into a minimum. A constant rate can't serve both needs.",
+    "explanation": "최적의 step size는 학습 중에 변합니다. 초반에는 큰 step이 빠르게 영역을 이동하게 해 줍니다. 후반에는 최솟값에 안착하기 위해 작은 step이 필요합니다. constant rate 하나로는 두 요구를 모두 만족할 수 없습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the purpose of learning rate warmup?",
-    "options": ["To prevent overfitting", "To let adaptive optimizer statistics (momentum, variance) stabilize before taking large steps", "To increase the batch size gradually", "To initialize weights properly"],
+    "question": "learning rate warmup의 목적은 무엇인가요?",
+    "options": [
+      "overfitting을 막기 위해",
+      "큰 step을 밟기 전에 adaptive optimizer 통계(momentum, variance)가 안정화되도록 하기 위해",
+      "batch size를 점진적으로 늘리기 위해",
+      "weight를 올바르게 초기화하기 위해"
+    ],
     "correct": 1,
-    "explanation": "Adam's moment estimates are initialized to zero. Early gradient updates are based on unreliable statistics. Warmup starts with a tiny LR and ramps up, giving Adam time to accumulate meaningful estimates.",
+    "explanation": "Adam의 moment estimate는 0으로 초기화됩니다. 초기 gradient update는 신뢰하기 어려운 통계에 기반합니다. Warmup은 아주 작은 LR로 시작해 점진적으로 올리면서 Adam이 의미 있는 estimate를 축적할 시간을 줍니다.",
     "stage": "pre"
   },
   {
-    "question": "What learning rate schedule do Llama 3, GPT-3, and most modern LLMs use?",
-    "options": ["Constant learning rate", "Step decay every 30 epochs", "Linear warmup followed by cosine decay", "Exponential decay"],
+    "question": "Llama 3, GPT-3, 그리고 대부분의 현대 LLM은 어떤 learning rate schedule을 사용하나요?",
+    "options": [
+      "Constant learning rate",
+      "30 epoch마다 step decay",
+      "Linear warmup followed by cosine decay",
+      "Exponential decay"
+    ],
     "correct": 2,
-    "explanation": "Linear warmup + cosine decay is the standard for transformer training. Llama 3 used 2000 warmup steps with cosine decay from 3e-4 to 3e-5. This schedule requires no milestone tuning.",
+    "explanation": "Linear warmup + cosine decay는 transformer 학습의 표준입니다. Llama 3는 2000 warmup steps와 3e-4에서 3e-5까지의 cosine decay를 사용했습니다. 이 schedule은 milestone tuning이 필요 없습니다.",
     "stage": "post"
   },
   {
-    "question": "What makes the 1cycle policy different from other schedules?",
-    "options": ["It uses a constant learning rate", "It ramps the learning rate UP in the first half of training, then back down -- the high LR phase acts as regularization", "It only works with SGD", "It requires no hyperparameter tuning"],
+    "question": "1cycle policy가 다른 schedule과 다른 점은 무엇인가요?",
+    "options": [
+      "constant learning rate를 사용한다",
+      "학습 초반 절반에는 learning rate를 올린 뒤 다시 내리며, 높은 LR 구간이 regularization처럼 작동한다",
+      "SGD에서만 작동한다",
+      "hyperparameter tuning이 전혀 필요 없다"
+    ],
     "correct": 1,
-    "explanation": "Leslie Smith's 1cycle ramps LR from low to high (first half) then high to very low (second half). The high-LR phase helps the model explore more of the loss landscape before settling into the best basin.",
+    "explanation": "Leslie Smith의 1cycle은 LR을 낮은 값에서 높은 값으로 올린 뒤(초반 절반), 높은 값에서 매우 낮은 값으로 내립니다(후반 절반). 높은 LR 구간은 모델이 가장 좋은 basin에 안착하기 전에 loss landscape를 더 넓게 탐색하도록 돕습니다.",
     "stage": "post"
   },
   {
-    "question": "If training loss suddenly spikes and diverges, what is the most likely learning rate issue?",
-    "options": ["Learning rate is too low", "Learning rate is too high, causing the optimizer to overshoot the minimum", "The warmup period is too long", "The schedule decays too slowly"],
+    "question": "training loss가 갑자기 치솟고 발산한다면 가장 가능성 높은 learning rate 문제는 무엇인가요?",
+    "options": [
+      "learning rate가 너무 낮다",
+      "learning rate가 너무 높아 optimizer가 최솟값을 지나쳐 버린다",
+      "warmup 기간이 너무 길다",
+      "schedule이 너무 느리게 decay한다"
+    ],
     "correct": 1,
-    "explanation": "A learning rate that's too high causes the optimizer to take steps larger than the loss basin, overshooting the minimum and causing the loss to increase. This manifests as sudden divergence.",
+    "explanation": "learning rate가 너무 높으면 optimizer가 loss basin보다 큰 step을 밟아 최솟값을 지나치고 loss를 증가시킵니다. 이것은 갑작스러운 발산으로 나타납니다.",
     "stage": "post"
   }
 ]

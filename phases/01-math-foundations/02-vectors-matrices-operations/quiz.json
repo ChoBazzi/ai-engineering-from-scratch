@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "For matrix multiplication (m x n) @ (n x p), what must be true about the dimensions?",
-      "options": ["m must equal p", "The inner dimensions n must match", "All dimensions must be equal", "m must be greater than p"],
+      "question": "행렬 곱셈 (m x n) @ (n x p)에서 차원에 대해 반드시 성립해야 하는 것은 무엇인가요?",
+      "options": ["m은 p와 같아야 합니다", "안쪽 차원 n이 일치해야 합니다", "모든 차원이 같아야 합니다", "m은 p보다 커야 합니다"],
       "correct": 1,
-      "explanation": "Matrix multiplication requires the number of columns in the first matrix (n) to equal the number of rows in the second matrix (n). The result has shape (m x p)."
+      "explanation": "행렬 곱셈은 첫 번째 행렬의 열 수(n)가 두 번째 행렬의 행 수(n)와 같아야 합니다. 결과의 shape는 (m x p)입니다."
     },
     {
       "stage": "pre",
-      "question": "What is the identity matrix?",
-      "options": ["A matrix of all ones", "A square matrix with ones on the diagonal and zeros elsewhere that acts as the multiplicative identity", "A matrix where every element is unique", "The transpose of any given matrix"],
+      "question": "단위 행렬은 무엇인가요?",
+      "options": ["모든 원소가 1인 행렬", "대각선은 1이고 나머지는 0이며 곱셈의 항등원처럼 동작하는 정사각 행렬", "모든 원소가 서로 다른 행렬", "주어진 임의 행렬의 전치"],
       "correct": 1,
-      "explanation": "The identity matrix I has ones on the diagonal and zeros everywhere else. Multiplying any matrix by I returns the original matrix unchanged, like multiplying a number by 1."
+      "explanation": "단위 행렬 I는 대각선에 1이 있고 나머지는 모두 0입니다. 어떤 행렬에 I를 곱해도, 숫자에 1을 곱하는 것처럼 원래 행렬이 그대로 반환됩니다."
     },
     {
       "stage": "post",
-      "question": "What is the key difference between element-wise multiplication and matrix multiplication?",
-      "options": ["Element-wise is faster while matrix multiplication is more accurate", "Element-wise multiplies matching positions (same shape required), matrix multiplication takes dot products of rows and columns (inner dimensions must match)", "They produce the same result but use different notation", "Element-wise only works on vectors while matrix multiplication works on matrices"],
+      "question": "원소별 곱셈과 행렬 곱셈의 핵심 차이는 무엇인가요?",
+      "options": ["원소별 곱셈은 더 빠르고 행렬 곱셈은 더 정확합니다", "원소별 곱셈은 같은 위치끼리 곱하고(같은 shape 필요), 행렬 곱셈은 행과 열의 내적을 계산합니다(안쪽 차원 일치 필요)", "같은 결과를 만들지만 표기만 다릅니다", "원소별 곱셈은 벡터에만 작동하고 행렬 곱셈은 행렬에만 작동합니다"],
       "correct": 1,
-      "explanation": "Element-wise (Hadamard) product multiplies corresponding elements and requires identical shapes. Matrix multiplication computes dot products between rows and columns with the rule (m,n)@(n,p)=(m,p)."
+      "explanation": "원소별(Hadamard) 곱은 대응하는 원소끼리 곱하며 동일한 shape가 필요합니다. 행렬 곱셈은 (m,n)@(n,p)=(m,p) 규칙에 따라 행과 열 사이의 내적을 계산합니다."
     },
     {
       "stage": "post",
-      "question": "In the expression 'output = relu(W @ x + b)', what role does broadcasting play?",
-      "options": ["It broadcasts the computation across multiple GPUs", "It automatically stretches the bias vector b to match the shape of W @ x so they can be added", "It converts the data types of W and x to match", "It repeats the relu activation across all elements"],
+      "question": "'output = relu(W @ x + b)' 표현에서 브로드캐스팅은 어떤 역할을 하나요?",
+      "options": ["여러 GPU에 계산을 브로드캐스트합니다", "bias 벡터 b를 W @ x의 shape에 맞게 자동으로 늘려 더할 수 있게 합니다", "W와 x의 데이터 타입을 맞게 변환합니다", "relu 활성화를 모든 원소에 반복합니다"],
       "correct": 1,
-      "explanation": "W @ x produces a column vector, and b is also a vector. Broadcasting stretches b across the batch dimension if needed, allowing element-wise addition without explicit shape matching."
+      "explanation": "W @ x는 열 벡터를 만들고 b도 벡터입니다. 필요하면 브로드캐스팅이 b를 배치 차원으로 늘려, 명시적으로 shape를 맞추지 않아도 원소별 덧셈이 가능하게 합니다."
     },
     {
       "stage": "post",
-      "question": "What does a determinant of zero for a matrix indicate?",
-      "options": ["The matrix has all zero entries", "The matrix is singular: it crushes at least one dimension, cannot be inverted, and has no unique solution", "The matrix is the identity matrix", "The matrix performs a rotation"],
+      "question": "행렬의 행렬식이 0이라는 것은 무엇을 나타내나요?",
+      "options": ["행렬의 모든 원소가 0입니다", "행렬이 특이 행렬입니다. 최소 한 차원을 눌러 없애며, 역행렬이 없고 유일한 해도 없습니다", "행렬이 단위 행렬입니다", "행렬이 회전을 수행합니다"],
       "correct": 1,
-      "explanation": "A zero determinant means the transformation collapses space by at least one dimension (e.g., mapping 2D to a line). The matrix has no inverse, and linear systems using it have either no solution or infinitely many."
+      "explanation": "행렬식이 0이면 변환이 공간을 최소 한 차원 붕괴시킨다는 뜻입니다(예: 2D를 선으로 매핑). 이 행렬은 역행렬이 없고, 이를 사용하는 선형 시스템은 해가 없거나 무한히 많습니다."
     }
   ]
 }

@@ -1,48 +1,48 @@
-# Stochastic Processes
+# 확률 과정
 
-> Randomness with structure. The math behind random walks, Markov chains, and diffusion models.
+> 구조를 가진 무작위성. 랜덤 워크, Markov chains, diffusion models 뒤에 있는 수학입니다.
 
 **Type:** Learn
-**Language:** Python
-**Prerequisites:** Phase 1, Lessons 06-07 (probability, Bayes)
+**Languages:** Python
+**Prerequisites:** Phase 1, Lessons 06-07 (확률, Bayes)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Simulate 1D and 2D random walks and verify the sqrt(n) scaling of displacement
-- Build a Markov chain simulator and compute its stationary distribution via eigendecomposition
-- Implement Metropolis-Hastings MCMC and Langevin dynamics for sampling from target distributions
-- Connect the forward diffusion process to Brownian motion and explain how the reverse process generates data
+- 1D 및 2D 랜덤 워크를 시뮬레이션하고 변위의 sqrt(n) 스케일링을 검증합니다
+- Markov chain 시뮬레이터를 만들고 고유분해로 정상 분포를 계산합니다
+- 목표 분포에서 샘플링하기 위해 Metropolis-Hastings MCMC와 Langevin dynamics를 구현합니다
+- forward diffusion process를 Brownian motion과 연결하고 reverse process가 데이터를 생성하는 방식을 설명합니다
 
-## The Problem
+## 문제
 
-Many AI systems involve randomness that evolves over time. Not static randomness -- structured, sequential randomness where each step depends on what came before.
+많은 AI 시스템에는 시간이 지나며 진화하는 무작위성이 포함됩니다. 정적인 무작위성이 아니라, 각 단계가 이전에 일어난 일에 의존하는 구조적이고 순차적인 무작위성입니다.
 
-Language models generate tokens one at a time. Each token depends on the previous context. The model outputs a probability distribution, samples from it, and moves on. That is a stochastic process.
+언어 모델은 토큰을 한 번에 하나씩 생성합니다. 각 토큰은 이전 문맥에 의존합니다. 모델은 확률 분포를 출력하고, 그 분포에서 샘플링한 뒤, 다음으로 이동합니다. 이것이 확률 과정입니다.
 
-Diffusion models add noise to an image step by step until it becomes pure static. Then they reverse the process, denoising step by step until a new image emerges. The forward process is a Markov chain. The reverse process is a learned Markov chain running backward.
+Diffusion models는 이미지를 단계별로 노이즈화하여 순수한 잡음이 될 때까지 만듭니다. 그런 다음 과정을 뒤집어 단계별로 denoising하여 새 이미지가 나타나게 합니다. forward process는 Markov chain입니다. reverse process는 거꾸로 실행되는 학습된 Markov chain입니다.
 
-Reinforcement learning agents take actions in an environment. Each action leads to a new state with some probability. The agent follows a random policy in a random world. The whole thing is a Markov decision process.
+강화학습 에이전트는 환경에서 행동을 취합니다. 각 행동은 어떤 확률로 새 상태로 이어집니다. 에이전트는 무작위 세계에서 무작위 정책을 따릅니다. 전체는 Markov decision process입니다.
 
-MCMC sampling -- the backbone of Bayesian inference -- constructs a Markov chain whose stationary distribution is the posterior you want to sample from.
+MCMC sampling -- Bayesian inference의 중추 -- 은 정상 분포가 샘플링하려는 posterior가 되도록 Markov chain을 구성합니다.
 
-All of these build on four foundational ideas:
-1. Random walks -- the simplest stochastic process
-2. Markov chains -- structured randomness with a transition matrix
-3. Langevin dynamics -- gradient descent with noise
-4. Metropolis-Hastings -- sampling from any distribution
+이 모든 것은 네 가지 기초 아이디어 위에 세워집니다:
+1. Random walks -- 가장 단순한 확률 과정
+2. Markov chains -- transition matrix를 가진 구조화된 무작위성
+3. Langevin dynamics -- 노이즈가 있는 gradient descent
+4. Metropolis-Hastings -- 어떤 분포에서든 샘플링하기
 
-## The Concept
+## 개념
 
-### Random Walks
+### 랜덤 워크
 
-Start at position 0. At each step, flip a fair coin. Heads: move right (+1). Tails: move left (-1).
+위치 0에서 시작합니다. 각 단계마다 공정한 동전을 던집니다. 앞면: 오른쪽으로 이동(+1). 뒷면: 왼쪽으로 이동(-1).
 
-After n steps, your position is the sum of n random +/-1 values. The expected position is 0 (the walk is unbiased). But the expected distance from the origin grows as sqrt(n).
+n단계 후 위치는 n개의 무작위 +/-1 값의 합입니다. 기대 위치는 0입니다(워크는 편향되지 않았습니다). 하지만 원점으로부터의 기대 거리는 sqrt(n)만큼 증가합니다.
 
-This is counterintuitive. The walk is fair -- no drift in either direction. But over time, it wanders further and further from where it started. The standard deviation after n steps is sqrt(n).
+이는 직관에 어긋납니다. 워크는 공정합니다 -- 어느 방향으로도 drift가 없습니다. 하지만 시간이 지나면 시작한 곳에서 점점 더 멀리 떠돌게 됩니다. n단계 후 표준편차는 sqrt(n)입니다.
 
-```
+```text
 Step 0:  Position = 0
 Step 1:  Position = +1 or -1
 Step 2:  Position = +2, 0, or -2
@@ -51,37 +51,37 @@ Step 100: Expected distance from origin ~ 10 (sqrt(100))
 Step 10000: Expected distance from origin ~ 100 (sqrt(10000))
 ```
 
-**In 2D**, the walk moves up, down, left, or right with equal probability. The same sqrt(n) scaling applies to the distance from the origin. The path traces a fractal-like pattern.
+**2D에서는**, 워크가 위, 아래, 왼쪽, 오른쪽으로 같은 확률로 이동합니다. 원점으로부터의 거리에도 같은 sqrt(n) 스케일링이 적용됩니다. 경로는 프랙탈 같은 패턴을 그립니다.
 
-**Why sqrt(n)?** Each step is +1 or -1 with equal probability. After n steps, the position S_n = X_1 + X_2 + ... + X_n where each X_i is +/-1. The variance of each step is 1, and the steps are independent, so Var(S_n) = n. Standard deviation = sqrt(n). By the central limit theorem, S_n / sqrt(n) converges to a standard normal distribution.
+**왜 sqrt(n)일까요?** 각 단계는 같은 확률로 +1 또는 -1입니다. n단계 후 위치는 S_n = X_1 + X_2 + ... + X_n이며 각 X_i는 +/-1입니다. 각 단계의 분산은 1이고 단계들은 독립이므로 Var(S_n) = n입니다. 표준편차 = sqrt(n)입니다. 중심극한정리에 의해 S_n / sqrt(n)은 표준 정규분포로 수렴합니다.
 
-This sqrt(n) scaling shows up everywhere in ML. SGD noise scales as 1/sqrt(batch_size). Embedding dimensions scale as sqrt(d). The square root is the signature of independent random additions.
+이 sqrt(n) 스케일링은 ML 곳곳에 나타납니다. SGD 노이즈는 1/sqrt(batch_size)로 스케일됩니다. Embedding 차원은 sqrt(d)로 스케일됩니다. 제곱근은 독립적인 무작위 덧셈의 서명입니다.
 
-**Connection to Brownian motion.** Take a random walk with step size 1/sqrt(n) and n steps per unit time. As n goes to infinity, the walk converges to Brownian motion B(t) -- a continuous-time process where B(t) is normally distributed with mean 0 and variance t.
+**Brownian motion과의 연결.** 단계 크기가 1/sqrt(n)이고 단위 시간당 n단계를 갖는 랜덤 워크를 생각해 봅시다. n이 무한대로 갈 때, 워크는 Brownian motion B(t)로 수렴합니다 -- B(t)가 평균 0, 분산 t인 정규분포를 따르는 연속시간 과정입니다.
 
-Brownian motion is the mathematical foundation of diffusion. It models the random jiggling of particles in a fluid, the fluctuations of stock prices, and -- crucially -- the noise process in diffusion models.
+Brownian motion은 diffusion의 수학적 기반입니다. 유체 속 입자의 무작위 흔들림, 주가 변동, 그리고 결정적으로 diffusion models의 노이즈 과정을 모델링합니다.
 
-**Gambler's ruin.** A random walker starting at position k, with absorbing barriers at 0 and N. What is the probability of reaching N before 0? For a fair walk: P(reach N) = k/N. This is surprisingly simple and elegant. It connects to the theory of martingales -- the fair random walk is a martingale (expected future value = current value).
+**Gambler's ruin.** 위치 k에서 시작하고 0과 N에 흡수 장벽이 있는 랜덤 워커가 있습니다. 0에 도달하기 전에 N에 도달할 확률은 얼마일까요? 공정한 워크에서는 P(reach N) = k/N입니다. 놀랍도록 단순하고 우아합니다. 이는 martingales 이론과 연결됩니다 -- 공정한 랜덤 워크는 martingale입니다(기대 미래 값 = 현재 값).
 
-### Markov Chains
+### 마르코프 체인
 
-A Markov chain is a system that transitions between states according to fixed probabilities. The key property: the next state depends only on the current state, not on the history.
+Markov chain은 고정된 확률에 따라 상태 사이를 전이하는 시스템입니다. 핵심 성질은 다음 상태가 과거 전체가 아니라 현재 상태에만 의존한다는 것입니다.
 
-```
+```text
 P(X_{t+1} = j | X_t = i, X_{t-1} = ...) = P(X_{t+1} = j | X_t = i)
 ```
 
-This is the Markov property. It means you can describe the entire dynamics with a transition matrix P:
+이것이 Markov property입니다. 전체 동역학을 transition matrix P로 설명할 수 있다는 뜻입니다:
 
-```
+```text
 P[i][j] = probability of going from state i to state j
 ```
 
-Each row of P sums to 1 (you must go somewhere).
+P의 각 행은 합이 1입니다(어딘가로는 가야 합니다).
 
-**Example -- Weather:**
+**예시 -- 날씨:**
 
-```
+```text
 States: Sunny (0), Rainy (1), Cloudy (2)
 
 P = [[0.7, 0.1, 0.2],    (if sunny: 70% sunny, 10% rainy, 20% cloudy)
@@ -89,9 +89,9 @@ P = [[0.7, 0.1, 0.2],    (if sunny: 70% sunny, 10% rainy, 20% cloudy)
      [0.4, 0.2, 0.4]]    (if cloudy: 40% sunny, 20% rainy, 40% cloudy)
 ```
 
-Start in any state. After many transitions, the distribution of states converges to the stationary distribution pi, where pi * P = pi. This is the left eigenvector of P with eigenvalue 1.
+어떤 상태에서 시작해도 많은 전이 후 상태 분포는 정상 분포 pi로 수렴합니다. 여기서 pi * P = pi입니다. 이는 고유값 1에 대응하는 P의 왼쪽 고유벡터입니다.
 
-For the weather chain, the stationary distribution might be [0.53, 0.18, 0.29] -- over the long run, it is sunny 53% of the time regardless of the starting state.
+날씨 chain의 정상 분포는 [0.53, 0.18, 0.29]일 수 있습니다 -- 장기적으로 시작 상태와 무관하게 53%의 시간 동안 맑습니다.
 
 ```mermaid
 graph LR
@@ -106,78 +106,78 @@ graph LR
     C -->|0.4| C
 ```
 
-**Computing the stationary distribution.** There are two approaches:
+**정상 분포 계산.** 두 가지 접근이 있습니다:
 
-1. **Power method**: multiply any initial distribution by P repeatedly. After enough iterations, it converges.
-2. **Eigenvalue method**: find the left eigenvector of P with eigenvalue 1. This is the eigenvector of P^T with eigenvalue 1.
+1. **Power method**: 임의의 초기 분포에 P를 반복해서 곱합니다. 충분히 반복하면 수렴합니다.
+2. **Eigenvalue method**: 고유값 1에 대응하는 P의 왼쪽 고유벡터를 찾습니다. 이는 고유값 1에 대응하는 P^T의 고유벡터입니다.
 
-Both approaches require the chain to satisfy convergence conditions.
+두 접근 모두 chain이 수렴 조건을 만족해야 합니다.
 
-**Convergence conditions.** A Markov chain converges to a unique stationary distribution if it is:
-- **Irreducible**: every state is reachable from every other state
-- **Aperiodic**: the chain does not cycle with a fixed period
+**수렴 조건.** Markov chain은 다음 조건을 만족하면 유일한 정상 분포로 수렴합니다:
+- **Irreducible**: 모든 상태가 다른 모든 상태에서 도달 가능합니다
+- **Aperiodic**: chain이 고정된 주기로 순환하지 않습니다
 
-Most chains you encounter in ML satisfy both conditions.
+ML에서 마주치는 대부분의 chain은 두 조건을 모두 만족합니다.
 
-**Absorbing states.** A state is absorbing if once you enter it, you never leave (P[i][i] = 1). Absorbing Markov chains model processes with terminal states -- a game that ends, a customer who churns, a token sequence that hits the end-of-text token.
+**흡수 상태.** 어떤 상태에 들어가면 다시 떠나지 않는다면 그 상태는 흡수 상태입니다(P[i][i] = 1). 흡수 Markov chain은 종료 상태가 있는 과정을 모델링합니다 -- 끝나는 게임, 이탈한 고객, end-of-text token에 도달한 토큰 시퀀스.
 
-**Mixing time.** How many steps until the chain is "close" to the stationary distribution? Formally, the number of steps until the total variation distance from stationarity drops below some threshold. Fast mixing = few steps needed. The spectral gap of P (1 minus the second-largest eigenvalue) controls the mixing time. Larger gap = faster mixing.
+**혼합 시간.** chain이 정상 분포에 "가까워질" 때까지 몇 단계가 필요할까요? 형식적으로는 정상 분포와의 total variation distance가 어떤 임계값 아래로 떨어질 때까지의 단계 수입니다. 빠른 혼합 = 필요한 단계가 적음. P의 스펙트럴 갭(1에서 두 번째로 큰 고유값을 뺀 값)이 혼합 시간을 제어합니다. 갭이 클수록 더 빠르게 혼합됩니다.
 
-### Connection to Language Models
+### 언어 모델과의 연결
 
-Token generation in a language model is approximately a Markov process. Given the current context, the model outputs a distribution over the next token. Temperature controls the sharpness:
+언어 모델의 토큰 생성은 근사적으로 Markov process입니다. 현재 문맥이 주어지면 모델은 다음 토큰에 대한 분포를 출력합니다. Temperature는 날카로움을 제어합니다:
 
-```
+```text
 P(token_i) = exp(logit_i / temperature) / sum(exp(logit_j / temperature))
 ```
 
-- Temperature = 1.0: standard distribution
-- Temperature < 1.0: sharper (more deterministic)
-- Temperature > 1.0: flatter (more random)
+- Temperature = 1.0: 표준 분포
+- Temperature < 1.0: 더 날카로움(더 결정적)
+- Temperature > 1.0: 더 평평함(더 무작위)
 - Temperature -> 0: argmax (greedy)
 
-Top-k sampling truncates to the k highest-probability tokens. Top-p (nucleus) sampling truncates to the smallest set of tokens whose cumulative probability exceeds p. Both modify the Markov transition probabilities.
+Top-k sampling은 가장 높은 확률의 k개 토큰으로 잘라냅니다. Top-p (nucleus) sampling은 누적 확률이 p를 넘는 가장 작은 토큰 집합으로 잘라냅니다. 둘 다 Markov transition probabilities를 수정합니다.
 
-### Brownian Motion
+### 브라운 운동
 
-The continuous-time limit of the random walk. Position B(t) has three properties:
+랜덤 워크의 연속시간 극한입니다. 위치 B(t)는 세 가지 성질을 갖습니다:
 1. B(0) = 0
-2. B(t) - B(s) is normally distributed with mean 0 and variance t - s (for t > s)
-3. Increments on non-overlapping intervals are independent
+2. B(t) - B(s)는 평균 0, 분산 t - s인 정규분포를 따릅니다(t > s인 경우)
+3. 겹치지 않는 구간의 증분은 독립입니다
 
-Brownian motion is continuous but nowhere differentiable -- it jiggles at every scale. The path has fractal dimension 2 in the plane.
+Brownian motion은 연속이지만 어디에서도 미분 가능하지 않습니다 -- 모든 스케일에서 흔들립니다. 그 경로는 평면에서 프랙탈 차원 2를 갖습니다.
 
-In discrete simulation, you approximate Brownian motion by:
+이산 시뮬레이션에서는 다음으로 Brownian motion을 근사합니다:
 
-```
+```text
 B(t + dt) = B(t) + sqrt(dt) * z,    where z ~ N(0, 1)
 ```
 
-The sqrt(dt) scaling is important. It comes from the central limit theorem applied to random walks.
+sqrt(dt) 스케일링이 중요합니다. 이는 랜덤 워크에 적용한 중심극한정리에서 나옵니다.
 
-### Langevin Dynamics
+### 랑주뱅 동역학
 
-Gradient descent finds the minimum of a function. Langevin dynamics finds the probability distribution proportional to exp(-U(x)/T), where U is an energy function and T is temperature.
+Gradient descent는 함수의 최솟값을 찾습니다. Langevin dynamics는 exp(-U(x)/T)에 비례하는 확률 분포를 찾습니다. 여기서 U는 에너지 함수이고 T는 temperature입니다.
 
-```
+```text
 x_{t+1} = x_t - dt * gradient(U(x_t)) + sqrt(2 * T * dt) * z_t
 ```
 
-Two forces act on the particle:
-1. **Gradient force** (-dt * gradient(U)): pushes toward low energy (like gradient descent)
-2. **Random force** (sqrt(2*T*dt) * z): pushes in random directions (exploration)
+두 힘이 입자에 작용합니다:
+1. **Gradient force** (-dt * gradient(U)): 낮은 에너지 쪽으로 밀어냅니다(gradient descent처럼)
+2. **Random force** (sqrt(2*T*dt) * z): 무작위 방향으로 밀어냅니다(탐색)
 
-At temperature T = 0, this is pure gradient descent. At high temperature, it is nearly a random walk. At the right temperature, the particle explores the energy landscape and spends more time in low-energy regions.
+Temperature T = 0에서는 순수한 gradient descent입니다. 높은 temperature에서는 거의 랜덤 워크입니다. 적절한 temperature에서는 입자가 에너지 지형을 탐색하고 낮은 에너지 영역에서 더 오래 머뭅니다.
 
-**Connection to diffusion models.** The forward process of a diffusion model is:
+**Diffusion models와의 연결.** Diffusion model의 forward process는 다음과 같습니다:
 
-```
+```text
 x_t = sqrt(alpha_t) * x_{t-1} + sqrt(1 - alpha_t) * noise
 ```
 
-This is a Markov chain that gradually mixes the data with noise. After enough steps, x_T is pure Gaussian noise.
+이것은 데이터를 점진적으로 노이즈와 섞는 Markov chain입니다. 충분한 단계 후 x_T는 순수한 Gaussian noise입니다.
 
-The reverse process -- going from noise back to data -- is also a Markov chain, but its transition probabilities are learned by a neural network. The network learns to predict the noise that was added at each step, then subtracts it.
+노이즈에서 데이터로 돌아가는 reverse process도 Markov chain이지만, 그 transition probabilities는 neural network가 학습합니다. 네트워크는 각 단계에서 더해진 노이즈를 예측한 다음 그것을 뺍니다.
 
 ```mermaid
 graph LR
@@ -193,36 +193,36 @@ graph LR
     end
 ```
 
-### MCMC: Markov Chain Monte Carlo
+### MCMC: Markov Chain Monte Carlo 설명
 
-Sometimes you need to sample from a distribution p(x) that you can evaluate (up to a constant) but cannot sample from directly. Bayesian posteriors are the classic example -- you know the likelihood times the prior, but the normalizing constant is intractable.
+때로는 값을 계산할 수는 있지만(상수 배까지) 직접 샘플링할 수는 없는 분포 p(x)에서 샘플링해야 합니다. Bayesian posteriors가 전형적인 예입니다 -- likelihood와 prior의 곱은 알지만 정규화 상수는 다루기 어렵습니다.
 
-**Metropolis-Hastings** constructs a Markov chain whose stationary distribution is p(x):
+**Metropolis-Hastings**는 정상 분포가 p(x)인 Markov chain을 구성합니다:
 
-1. Start at some position x
-2. Propose a new position x' from a proposal distribution Q(x'|x)
-3. Compute acceptance ratio: a = p(x') * Q(x|x') / (p(x) * Q(x'|x))
-4. Accept x' with probability min(1, a). Otherwise stay at x.
-5. Repeat.
+1. 어떤 위치 x에서 시작합니다
+2. proposal distribution Q(x'|x)에서 새 위치 x'를 제안합니다
+3. acceptance ratio를 계산합니다: a = p(x') * Q(x|x') / (p(x) * Q(x'|x))
+4. 확률 min(1, a)로 x'를 수락합니다. 그렇지 않으면 x에 머뭅니다.
+5. 반복합니다.
 
-If Q is symmetric (e.g., Q(x'|x) = Q(x|x') = N(x, sigma^2)), the ratio simplifies to a = p(x') / p(x). You only need the ratio of probabilities -- the normalizing constant cancels.
+Q가 대칭이면(예: Q(x'|x) = Q(x|x') = N(x, sigma^2)), 비율은 a = p(x') / p(x)로 단순화됩니다. 확률의 비율만 있으면 됩니다 -- 정규화 상수는 상쇄됩니다.
 
-The chain is guaranteed to converge to p(x) under mild conditions. But convergence can be slow if the proposal is too small (random walk) or too large (high rejection). Tuning the proposal is the art of MCMC.
+chain은 약한 조건에서 p(x)로 수렴함이 보장됩니다. 하지만 proposal이 너무 작거나(랜덤 워크) 너무 크면(높은 거절률) 수렴이 느릴 수 있습니다. proposal을 조정하는 것이 MCMC의 기술입니다.
 
-**Why it works.** The acceptance ratio ensures detailed balance: the probability of being at x and moving to x' equals the probability of being at x' and moving to x. Detailed balance implies that p(x) is the stationary distribution of the chain. So after enough steps, the samples come from p(x).
+**왜 작동할까요.** acceptance ratio는 detailed balance를 보장합니다. x에 있다가 x'로 이동할 확률은 x'에 있다가 x로 이동할 확률과 같습니다. Detailed balance는 p(x)가 chain의 정상 분포임을 의미합니다. 따라서 충분한 단계 후 샘플은 p(x)에서 나옵니다.
 
-**Practical considerations:**
-- **Burn-in**: discard the first N samples. The chain needs time to reach the stationary distribution from its starting point.
-- **Thinning**: keep every k-th sample to reduce autocorrelation.
-- **Multiple chains**: run several chains from different starting points. If they converge to the same distribution, you have evidence of convergence.
-- **Acceptance rate**: for Gaussian proposals in d dimensions, the optimal acceptance rate is about 23% (Roberts & Rosenthal, 2001). Too high means the chain barely moves. Too low means it rejects everything.
+**실무 고려사항:**
+- **Burn-in**: 처음 N개 샘플을 버립니다. chain은 시작점에서 정상 분포에 도달할 시간이 필요합니다.
+- **Thinning**: autocorrelation을 줄이기 위해 k번째 샘플마다 보관합니다.
+- **Multiple chains**: 서로 다른 시작점에서 여러 chain을 실행합니다. 같은 분포로 수렴하면 수렴의 증거가 됩니다.
+- **Acceptance rate**: d차원 Gaussian proposals에서는 최적 acceptance rate가 약 23%입니다(Roberts & Rosenthal, 2001). 너무 높으면 chain이 거의 움직이지 않습니다. 너무 낮으면 모든 것을 거절합니다.
 
-### Stochastic Processes in AI
+### AI에서의 확률 과정
 
-| Process | AI Application |
+| 과정 | AI 응용 |
 |---------|---------------|
-| Random walk | Exploration in RL, Node2Vec embeddings |
-| Markov chain | Text generation, MCMC sampling |
+| Random walk | RL에서의 탐색, Node2Vec embeddings |
+| Markov chain | 텍스트 생성, MCMC sampling |
 | Brownian motion | Diffusion models (forward process) |
 | Langevin dynamics | Score-based generative models, SGLD |
 | Markov decision process | Reinforcement learning |
@@ -232,9 +232,9 @@ The chain is guaranteed to converge to p(x) under mild conditions. But convergen
 random-walk-diffusion
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Random walk simulator
+### Step 1: Random walk 시뮬레이터
 
 ```python
 import numpy as np
@@ -260,9 +260,9 @@ def random_walk_2d(n_steps, seed=None):
     return x, y
 ```
 
-The 1D walk stores cumulative sums. Each step is +1 or -1. After n steps, the position is the sum. The variance grows linearly with n, so the standard deviation grows as sqrt(n).
+1D 워크는 누적합을 저장합니다. 각 단계는 +1 또는 -1입니다. n단계 후 위치는 그 합입니다. 분산은 n에 선형으로 증가하므로 표준편차는 sqrt(n)으로 증가합니다.
 
-### Step 2: Markov chain
+### Step 2: Markov chain 구현
 
 ```python
 class MarkovChain:
@@ -294,9 +294,9 @@ class MarkovChain:
         return np.abs(stationary)
 ```
 
-The stationary distribution is the left eigenvector of P with eigenvalue 1. We find it by computing eigenvectors of P^T (transposing turns left eigenvectors into right eigenvectors).
+정상 분포는 고유값 1에 대응하는 P의 왼쪽 고유벡터입니다. P^T의 고유벡터를 계산해 찾습니다(전치하면 왼쪽 고유벡터가 오른쪽 고유벡터가 됩니다).
 
-### Step 3: Langevin dynamics
+### Step 3: Langevin dynamics 구현
 
 ```python
 def langevin_dynamics(grad_U, x0, dt, temperature, n_steps, seed=None):
@@ -310,9 +310,9 @@ def langevin_dynamics(grad_U, x0, dt, temperature, n_steps, seed=None):
     return np.array(trajectory)
 ```
 
-The gradient pushes x toward low energy. The noise prevents it from getting stuck. At equilibrium, the distribution of samples is proportional to exp(-U(x)/temperature).
+gradient는 x를 낮은 에너지 쪽으로 밀어냅니다. noise는 x가 갇히지 않게 합니다. 평형에서는 샘플 분포가 exp(-U(x)/temperature)에 비례합니다.
 
-### Step 4: Metropolis-Hastings
+### Step 4: Metropolis-Hastings 구현
 
 ```python
 def metropolis_hastings(target_log_prob, proposal_std, x0, n_samples, seed=None):
@@ -331,11 +331,11 @@ def metropolis_hastings(target_log_prob, proposal_std, x0, n_samples, seed=None)
     return np.array(samples), acceptance_rate
 ```
 
-The algorithm proposes a new point, checks if it has higher probability (or accepts with probability proportional to the ratio), and repeats. The acceptance rate should be around 23-50% for good mixing.
+이 알고리즘은 새 점을 제안하고, 더 높은 확률을 갖는지 확인한 뒤(또는 비율에 비례하는 확률로 수락한 뒤) 반복합니다. 좋은 혼합을 위해 acceptance rate는 약 23-50%여야 합니다.
 
-## Use It
+## 사용하기
 
-In practice, you use established libraries for these algorithms. But understanding the mechanics matters for debugging and tuning.
+실무에서는 이런 알고리즘에 검증된 라이브러리를 사용합니다. 하지만 메커니즘을 이해하는 것은 디버깅과 튜닝에 중요합니다.
 
 ```python
 import numpy as np
@@ -347,7 +347,7 @@ print(f"Expected distance: {np.sqrt(10000):.1f}")
 print(f"Actual distance: {abs(walk[-1])}")
 ```
 
-### numpy for transition matrices
+### transition matrices를 위한 numpy
 
 ```python
 import numpy as np
@@ -363,15 +363,15 @@ for _ in range(100):
 print(f"Stationary distribution: {np.round(distribution, 4)}")
 ```
 
-Multiply the initial distribution by P repeatedly. After enough iterations, it converges to the stationary distribution regardless of where you started. This is the power method for finding the dominant left eigenvector.
+초기 분포에 P를 반복해서 곱합니다. 충분히 반복하면 어디에서 시작했든 정상 분포로 수렴합니다. 이것은 지배적인 왼쪽 고유벡터를 찾는 power method입니다.
 
-### Connections to real frameworks
+### 실제 프레임워크와의 연결
 
-- **PyTorch diffusion:** The `DDPMScheduler` in Hugging Face `diffusers` implements the forward and reverse Markov chains
-- **NumPyro / PyMC:** Use MCMC (NUTS sampler, which improves on Metropolis-Hastings) for Bayesian inference
-- **Gymnasium (RL):** The environment step function defines a Markov decision process
+- **PyTorch diffusion:** Hugging Face `diffusers`의 `DDPMScheduler`는 forward 및 reverse Markov chains를 구현합니다
+- **NumPyro / PyMC:** Bayesian inference에는 MCMC(Metropolis-Hastings를 개선한 NUTS sampler)를 사용합니다
+- **Gymnasium (RL):** 환경의 step 함수가 Markov decision process를 정의합니다
 
-### Verifying Markov chain convergence
+### Markov chain 수렴 검증
 
 ```python
 import numpy as np
@@ -385,77 +385,77 @@ print(f"Spectral gap: {spectral_gap:.4f}")
 print(f"Approximate mixing time: {1/spectral_gap:.1f} steps")
 ```
 
-The spectral gap tells you how fast the chain forgets its initial state. A gap of 0.2 means roughly 5 steps to mix. A gap of 0.01 means roughly 100 steps. Always check this before running long simulations -- a slowly mixing chain wastes compute.
+스펙트럴 갭은 chain이 초기 상태를 얼마나 빨리 잊는지 알려 줍니다. 0.2의 갭은 대략 5단계면 혼합된다는 뜻입니다. 0.01의 갭은 대략 100단계라는 뜻입니다. 긴 시뮬레이션을 실행하기 전에 항상 이것을 확인하세요 -- 느리게 혼합되는 chain은 compute를 낭비합니다.
 
-## Ship It
+## 산출물로 만들기
 
-This lesson produces:
-- `outputs/prompt-stochastic-process-advisor.md` -- a prompt that helps identify which stochastic process framework applies to a given problem
+이 lesson은 다음을 만듭니다:
+- `outputs/prompt-stochastic-process-advisor.md` -- 주어진 문제에 어떤 stochastic process framework가 적용되는지 식별하는 데 도움을 주는 prompt
 
-## Connections
+## 연결
 
-| Concept | Where it shows up |
+| 개념 | 나타나는 곳 |
 |---------|------------------|
-| Random walk | Node2Vec graph embeddings, exploration in RL |
-| Markov chain | Token generation in LLMs, MCMC sampling |
-| Brownian motion | Forward diffusion process in DDPM, SDE-based models |
+| Random walk | Node2Vec graph embeddings, RL에서의 탐색 |
+| Markov chain | LLM의 token generation, MCMC sampling |
+| Brownian motion | DDPM의 forward diffusion process, SDE-based models |
 | Langevin dynamics | Score-based generative models, stochastic gradient Langevin dynamics (SGLD) |
-| Stationary distribution | MCMC convergence target, PageRank |
+| Stationary distribution | MCMC 수렴 목표, PageRank |
 | Metropolis-Hastings | Bayesian posterior sampling, simulated annealing |
-| Temperature | LLM sampling, Boltzmann exploration in RL, simulated annealing |
-| Mixing time | Convergence speed of MCMC, spectral gap analysis |
-| Absorbing state | End-of-sequence token, terminal states in RL |
-| Detailed balance | Correctness guarantee for MCMC samplers |
+| Temperature | LLM sampling, RL의 Boltzmann exploration, simulated annealing |
+| Mixing time | MCMC 수렴 속도, spectral gap analysis |
+| Absorbing state | End-of-sequence token, RL의 terminal states |
+| Detailed balance | MCMC samplers의 correctness guarantee |
 
-Diffusion models deserve special attention. DDPM (Ho et al., 2020) defines a forward Markov chain:
+Diffusion models는 특별히 주목할 만합니다. DDPM(Ho et al., 2020)은 forward Markov chain을 다음과 같이 정의합니다:
 
-```
+```text
 q(x_t | x_{t-1}) = N(x_t; sqrt(1-beta_t) * x_{t-1}, beta_t * I)
 ```
 
-where beta_t is a noise schedule. After T steps, x_T is approximately N(0, I). The reverse process is parameterized by a neural network that predicts the noise:
+여기서 beta_t는 noise schedule입니다. T단계 후 x_T는 대략 N(0, I)입니다. reverse process는 노이즈를 예측하는 neural network로 매개변수화됩니다:
 
-```
+```text
 p_theta(x_{t-1} | x_t) = N(x_{t-1}; mu_theta(x_t, t), sigma_t^2 * I)
 ```
 
-Every step of generation is a step in a learned Markov chain. Understanding Markov chains means understanding how and why diffusion models generate data.
+생성의 모든 단계는 학습된 Markov chain의 한 단계입니다. Markov chains를 이해한다는 것은 diffusion models가 어떻게 그리고 왜 데이터를 생성하는지 이해한다는 뜻입니다.
 
-SGLD (Stochastic Gradient Langevin Dynamics) combines mini-batch gradient descent with Langevin noise. Instead of computing the full gradient, you use a stochastic estimate and add calibrated noise. As learning rate decays, SGLD transitions from optimization to sampling -- you get approximate Bayesian posterior samples for free. This is one of the simplest ways to get uncertainty estimates from a neural network.
+SGLD(Stochastic Gradient Langevin Dynamics)는 mini-batch gradient descent와 Langevin noise를 결합합니다. 전체 gradient를 계산하는 대신 확률적 추정치를 사용하고 보정된 노이즈를 더합니다. learning rate가 감소하면 SGLD는 최적화에서 샘플링으로 전환됩니다 -- 신경망에서 근사 Bayesian posterior samples를 거의 공짜로 얻습니다. 이는 신경망에서 uncertainty estimates를 얻는 가장 단순한 방법 중 하나입니다.
 
-The key insight across all these connections: stochastic processes are not just theoretical tools. They are the computational mechanisms inside modern AI systems. When you tune the temperature of an LLM, you are adjusting a Markov chain. When you train a diffusion model, you are learning to reverse a Brownian-motion-like process. When you run Bayesian inference, you are constructing a chain that converges to the posterior.
+이 모든 연결을 관통하는 핵심 통찰은 다음과 같습니다. 확률 과정은 이론적 도구에 그치지 않습니다. 현대 AI 시스템 내부의 계산 메커니즘입니다. LLM의 temperature를 조정할 때, 당신은 Markov chain을 조정하고 있습니다. Diffusion model을 훈련할 때, 당신은 Brownian-motion-like process를 역전하는 방법을 학습하고 있습니다. Bayesian inference를 실행할 때, 당신은 posterior로 수렴하는 chain을 구성하고 있습니다.
 
-## Exercises
+## 연습 문제
 
-1. **Simulate 1000 random walks of 10000 steps.** Plot the distribution of final positions. Verify it is approximately Gaussian with mean 0 and standard deviation sqrt(10000) = 100.
+1. **10000단계 랜덤 워크 1000개를 시뮬레이션하세요.** 최종 위치의 분포를 그립니다. 평균 0, 표준편차 sqrt(10000) = 100인 Gaussian에 가까운지 확인하세요.
 
-2. **Build a text generator using a Markov chain.** Train on a small corpus: for each word, count transitions to the next word. Build the transition matrix. Generate new sentences by sampling from the chain.
+2. **Markov chain을 사용해 텍스트 생성기를 만드세요.** 작은 corpus로 학습합니다. 각 단어에 대해 다음 단어로의 전이를 셉니다. transition matrix를 만듭니다. chain에서 샘플링해 새 문장을 생성합니다.
 
-3. **Implement simulated annealing** using Metropolis-Hastings. Start at high temperature (accept almost everything) and gradually cool down (accept only improvements). Use it to find the minimum of a function with many local minima.
+3. **Metropolis-Hastings를 사용해 simulated annealing을 구현하세요.** 높은 temperature에서 시작해(거의 모든 것을 수락) 점차 식힙니다(개선만 수락). 많은 local minima를 가진 함수의 최솟값을 찾는 데 사용하세요.
 
-4. **Compare Langevin dynamics at different temperatures.** Sample from a double-well potential U(x) = (x^2 - 1)^2. At low temperature, samples cluster in one well. At high temperature, they spread across both. Find the critical temperature where the chain mixes between wells.
+4. **서로 다른 temperature에서 Langevin dynamics를 비교하세요.** double-well potential U(x) = (x^2 - 1)^2에서 샘플링합니다. 낮은 temperature에서는 샘플이 한 well에 모입니다. 높은 temperature에서는 두 well 전체로 퍼집니다. chain이 well 사이를 섞는 critical temperature를 찾으세요.
 
-5. **Implement the forward diffusion process.** Start with a 1D signal (e.g., a sine wave). Add noise progressively over 100 steps with a linear noise schedule. Show how the signal degrades to pure noise. Then implement a simple denoiser that reverses the process (even a naive one that just subtracts the estimated noise).
+5. **forward diffusion process를 구현하세요.** 1D signal(예: sine wave)에서 시작합니다. linear noise schedule로 100단계에 걸쳐 점진적으로 노이즈를 더합니다. 신호가 순수한 noise로 어떻게 열화되는지 보이세요. 그런 다음 과정을 되돌리는 간단한 denoiser를 구현하세요(추정된 noise를 빼는 naive한 것이라도 괜찮습니다).
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Random walk | "Coin-flip movement" | A process where position changes by random increments at each step |
-| Markov property | "Memoryless" | The future depends only on the present state, not on the history |
-| Transition matrix | "The probability table" | P[i][j] = probability of moving from state i to state j |
-| Stationary distribution | "The long-run average" | The distribution pi where pi*P = pi -- the chain's equilibrium |
-| Brownian motion | "Random jiggling" | The continuous-time limit of a random walk, B(t) ~ N(0, t) |
-| Langevin dynamics | "Gradient descent with noise" | Update rule that combines deterministic gradient and random perturbation |
-| MCMC | "Walking toward the target" | Constructing a Markov chain whose stationary distribution is the one you want |
-| Metropolis-Hastings | "Propose and accept/reject" | MCMC algorithm that uses acceptance ratios to ensure convergence |
-| Temperature | "The randomness knob" | Parameter controlling the tradeoff between exploration and exploitation |
-| Diffusion process | "Noise in, noise out" | Forward: gradually add noise. Reverse: gradually remove it. Generates data. |
+| Random walk | "Coin-flip movement" | 각 단계에서 위치가 무작위 증분만큼 변하는 과정 |
+| Markov property | "Memoryless" | 미래가 과거가 아니라 현재 상태에만 의존함 |
+| Transition matrix | "The probability table" | P[i][j] = 상태 i에서 상태 j로 이동할 확률 |
+| Stationary distribution | "The long-run average" | pi*P = pi인 분포 pi -- chain의 평형 |
+| Brownian motion | "Random jiggling" | 랜덤 워크의 연속시간 극한, B(t) ~ N(0, t) |
+| Langevin dynamics | "Gradient descent with noise" | 결정적 gradient와 무작위 perturbation을 결합한 업데이트 규칙 |
+| MCMC | "Walking toward the target" | 원하는 분포를 정상 분포로 갖는 Markov chain을 구성하는 것 |
+| Metropolis-Hastings | "Propose and accept/reject" | acceptance ratios로 수렴을 보장하는 MCMC 알고리즘 |
+| Temperature | "The randomness knob" | exploration과 exploitation의 tradeoff를 제어하는 매개변수 |
+| Diffusion process | "Noise in, noise out" | Forward: 점진적으로 noise를 추가. Reverse: 점진적으로 제거. 데이터를 생성함. |
 
-## Further Reading
+## 더 읽을거리
 
-- **Ho, Jain, Abbeel (2020)** -- "Denoising Diffusion Probabilistic Models." The DDPM paper that launched the diffusion model revolution. Clear derivation of the forward and reverse Markov chains.
-- **Song & Ermon (2019)** -- "Generative Modeling by Estimating Gradients of the Data Distribution." Score-based approach using Langevin dynamics for sampling.
-- **Roberts & Rosenthal (2004)** -- "General state space Markov chains and MCMC algorithms." The theory behind when and why MCMC works.
-- **Norris (1997)** -- "Markov Chains." The standard textbook. Covers convergence, stationary distributions, and hitting times.
-- **Welling & Teh (2011)** -- "Bayesian Learning via Stochastic Gradient Langevin Dynamics." Combines SGD with Langevin dynamics for scalable Bayesian inference.
+- **Ho, Jain, Abbeel (2020)** -- "Denoising Diffusion Probabilistic Models." diffusion model revolution을 촉발한 DDPM 논문입니다. forward 및 reverse Markov chains를 명확하게 유도합니다.
+- **Song & Ermon (2019)** -- "Generative Modeling by Estimating Gradients of the Data Distribution." 샘플링에 Langevin dynamics를 사용하는 score-based 접근입니다.
+- **Roberts & Rosenthal (2004)** -- "General state space Markov chains and MCMC algorithms." MCMC가 언제 왜 작동하는지에 대한 이론입니다.
+- **Norris (1997)** -- "Markov Chains." 표준 교과서입니다. 수렴, 정상 분포, hitting times를 다룹니다.
+- **Welling & Teh (2011)** -- "Bayesian Learning via Stochastic Gradient Langevin Dynamics." scalable Bayesian inference를 위해 SGD와 Langevin dynamics를 결합합니다.

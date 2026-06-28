@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the dot product of two vectors measure?",
-      "options": ["The distance between the two vectors", "How similar or aligned the two vectors are", "The angle between the vectors in degrees", "The number of dimensions the vectors share"],
+      "question": "두 벡터의 내적은 무엇을 측정하나요?",
+      "options": ["두 벡터 사이의 거리", "두 벡터가 얼마나 비슷하거나 정렬되어 있는지", "벡터 사이의 각도를 도 단위로 나타낸 값", "벡터가 공유하는 차원의 수"],
       "correct": 1,
-      "explanation": "The dot product measures alignment: positive means same direction (similar), zero means perpendicular (unrelated), negative means opposite direction (dissimilar). This is the basis of similarity search in AI."
+      "explanation": "내적은 정렬 정도를 측정합니다. 양수는 같은 방향(유사함), 0은 직교(관련 없음), 음수는 반대 방향(비유사함)을 뜻합니다. 이것이 AI에서 유사도 검색의 기반입니다."
     },
     {
       "stage": "pre",
-      "question": "In AI, what does 'embedding' refer to?",
-      "options": ["Inserting one model inside another", "A vector representation that captures the meaning of something (word, image, user)", "A technique for compressing model weights", "The process of converting code to machine instructions"],
+      "question": "AI에서 'embedding'은 무엇을 가리키나요?",
+      "options": ["한 모델을 다른 모델 안에 삽입하는 것", "무언가(단어, 이미지, 사용자)의 의미를 담는 벡터 표현", "모델 가중치를 압축하는 기법", "코드를 기계 명령어로 변환하는 과정"],
       "correct": 1,
-      "explanation": "An embedding maps discrete objects (words, images, users) to continuous vectors in a high-dimensional space where similar items are close together. It is the bridge between real-world concepts and mathematical operations."
+      "explanation": "임베딩은 이산 객체(단어, 이미지, 사용자)를 비슷한 항목끼리 가까이 놓이는 고차원 공간의 연속 벡터로 매핑합니다. 현실 세계의 개념과 수학 연산을 이어 주는 다리입니다."
     },
     {
       "stage": "post",
-      "question": "Three vectors v1=[1,0,0], v2=[0,1,0], v3=[2,1,0] are given. Are they linearly independent?",
-      "options": ["Yes, because there are three vectors in 3D space", "No, because v3 = 2*v1 + v2, so v3 is a linear combination of the others", "Yes, because none of the vectors are identical", "No, because they all have a zero component"],
+      "question": "세 벡터 v1=[1,0,0], v2=[0,1,0], v3=[2,1,0]가 주어졌습니다. 이들은 선형 독립인가요?",
+      "options": ["예, 3D 공간에 벡터가 세 개 있기 때문입니다", "아니요, v3 = 2*v1 + v2이므로 v3는 다른 벡터들의 선형 결합입니다", "예, 서로 같은 벡터가 없기 때문입니다", "아니요, 모두 0인 성분을 하나씩 갖기 때문입니다"],
       "correct": 1,
-      "explanation": "v3 = 2*v1 + v2, making the set linearly dependent. All three vectors lie in the xy-plane and cannot reach [0,0,1]. Despite having 3 vectors in 3D, they only span a 2D subspace."
+      "explanation": "v3 = 2*v1 + v2이므로 이 집합은 선형 종속입니다. 세 벡터는 모두 xy-평면 위에 있으며 [0,0,1]에는 도달할 수 없습니다. 3D 공간에 벡터가 세 개 있어도 실제로는 2D 부분공간만 생성합니다."
     },
     {
       "stage": "post",
-      "question": "What does the rank of a matrix tell you in the context of machine learning?",
-      "options": ["How fast the matrix can be multiplied", "The number of linearly independent columns, indicating how many dimensions of useful information it contains", "The maximum value in the matrix", "The number of non-zero entries in the matrix"],
+      "question": "머신러닝 맥락에서 행렬의 랭크는 무엇을 알려 주나요?",
+      "options": ["행렬 곱셈이 얼마나 빠른지", "선형 독립인 열의 수이며, 유용한 정보가 몇 차원 들어 있는지를 나타냅니다", "행렬 안의 최댓값", "행렬 안의 0이 아닌 원소 수"],
       "correct": 1,
-      "explanation": "Rank equals the number of linearly independent columns. In ML, a rank-deficient feature matrix means redundant features, infinitely many weight solutions, and the need for regularization."
+      "explanation": "랭크는 선형 독립인 열의 수와 같습니다. ML에서 랭크가 부족한 특징 행렬은 중복 특징, 무한히 많은 가중치 해, 그리고 정규화의 필요성을 뜻합니다."
     },
     {
       "stage": "post",
-      "question": "How does LoRA (Low-Rank Adaptation) use linear algebra to efficiently fine-tune large language models?",
-      "options": ["It removes unused rows from weight matrices to shrink the model", "It decomposes weight updates into two small low-rank matrices instead of updating the full weight matrix", "It converts all weights from float32 to int8", "It freezes the embedding layer and only trains the output head"],
+      "question": "LoRA (Low-Rank Adaptation)는 대형 언어 모델을 효율적으로 파인튜닝하기 위해 선형대수를 어떻게 사용하나요?",
+      "options": ["가중치 행렬에서 사용하지 않는 행을 제거해 모델을 줄입니다", "전체 가중치 행렬을 업데이트하는 대신 가중치 업데이트를 두 개의 작은 저랭크 행렬로 분해합니다", "모든 가중치를 float32에서 int8로 변환합니다", "임베딩 층을 고정하고 출력 헤드만 학습합니다"],
       "correct": 1,
-      "explanation": "LoRA decomposes a 4096x4096 weight update into two matrices of size 4096x16 and 16x4096 (rank-16), reducing trainable parameters from 16M to 131K by assuming updates live in a low-dimensional subspace."
+      "explanation": "LoRA는 4096x4096 가중치 업데이트를 4096x16과 16x4096 크기의 두 행렬(rank-16)로 분해합니다. 업데이트가 저차원 부분공간에 있다고 가정해 학습 가능한 파라미터를 16M에서 131K로 줄입니다."
     }
   ]
 }

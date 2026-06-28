@@ -1,27 +1,27 @@
-# Mission - Initialization Scripts for Agents
+# 미션 - Agent용 Initialization Script
 
-## Goal
-Build `init_agent.py` that probes runtime, dependencies, test command, env vars, and state freshness, then writes `init_report.json` and halts the session loud when a block-severity probe fails.
+## 목표
+runtime, dependency, test command, env var, state freshness를 probe한 뒤 `init_report.json`을 쓰는 `init_agent.py`를 만들고, block-severity probe가 실패하면 session을 크게 중단합니다.
 
-## Inputs
-- A repo with a `requirements.txt` (or equivalent), a test command, and the workbench state file from lesson 34
-- The probe table from the lesson (runtime, deps, paths, env, state freshness, last-known-good commit)
+## 입력
+- `requirements.txt`(또는 동등한 파일), test command, lesson 34의 workbench state file이 있는 repo
+- 레슨의 probe table(runtime, deps, paths, env, state freshness, last-known-good commit)
 
-## Deliverables
-- `init_agent.py` with one function per probe returning `(name, status, detail)`
-- `init_report.json` carrying the full probe set and a timestamp
-- Non-zero exit on any block-severity probe failure
+## 산출물
+- probe마다 하나의 함수가 있고 `(name, status, detail)`을 반환하는 `init_agent.py`
+- 전체 probe set과 timestamp를 담은 `init_report.json`
+- block-severity probe failure가 하나라도 있으면 non-zero exit
 
-## Acceptance
-- `python3 code/main.py` exits zero on the happy path
-- Running it twice in a row is a no-op except for the timestamp
-- A simulated missing env var probe surfaces in the report and flips the exit code
+## 합격 기준
+- happy path에서 `python3 code/main.py`가 0으로 종료
+- 연속 두 번 실행해도 timestamp를 제외하면 no-op
+- simulated missing env var probe가 report에 드러나고 exit code를 뒤집음
 
-## Out of scope
-- Auto-installing missing dependencies. The script halts and surfaces; the human fixes.
-- Calling an LLM from a probe. Probes stay deterministic plumbing.
+## 범위 밖
+- 빠진 dependency를 자동 설치하는 것. script는 중단하고 드러내며, 사람이 고칩니다.
+- probe에서 LLM을 호출하는 것. probe는 deterministic plumbing으로 유지합니다.
 
-## References
-- `docs/en.md` - full lesson
+## 참고
+- `docs/en.md` - 전체 레슨
 - `code/main.py` - reference implementation
-- `outputs/skill-init-script.md` - extracted skill
+- `outputs/skill-init-script.md` - 추출된 skill

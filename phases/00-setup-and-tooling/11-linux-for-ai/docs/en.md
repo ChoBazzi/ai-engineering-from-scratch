@@ -1,47 +1,47 @@
-# Linux for AI
+# AI를 위한 Linux
 
-> Most AI runs on Linux. You need to know enough to not be stuck.
+> 대부분의 AI는 Linux에서 실행됩니다. 막히지 않을 만큼은 알아야 합니다.
 
 **Type:** Learn
 **Languages:** --
 **Prerequisites:** Phase 0, Lesson 01
 **Time:** ~30 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Navigate the Linux file system and perform essential file operations from the command line
-- Manage file permissions with `chmod` and `chown` to resolve "Permission denied" errors
-- Install system packages with `apt` and set up a fresh GPU box for AI work
-- Identify macOS-to-Linux differences that commonly trip up developers working on remote machines
+- Linux 파일 시스템을 탐색하고 명령줄에서 필수 파일 작업 수행하기
+- `chmod`와 `chown`으로 파일 권한을 관리해 "Permission denied" 오류 해결하기
+- `apt`로 시스템 패키지를 설치하고 AI 작업용 새 GPU 박스 설정하기
+- 원격 머신에서 작업하는 개발자가 자주 헷갈리는 macOS와 Linux의 차이 파악하기
 
-## The Problem
+## 문제
 
-You develop on macOS or Windows. But the moment you SSH into a cloud GPU box, rent a Lambda instance, or spin up an EC2 machine, you land in Ubuntu. The terminal is your only interface. There is no Finder, no Explorer, no GUI. If you can't navigate the file system, install packages, and manage processes from the command line, you're stuck paying for idle GPU hours while googling "how to unzip a file in Linux."
+macOS나 Windows에서 개발하더라도, 클라우드 GPU 박스에 SSH로 접속하거나 Lambda 인스턴스를 빌리거나 EC2 머신을 띄우는 순간 Ubuntu에 도착합니다. 터미널이 유일한 인터페이스입니다. Finder도, Explorer도, GUI도 없습니다. 명령줄에서 파일 시스템을 탐색하고, 패키지를 설치하고, 프로세스를 관리할 수 없다면 "Linux에서 파일 압축 푸는 법"을 검색하는 동안 유휴 GPU 비용을 내게 됩니다.
 
-This is a survival guide. It covers exactly what you need to operate on a remote Linux machine for AI work. Nothing more.
+이것은 생존 가이드입니다. AI 작업을 위해 원격 Linux 머신을 다루는 데 필요한 것만 정확히 다룹니다. 그 이상은 다루지 않습니다.
 
-## File System Layout
+## 파일 시스템 구조
 
-Linux organizes everything under a single root `/`. There is no `C:\` or `/Volumes`. The directories you'll actually touch:
+Linux는 모든 것을 하나의 루트 `/` 아래에 구성합니다. `C:\`나 `/Volumes`는 없습니다. 실제로 만지게 될 디렉터리는 다음과 같습니다.
 
 ```mermaid
 graph TD
-    root["/"] --> home["home/your-username/<br/>Your files — clone repos, run training"]
-    root --> tmp["tmp/<br/>Temporary files, cleared on reboot"]
-    root --> usr["usr/<br/>System programs and libraries"]
-    root --> etc["etc/<br/>Config files"]
-    root --> varlog["var/log/<br/>Logs — check when something breaks"]
-    root --> mnt["mnt/ or /media/<br/>External drives and volumes"]
-    root --> proc["proc/ and /sys/<br/>Virtual files — kernel and hardware info"]
+    root["/"] --> home["home/your-username/<br/>내 파일 - repo clone, 학습 실행"]
+    root --> tmp["tmp/<br/>임시 파일, 재부팅 시 삭제"]
+    root --> usr["usr/<br/>시스템 프로그램과 라이브러리"]
+    root --> etc["etc/<br/>설정 파일"]
+    root --> varlog["var/log/<br/>로그 - 문제가 생기면 확인"]
+    root --> mnt["mnt/ 또는 /media/<br/>외장 드라이브와 볼륨"]
+    root --> proc["proc/ 및 /sys/<br/>가상 파일 - 커널과 하드웨어 정보"]
 ```
 
-Your home directory is `~` or `/home/your-username`. Almost everything you do happens here.
+홈 디렉터리는 `~` 또는 `/home/your-username`입니다. 거의 모든 작업은 여기에서 이루어집니다.
 
-## Essential Commands
+## 필수 명령
 
-These are the 15 commands that cover 95% of what you'll do on a remote GPU box.
+원격 GPU 박스에서 하는 일의 95%를 커버하는 15개 명령입니다.
 
-### Moving Around
+### 이동하기
 
 ```bash
 pwd                         # Where am I?
@@ -52,7 +52,7 @@ cd ~                        # Go home
 cd ..                       # Go up one level
 ```
 
-### Files and Directories
+### 파일과 디렉터리
 
 ```bash
 mkdir my-project            # Create a directory
@@ -68,9 +68,9 @@ rm file.txt                 # Delete a file (no trash, it's gone)
 rm -rf my-dir/              # Delete a directory and everything inside
 ```
 
-`rm -rf` is permanent. There is no undo. Double-check the path before hitting enter.
+`rm -rf`는 영구적입니다. 되돌리기가 없습니다. enter를 누르기 전에 경로를 다시 확인하세요.
 
-### Reading Files
+### 파일 읽기
 
 ```bash
 cat file.txt                # Print entire file
@@ -80,7 +80,7 @@ tail -f log.txt             # Follow a log file in real time (Ctrl+C to stop)
 less file.txt               # Scroll through a file (q to quit)
 ```
 
-### Searching
+### 검색하기
 
 ```bash
 grep "error" training.log           # Find lines containing "error"
@@ -91,9 +91,9 @@ find . -name "*.py"                 # Find all Python files under current dir
 find . -name "*.ckpt" -size +1G     # Find checkpoint files larger than 1GB
 ```
 
-## Permissions
+## 권한
 
-Every file in Linux has an owner and permission bits. You'll run into this when scripts won't execute or you can't write to a directory.
+Linux의 모든 파일에는 소유자와 권한 비트가 있습니다. 스크립트가 실행되지 않거나 디렉터리에 쓸 수 없을 때 마주치게 됩니다.
 
 ```bash
 ls -l train.py
@@ -103,7 +103,7 @@ ls -l train.py
 #        ^^        everyone else: read only
 ```
 
-Common fixes:
+자주 쓰는 해결책:
 
 ```bash
 chmod +x train.sh           # Make a script executable
@@ -113,11 +113,11 @@ chmod 644 config.yaml       # Owner: read+write, others: read only
 chown user:group file.txt   # Change who owns a file (needs sudo)
 ```
 
-When something says "Permission denied," it's almost always a permissions issue. `chmod +x` or `sudo` will fix most cases.
+"Permission denied"가 보이면 거의 항상 권한 문제입니다. 대부분은 `chmod +x` 또는 `sudo`로 해결됩니다.
 
-## Package Management (apt)
+## 패키지 관리(apt)
 
-Ubuntu uses `apt`. This is how you install system-level software.
+Ubuntu는 `apt`를 사용합니다. 시스템 수준 소프트웨어를 설치하는 방법입니다.
 
 ```bash
 sudo apt update             # Refresh the package list (always do this first)
@@ -129,7 +129,7 @@ apt list --installed        # What's installed?
 sudo apt remove htop        # Uninstall
 ```
 
-Common packages you'll install on a fresh GPU box:
+새 GPU 박스에 흔히 설치하는 패키지:
 
 ```bash
 sudo apt update && sudo apt install -y \
@@ -143,9 +143,9 @@ sudo apt update && sudo apt install -y \
     python3-venv
 ```
 
-## Users and sudo
+## 사용자와 sudo
 
-You're usually logged in as a regular user. Some operations need root (admin) access.
+보통 일반 사용자로 로그인합니다. 일부 작업에는 root(관리자) 접근 권한이 필요합니다.
 
 ```bash
 whoami                      # What user am I?
@@ -153,11 +153,11 @@ sudo command                # Run a single command as root
 sudo su                     # Become root (exit to go back, use sparingly)
 ```
 
-On cloud GPU instances, you're typically the only user and already have sudo access. Don't run everything as root. Use sudo only when needed.
+클라우드 GPU 인스턴스에서는 보통 사용자가 혼자이며 이미 sudo 접근 권한이 있습니다. 모든 것을 root로 실행하지 마세요. 필요할 때만 sudo를 사용하세요.
 
-## Processes and systemd
+## 프로세스와 systemd
 
-When your training hangs, or you need to check what's running:
+학습이 멈춘 것 같거나 무엇이 실행 중인지 확인해야 할 때:
 
 ```bash
 htop                        # Interactive process viewer (q to quit)
@@ -167,7 +167,7 @@ kill -9 12345               # Force kill (use when graceful doesn't work)
 nvidia-smi                  # GPU processes and memory usage
 ```
 
-systemd manages services (background daemons). You'll use it if you run inference servers:
+systemd는 서비스(백그라운드 데몬)를 관리합니다. 추론 서버를 실행할 때 사용하게 됩니다.
 
 ```bash
 sudo systemctl start nginx          # Start a service
@@ -177,9 +177,9 @@ sudo systemctl status nginx         # Check if it's running
 sudo systemctl enable nginx         # Start automatically on boot
 ```
 
-## Disk Space
+## 디스크 공간
 
-GPU boxes often have limited disk space. Models and datasets fill it fast.
+GPU 박스는 디스크 공간이 제한적인 경우가 많습니다. 모델과 데이터셋은 금방 디스크를 채웁니다.
 
 ```bash
 df -h                       # Disk usage for all mounted drives
@@ -193,7 +193,7 @@ du -sh /data/checkpoints/   # Check how big your checkpoints are
 du -h --max-depth=1 / 2>/dev/null | sort -hr | head -20
 ```
 
-Common space savers:
+흔한 공간 절약 방법:
 
 ```bash
 # Clear pip cache
@@ -206,9 +206,9 @@ sudo apt clean
 rm -rf checkpoints/epoch_01/ checkpoints/epoch_02/
 ```
 
-## Networking
+## 네트워킹
 
-You'll download models, transfer files, and hit APIs from the command line.
+명령줄에서 모델을 다운로드하고, 파일을 전송하고, API를 호출하게 됩니다.
 
 ```bash
 # Download files
@@ -226,11 +226,11 @@ rsync -avz --progress ./data/ user@remote:/data/
 rsync -avz --progress user@remote:/results/ ./results/
 ```
 
-Use `rsync` over `scp` for anything large. It only transfers changed bytes and handles interrupted connections.
+큰 파일에는 `scp`보다 `rsync`를 사용하세요. 변경된 바이트만 전송하고 끊어진 연결도 이어받습니다.
 
-## tmux: Keep Sessions Alive
+## tmux: 세션 살려 두기
 
-When you SSH into a remote box, closing your laptop kills your training run. tmux prevents this.
+원격 박스에 SSH로 접속했을 때 노트북을 닫으면 학습 실행이 죽습니다. tmux는 이를 막아 줍니다.
 
 ```bash
 tmux new -s train           # Start a new session named "train"
@@ -246,11 +246,11 @@ tmux attach -t train        # Reattach to session
 # Ctrl+B, then arrow keys   # Switch between panes
 ```
 
-Always run long training jobs inside tmux. Always.
+긴 학습 작업은 항상 tmux 안에서 실행하세요. 항상.
 
-## WSL2 for Windows Users
+## Windows 사용자를 위한 WSL2
 
-If you're on Windows, WSL2 gives you a real Linux environment without dual-booting.
+Windows를 사용한다면 WSL2로 듀얼 부팅 없이 실제 Linux 환경을 얻을 수 있습니다.
 
 ```bash
 # In PowerShell (admin)
@@ -260,26 +260,26 @@ wsl --install -d Ubuntu-24.04
 sudo apt update && sudo apt upgrade -y
 ```
 
-WSL2 runs a real Linux kernel. Everything in this lesson works inside it. Your Windows files are at `/mnt/c/Users/YourName/` from inside WSL.
+WSL2는 실제 Linux 커널을 실행합니다. 이 lesson의 모든 내용은 그 안에서 동작합니다. WSL 내부에서 Windows 파일은 `/mnt/c/Users/YourName/`에 있습니다.
 
-GPU passthrough works with NVIDIA drivers installed on the Windows side. Install the Windows NVIDIA driver (not the Linux one), and CUDA will be available inside WSL2.
+GPU passthrough는 Windows 쪽에 NVIDIA 드라이버가 설치되어 있으면 동작합니다. Linux용이 아니라 Windows NVIDIA 드라이버를 설치하면 WSL2 안에서 CUDA를 사용할 수 있습니다.
 
-## Gotchas: macOS to Linux
+## 주의할 점: macOS에서 Linux로
 
-Things that will trip you up if you're coming from macOS:
+macOS에서 왔다면 헷갈릴 수 있는 것들입니다.
 
-| macOS | Linux | Notes |
+| macOS | Linux | 메모 |
 |-------|-------|-------|
-| `brew install` | `sudo apt install` | Different package names sometimes. `brew install htop` vs `sudo apt install htop` works the same, but `brew install readline` vs `sudo apt install libreadline-dev` does not. |
-| `open file.txt` | `xdg-open file.txt` | But you won't have a GUI on a remote box. Use `cat` or `less`. |
-| `pbcopy` / `pbpaste` | Not available | Pipe to/from clipboard doesn't exist over SSH. |
-| `~/.zshrc` | `~/.bashrc` | macOS defaults to zsh. Most Linux servers use bash. |
-| `/opt/homebrew/` | `/usr/bin/`, `/usr/local/bin/` | Binaries live in different places. |
-| `sed -i '' 's/a/b/' file` | `sed -i 's/a/b/' file` | macOS sed needs an empty string after `-i`. Linux does not. |
-| Case-insensitive filesystem | Case-sensitive filesystem | `Model.py` and `model.py` are two different files on Linux. |
-| Line endings `\n` | Line endings `\n` | Same. But Windows uses `\r\n`, which breaks bash scripts. Run `dos2unix` to fix. |
+| `brew install` | `sudo apt install` | 패키지 이름이 다를 때가 있습니다. `brew install htop`과 `sudo apt install htop`은 같은 식으로 동작하지만, `brew install readline`과 `sudo apt install libreadline-dev`는 그렇지 않습니다. |
+| `open file.txt` | `xdg-open file.txt` | 하지만 원격 박스에는 GUI가 없을 것입니다. `cat`이나 `less`를 사용하세요. |
+| `pbcopy` / `pbpaste` | 사용할 수 없음 | SSH에서는 클립보드로 pipe를 주고받을 수 없습니다. |
+| `~/.zshrc` | `~/.bashrc` | macOS 기본값은 zsh입니다. 대부분의 Linux 서버는 bash를 사용합니다. |
+| `/opt/homebrew/` | `/usr/bin/`, `/usr/local/bin/` | 바이너리가 다른 위치에 있습니다. |
+| `sed -i '' 's/a/b/' file` | `sed -i 's/a/b/' file` | macOS sed는 `-i` 뒤에 빈 문자열이 필요합니다. Linux는 필요 없습니다. |
+| 대소문자를 구분하지 않는 파일 시스템 | 대소문자를 구분하는 파일 시스템 | Linux에서 `Model.py`와 `model.py`는 서로 다른 파일입니다. |
+| 줄 끝 `\n` | 줄 끝 `\n` | 같습니다. 하지만 Windows는 `\r\n`을 사용하고, 이는 bash 스크립트를 깨뜨립니다. `dos2unix`를 실행해 고치세요. |
 
-## Quick Reference Card
+## 빠른 참조 카드
 
 ```
 Navigation:     pwd, ls, cd, find
@@ -294,10 +294,10 @@ Network:        curl, wget, scp, rsync
 Sessions:       tmux new/attach/detach
 ```
 
-## Exercises
+## 연습 문제
 
-1. SSH into any Linux machine (or open WSL2) and navigate to your home directory. Create a project folder, create three empty files inside it with `touch`, then list them with `ls -la`.
-2. Install `htop` with apt, run it, and identify which process is using the most memory.
-3. Start a tmux session, run `sleep 300` inside it, detach, list sessions, and reattach.
-4. Use `df -h` to check available disk space, then use `du -sh ~/.cache/*` to find what's taking up space in your cache.
-5. Transfer a file from your local machine to a remote one using `scp`, then do the same transfer with `rsync` and compare the experience.
+1. 아무 Linux 머신에 SSH로 접속하거나 WSL2를 열고 홈 디렉터리로 이동하세요. 프로젝트 폴더를 만들고 그 안에 `touch`로 빈 파일 세 개를 만든 다음 `ls -la`로 나열하세요.
+2. apt로 `htop`을 설치하고 실행한 뒤, 어떤 프로세스가 가장 많은 메모리를 사용하는지 확인하세요.
+3. tmux 세션을 시작하고 그 안에서 `sleep 300`을 실행한 뒤 분리하고, 세션 목록을 확인하고, 다시 연결하세요.
+4. `df -h`로 사용 가능한 디스크 공간을 확인한 다음 `du -sh ~/.cache/*`로 캐시에서 공간을 차지하는 항목을 찾으세요.
+5. `scp`로 로컬 머신에서 원격 머신으로 파일을 전송한 다음, 같은 전송을 `rsync`로 수행하고 경험을 비교하세요.

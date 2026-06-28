@@ -1,86 +1,86 @@
-# The Fourier Transform
+# 푸리에 변환
 
-> Every signal is a sum of sine waves. The Fourier transform tells you which ones.
+> 모든 signal은 sine waves의 합입니다. Fourier transform은 그 sine waves가 무엇인지 알려 줍니다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 1, Lessons 01-04, 19 (complex numbers)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement the DFT from scratch and verify it against the O(N log N) Cooley-Tukey FFT
-- Interpret frequency coefficients: extract amplitude, phase, and power spectrum from a signal
-- Apply the convolution theorem to perform convolution via FFT multiplication
-- Connect Fourier frequency decomposition to transformer positional encodings and CNN convolution layers
+- DFT를 처음부터 구현하고 O(N log N) Cooley-Tukey FFT와 비교해 검증합니다
+- frequency coefficients를 해석합니다. signal에서 amplitude, phase, power spectrum을 추출합니다
+- convolution theorem을 적용해 FFT multiplication으로 convolution을 수행합니다
+- Fourier frequency decomposition을 transformer positional encodings 및 CNN convolution layers와 연결합니다
 
-## The Problem
+## 문제
 
-An audio recording is a sequence of pressure measurements over time. A stock price is a sequence of values over days. An image is a grid of pixel intensities over space. All of these are data in the time domain (or space domain). You see values changing over some index.
+audio recording은 시간에 따른 pressure measurements의 sequence입니다. stock price는 날짜에 따른 values의 sequence입니다. image는 space 위의 pixel intensities grid입니다. 이 모든 것은 time domain(또는 space domain)의 data입니다. 어떤 index를 따라 values가 변하는 것을 봅니다.
 
-But many patterns are invisible in the time domain. Is this audio signal a pure tone or a chord? Does this stock price have a weekly cycle? Does this image have a repeating texture? These questions are about frequency content, and the time domain hides it.
+하지만 많은 patterns는 time domain에서 보이지 않습니다. 이 audio signal은 pure tone인가요, chord인가요? 이 stock price에는 weekly cycle이 있나요? 이 image에는 repeating texture가 있나요? 이런 질문들은 frequency content에 관한 것이고, time domain은 그것을 숨깁니다.
 
-The Fourier transform converts data from the time domain to the frequency domain. It takes a signal and decomposes it into sine waves of different frequencies. Each sine wave has an amplitude (how strong it is) and a phase (where it starts). The Fourier transform tells you both.
+Fourier transform은 data를 time domain에서 frequency domain으로 변환합니다. signal을 받아 서로 다른 frequencies의 sine waves로 분해합니다. 각 sine wave에는 amplitude(얼마나 강한지)와 phase(어디서 시작하는지)가 있습니다. Fourier transform은 둘 다 알려 줍니다.
 
-This matters for ML because frequency-domain thinking appears everywhere. Convolutional neural networks perform convolution, which is multiplication in the frequency domain. Transformer positional encodings use frequency decomposition to represent position. Audio models (speech recognition, music generation) operate on spectrograms -- frequency representations of sound. Time series models look for periodic patterns. Understanding the Fourier transform gives you the vocabulary to work with all of these.
+frequency-domain 사고는 ML 곳곳에 나타나므로 중요합니다. Convolutional neural networks는 convolution을 수행하는데, 이는 frequency domain에서 multiplication입니다. Transformer positional encodings는 position을 표현하기 위해 frequency decomposition을 사용합니다. Audio models(speech recognition, music generation)는 sound의 frequency representations인 spectrograms에서 작동합니다. Time series models는 periodic patterns를 찾습니다. Fourier transform을 이해하면 이 모든 것을 다룰 vocabulary를 얻습니다.
 
-## The Concept
+## 개념
 
-### The DFT definition
+### DFT 정의
 
-Given N samples x[0], x[1], ..., x[N-1], the Discrete Fourier Transform produces N frequency coefficients X[0], X[1], ..., X[N-1]:
+N samples x[0], x[1], ..., x[N-1]가 주어지면 Discrete Fourier Transform은 N개의 frequency coefficients X[0], X[1], ..., X[N-1]를 만듭니다.
 
-```
+```text
 X[k] = sum_{n=0}^{N-1} x[n] * e^(-2*pi*i*k*n/N)
 
 for k = 0, 1, ..., N-1
 ```
 
-Each X[k] is a complex number. Its magnitude |X[k]| tells you the amplitude of frequency k. Its phase angle(X[k]) tells you the phase offset of that frequency.
+각 X[k]는 complex number입니다. magnitude |X[k]|는 frequency k의 amplitude를 알려 줍니다. phase angle(X[k])는 그 frequency의 phase offset을 알려 줍니다.
 
-The key insight: `e^(-2*pi*i*k*n/N)` is a rotating phasor at frequency k. The DFT computes the correlation between the signal and each of N equally-spaced frequencies. If the signal contains energy at frequency k, the correlation is large. If not, it is near zero.
+핵심 통찰은 `e^(-2*pi*i*k*n/N)`가 frequency k의 rotating phasor라는 것입니다. DFT는 signal과 N개의 균등 간격 frequencies 각각 사이의 correlation을 계산합니다. signal이 frequency k에 energy를 포함하면 correlation이 큽니다. 그렇지 않으면 거의 zero입니다.
 
-### What each coefficient means
+### 각 coefficient의 의미
 
-**X[0]: the DC component.** This is the sum of all samples -- proportional to the mean. It represents the constant (zero-frequency) offset of the signal.
+**X[0]: DC component.** 모든 samples의 합입니다. mean에 비례합니다. signal의 constant(zero-frequency) offset을 나타냅니다.
 
-```
+```text
 X[0] = sum_{n=0}^{N-1} x[n] * e^0 = sum of all samples
 ```
 
-**X[k] for 1 <= k <= N/2: positive frequencies.** X[k] represents frequency k cycles per N samples. Higher k means higher frequency (faster oscillation).
+**1 <= k <= N/2인 X[k]: positive frequencies.** X[k]는 N samples당 k cycles의 frequency를 나타냅니다. k가 클수록 더 높은 frequency(더 빠른 oscillation)입니다.
 
-**X[N/2]: the Nyquist frequency.** The highest frequency you can represent with N samples. Above this, you get aliasing -- high frequencies masquerading as low ones.
+**X[N/2]: Nyquist frequency.** N samples로 표현할 수 있는 가장 높은 frequency입니다. 이를 넘으면 aliasing이 발생합니다. high frequencies가 low frequencies처럼 위장합니다.
 
-**X[k] for N/2 < k < N: negative frequencies.** For real-valued signals, X[N-k] = conj(X[k]). The negative frequencies are mirror images of the positive ones. This is why the useful information is in the first N/2 + 1 coefficients.
+**N/2 < k < N인 X[k]: negative frequencies.** real-valued signals에서는 X[N-k] = conj(X[k])입니다. negative frequencies는 positive ones의 mirror images입니다. 그래서 유용한 정보는 처음 N/2 + 1 coefficients에 있습니다.
 
-### Inverse DFT
+### Inverse DFT 설명
 
-The inverse DFT reconstructs the original signal from its frequency coefficients:
+inverse DFT는 frequency coefficients에서 original signal을 reconstruct합니다.
 
-```
+```text
 x[n] = (1/N) * sum_{k=0}^{N-1} X[k] * e^(2*pi*i*k*n/N)
 
 for n = 0, 1, ..., N-1
 ```
 
-The only differences from the forward DFT: the sign in the exponent is positive (not negative), and there is a 1/N normalization factor.
+forward DFT와 다른 점은 exponent의 sign이 negative가 아니라 positive이고, 1/N normalization factor가 있다는 것뿐입니다.
 
-The inverse DFT is perfect reconstruction. No information is lost. You can go from time domain to frequency domain and back without any error. The DFT is a change of basis -- it re-expresses the same information in a different coordinate system.
+inverse DFT는 perfect reconstruction입니다. 정보는 손실되지 않습니다. time domain에서 frequency domain으로 갔다가 error 없이 돌아올 수 있습니다. DFT는 change of basis입니다. 같은 정보를 다른 coordinate system으로 다시 표현합니다.
 
-### The FFT: making it fast
+### FFT: 빠르게 만들기
 
-The DFT as defined above is O(N^2): for each of N output coefficients, you sum over N input samples. For N = 1 million, that is 10^12 operations.
+위에서 정의한 DFT는 O(N^2)입니다. N개의 output coefficients 각각에 대해 N개의 input samples를 합산합니다. N = 1 million이면 10^12 operations입니다.
 
-The Fast Fourier Transform (FFT) computes the same result in O(N log N). For N = 1 million, that is about 20 million operations instead of a trillion. This is what makes frequency analysis practical.
+Fast Fourier Transform(FFT)은 같은 결과를 O(N log N)에 계산합니다. N = 1 million이면 1 trillion이 아니라 약 20 million operations입니다. 이것이 frequency analysis를 실용적으로 만듭니다.
 
-The Cooley-Tukey algorithm (the most common FFT) works by divide and conquer:
+Cooley-Tukey algorithm(가장 흔한 FFT)은 divide and conquer로 작동합니다.
 
-1. Split the signal into even-indexed and odd-indexed samples.
-2. Compute the DFT of each half recursively.
-3. Combine the two half-size DFTs using "twiddle factors" e^(-2*pi*i*k/N).
+1. signal을 even-indexed samples와 odd-indexed samples로 나눕니다.
+2. 각 half의 DFT를 재귀적으로 계산합니다.
+3. "twiddle factors" e^(-2*pi*i*k/N)를 사용해 두 half-size DFT를 결합합니다.
 
-```
+```text
 X[k] = E[k] + e^(-2*pi*i*k/N) * O[k]          for k = 0, ..., N/2 - 1
 X[k + N/2] = E[k] - e^(-2*pi*i*k/N) * O[k]    for k = 0, ..., N/2 - 1
 
@@ -88,7 +88,7 @@ where E = DFT of even-indexed samples
       O = DFT of odd-indexed samples
 ```
 
-The symmetry means each level of recursion does O(N) work, and there are log2(N) levels. Total: O(N log N).
+symmetry 덕분에 recursion의 각 level은 O(N) work를 수행하고, levels는 log2(N)개입니다. 전체는 O(N log N)입니다.
 
 ```mermaid
 graph TD
@@ -106,51 +106,51 @@ graph TD
     end
 ```
 
-The FFT requires the signal length to be a power of 2. In practice, signals are zero-padded to the next power of 2.
+FFT는 signal length가 power of 2이기를 요구합니다. 실제로는 signals를 다음 power of 2까지 zero-padding합니다.
 
-### Spectral analysis
+### Spectral analysis 설명
 
-The **power spectrum** is |X[k]|^2 -- the squared magnitude of each frequency coefficient. It shows how much energy is at each frequency.
+**power spectrum**은 |X[k]|^2입니다. 각 frequency coefficient의 squared magnitude입니다. 각 frequency에 energy가 얼마나 있는지 보여 줍니다.
 
-The **phase spectrum** is angle(X[k]) -- the phase offset of each frequency. For most analysis tasks, you care about the power spectrum and ignore the phase.
+**phase spectrum**은 angle(X[k])입니다. 각 frequency의 phase offset입니다. 대부분의 analysis tasks에서는 power spectrum이 중요하고 phase는 무시합니다.
 
-```
+```text
 Power at frequency k:  P[k] = |X[k]|^2 = X[k].real^2 + X[k].imag^2
 Phase at frequency k:  phi[k] = atan2(X[k].imag, X[k].real)
 ```
 
-### Frequency resolution
+### Frequency resolution 설명
 
-The frequency resolution of the DFT depends on the number of samples N and the sampling rate fs.
+DFT의 frequency resolution은 samples 수 N과 sampling rate fs에 달려 있습니다.
 
-```
+```text
 Frequency of bin k:      f_k = k * fs / N
 Frequency resolution:    delta_f = fs / N
 Maximum frequency:       f_max = fs / 2  (Nyquist)
 ```
 
-To resolve two frequencies that are close together, you need more samples. To capture high frequencies, you need a higher sampling rate.
+서로 가까운 두 frequencies를 분리하려면 더 많은 samples가 필요합니다. high frequencies를 포착하려면 더 높은 sampling rate가 필요합니다.
 
-### The convolution theorem
+### Convolution theorem 설명
 
-This is one of the most important results in signal processing and directly relevant to CNNs.
+이것은 signal processing에서 가장 중요한 결과 중 하나이며 CNNs와 직접 관련됩니다.
 
-**Convolution in the time domain equals pointwise multiplication in the frequency domain.**
+**time domain의 convolution은 frequency domain의 pointwise multiplication과 같습니다.**
 
-```
+```text
 x * h = IFFT(FFT(x) . FFT(h))
 
 where * is convolution and . is element-wise multiplication
 ```
 
-Why this matters:
+중요한 이유:
 
-- Direct convolution of two signals of length N and M takes O(N*M) operations.
-- FFT-based convolution takes O(N log N): transform both, multiply, transform back.
-- For large kernels, FFT convolution is dramatically faster.
-- This is exactly what happens in convolutional layers with large receptive fields.
+- 길이가 N과 M인 두 signals의 direct convolution은 O(N*M) operations가 듭니다.
+- FFT-based convolution은 O(N log N)입니다. 둘 다 transform하고, multiply하고, 다시 transform합니다.
+- large kernels에서는 FFT convolution이 훨씬 빠릅니다.
+- large receptive fields를 가진 convolutional layers에서 정확히 이런 일이 일어납니다.
 
-Note: the DFT computes circular convolution (the signal wraps around). For linear convolution (no wraparound), zero-pad both signals to length N + M - 1 before computing.
+참고: DFT는 circular convolution(signal이 wrap around함)을 계산합니다. linear convolution(wraparound 없음)을 위해서는 계산 전에 두 signals를 length N + M - 1로 zero-pad하세요.
 
 ```mermaid
 graph LR
@@ -168,29 +168,29 @@ graph LR
     FD -.->|"same result"| TC
 ```
 
-### Windowing
+### Windowing 설명
 
-The DFT assumes the signal is periodic -- it treats the N samples as one period of an infinitely repeating signal. If the signal does not start and end at the same value, this creates a discontinuity at the boundary, which shows up as spurious high-frequency content. This is called spectral leakage.
+DFT는 signal이 periodic이라고 가정합니다. N samples를 무한히 반복되는 signal의 한 period로 취급합니다. signal이 같은 값으로 시작하고 끝나지 않으면 boundary에 discontinuity가 생기고, 이것이 spurious high-frequency content로 나타납니다. 이를 spectral leakage라고 합니다.
 
-Windowing reduces leakage by tapering the signal to zero at both ends before computing the DFT.
+Windowing은 DFT를 계산하기 전에 signal의 양 끝을 zero로 tapering하여 leakage를 줄입니다.
 
-Common windows:
+흔한 windows:
 
 | Window | Shape | Main lobe width | Side lobe level | Use case |
 |--------|-------|----------------|-----------------|----------|
-| Rectangular | Flat (no window) | Narrowest | Highest (-13 dB) | When signal is exactly periodic in N samples |
-| Hann | Raised cosine | Moderate | Low (-31 dB) | General purpose spectral analysis |
-| Hamming | Modified cosine | Moderate | Lower (-42 dB) | Audio processing, speech analysis |
-| Blackman | Triple cosine | Wide | Very low (-58 dB) | When side lobe suppression is critical |
+| Rectangular | Flat (no window) | 가장 좁음 | 가장 높음 (-13 dB) | signal이 N samples에서 정확히 periodic일 때 |
+| Hann | Raised cosine | 중간 | 낮음 (-31 dB) | 범용 spectral analysis |
+| Hamming | Modified cosine | 중간 | 더 낮음 (-42 dB) | Audio processing, speech analysis |
+| Blackman | Triple cosine | 넓음 | 매우 낮음 (-58 dB) | side lobe suppression이 중요할 때 |
 
-```
+```text
 Hann window:    w[n] = 0.5 * (1 - cos(2*pi*n / (N-1)))
 Hamming window: w[n] = 0.54 - 0.46 * cos(2*pi*n / (N-1))
 ```
 
-Apply the window by multiplying it element-wise with the signal before the DFT: `X = DFT(x * w)`.
+DFT 전에 signal과 element-wise로 곱해 window를 적용합니다: `X = DFT(x * w)`.
 
-### DFT properties
+### DFT properties 설명
 
 | Property | Time Domain | Frequency Domain |
 |----------|-------------|-----------------|
@@ -202,44 +202,44 @@ Apply the window by multiplying it element-wise with the signal before the DFT: 
 | Parseval's theorem | sum \|x[n]\|^2 | (1/N) * sum \|X[k]\|^2 |
 | Conjugate symmetry (real input) | x[n] real | X[k] = conj(X[N-k]) |
 
-Parseval's theorem says the total energy is the same in both domains. Energy is conserved through the transform.
+Parseval's theorem은 total energy가 두 domains에서 같다고 말합니다. Energy는 transform을 거쳐도 보존됩니다.
 
-### Connection to positional encodings
+### positional encodings와의 연결
 
-The original Transformer uses sinusoidal positional encodings:
+Original Transformer는 sinusoidal positional encodings를 사용합니다:
 
-```
+```text
 PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
 PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
 ```
 
-Each dimension pair (2i, 2i+1) oscillates at a different frequency. The frequencies are geometrically spaced from high (dimension 0,1) to low (last dimensions). This gives each position a unique pattern across all frequency bands -- similar to how Fourier coefficients uniquely identify a signal.
+각 dimension pair(2i, 2i+1)는 서로 다른 frequency로 oscillate합니다. frequencies는 high(dimension 0,1)에서 low(last dimensions)까지 geometrically spaced됩니다. 이는 모든 frequency bands에 걸쳐 각 position에 unique pattern을 줍니다. Fourier coefficients가 signal을 고유하게 식별하는 방식과 비슷합니다.
 
-The key properties this provides:
+이것이 제공하는 핵심 properties:
 
-- **Uniqueness:** No two positions have the same encoding.
-- **Bounded values:** sin and cos are always in [-1, 1].
-- **Relative position:** The encoding of position p+k can be expressed as a linear function of the encoding at position p. The model can learn to attend to relative positions.
+- **Uniqueness:** 어떤 두 positions도 같은 encoding을 갖지 않습니다.
+- **Bounded values:** sin과 cos는 항상 [-1, 1] 안에 있습니다.
+- **Relative position:** position p+k의 encoding은 position p의 encoding의 linear function으로 표현될 수 있습니다. model은 relative positions에 attend하는 법을 배울 수 있습니다.
 
-### Connection to CNNs
+### CNNs와의 연결
 
-A convolution layer applies a learned filter (kernel) to the input by sliding it across the signal or image. Mathematically, this is the convolution operation.
+convolution layer는 learned filter(kernel)를 signal이나 image 위로 sliding하여 input에 적용합니다. 수학적으로 이것은 convolution operation입니다.
 
-By the convolution theorem, this is equivalent to:
-1. FFT the input
-2. FFT the kernel
-3. Multiply in frequency domain
-4. IFFT the result
+convolution theorem에 따르면 이것은 다음과 같습니다.
+1. input에 FFT
+2. kernel에 FFT
+3. frequency domain에서 multiply
+4. result에 IFFT
 
-Standard CNN implementations use direct convolution (faster for small 3x3 kernels). But for large kernels or global convolution, FFT-based approaches are significantly faster. Some architectures (like FNet) replace attention entirely with FFT, achieving competitive accuracy with O(N log N) instead of O(N^2) complexity.
+Standard CNN implementations는 direct convolution을 사용합니다(작은 3x3 kernels에서는 더 빠름). 하지만 large kernels나 global convolution에서는 FFT-based approaches가 훨씬 빠릅니다. FNet 같은 일부 architectures는 attention을 완전히 FFT로 대체하여 O(N^2)가 아니라 O(N log N) complexity로 경쟁력 있는 accuracy를 달성합니다.
 
-### Spectrograms and the Short-Time Fourier Transform
+### Spectrograms와 Short-Time Fourier Transform
 
-A single FFT gives you the frequency content of the entire signal, but tells you nothing about when those frequencies occur. A chirp (a signal whose frequency increases over time) and a chord (all frequencies present simultaneously) can have the same magnitude spectrum.
+단일 FFT는 전체 signal의 frequency content를 제공하지만, 그 frequencies가 언제 발생하는지는 알려 주지 않습니다. chirp(시간에 따라 frequency가 증가하는 signal)와 chord(모든 frequencies가 동시에 존재)는 같은 magnitude spectrum을 가질 수 있습니다.
 
-The Short-Time Fourier Transform (STFT) solves this by computing FFTs on overlapping windows of the signal. The result is a spectrogram: a 2D representation with time on one axis and frequency on the other. The intensity at each point shows the energy at that frequency at that time.
+Short-Time Fourier Transform(STFT)은 signal의 overlapping windows에 FFTs를 계산해 이 문제를 해결합니다. 결과는 spectrogram입니다. 한 axis는 time, 다른 axis는 frequency인 2D representation입니다. 각 point의 intensity는 그 시간과 frequency에서의 energy를 보여 줍니다.
 
-```
+```text
 STFT procedure:
 1. Choose a window size (e.g., 1024 samples)
 2. Choose a hop size (e.g., 256 samples -- 75% overlap)
@@ -250,13 +250,13 @@ STFT procedure:
    d. Store the magnitude spectrum as one column of the spectrogram
 ```
 
-Spectrograms are the standard input representation for audio ML models. Speech recognition models (Whisper, DeepSpeech) operate on mel-spectrograms -- spectrograms with frequencies mapped to the mel scale, which better matches human pitch perception.
+Spectrograms는 audio ML models의 standard input representation입니다. Speech recognition models(Whisper, DeepSpeech)는 mel-spectrograms에서 작동합니다. 이는 frequencies를 human pitch perception에 더 잘 맞는 mel scale로 mapping한 spectrograms입니다.
 
-### Aliasing
+### Aliasing 설명
 
-If a signal contains frequencies above fs/2 (the Nyquist frequency), sampling at rate fs will create aliased copies. A 90 Hz signal sampled at 100 Hz looks identical to a 10 Hz signal. There is no way to distinguish them from the samples alone.
+signal에 fs/2(Nyquist frequency)보다 높은 frequencies가 포함되어 있으면 rate fs로 sampling할 때 aliased copies가 생깁니다. 100 Hz로 sampled된 90 Hz signal은 10 Hz signal과 동일하게 보입니다. samples만으로는 둘을 구별할 방법이 없습니다.
 
-```
+```text
 Example:
   True signal: 90 Hz sine wave
   Sampling rate: 100 Hz
@@ -267,23 +267,23 @@ Example:
   No amount of math can recover the original 90 Hz.
 ```
 
-This is why analog-to-digital converters include anti-aliasing filters that remove frequencies above Nyquist before sampling. In ML, aliasing appears when downsampling feature maps without proper low-pass filtering -- some architectures address this with anti-aliased pooling layers.
+이것이 analog-to-digital converters가 sampling 전에 Nyquist 위 frequencies를 제거하는 anti-aliasing filters를 포함하는 이유입니다. ML에서는 적절한 low-pass filtering 없이 feature maps를 downsampling할 때 aliasing이 나타납니다. 일부 architectures는 anti-aliased pooling layers로 이를 처리합니다.
 
-### Zero-padding does not increase resolution
+### Zero-padding은 resolution을 높이지 않는다
 
-A common misconception: zero-padding a signal before FFT improves frequency resolution. It does not. Zero-padding interpolates between existing frequency bins, giving you a smoother-looking spectrum. But it cannot reveal frequency detail that was not present in the original samples.
+흔한 오해가 있습니다. FFT 전에 signal을 zero-padding하면 frequency resolution이 좋아진다는 생각입니다. 그렇지 않습니다. Zero-padding은 existing frequency bins 사이를 interpolate하여 더 매끄러워 보이는 spectrum을 줍니다. 하지만 original samples에 없던 frequency detail을 드러낼 수는 없습니다.
 
-True frequency resolution depends only on the observation time T = N / fs. To resolve two frequencies separated by delta_f, you need at least T = 1 / delta_f seconds of data. No amount of zero-padding changes this fundamental limit.
+True frequency resolution은 observation time T = N / fs에만 달려 있습니다. delta_f만큼 떨어진 두 frequencies를 resolve하려면 최소 T = 1 / delta_f seconds의 data가 필요합니다. 어떤 양의 zero-padding도 이 fundamental limit을 바꾸지 못합니다.
 
 ```figure
 fourier-synthesis
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: DFT from scratch
+### Step 1: 처음부터 DFT 만들기
 
-The O(N^2) DFT follows directly from the definition.
+O(N^2) DFT는 정의에서 바로 나옵니다.
 
 ```python
 import math
@@ -305,9 +305,9 @@ def dft(x):
     return result
 ```
 
-### Step 2: Inverse DFT
+### Step 2: Inverse DFT 구현
 
-Same structure, positive exponent, divide by N.
+같은 구조에 positive exponent를 쓰고 N으로 나눕니다.
 
 ```python
 def idft(X):
@@ -323,9 +323,9 @@ def idft(X):
     return result
 ```
 
-### Step 3: FFT (Cooley-Tukey)
+### Step 3: FFT(Cooley-Tukey) 구현
 
-The recursive FFT requires power-of-2 length. Split into even and odd, recurse, combine with twiddle factors.
+recursive FFT는 power-of-2 length를 요구합니다. even과 odd로 나누고, recurse한 뒤 twiddle factors로 결합합니다.
 
 ```python
 def fft(x):
@@ -348,7 +348,7 @@ def fft(x):
     return result
 ```
 
-### Step 4: Spectral analysis helpers
+### Step 4: Spectral analysis helpers 구현
 
 ```python
 def power_spectrum(X):
@@ -372,9 +372,9 @@ def convolve_fft(x, h):
     return [y[n].real for n in range(N)]
 ```
 
-## Use It
+## 사용하기
 
-For real work, use numpy's FFT which is backed by highly optimized C libraries.
+실제 작업에는 고도로 최적화된 C libraries가 뒷받침하는 numpy의 FFT를 사용하세요.
 
 ```python
 import numpy as np
@@ -389,7 +389,7 @@ positive_freqs = freqs[:len(freqs)//2]
 positive_power = power[:len(power)//2]
 ```
 
-For windowing and more advanced spectral analysis:
+windowing과 더 advanced spectral analysis에는 다음을 사용합니다.
 
 ```python
 from scipy.signal import windows, stft
@@ -399,7 +399,7 @@ windowed = signal * window
 spectrum = np.fft.fft(windowed)
 ```
 
-For convolution:
+convolution에는:
 
 ```python
 from scipy.signal import fftconvolve
@@ -407,7 +407,7 @@ from scipy.signal import fftconvolve
 result = fftconvolve(signal, kernel, mode='full')
 ```
 
-For spectrograms:
+spectrograms에는:
 
 ```python
 from scipy.signal import stft
@@ -416,50 +416,50 @@ frequencies, times, Zxx = stft(signal, fs=sample_rate, nperseg=256)
 spectrogram = np.abs(Zxx) ** 2
 ```
 
-The spectrogram matrix has shape (n_frequencies, n_time_frames). Each column is the power spectrum at one time window. This is what audio ML models consume as input.
+spectrogram matrix의 shape는 (n_frequencies, n_time_frames)입니다. 각 column은 하나의 time window에서의 power spectrum입니다. 이것이 audio ML models가 input으로 소비하는 것입니다.
 
-## Ship It
+## 내보내기
 
-Run `code/fourier.py` to generate `outputs/prompt-spectral-analyzer.md`.
+`code/fourier.py`를 실행해 `outputs/prompt-spectral-analyzer.md`를 생성하세요.
 
-## Exercises
+## 연습 문제
 
-1. **Pure tone identification.** Create a signal with a single sine wave at an unknown frequency (between 1 and 50 Hz), sampled at 128 Hz for 1 second. Use your DFT to identify the frequency. Verify the answer matches. Now add Gaussian noise with standard deviation 0.5 and repeat. How does noise affect the spectrum?
+1. **Pure tone identification.** unknown frequency(1에서 50 Hz 사이)의 단일 sine wave signal을 만들고, 128 Hz로 1초 동안 sample하세요. 직접 만든 DFT로 frequency를 식별하세요. 답이 맞는지 확인하세요. 이제 standard deviation 0.5의 Gaussian noise를 추가하고 반복하세요. noise는 spectrum에 어떤 영향을 주나요?
 
-2. **FFT vs DFT verification.** Generate a random signal of length 64. Compute both DFT (O(N^2)) and FFT. Verify that all coefficients match to within 1e-10. Time both functions on signals of length 256, 512, 1024, and 2048. Plot the ratio of DFT time to FFT time.
+2. **FFT vs DFT verification.** length 64의 random signal을 생성하세요. DFT(O(N^2))와 FFT를 모두 계산하세요. 모든 coefficients가 1e-10 이내로 일치하는지 확인하세요. length 256, 512, 1024, 2048 signals에서 두 functions의 시간을 재세요. DFT time과 FFT time의 ratio를 plot하세요.
 
-3. **Convolution theorem proof by example.** Create signal x = [1, 2, 3, 4, 0, 0, 0, 0] and filter h = [1, 1, 1, 0, 0, 0, 0, 0]. Compute their circular convolution directly (nested loop). Then compute it via FFT (transform, multiply, inverse transform). Verify the results match. Now do linear convolution by zero-padding appropriately.
+3. **example로 convolution theorem 증명.** signal x = [1, 2, 3, 4, 0, 0, 0, 0]와 filter h = [1, 1, 1, 0, 0, 0, 0, 0]를 만드세요. circular convolution을 직접(nested loop) 계산하세요. 그런 다음 FFT(transform, multiply, inverse transform)로 계산하세요. 결과가 일치하는지 확인하세요. 이제 적절히 zero-padding하여 linear convolution을 수행하세요.
 
-4. **Windowing effects.** Create a signal that is the sum of two sine waves at 10 Hz and 12 Hz (very close). Sample at 128 Hz for 1 second. Compute the power spectrum with no window, Hann window, and Hamming window. Which window makes it easiest to distinguish the two peaks? Why?
+4. **Windowing effects.** 10 Hz와 12 Hz(매우 가까움)의 두 sine waves 합으로 signal을 만드세요. 128 Hz로 1초 동안 sample하세요. no window, Hann window, Hamming window로 power spectrum을 계산하세요. 어떤 window가 두 peaks를 가장 쉽게 구별하게 하나요? 왜인가요?
 
-5. **Positional encoding analysis.** Generate the sinusoidal positional encodings for d_model = 128 and max_pos = 512. For each pair of positions (p1, p2), compute the dot product of their encodings. Show that the dot product depends only on |p1 - p2|, not on the absolute positions. What happens to the dot product as the distance increases?
+5. **Positional encoding analysis.** d_model = 128, max_pos = 512에 대한 sinusoidal positional encodings를 생성하세요. positions (p1, p2)의 각 pair에 대해 encodings의 dot product를 계산하세요. dot product가 absolute positions가 아니라 |p1 - p2|에만 의존함을 보이세요. distance가 증가하면 dot product는 어떻게 되나요?
 
-## Key Terms
+## 핵심 용어
 
 | Term | What it means |
 |------|---------------|
-| DFT (Discrete Fourier Transform) | Converts N time-domain samples into N frequency-domain coefficients. Each coefficient is the correlation with a complex sinusoid at that frequency |
-| FFT (Fast Fourier Transform) | An O(N log N) algorithm to compute the DFT. The Cooley-Tukey algorithm splits even/odd indices recursively |
-| Inverse DFT | Reconstructs the time-domain signal from frequency coefficients. Same formula as DFT with flipped exponent sign and 1/N scaling |
-| Frequency bin | Each index k in the DFT output represents frequency k*fs/N Hz. The "bin" is the discrete frequency slot |
-| DC component | X[0], the zero-frequency coefficient. Proportional to the signal mean |
-| Nyquist frequency | fs/2, the maximum frequency representable at sampling rate fs. Frequencies above this alias |
-| Power spectrum | \|X[k]\|^2, the squared magnitude of each frequency coefficient. Shows energy distribution across frequencies |
-| Phase spectrum | angle(X[k]), the phase offset of each frequency component. Often ignored in analysis |
-| Spectral leakage | Spurious frequency content caused by treating a non-periodic signal as periodic. Reduced by windowing |
-| Window function | A tapering function (Hann, Hamming, Blackman) applied before DFT to reduce spectral leakage |
-| Twiddle factor | The complex exponential e^(-2*pi*i*k/N) used to combine sub-DFTs in the FFT butterfly computation |
-| Convolution theorem | Convolution in time domain equals pointwise multiplication in frequency domain. Fundamental to signal processing and CNNs |
-| Circular convolution | Convolution where the signal wraps around. This is what the DFT naturally computes |
-| Linear convolution | Standard convolution without wraparound. Achieved by zero-padding before DFT |
-| Parseval's theorem | Total energy is preserved through the Fourier transform. sum \|x[n]\|^2 = (1/N) sum \|X[k]\|^2 |
-| Aliasing | When frequencies above Nyquist appear as lower frequencies due to insufficient sampling rate |
+| DFT (Discrete Fourier Transform) | N개의 time-domain samples를 N개의 frequency-domain coefficients로 변환. 각 coefficient는 해당 frequency의 complex sinusoid와의 correlation |
+| FFT (Fast Fourier Transform) | DFT를 계산하는 O(N log N) algorithm. Cooley-Tukey algorithm은 even/odd indices를 재귀적으로 나눔 |
+| Inverse DFT | frequency coefficients에서 time-domain signal을 reconstruct. DFT와 같은 formula지만 exponent sign을 뒤집고 1/N scaling |
+| Frequency bin | DFT output의 각 index k는 frequency k*fs/N Hz를 나타냄. "bin"은 discrete frequency slot |
+| DC component | X[0], zero-frequency coefficient. signal mean에 비례 |
+| Nyquist frequency | fs/2, sampling rate fs에서 표현 가능한 maximum frequency. 이보다 높은 frequencies는 alias됨 |
+| Power spectrum | \|X[k]\|^2, 각 frequency coefficient의 squared magnitude. frequencies 전반의 energy distribution을 보여 줌 |
+| Phase spectrum | angle(X[k]), 각 frequency component의 phase offset. analysis에서 자주 무시됨 |
+| Spectral leakage | non-periodic signal을 periodic으로 취급해 생기는 spurious frequency content. windowing으로 줄임 |
+| Window function | spectral leakage를 줄이기 위해 DFT 전에 적용하는 tapering function(Hann, Hamming, Blackman) |
+| Twiddle factor | FFT butterfly computation에서 sub-DFTs를 결합하는 데 쓰는 complex exponential e^(-2*pi*i*k/N) |
+| Convolution theorem | time domain의 convolution은 frequency domain의 pointwise multiplication과 같음. signal processing과 CNNs의 기반 |
+| Circular convolution | signal이 wrap around하는 convolution. DFT가 자연스럽게 계산하는 것 |
+| Linear convolution | wraparound 없는 standard convolution. DFT 전에 zero-padding하여 달성 |
+| Parseval's theorem | Fourier transform을 거쳐도 total energy가 보존됨. sum \|x[n]\|^2 = (1/N) sum \|X[k]\|^2 |
+| Aliasing | sampling rate가 부족해 Nyquist 위 frequencies가 더 낮은 frequencies로 나타나는 현상 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Cooley & Tukey: An Algorithm for the Machine Calculation of Complex Fourier Series (1965)](https://www.ams.org/journals/mcom/1965-19-090/S0025-5718-1965-0178586-1/) - the original FFT paper that changed computing
-- [3Blue1Brown: But what is the Fourier Transform?](https://www.youtube.com/watch?v=spUNpyF58BY) - the best visual introduction to Fourier transforms
-- [Lee-Thorp et al.: FNet: Mixing Tokens with Fourier Transforms (2021)](https://arxiv.org/abs/2105.03824) - replaces self-attention with FFT in transformers
-- [Smith: The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/) - free online textbook covering FFT, windowing, and spectral analysis in depth
-- [Vaswani et al.: Attention Is All You Need (2017)](https://arxiv.org/abs/1706.03762) - sinusoidal positional encodings derived from Fourier frequency decomposition
-- [Radford et al.: Whisper (2022)](https://arxiv.org/abs/2212.04356) - speech recognition using mel-spectrograms as input representation
+- [Cooley & Tukey: An Algorithm for the Machine Calculation of Complex Fourier Series (1965)](https://www.ams.org/journals/mcom/1965-19-090/S0025-5718-1965-0178586-1/) - computing을 바꾼 original FFT paper
+- [3Blue1Brown: But what is the Fourier Transform?](https://www.youtube.com/watch?v=spUNpyF58BY) - Fourier transforms에 대한 최고의 visual introduction
+- [Lee-Thorp et al.: FNet: Mixing Tokens with Fourier Transforms (2021)](https://arxiv.org/abs/2105.03824) - transformers에서 self-attention을 FFT로 대체
+- [Smith: The Scientist and Engineer's Guide to Digital Signal Processing](http://www.dspguide.com/) - FFT, windowing, spectral analysis를 깊이 다루는 무료 online textbook
+- [Vaswani et al.: Attention Is All You Need (2017)](https://arxiv.org/abs/1706.03762) - Fourier frequency decomposition에서 나온 sinusoidal positional encodings
+- [Radford et al.: Whisper (2022)](https://arxiv.org/abs/2212.04356) - mel-spectrograms를 input representation으로 사용하는 speech recognition

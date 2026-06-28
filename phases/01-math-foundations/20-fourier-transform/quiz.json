@@ -2,63 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the Fourier transform do to a signal?",
+      "question": "Fourier transform은 signal에 무엇을 하나요?",
       "options": [
-        "Compresses the signal to use less storage",
-        "Decomposes the signal into sine waves of different frequencies, amplitudes, and phases",
-        "Removes noise from the signal",
-        "Converts the signal from analog to digital"
+        "signal을 압축해 storage를 덜 쓰게 합니다",
+        "signal을 서로 다른 frequencies, amplitudes, phases를 가진 sine waves로 분해합니다",
+        "signal에서 noise를 제거합니다",
+        "signal을 analog에서 digital로 변환합니다"
       ],
       "correct": 1,
-      "explanation": "The Fourier transform converts a signal from the time domain to the frequency domain. Each frequency coefficient X[k] tells you the amplitude and phase of a sine wave at frequency k. The signal is re-expressed as a sum of these sine waves."
+      "explanation": "Fourier transform은 signal을 time domain에서 frequency domain으로 변환합니다. 각 frequency coefficient X[k]는 frequency k의 sine wave에 대한 amplitude와 phase를 알려 줍니다. signal은 이러한 sine waves의 합으로 다시 표현됩니다."
     },
     {
       "stage": "pre",
-      "question": "What is the time complexity of the Fast Fourier Transform (FFT) compared to the direct DFT?",
+      "question": "direct DFT와 비교할 때 Fast Fourier Transform(FFT)의 time complexity는 무엇인가요?",
       "options": [
-        "Both are O(N^2)",
-        "FFT is O(N log N), DFT is O(N^2)",
-        "FFT is O(N), DFT is O(N log N)",
-        "FFT is O(log N), DFT is O(N)"
+        "둘 다 O(N^2)입니다",
+        "FFT는 O(N log N), DFT는 O(N^2)입니다",
+        "FFT는 O(N), DFT는 O(N log N)입니다",
+        "FFT는 O(log N), DFT는 O(N)입니다"
       ],
       "correct": 1,
-      "explanation": "The direct DFT computes N outputs, each summing over N inputs: O(N^2). The Cooley-Tukey FFT splits the signal into even/odd halves recursively, doing O(N) work at each of log2(N) levels, giving O(N log N). For N = 1 million, this is 20 million vs 1 trillion operations."
+      "explanation": "direct DFT는 N개의 output을 계산하고 각 output은 N개의 input을 합산하므로 O(N^2)입니다. Cooley-Tukey FFT는 signal을 even/odd halves로 재귀적으로 나누고 log2(N)개의 각 level에서 O(N) work를 수행하여 O(N log N)이 됩니다. N = 1 million이면 약 20 million operations 대 1 trillion operations입니다."
     },
     {
       "stage": "post",
-      "question": "What does the convolution theorem state?",
+      "question": "convolution theorem은 무엇을 말하나요?",
       "options": [
-        "Convolution in the time domain equals addition in the frequency domain",
-        "Convolution in the time domain equals pointwise multiplication in the frequency domain",
-        "Convolution always increases the length of a signal",
-        "Convolution and correlation are identical operations"
+        "time domain의 convolution은 frequency domain의 addition과 같습니다",
+        "time domain의 convolution은 frequency domain의 pointwise multiplication과 같습니다",
+        "Convolution은 항상 signal의 길이를 증가시킵니다",
+        "Convolution과 correlation은 동일한 operation입니다"
       ],
       "correct": 1,
-      "explanation": "The convolution theorem states that convolution in the time domain equals pointwise multiplication in the frequency domain: x * h = IFFT(FFT(x) . FFT(h)). This is why FFT-based convolution is O(N log N) instead of O(N*M) for large kernels."
+      "explanation": "convolution theorem은 time domain의 convolution이 frequency domain의 pointwise multiplication과 같다고 말합니다: x * h = IFFT(FFT(x) . FFT(h)). 그래서 큰 kernels에서 FFT-based convolution은 O(N*M)이 아니라 O(N log N)입니다."
     },
     {
       "stage": "post",
-      "question": "Why does zero-padding a signal before FFT NOT increase the true frequency resolution?",
+      "question": "FFT 전에 signal을 zero-padding해도 true frequency resolution이 증가하지 않는 이유는 무엇인가요?",
       "options": [
-        "Zero-padding introduces noise that cancels the improvement",
-        "Zero-padding interpolates between existing frequency bins but cannot reveal frequency detail absent from the original samples",
-        "Zero-padding only works for power-of-2 signal lengths",
-        "The FFT algorithm ignores zero-padded samples"
+        "Zero-padding은 개선을 상쇄하는 noise를 도입합니다",
+        "Zero-padding은 기존 frequency bins 사이를 interpolate할 뿐 original samples에 없던 frequency detail을 드러낼 수 없습니다",
+        "Zero-padding은 power-of-2 signal lengths에서만 작동합니다",
+        "FFT algorithm은 zero-padded samples를 무시합니다"
       ],
       "correct": 1,
-      "explanation": "True frequency resolution depends on the observation time T = N/fs. Zero-padding adds more frequency bins (finer grid) but only interpolates the existing spectrum — it gives a smoother-looking result without resolving frequencies closer than 1/T Hz apart."
+      "explanation": "True frequency resolution은 observation time T = N/fs에 달려 있습니다. Zero-padding은 더 많은 frequency bins(더 촘촘한 grid)를 추가하지만 기존 spectrum을 interpolate할 뿐입니다. 1/T Hz보다 가까운 frequencies를 분리하지 못하고 더 매끄러워 보이는 결과만 줍니다."
     },
     {
       "stage": "post",
-      "question": "In the original Transformer's sinusoidal positional encodings, why are different dimension pairs assigned geometrically spaced frequencies?",
+      "question": "original Transformer의 sinusoidal positional encodings에서 서로 다른 dimension pairs에 geometrically spaced frequencies를 배정하는 이유는 무엇인가요?",
       "options": [
-        "It reduces the computational cost of attention",
-        "Each frequency provides a different resolution — high frequencies encode fine position, low frequencies encode coarse position, giving each position a unique fingerprint",
-        "Geometric spacing is required by the FFT algorithm",
-        "It ensures all encoding values are between 0 and 1"
+        "attention의 computational cost를 줄입니다",
+        "각 frequency가 서로 다른 resolution을 제공합니다 — high frequencies는 fine position을, low frequencies는 coarse position을 encoding하여 각 position에 unique fingerprint를 줍니다",
+        "Geometric spacing은 FFT algorithm에 필요합니다",
+        "모든 encoding values가 0과 1 사이에 있도록 보장합니다"
       ],
       "correct": 1,
-      "explanation": "High-frequency dimensions change rapidly with position (fine resolution), while low-frequency dimensions change slowly (coarse resolution). Together, the multi-frequency encoding gives every position a unique pattern — similar to how Fourier coefficients uniquely identify a signal."
+      "explanation": "High-frequency dimensions는 position에 따라 빠르게 변하고(fine resolution), low-frequency dimensions는 천천히 변합니다(coarse resolution). 함께 보면 multi-frequency encoding은 모든 position에 unique pattern을 줍니다. 이는 Fourier coefficients가 signal을 고유하게 식별하는 방식과 비슷합니다."
     }
   ]
 }

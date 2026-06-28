@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "You benchmark a model and report 'average 12ms per image on a 4090'. What is missing?",
-      "options": ["Nothing; that is a complete benchmark", "Percentiles (p50/p95/p99), warmup discipline, and CUDA synchronisation; a mean alone hides tail latency and may measure kernel dispatch instead of kernel execution", "The model size", "The dataset name"],
+      "question": "모델을 벤치마크한 뒤 '4090에서 이미지당 평균 12ms'라고 보고했습니다. 무엇이 빠졌나요?",
+      "options": ["없습니다. 완전한 벤치마크입니다", "백분위수(p50/p95/p99), 워밍업 규율, CUDA 동기화입니다. 평균만으로는 꼬리 지연 시간이 가려지고 커널 실행이 아니라 커널 디스패치를 측정할 수 있습니다", "모델 크기입니다", "데이터셋 이름입니다"],
       "correct": 1,
-      "explanation": "Production latency is measured in percentiles because real-time systems fail on tails, not averages. Without warmup, JIT compilation inflates the first few measurements. Without torch.cuda.synchronize, GPU kernel launches return before the kernel finishes, so you measure dispatch, not execution. All three have to be right for the number to be meaningful."
+      "explanation": "프로덕션 지연 시간은 백분위수로 측정합니다. 실시간 시스템은 평균이 아니라 꼬리에서 실패하기 때문입니다. 워밍업이 없으면 JIT 컴파일 때문에 처음 몇 번의 측정값이 부풀어 오릅니다. torch.cuda.synchronize가 없으면 GPU 커널 launch가 커널 완료 전에 반환되므로 실행이 아니라 dispatch를 측정합니다. 의미 있는 숫자가 되려면 이 세 가지가 모두 맞아야 합니다."
     },
     {
       "stage": "pre",
-      "question": "FLOPs and on-device latency do not correlate perfectly. Why?",
-      "options": ["FLOPs counters are broken", "Different operations have different hardware friendliness; depthwise convolutions may have lower FLOPs but are memory-bound on GPUs, while dense convolutions use Tensor Cores efficiently. Memory bandwidth, kernel launch overhead, and cache behaviour also shape latency beyond raw FLOPs", "FLOPs ignore batch size", "PyTorch counts FLOPs incorrectly"],
+      "question": "FLOPs와 장치 내 지연 시간이 완벽하게 상관되지 않는 이유는 무엇인가요?",
+      "options": ["FLOPs counter가 고장 났기 때문입니다", "연산마다 하드웨어 친화성이 다르기 때문입니다. depthwise convolution은 FLOPs가 낮아도 GPU에서 memory-bound일 수 있고, dense convolution은 Tensor Cores를 효율적으로 씁니다. 메모리 대역폭, 커널 launch overhead, cache 동작도 raw FLOPs를 넘어 지연 시간을 형성합니다", "FLOPs가 batch size를 무시하기 때문입니다", "PyTorch가 FLOPs를 잘못 세기 때문입니다"],
       "correct": 1,
-      "explanation": "FLOPs is a cheap proxy. Wall-clock latency depends on how well an operation matches the hardware's strengths: dense matmuls pin Tensor Cores; depthwise convs stall on memory bandwidth; attention stalls on sequence-length^2 memory reads. For architecture search FLOPs is useful; for deployment decisions measure on the target device."
+      "explanation": "FLOPs는 저렴한 대리 지표입니다. 벽시계 지연 시간은 연산이 하드웨어의 강점에 얼마나 잘 맞는지에 달려 있습니다. dense matmul은 Tensor Cores를 꽉 채우고, depthwise conv는 메모리 대역폭에서 멈추며, attention은 sequence-length^2 메모리 읽기에서 멈춥니다. 아키텍처 탐색에는 FLOPs가 유용하지만 배포 결정에는 대상 장치에서 측정해야 합니다."
     },
     {
       "stage": "post",
-      "question": "Post-training static INT8 quantisation typically loses how much accuracy on ImageNet-class vision models?",
-      "options": ["5-10 percentage points", "0.1-1 percentage points when properly calibrated; batch-norm-fused conv models are particularly well-behaved under INT8", "Always 0; it is lossless", "20+ points; unusable"],
+      "question": "사후 학습 정적 INT8 양자화는 ImageNet급 비전 모델에서 보통 정확도를 얼마나 잃나요?",
+      "options": ["5-10%포인트", "제대로 보정하면 0.1-1%포인트입니다. batch-norm이 fuse된 conv 모델은 특히 INT8에서 안정적입니다", "항상 0입니다. 무손실입니다", "20포인트 이상입니다. 사용할 수 없습니다"],
       "correct": 1,
-      "explanation": "Static PTQ on well-calibrated vision models loses a fraction of a point to about 1 point. The bigger loss modes are (a) insufficient calibration data, (b) quantising activations with extreme outliers (fix with per-channel quantisation or clipping), (c) un-fused BatchNorm layers. When those are handled, INT8 is essentially free."
+      "explanation": "잘 보정된 비전 모델의 static PTQ는 1포인트 미만에서 약 1포인트 정도를 잃습니다. 더 큰 손실 모드는 (a) 보정 데이터 부족, (b) 극단적인 outlier가 있는 활성값 양자화(per-channel quantisation 또는 clipping으로 수정), (c) fuse되지 않은 BatchNorm layer입니다. 이것들을 처리하면 INT8은 사실상 공짜에 가깝습니다."
     },
     {
       "stage": "post",
-      "question": "Your mobile app needs a vision model under 10MB with sub-10ms latency. Which backbone do you pick?",
-      "options": ["ResNet-50", "MobileNetV3-Small or EfficientNet-Lite-B0 quantised to INT8; both target this budget and compile cleanly to TFLite / Core ML", "ViT-Base", "ConvNeXt-Large"],
+      "question": "모바일 앱에 10MB 미만이고 sub-10ms 지연 시간을 내는 비전 모델이 필요합니다. 어떤 backbone을 고르나요?",
+      "options": ["ResNet-50", "INT8로 양자화한 MobileNetV3-Small 또는 EfficientNet-Lite-B0입니다. 둘 다 이 예산을 목표로 하며 TFLite / Core ML로 깔끔하게 컴파일됩니다", "ViT-Base", "ConvNeXt-Large"],
       "correct": 1,
-      "explanation": "Mobile vision shipping in 2026 is still dominated by MobileNetV3 and EfficientNet-Lite variants because they were designed for this budget: depthwise convs, h-swish, squeeze-excite, quantisation-aware from day one. ResNet-50 and ViT-Base are 100MB+ in FP32 and 25MB+ in INT8, blowing the size budget before latency is even measured."
+      "explanation": "2026년에도 모바일 비전 출시는 MobileNetV3와 EfficientNet-Lite 변형이 주도합니다. 이들은 이 예산을 위해 설계되었기 때문입니다. depthwise conv, h-swish, squeeze-excite, 처음부터 양자화 친화적인 구조를 갖습니다. ResNet-50과 ViT-Base는 FP32에서 100MB 이상, INT8에서도 25MB 이상이라 지연 시간을 측정하기 전부터 크기 예산을 넘습니다."
     },
     {
       "stage": "post",
-      "question": "You export a PyTorch model to ONNX with opset 17 and it fails with 'Unsupported operator'. What are the most likely causes?",
-      "options": ["The ONNX library is outdated", "(1) A custom op that has no ONNX mapping; (2) a non-deterministic control-flow path that tracing cannot capture; (3) a tensor-scalar interaction that is implicit in Python but has no ONNX equivalent. Fixes: replace the op, use `torch.jit.script` for control flow, or upgrade opset", "The model has too many parameters", "The input shape is wrong"],
+      "question": "PyTorch 모델을 opset 17로 ONNX에 내보내는데 'Unsupported operator'로 실패했습니다. 가장 가능성 높은 원인은 무엇인가요?",
+      "options": ["ONNX library가 오래되었습니다", "(1) ONNX mapping이 없는 custom op, (2) tracing이 포착할 수 없는 non-deterministic control-flow path, (3) Python에서는 암묵적이지만 ONNX equivalent가 없는 tensor-scalar interaction입니다. 해결책은 op 교체, control flow에 `torch.jit.script` 사용, 또는 opset upgrade입니다", "모델에 parameter가 너무 많습니다", "input shape이 틀렸습니다"],
       "correct": 1,
-      "explanation": "ONNX export is tracing by default, so anything that tracing cannot capture — runtime control flow, Python-level branches, custom CUDA ops — fails. Most failures are a single node that has no ONNX equivalent (often a tiny custom op or a call to torch.special.*). The fix is either replacing the op, switching to `torch.jit.script`, or moving to a newer opset where the op exists."
+      "explanation": "ONNX 내보내기는 기본적으로 tracing입니다. 따라서 runtime control flow, Python-level branch, custom CUDA op처럼 tracing이 포착할 수 없는 것은 실패합니다. 대부분의 실패는 ONNX equivalent가 없는 단일 node입니다(작은 custom op나 torch.special.* 호출인 경우가 많습니다). 해결책은 op를 교체하거나, `torch.jit.script`로 전환하거나, 해당 op가 있는 더 새 opset으로 옮기는 것입니다."
     }
   ]
 }

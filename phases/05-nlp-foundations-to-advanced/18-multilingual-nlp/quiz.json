@@ -1,22 +1,22 @@
 {
   "lesson": "18-multilingual-nlp",
-  "title": "Multilingual NLP",
+  "title": "다국어 NLP",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does zero-shot cross-lingual transfer mean?",
+      "question": "zero-shot cross-lingual transfer는 무엇을 뜻하는가?",
       "options": [
-        "Fine-tune a multilingual model on one source language and evaluate on a different language with no target-language labels",
-        "Translating without a translation model",
-        "Tokenizing with zero merges",
-        "Training with zero examples"
+        "하나의 source language에서 multilingual model을 fine-tune하고 target-language label 없이 다른 language에서 evaluate하는 것",
+        "translation model 없이 번역하는 것",
+        "merge 0개로 tokenizing하는 것",
+        "example 0개로 training하는 것"
       ],
       "correct": 0,
-      "explanation": "Zero-shot transfer: train on the source language, run on the target without target-language supervision."
+      "explanation": "Zero-shot transfer는 source language에서 train하고 target-language supervision 없이 target에서 실행하는 것이다."
     },
     {
       "stage": "pre",
-      "question": "Which model family ships as the standard 100-language cross-lingual baseline?",
+      "question": "표준 100-language cross-lingual baseline으로 쓰이는 model family는 무엇인가?",
       "options": [
         "GloVe",
         "GPT-2",
@@ -24,79 +24,79 @@
         "DistilBERT"
       ],
       "correct": 2,
-      "explanation": "XLM-R is the canonical 100-language pretrained baseline for cross-lingual classification."
+      "explanation": "XLM-R은 cross-lingual classification을 위한 canonical 100-language pretrained baseline이다."
     },
     {
       "stage": "check",
-      "question": "Why does English-as-source not always give the best transfer for a non-English target?",
+      "question": "English-as-source가 non-English target에 대해 항상 최고의 transfer를 주지 않는 이유는 무엇인가?",
       "options": [
-        "English has too little data",
-        "Language similarity (typology, script, morphology) predicts transfer quality; a closer high-resource source can outperform English",
-        "English uses BPE",
-        "English is too short"
+        "English에는 data가 너무 적기 때문이다",
+        "Language similarity(typology, script, morphology)가 transfer quality를 예측한다. 더 가까운 high-resource source가 English를 능가할 수 있다",
+        "English가 BPE를 사용하기 때문이다",
+        "English가 너무 짧기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Typologically related sources (e.g. Hindi for Indic targets) often outperform English as a fine-tune source."
+      "explanation": "typologically related source(예: Indic target에 대한 Hindi)는 fine-tune source로 English를 능가하는 경우가 많다."
     },
     {
       "stage": "check",
-      "question": "What is the 'fertility tax' for low-resource languages?",
+      "question": "low-resource language의 'fertility tax'란 무엇인가?",
       "options": [
-        "BPE refuses to train",
-        "Low-resource text tokenizes into more subwords per word than English, consuming context window, latency, and capacity",
-        "Smaller models train slower",
-        "Tokenizers cannot handle Unicode"
+        "BPE가 train을 거부하는 것",
+        "low-resource text가 English보다 word당 더 많은 subword로 tokenize되어 context window, latency, capacity를 소비하는 것",
+        "더 작은 model이 더 느리게 train되는 것",
+        "tokenizer가 Unicode를 처리할 수 없는 것"
       ],
       "correct": 1,
-      "explanation": "Long-tail languages tokenize at much higher fertility, eating context and training efficiency."
+      "explanation": "Long-tail language는 훨씬 높은 fertility로 tokenize되어 context와 training efficiency를 잡아먹는다."
     },
     {
       "stage": "check",
-      "question": "Why is per-language evaluation required, not aggregated accuracy?",
+      "question": "aggregated accuracy가 아니라 per-language evaluation이 필요한 이유는 무엇인가?",
       "options": [
-        "Aggregates ignore tokenization",
-        "Aggregate numbers hide long-tail languages where a multilingual model can be far worse than its mean suggests",
-        "Aggregates only work on classification",
-        "Aggregates run faster"
+        "aggregate가 tokenization을 무시하기 때문이다",
+        "aggregate number는 multilingual model이 평균보다 훨씬 나쁠 수 있는 long-tail language를 숨기기 때문이다",
+        "aggregate가 classification에서만 동작하기 때문이다",
+        "aggregate가 더 빠르게 실행되기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Aggregate accuracy masks poor performance on low-resource languages; per-language scores expose it."
+      "explanation": "Aggregate accuracy는 low-resource language의 낮은 performance를 가린다. per-language score는 그것을 드러낸다."
     },
     {
       "stage": "post",
-      "question": "Why is fine-tuning learning rate critical when adapting a multilingual model with few-shot data?",
+      "question": "few-shot data로 multilingual model을 adapt할 때 fine-tuning learning rate가 중요한 이유는 무엇인가?",
       "options": [
-        "Lower LR wastes GPU",
-        "Required by tokenizers",
-        "It changes the vocabulary",
-        "High LR can collapse the multilingual alignment and effectively reduce the model to English-only"
+        "낮은 LR은 GPU를 낭비하기 때문이다",
+        "tokenizer가 요구하기 때문이다",
+        "vocabulary를 바꾸기 때문이다",
+        "높은 LR은 multilingual alignment를 collapse시켜 사실상 English-only model로 줄일 수 있기 때문이다"
       ],
       "correct": 3,
-      "explanation": "Excessive LR drifts the shared representation; conservative LR (~2e-5) preserves cross-lingual structure."
+      "explanation": "과도한 LR은 shared representation을 drift시킨다. conservative LR(~2e-5)은 cross-lingual structure를 보존한다."
     },
     {
       "stage": "post",
-      "question": "Which mitigation directly addresses tokenizer fertility for long-tail scripts?",
+      "question": "long-tail script의 tokenizer fertility를 직접 다루는 mitigation은 무엇인가?",
       "options": [
-        "Skip stopwords",
-        "Lower batch size",
-        "Use byte-fallback (SentencePiece byte_fallback=True) or a tokenizer with broader script coverage (e.g. XLM-V)",
-        "More training epochs"
+        "stopword를 건너뛴다",
+        "batch size를 낮춘다",
+        "byte-fallback(SentencePiece byte_fallback=True) 또는 더 넓은 script coverage를 가진 tokenizer(예: XLM-V)를 사용한다",
+        "training epoch을 늘린다"
       ],
       "correct": 2,
-      "explanation": "Byte fallback and broader-vocab tokenizers reduce fertility and OOV for low-resource scripts."
+      "explanation": "Byte fallback과 broader-vocab tokenizer는 low-resource script의 fertility와 OOV를 줄인다."
     },
     {
       "stage": "post",
-      "question": "When is a monolingual model from scratch worth trying instead of a multilingual one?",
+      "question": "multilingual model 대신 from-scratch monolingual model을 시도할 가치가 있는 때는 언제인가?",
       "options": [
-        "Always for English",
-        "When the target language has enough data to train a monolingual model that beats the multilingual baseline; test before assuming",
-        "Only for translation",
-        "Whenever the tokenizer is BPE"
+        "English에서는 항상",
+        "target language에 multilingual baseline을 이기는 monolingual model을 train할 만큼 충분한 data가 있을 때. 가정하기 전에 test한다",
+        "translation에서만",
+        "tokenizer가 BPE일 때마다"
       ],
       "correct": 1,
-      "explanation": "Sometimes monolingual training beats multilingual for high-resource targets; empirical comparison decides."
+      "explanation": "high-resource target에서는 monolingual training이 multilingual을 이길 때가 있다. empirical comparison이 결정한다."
     }
   ]
 }

@@ -1,31 +1,31 @@
 ---
 name: decoupled-encoder-picker
-description: Decide whether a unified VLM should decouple its visual encoders and pick between Janus-Pro, JanusFlow, and InternVL-U.
+description: Unified VLM이 visual encoder를 decouple해야 하는지 결정하고 Janus-Pro, JanusFlow, InternVL-U 중 하나를 고른다.
 version: 1.0.0
 phase: 12
 lesson: 15
 tags: [janus-pro, janusflow, internvl-u, decoupled-encoders, unified-model]
 ---
 
-Given a unified-model spec (understanding + generation, optional editing / inpainting), a compute budget, and an open-weights constraint, recommend a decoupled-encoder architecture and a concrete config.
+Unified-model spec(understanding + generation, optional editing / inpainting), compute budget, open-weights constraint가 주어지면 decoupled-encoder architecture와 concrete config를 추천하라.
 
-Produce:
+다음을 산출하라.
 
-1. Architecture pick. Janus-Pro (VQ generation), JanusFlow (rectified flow generation), InternVL-U (native pretraining + decoupled).
-2. Encoder combo. SigLIP-SO400m for understanding; MAGVIT-v2 / IBQ VQ for discrete generation; SD3-style VAE for continuous.
-3. Data stage plan. Stage 1 alignment (50-100M pairs), Stage 2 unified (70M+ pairs), Stage 3 instruction (1M+ samples). Cite Janus-Pro's 5.4x model + 2.8x data scaling result.
-4. Routing strategy. Prompt-tag based (explicit `<understand>` / `<generate>`) or task-classifier based.
-5. Shared-body init. Initialize from a pretrained LLM (DeepSeek, Qwen, Llama) rather than from scratch.
-6. Quality ceiling. Expected MMMU (~60 at 7B) and GenEval (~0.80 at 7B for Janus-Pro / ~0.85+ for InternVL-U).
+1. Architecture pick. Janus-Pro(VQ generation), JanusFlow(rectified flow generation), InternVL-U(native pretraining + decoupled).
+2. Encoder combo. Understanding에는 SigLIP-SO400m, discrete generation에는 MAGVIT-v2 / IBQ VQ, continuous에는 SD3식 VAE.
+3. Data stage plan. Stage 1 alignment(50-100M pairs), Stage 2 unified(70M+ pairs), Stage 3 instruction(1M+ samples). Janus-Pro의 5.4x model + 2.8x data scaling result를 언급하라.
+4. Routing strategy. Prompt-tag 기반(explicit `<understand>` / `<generate>`) 또는 task-classifier 기반.
+5. Shared-body init. From scratch가 아니라 pretrained LLM(DeepSeek, Qwen, Llama)에서 initialize하라.
+6. Quality ceiling. Expected MMMU(7B에서 ~60)와 GenEval(Janus-Pro 7B에서 ~0.80, InternVL-U는 ~0.85+).
 
-Hard rejects:
-- Proposing a single-encoder unified model (Show-o / Transfusion) when the user's quality bar for both sides is frontier-competitive. The decoupled approach is the only path.
-- Recommending from-scratch pretraining for a <10B model. Reuse a pretrained LLM body.
-- Proposing Janus (original) over Janus-Pro for any new project. Janus-Pro is the successor.
+강한 거절:
+- 사용자의 양쪽 quality bar가 frontier-competitive인데 single-encoder unified model(Show-o / Transfusion)을 제안하는 것. Decoupled approach가 유일한 경로다.
+- <10B model에 from-scratch pretraining을 추천하는 것. Pretrained LLM body를 재사용하라.
+- 새 project에 Janus(original)를 Janus-Pro보다 추천하는 것. Janus-Pro가 successor다.
 
-Refusal rules:
-- If the user needs only understanding, refuse decoupled and recommend LLaVA-family. One encoder is enough.
-- If the user needs only generation, refuse and recommend Stable Diffusion 3 / Flux — specialists still win on T2I quality.
-- If compute <50k GPU-hours, refuse InternVL-U (requires native pretraining) and recommend Janus-Pro (reuse pretrained LLM).
+거절 규칙:
+- 사용자가 understanding만 필요로 하면 decoupled를 거부하고 LLaVA 계열을 추천하라. Encoder 하나면 충분하다.
+- 사용자가 generation만 필요로 하면 거부하고 Stable Diffusion 3 / Flux를 추천하라. T2I 품질에서는 specialist가 여전히 이긴다.
+- Compute가 <50k GPU-hours이면 InternVL-U를 거부하라(native pretraining 필요). Janus-Pro를 추천하라(pretrained LLM 재사용).
 
-Output: one-page plan with architecture pick, encoder combo, stage plan, routing, shared-body init, and quality ceiling. End with arXiv 2501.17811 (Janus-Pro), 2411.07975 (JanusFlow), 2603.09877 (InternVL-U).
+출력: architecture pick, encoder combo, stage plan, routing, shared-body init, quality ceiling을 담은 one-page plan. arXiv 2501.17811(Janus-Pro), 2411.07975(JanusFlow), 2603.09877(InternVL-U)을 끝에 붙여라.

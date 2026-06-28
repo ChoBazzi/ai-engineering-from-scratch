@@ -1,37 +1,37 @@
 [
   {
-    "question": "What does RAG stand for and what problem does it solve?",
-    "options": ["Random Augmented Generation -- generating random outputs", "Retrieval-Augmented Generation -- giving LLMs access to external knowledge they weren't trained on", "Recurrent Attention Generation -- improving attention mechanisms", "Reduced Architecture Generation -- making models smaller"],
+    "question": "RAG는 무엇의 약자이며 어떤 문제를 해결하나요?",
+    "options": ["Random Augmented Generation -- 임의 출력을 생성하는 것", "Retrieval-Augmented Generation -- LLM이 학습하지 않은 외부 지식에 접근할 수 있게 하는 것", "Recurrent Attention Generation -- attention 메커니즘을 개선하는 것", "Reduced Architecture Generation -- 모델을 더 작게 만드는 것"],
     "correct": 1,
-    "explanation": "RAG retrieves relevant documents from an external knowledge base and adds them to the prompt. This gives the LLM access to up-to-date, domain-specific information without retraining.",
+    "explanation": "RAG는 외부 지식 베이스에서 관련 문서를 검색해 프롬프트에 추가합니다. 이를 통해 재학습 없이도 LLM이 최신의 도메인 특화 정보에 접근할 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "Why is RAG preferred over fine-tuning for most knowledge-grounded applications?",
-    "options": ["RAG produces better models", "RAG is cheaper, instantly updatable when documents change, and provides source attribution -- fine-tuning is expensive and becomes stale", "Fine-tuning doesn't work", "RAG uses less memory"],
+    "question": "대부분의 지식 기반 애플리케이션에서 fine-tuning보다 RAG가 선호되는 이유는 무엇인가요?",
+    "options": ["RAG가 더 좋은 모델을 만들기 때문입니다", "RAG는 더 저렴하고, 문서가 바뀌면 즉시 업데이트할 수 있으며, 출처 표시를 제공합니다. Fine-tuning은 비싸고 금방 오래됩니다", "Fine-tuning은 작동하지 않기 때문입니다", "RAG가 메모리를 덜 쓰기 때문입니다"],
     "correct": 1,
-    "explanation": "Fine-tuning costs thousands of dollars, produces a static model that becomes stale as documents change, and offers no source attribution. RAG updates instantly (just update the document store), costs only embedding + storage, and can cite its sources.",
+    "explanation": "Fine-tuning은 수천 달러가 들고, 문서가 바뀌면 오래되는 정적 모델을 만들며, 출처 표시를 제공하지 않습니다. RAG는 문서 저장소만 업데이트하면 즉시 갱신되고, 비용은 embedding과 저장소뿐이며, 출처를 인용할 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the correct order of steps in a basic RAG pipeline?",
-    "options": ["Generate, retrieve, embed, chunk", "Chunk documents, embed chunks, store in vector DB, embed query, retrieve similar chunks, generate answer with context", "Embed query, generate answer, retrieve documents", "Store documents, query the LLM, add documents to response"],
+    "question": "기본 RAG 파이프라인의 올바른 단계 순서는 무엇인가요?",
+    "options": ["생성, 검색, 임베딩, 청킹", "문서를 청킹하고, 청크를 임베딩하고, vector DB에 저장하고, 질의를 임베딩하고, 유사 청크를 검색하고, 컨텍스트로 답변을 생성합니다", "질의를 임베딩하고, 답변을 생성하고, 문서를 검색합니다", "문서를 저장하고, LLM에 질의하고, 응답에 문서를 추가합니다"],
     "correct": 1,
-    "explanation": "Ingestion: chunk documents -> embed chunks -> store in vector DB. Query time: embed the user's query -> retrieve top-K similar chunks -> add chunks to prompt -> generate answer grounded in retrieved context.",
+    "explanation": "수집 단계: 문서 청킹 -> 청크 임베딩 -> vector DB 저장. 질의 시점: 사용자 질의 임베딩 -> top-K 유사 청크 검색 -> 청크를 프롬프트에 추가 -> 검색된 컨텍스트에 근거해 답변 생성.",
     "stage": "post"
   },
   {
-    "question": "What is a common failure mode in basic RAG systems?",
-    "options": ["The LLM refuses to answer", "The retrieved chunks are semantically similar to the query but don't contain the actual answer (e.g., returning 'revenue strategy' when asked for 'Q3 revenue numbers')", "The vector database crashes", "The embeddings are too large"],
+    "question": "기본 RAG 시스템의 흔한 실패 모드는 무엇인가요?",
+    "options": ["LLM이 답변을 거부합니다", "검색된 청크가 질의와 의미적으로 비슷하지만 실제 답을 포함하지 않습니다. 예를 들어 'Q3 매출 수치'를 물었는데 '매출 전략'을 반환합니다", "벡터 데이터베이스가 충돌합니다", "임베딩이 너무 큽니다"],
     "correct": 1,
-    "explanation": "Semantic search finds text that 'sounds like' the query, not necessarily text that 'answers' it. A query about revenue might retrieve chunks discussing revenue strategy rather than the chunk containing the actual number.",
+    "explanation": "의미 검색은 질의와 '비슷하게 들리는' 텍스트를 찾지, 반드시 질의에 '답하는' 텍스트를 찾지는 않습니다. 매출에 관한 질의는 실제 숫자가 담긴 청크가 아니라 매출 전략을 논의하는 청크를 검색할 수 있습니다.",
     "stage": "post"
   },
   {
-    "question": "How do you evaluate RAG quality?",
-    "options": ["By checking if the LLM produces any output", "Using both retrieval metrics (did we find the right chunks?) and generation metrics (is the answer faithful to the retrieved context?)", "By measuring response time only", "By counting the number of retrieved documents"],
+    "question": "RAG 품질은 어떻게 평가하나요?",
+    "options": ["LLM이 어떤 출력이든 생성하는지 확인합니다", "검색 지표(올바른 청크를 찾았는가?)와 생성 지표(답변이 검색된 컨텍스트에 충실한가?)를 모두 사용합니다", "응답 시간만 측정합니다", "검색된 문서 수를 셉니다"],
     "correct": 1,
-    "explanation": "RAG evaluation has two parts: retrieval quality (precision/recall of retrieved chunks against ground truth) and generation quality (faithfulness to context, relevance to query, no hallucination beyond retrieved information).",
+    "explanation": "RAG 평가는 두 부분으로 나뉩니다. 검색 품질은 정답 기준 대비 검색된 청크의 precision/recall을 보고, 생성 품질은 컨텍스트 충실도, 질의 관련성, 검색 정보 밖의 hallucination 여부를 봅니다.",
     "stage": "post"
   }
 ]

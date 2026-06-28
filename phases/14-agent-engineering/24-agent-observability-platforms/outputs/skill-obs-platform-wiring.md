@@ -1,41 +1,41 @@
 ---
 name: obs-platform-wiring
-description: Pick an observability platform (Langfuse, Phoenix, Opik, Datadog) and wire traces + evals + prompt versions into an existing agent.
+description: observability platform(Langfuse, Phoenix, Opik, Datadog)을 선택하고 trace + eval + prompt version을 기존 agent에 연결한다.
 version: 1.0.0
 phase: 14
 lesson: 24
 tags: [observability, langfuse, phoenix, opik, datadog, tracing]
 ---
 
-Given an agent runtime and product requirements, pick an observability platform and scaffold the wiring.
+agent runtime과 product requirement가 주어지면 observability platform을 선택하고 wiring을 scaffold한다.
 
-Decision:
+결정:
 
-1. Need prompt management + session replay in one place -> **Langfuse**.
-2. Need deep RAG relevancy + drift/anomaly detection -> **Phoenix**.
-3. Need automated prompt optimization + PII guardrails -> **Opik**.
-4. Already run Datadog -> **Datadog LLM Observability** (maps GenAI natively from v1.37+).
-5. Need ELv2-free license -> **Langfuse** (MIT) or **Opik** (Apache 2.0); avoid Phoenix for pure OSS distribution.
+1. prompt management + session replay가 한곳에 필요함 -> **Langfuse**.
+2. 깊은 RAG relevancy + drift/anomaly detection이 필요함 -> **Phoenix**.
+3. automated prompt optimization + PII guardrails가 필요함 -> **Opik**.
+4. 이미 Datadog을 운영함 -> **Datadog LLM Observability**(v1.37+부터 GenAI를 native로 mapping).
+5. ELv2-free license가 필요함 -> **Langfuse**(MIT) 또는 **Opik**(Apache 2.0). 순수 OSS 배포라면 Phoenix는 피한다.
 
-Produce:
+생성할 것:
 
-1. OTel GenAI instrumentation (Lesson 23) — this is the common substrate.
-2. Platform-specific SDK or OTel exporter configuration.
-3. LLM-judge rubric for your domain (factual correctness, scope, tone, refusal quality).
-4. Prompt versioning wired to traces (Langfuse) or trace clustering config (Phoenix) or experiment definitions (Opik).
-5. Guardrails on logged content: PII redaction, secret scrubbing.
-6. Dashboards: session health, failure taxonomy, latency distribution, cost per session.
+1. OTel GenAI instrumentation(Lesson 23) — 공통 substrate다.
+2. platform-specific SDK 또는 OTel exporter configuration.
+3. domain용 LLM-judge rubric(factual correctness, scope, tone, refusal quality).
+4. trace와 연결된 prompt versioning(Langfuse) 또는 trace clustering config(Phoenix) 또는 experiment definition(Opik).
+5. logged content에 대한 guardrails: PII redaction, secret scrubbing.
+6. dashboard: session health, failure taxonomy, latency distribution, cost per session.
 
-Hard rejects:
+강한 거부 조건:
 
-- Shipping without evals. Tracing alone is expensive logging.
-- Using a self-written LLM-judge with no external verification. CRITIC pattern (Lesson 05): judges need external tools for factual grounding.
-- Storing PII in span bodies. Always external store + reference IDs.
+- eval 없이 출시. tracing만으로는 비싼 logging이다.
+- external verification 없는 자체 작성 LLM-judge 사용. CRITIC pattern(Lesson 05): judge는 factual grounding을 위한 external tool이 필요하다.
+- span body에 PII 저장. 항상 external store + reference ID를 사용한다.
 
-Refusal rules:
+거부 규칙:
 
-- If the user asks for "one platform for everything," refuse and offer the decision above. No single platform dominates all three axes.
-- If the product has no acceptance criteria for each agent task, refuse to ship evals. An LLM-judge needs a rubric; a rubric needs product decisions.
-- If the user wants "no sampling, capture everything," refuse. Trace volume scales linearly with traffic; sampling (head-based or tail-based) is required at scale.
+- 사용자가 "모든 것에 하나의 platform"을 요구하면 거부하고 위 결정을 제안한다. 세 축 모두에서 지배적인 단일 platform은 없다.
+- 제품에 agent task별 acceptance criteria가 없으면 eval 출시를 거부한다. LLM-judge에는 rubric이 필요하고, rubric에는 product decision이 필요하다.
+- 사용자가 "sampling 없이 전부 capture"를 원하면 거부한다. trace volume은 traffic에 선형으로 증가하며 scale에서는 sampling(head-based 또는 tail-based)이 필요하다.
 
-Output: `instrumentation.py`, `judge.py`, `dashboards.md`, `README.md` explaining platform choice, rubric, sampling strategy, and incident response. End with "what to read next" pointing to Lesson 30 (eval-driven development) or Lesson 26 (failure-mode taxonomy).
+출력: platform choice, rubric, sampling strategy, incident response를 설명하는 `instrumentation.py`, `judge.py`, `dashboards.md`, `README.md`. 마지막은 Lesson 30(eval-driven development) 또는 Lesson 26(failure-mode taxonomy)을 가리키는 "what to read next"로 끝낸다.

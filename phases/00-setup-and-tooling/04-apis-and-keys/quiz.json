@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is an API key used for when calling an LLM service?",
-      "options": ["Encrypting the data sent to the server", "Authenticating your identity and authorizing requests", "Compressing requests to reduce bandwidth", "Selecting which programming language the server uses"],
+      "question": "LLM 서비스를 호출할 때 API 키는 무엇에 사용되나요?",
+      "options": ["서버로 보내는 데이터를 암호화하기", "사용자 신원을 인증하고 요청을 승인하기", "대역폭을 줄이기 위해 요청을 압축하기", "서버가 사용할 프로그래밍 언어를 선택하기"],
       "correct": 1,
-      "explanation": "An API key is a unique string that identifies your account, authorizes your requests, and allows the provider to track usage and billing."
+      "explanation": "API 키는 계정을 식별하고, 요청을 승인하며, provider가 사용량과 과금을 추적할 수 있게 해 주는 고유 문자열입니다."
     },
     {
       "stage": "pre",
-      "question": "Why should API keys never be hardcoded directly in source code?",
-      "options": ["Hardcoded keys make the code run slower", "They can be accidentally committed to git and exposed publicly", "Python cannot read string literals longer than 50 characters", "API providers block keys that appear in source files"],
+      "question": "API 키를 소스 코드에 직접 hardcode하면 안 되는 이유는 무엇인가요?",
+      "options": ["Hardcode된 키는 코드를 더 느리게 실행하게 만들기 때문에", "실수로 git에 commit되어 공개적으로 노출될 수 있기 때문에", "Python은 50자를 넘는 문자열 리터럴을 읽을 수 없기 때문에", "API provider가 소스 파일에 나타나는 키를 차단하기 때문에"],
       "correct": 1,
-      "explanation": "Hardcoded keys in source code risk being committed to version control and pushed to public repositories, where they can be scraped and abused by others."
+      "explanation": "소스 코드에 hardcode된 키는 version control에 commit되고 공개 repository로 push될 위험이 있으며, 그곳에서 다른 사람이 수집해 악용할 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "What is the recommended way to store API keys for local development?",
-      "options": ["In a Python variable at the top of your script", "In a .env file that is listed in .gitignore", "In the README.md for easy access", "In the requirements.txt alongside package versions"],
+      "question": "local development에서 API 키를 저장하는 권장 방식은 무엇인가요?",
+      "options": ["script 맨 위의 Python 변수에 저장하기", ".gitignore에 등록된 .env 파일에 저장하기", "쉽게 접근할 수 있도록 README.md에 저장하기", "package version과 함께 requirements.txt에 저장하기"],
       "correct": 1,
-      "explanation": "A .env file stores keys as environment variables and should be added to .gitignore so it is never committed to version control. SDKs read keys from environment variables automatically."
+      "explanation": ".env 파일은 키를 환경 변수로 저장하며, version control에 commit되지 않도록 .gitignore에 추가해야 합니다. SDK는 환경 변수에서 키를 자동으로 읽습니다."
     },
     {
       "stage": "post",
-      "question": "In the raw HTTP API call to Anthropic, which header carries the API key?",
+      "question": "Anthropic에 raw HTTP API 호출을 할 때 어떤 header가 API 키를 담나요?",
       "options": ["Authorization: Bearer sk-ant-...", "x-api-key: sk-ant-...", "Content-Type: application/json", "anthropic-version: 2023-06-01"],
       "correct": 1,
-      "explanation": "Anthropic's API uses the 'x-api-key' header for authentication, not the more common 'Authorization: Bearer' pattern. This is specific to their API design."
+      "explanation": "Anthropic API는 인증에 더 흔한 'Authorization: Bearer' pattern이 아니라 'x-api-key' header를 사용합니다. 이는 Anthropic API 설계에 특화된 방식입니다."
     },
     {
       "stage": "post",
-      "question": "What happens when you exceed an API's rate limit?",
-      "options": ["Your API key is permanently revoked", "The server returns an error (typically HTTP 429) and you must wait before retrying", "Your request is queued and processed later automatically", "The API silently drops your request with no response"],
+      "question": "API의 rate limit을 초과하면 어떻게 되나요?",
+      "options": ["API 키가 영구적으로 revoked됩니다", "서버가 오류(일반적으로 HTTP 429)를 반환하며 다시 시도하기 전에 기다려야 합니다", "요청이 queue에 들어가 나중에 자동으로 처리됩니다", "API가 응답 없이 요청을 조용히 drop합니다"],
       "correct": 1,
-      "explanation": "Rate limiting returns HTTP 429 (Too Many Requests). You need to wait and retry, typically with exponential backoff. Rate limits prevent abuse and ensure fair usage."
+      "explanation": "Rate limiting은 HTTP 429(Too Many Requests)를 반환합니다. 보통 exponential backoff를 사용해 기다렸다가 다시 시도해야 합니다. Rate limit은 남용을 막고 공정한 사용을 보장합니다."
     }
   ]
 }

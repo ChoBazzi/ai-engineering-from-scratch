@@ -1,30 +1,30 @@
-# Model Evaluation
+# 모델 평가
 
-> A model is only as good as the way you measure it.
+> 모델은 그것을 측정하는 방식만큼만 좋습니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 1 (Probability & Distributions, Statistics for ML), Phase 2 Lessons 1-8
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement K-fold and stratified K-fold cross-validation from scratch and explain why stratification matters for imbalanced data
-- Compute precision, recall, F1, AUC-ROC, and regression metrics (MSE, RMSE, MAE, R-squared) from scratch
-- Interpret learning curves to diagnose whether a model suffers from high bias or high variance
-- Identify common evaluation mistakes including data leakage, wrong metric selection, and test set contamination
+- K-fold와 stratified K-fold cross-validation을 처음부터 구현하고 imbalanced data에서 stratification이 왜 중요한지 설명합니다
+- precision, recall, F1, AUC-ROC와 regression metric(MSE, RMSE, MAE, R-squared)을 처음부터 계산합니다
+- learning curve를 해석해 모델이 high bias 또는 high variance 문제를 겪는지 진단합니다
+- data leakage, 잘못된 metric 선택, test set contamination을 포함한 흔한 evaluation mistake를 식별합니다
 
-## The Problem
+## 문제
 
-You trained a model. It gets 95% accuracy on your data. Is it good?
+모델을 학습했습니다. 데이터에서 95% accuracy가 나왔습니다. 좋은 모델일까요?
 
-Maybe. Maybe not. If 95% of your data belongs to one class, a model that always predicts that class gets 95% accuracy while being completely useless. If you evaluated on the same data you trained on, the 95% number is meaningless because the model just memorized the answers. If your dataset has a time component and you randomly shuffled before splitting, your model might be using future data to predict the past.
+그럴 수도 있고 아닐 수도 있습니다. 데이터의 95%가 한 class에 속한다면, 항상 그 class만 예측하는 모델은 완전히 쓸모없어도 95% accuracy를 얻습니다. 학습한 같은 데이터에서 평가했다면, 모델이 답을 외운 것뿐이므로 95%라는 숫자는 의미가 없습니다. 데이터셋에 time component가 있는데 split 전에 random shuffle했다면, 모델은 미래 데이터를 사용해 과거를 예측하고 있을 수 있습니다.
 
-Model evaluation is where most ML projects go wrong. The wrong metric makes a bad model look good. The wrong split lets a model cheat. The wrong comparison makes you pick the worse model. Getting evaluation right is not optional. It is the difference between a model that works in production and one that fails the moment it sees real data.
+Model evaluation은 대부분의 ML project가 잘못되는 지점입니다. 잘못된 metric은 나쁜 모델을 좋아 보이게 만듭니다. 잘못된 split은 모델이 cheat하게 합니다. 잘못된 비교는 더 나쁜 모델을 고르게 만듭니다. evaluation을 올바르게 하는 것은 선택 사항이 아닙니다. production에서 작동하는 모델과 실제 데이터를 보는 순간 실패하는 모델의 차이입니다.
 
-## The Concept
+## 개념
 
-### Train, Validation, Test
+### 훈련, 검증, 테스트
 
 ```mermaid
 flowchart LR
@@ -40,17 +40,17 @@ flowchart LR
     D --> H[Report Performance]
 ```
 
-Three splits, three purposes:
+세 split에는 세 가지 목적이 있습니다.
 
-- **Training set**: the model learns from this data. It sees these examples during training.
-- **Validation set**: used to tune hyperparameters and select between models. The model never trains on this data, but your decisions are influenced by it.
-- **Test set**: touched exactly once, at the very end, to report final performance. If you look at test performance and then go back to change your model, it is no longer a test set. It has become a second validation set.
+- **Training set**: 모델은 이 데이터에서 학습합니다. training 중 이 example들을 봅니다.
+- **Validation set**: hyperparameter를 tuning하고 모델 사이에서 선택하는 데 사용합니다. 모델은 이 데이터로 학습하지 않지만, 우리의 결정은 이 데이터의 영향을 받습니다.
+- **Test set**: 마지막에 final performance를 보고하기 위해 정확히 한 번만 건드립니다. test performance를 보고 다시 모델을 바꾸러 돌아간다면, 그것은 더 이상 test set이 아닙니다. 두 번째 validation set이 된 것입니다.
 
-The test set is your hold-out guarantee that the reported performance reflects how the model will do on truly unseen data.
+test set은 보고된 성능이 truly unseen data에서 모델이 어떻게 작동할지를 반영한다는 hold-out 보증입니다.
 
-### K-Fold Cross-Validation
+### K-fold cross-validation
 
-With small datasets, a single train/validation split wastes data and gives noisy estimates. K-fold cross-validation uses all the data for both training and validation:
+작은 데이터셋에서는 단일 train/validation split이 데이터를 낭비하고 noisy estimate를 제공합니다. K-fold cross-validation은 모든 데이터를 training과 validation 양쪽에 사용합니다.
 
 ```mermaid
 flowchart TB
@@ -81,74 +81,74 @@ flowchart TB
     Fold5 --> R
 ```
 
-1. Split data into K equal-sized folds
-2. For each fold, train on K-1 folds and validate on the remaining fold
-3. Average the K validation scores
+1. 데이터를 같은 크기의 K개 fold로 나눕니다
+2. 각 fold에 대해 K-1개 fold로 학습하고 남은 fold로 validate합니다
+3. K개의 validation score를 평균냅니다
 
-K=5 or K=10 are standard choices. Every data point gets used for validation exactly once. The average score is a more stable estimate than any single split.
+K=5 또는 K=10이 표준적인 선택입니다. 모든 데이터 포인트는 validation에 정확히 한 번 사용됩니다. 평균 score는 단일 split보다 더 안정적인 estimate입니다.
 
-**Stratified K-fold**: preserves the class distribution in each fold. If your dataset is 70% class A and 30% class B, each fold will have roughly the same ratio. This is important for imbalanced datasets where a random split might put all minority samples in one fold.
+**Stratified K-fold**: 각 fold에서 class distribution을 보존합니다. 데이터셋이 class A 70%, class B 30%라면 각 fold도 거의 같은 비율을 갖습니다. random split이 모든 minority sample을 한 fold에 넣어버릴 수 있는 imbalanced dataset에서 중요합니다.
 
-### Classification Metrics
+### 분류 metric
 
-**Confusion matrix**: the foundation. For binary classification:
+**Confusion matrix**: 기반이 되는 표입니다. binary classification에서는 다음과 같습니다.
 
 |  | Predicted Positive | Predicted Negative |
 |--|---|---|
 | Actually Positive | True Positive (TP) | False Negative (FN) |
 | Actually Negative | False Positive (FP) | True Negative (TN) |
 
-From this matrix, all other metrics follow:
+다른 모든 metric은 이 matrix에서 나옵니다.
 
-- **Accuracy** = (TP + TN) / (TP + TN + FP + FN). Fraction of correct predictions. Misleading when classes are imbalanced.
-- **Precision** = TP / (TP + FP). Of all things predicted positive, how many actually were? Use when false positives are costly (e.g., spam filter marking real email as spam).
-- **Recall** (sensitivity) = TP / (TP + FN). Of all actual positives, how many did we catch? Use when false negatives are costly (e.g., cancer screening missing a tumor).
-- **F1 score** = 2 * precision * recall / (precision + recall). Harmonic mean of precision and recall. Balances both when neither clearly dominates.
-- **AUC-ROC**: Area Under the Receiver Operating Characteristic curve. Plots true positive rate vs false positive rate at various classification thresholds. AUC = 0.5 means random guessing, AUC = 1.0 means perfect separation. Threshold-independent: it measures how well the model ranks positives above negatives, regardless of the cutoff you pick.
+- **Accuracy** = (TP + TN) / (TP + TN + FP + FN). 올바른 prediction의 비율입니다. class가 imbalanced할 때 오해를 부릅니다.
+- **Precision** = TP / (TP + FP). positive로 예측한 것 중 실제 positive는 얼마나 되나요? false positive 비용이 클 때 사용합니다(예: spam filter가 실제 email을 spam으로 표시).
+- **Recall** (sensitivity) = TP / (TP + FN). 실제 positive 중 얼마나 잡아냈나요? false negative 비용이 클 때 사용합니다(예: cancer screening이 tumor를 놓침).
+- **F1 score** = 2 * precision * recall / (precision + recall). precision과 recall의 harmonic mean입니다. 어느 하나가 명확히 우세하지 않을 때 둘의 균형을 맞춥니다.
+- **AUC-ROC**: Receiver Operating Characteristic curve 아래 면적입니다. 다양한 classification threshold에서 true positive rate와 false positive rate를 그립니다. AUC = 0.5는 random guessing, AUC = 1.0은 완벽한 분리를 뜻합니다. threshold-independent입니다. 즉 선택한 cutoff와 관계없이 모델이 positive를 negative보다 얼마나 잘 위에 rank하는지 측정합니다.
 
-### Regression Metrics
+### 회귀 metric
 
-- **MSE** (Mean Squared Error) = mean((y_true - y_pred)^2). Penalizes large errors quadratically. Sensitive to outliers.
-- **RMSE** (Root Mean Squared Error) = sqrt(MSE). Same units as the target variable. Easier to interpret than MSE.
-- **MAE** (Mean Absolute Error) = mean(|y_true - y_pred|). Treats all errors linearly. More robust to outliers than MSE.
-- **R-squared** = 1 - SS_res / SS_tot, where SS_res = sum((y_true - y_pred)^2) and SS_tot = sum((y_true - y_mean)^2). Fraction of variance explained by the model. R^2 = 1.0 is perfect. R^2 = 0.0 means the model is no better than always predicting the mean. R^2 can be negative if the model is worse than the mean.
+- **MSE** (Mean Squared Error) = mean((y_true - y_pred)^2). 큰 error를 제곱으로 벌점화합니다. outlier에 민감합니다.
+- **RMSE** (Root Mean Squared Error) = sqrt(MSE). target variable과 같은 단위를 갖습니다. MSE보다 해석하기 쉽습니다.
+- **MAE** (Mean Absolute Error) = mean(|y_true - y_pred|). 모든 error를 선형으로 다룹니다. MSE보다 outlier에 더 robust합니다.
+- **R-squared** = 1 - SS_res / SS_tot, where SS_res = sum((y_true - y_pred)^2) and SS_tot = sum((y_true - y_mean)^2). 모델이 설명한 variance의 비율입니다. R^2 = 1.0은 완벽함을 뜻합니다. R^2 = 0.0은 모델이 항상 mean을 예측하는 것보다 낫지 않다는 뜻입니다. 모델이 mean보다 나쁘면 R^2는 음수가 될 수 있습니다.
 
-### Learning Curves
+### Learning curve
 
-Plot training and validation scores as a function of training set size:
+training set size의 함수로 training score와 validation score를 그립니다.
 
-- **High bias (underfitting)**: both curves converge to a low score. Adding more data will not help. You need a more complex model.
-- **High variance (overfitting)**: training score is high but validation score is much lower. The gap between them is large. Adding more data should help.
+- **High bias (underfitting)**: 두 curve가 낮은 score로 수렴합니다. 데이터를 더 추가해도 도움이 되지 않습니다. 더 복잡한 모델이 필요합니다.
+- **High variance (overfitting)**: training score는 높지만 validation score는 훨씬 낮습니다. 둘 사이의 gap이 큽니다. 데이터를 더 추가하면 도움이 될 수 있습니다.
 
-### Validation Curves
+### Validation curve
 
-Plot training and validation scores as a function of a hyperparameter:
+hyperparameter의 함수로 training score와 validation score를 그립니다.
 
-- At low complexity: both scores are low (underfitting)
-- At the right complexity: both scores are high and close together
-- At high complexity: training score stays high but validation score drops (overfitting)
+- 낮은 complexity: 두 score가 모두 낮습니다(underfitting)
+- 적절한 complexity: 두 score가 모두 높고 서로 가깝습니다
+- 높은 complexity: training score는 높게 유지되지만 validation score는 떨어집니다(overfitting)
 
-The optimal hyperparameter value is where the validation score peaks.
+optimal hyperparameter value는 validation score가 peak에 도달하는 지점입니다.
 
-### Common Evaluation Mistakes
+### 흔한 평가 실수
 
-**Data leakage**: information from the test set leaks into training. Examples: fitting a scaler on the full dataset before splitting, including future data in time series prediction, using a feature that is derived from the target. Always split first, then preprocess.
+**Data leakage**: test set의 정보가 training으로 새어 들어갑니다. 예: split 전에 전체 데이터셋에 scaler를 fit하기, time series prediction에 future data 포함하기, target에서 파생된 feature 사용하기. 항상 먼저 split하고 그다음 preprocess하세요.
 
-**Class imbalance**: 99% of transactions are legitimate, 1% are fraud. A model that always predicts "legitimate" gets 99% accuracy. Use precision, recall, F1, or AUC-ROC instead.
+**Class imbalance**: transaction의 99%는 legitimate이고 1%는 fraud입니다. 항상 "legitimate"라고 예측하는 모델은 99% accuracy를 얻습니다. 대신 precision, recall, F1 또는 AUC-ROC를 사용하세요.
 
-**Wrong metric**: optimizing accuracy when you should optimize recall (medical diagnosis), or optimizing RMSE when your data has heavy outliers (use MAE instead).
+**Wrong metric**: recall을 optimize해야 할 때 accuracy를 optimize하거나(medical diagnosis), 데이터에 heavy outlier가 있을 때 RMSE를 optimize하는 경우입니다(대신 MAE 사용).
 
-**Not using stratified splits**: with imbalanced data, a random split might put very few minority samples in the validation fold, giving unstable estimates.
+**Not using stratified splits**: imbalanced data에서는 random split이 validation fold에 minority sample을 아주 적게 넣어 unstable estimate를 만들 수 있습니다.
 
-**Testing too often**: every time you look at test performance and adjust, you overfit to the test set. The test set is single-use.
+**Testing too often**: test performance를 보고 조정할 때마다 test set에 overfit합니다. test set은 single-use입니다.
 
 ```figure
 precision-recall-threshold
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Train/validation/test split
+### Step 1: train/validation/test split
 
 ```python
 import random
@@ -178,7 +178,7 @@ def train_val_test_split(X, y, train_ratio=0.6, val_ratio=0.2, seed=42):
     return X_train, y_train, X_val, y_val, X_test, y_test
 ```
 
-### Step 2: K-fold and stratified K-fold cross-validation
+### Step 2: K-fold와 stratified K-fold cross-validation
 
 ```python
 def kfold_split(n, k=5, seed=42):
@@ -252,7 +252,7 @@ def cross_validate(X, y, model_fn, k=5, metric_fn=None, stratified=False):
     return scores
 ```
 
-### Step 3: Confusion matrix and classification metrics
+### Step 3: confusion matrix와 classification metric
 
 ```python
 def confusion_matrix(y_true, y_pred):
@@ -323,7 +323,7 @@ def auc_roc(y_true, y_scores):
     return area
 ```
 
-### Step 4: Regression metrics
+### Step 4: regression metric
 
 ```python
 def mse(y_true, y_pred):
@@ -349,7 +349,7 @@ def r_squared(y_true, y_pred):
     return 1.0 - ss_res / ss_tot
 ```
 
-### Step 5: Learning curves
+### Step 5: learning curve
 
 ```python
 def learning_curve(X, y, model_fn, metric_fn, train_sizes=None, val_ratio=0.2, seed=42):
@@ -388,7 +388,7 @@ def learning_curve(X, y, model_fn, metric_fn, train_sizes=None, val_ratio=0.2, s
     return train_sizes, train_scores, val_scores
 ```
 
-### Step 6: A simple classifier for testing, plus the full demo
+### Step 6: 테스트용 simple classifier와 전체 demo
 
 ```python
 class SimpleLogistic:
@@ -629,9 +629,9 @@ if __name__ == "__main__":
     print(f"  (|t| > 2.78 for significance at p<0.05 with df=4)")
 ```
 
-## Use It
+## 사용하기
 
-With scikit-learn, evaluation is built into the workflow:
+scikit-learn에서는 evaluation이 workflow에 내장되어 있습니다.
 
 ```python
 from sklearn.model_selection import cross_val_score, StratifiedKFold, learning_curve
@@ -645,35 +645,35 @@ model = LogisticRegression()
 scores = cross_val_score(model, X, y, cv=StratifiedKFold(5), scoring="f1")
 ```
 
-The from-scratch versions show exactly what cross-validation does (no magic, just for-loops and index tracking), how each metric is computed (just counting TP/FP/TN/FN), and why stratification matters (preserving class ratios in each fold). The library versions add parallelism, more scoring options, and integration with pipelines.
+처음부터 구현한 버전은 cross-validation이 정확히 무엇을 하는지(마법이 아니라 for-loop와 index tracking일 뿐), 각 metric이 어떻게 계산되는지(TP/FP/TN/FN을 세는 것), 그리고 stratification이 왜 중요한지(각 fold에서 class ratio 보존)를 보여줍니다. library 버전은 parallelism, 더 많은 scoring option, pipeline과의 integration을 더합니다.
 
-## Ship It
+## 결과물
 
-This lesson produces:
-- `outputs/skill-evaluation.md` - a skill covering evaluation strategy for classification and regression models
+이 lesson은 다음을 만듭니다.
+- `outputs/skill-evaluation.md` - classification과 regression model의 evaluation strategy를 다루는 skill
 
-## Exercises
+## 연습 문제
 
-1. Implement precision-recall curves: plot precision vs recall at different thresholds. Compute the average precision (area under the PR curve). Compare the PR curve to the ROC curve on an imbalanced dataset and explain when each is more informative.
-2. Build a nested cross-validation loop: the outer loop evaluates model performance, the inner loop tunes hyperparameters. Use it to compare two models fairly without leaking validation data into the evaluation.
-3. Implement a permutation test for model comparison: shuffle the labels, retrain, and measure performance. Repeat 100 times to build a null distribution. Compute the p-value for the observed model performance against this distribution.
+1. precision-recall curve를 구현하세요. 서로 다른 threshold에서 precision vs recall을 plot합니다. average precision(PR curve 아래 면적)을 계산하세요. imbalanced dataset에서 PR curve와 ROC curve를 비교하고 각각이 언제 더 정보가 많은지 설명하세요.
+2. nested cross-validation loop를 만드세요. outer loop는 model performance를 평가하고, inner loop는 hyperparameter를 tuning합니다. evaluation에 validation data가 leak되지 않게 두 모델을 공정하게 비교하는 데 사용하세요.
+3. model comparison을 위한 permutation test를 구현하세요. label을 shuffle하고, 다시 학습하고, performance를 측정합니다. null distribution을 만들기 위해 100번 반복하세요. 이 distribution에 대해 관측된 model performance의 p-value를 계산하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Overfitting | "Memorizing the training data" | The model captures noise in the training data, performing well on training but poorly on unseen data |
-| Cross-validation | "Testing on different subsets" | Systematically rotating which portion of data is used for validation, averaging results across all rotations |
-| Precision | "How many predicted positives are correct" | TP / (TP + FP): the fraction of positive predictions that are actually positive |
-| Recall | "How many actual positives we found" | TP / (TP + FN): the fraction of actual positives that were correctly identified |
-| AUC-ROC | "How well the model separates classes" | The area under the curve of true positive rate vs false positive rate across all thresholds, from 0.5 (random) to 1.0 (perfect) |
-| R-squared | "How much variance is explained" | 1 - (sum of squared residuals / total sum of squares): the fraction of target variance captured by the model |
-| Data leakage | "The model cheated" | Using information during training that would not be available at prediction time, leading to optimistic evaluation |
-| Learning curve | "How performance changes with more data" | A plot of training and validation scores vs training set size, revealing underfitting or overfitting |
-| Stratified split | "Keeping class ratios balanced" | Splitting data so each subset has the same proportion of each class as the full dataset |
+| Overfitting | "training data를 외우기" | 모델이 training data의 noise를 포착해 training에서는 잘 작동하지만 unseen data에서는 나쁘게 작동하는 것 |
+| Cross-validation | "서로 다른 subset에서 testing하기" | data의 어느 부분을 validation에 사용할지 체계적으로 회전시키고, 모든 회전의 결과를 평균내는 것 |
+| Precision | "예측한 positive 중 얼마나 맞았는지" | TP / (TP + FP): positive prediction 중 실제로 positive인 비율 |
+| Recall | "실제 positive 중 얼마나 찾았는지" | TP / (TP + FN): 실제 positive 중 올바르게 식별된 비율 |
+| AUC-ROC | "모델이 class를 얼마나 잘 분리하는지" | 모든 threshold에 걸친 true positive rate vs false positive rate curve 아래 면적이며, 0.5(random)부터 1.0(perfect)까지입니다 |
+| R-squared | "얼마나 많은 variance가 설명되는지" | 1 - (sum of squared residuals / total sum of squares): 모델이 포착한 target variance의 비율 |
+| Data leakage | "모델이 cheated했다" | prediction time에는 사용할 수 없는 정보를 training 중 사용해 낙관적인 evaluation으로 이어지는 것 |
+| Learning curve | "데이터가 많아질수록 performance가 어떻게 변하는지" | training set size 대비 training 및 validation score를 그린 plot으로, underfitting 또는 overfitting을 드러냅니다 |
+| Stratified split | "class ratio를 균형 있게 유지하기" | 각 subset이 full dataset과 같은 class proportion을 갖도록 데이터를 나누는 것 |
 
-## Further Reading
+## 더 읽을거리
 
-- [scikit-learn Model Selection Guide](https://scikit-learn.org/stable/model_selection.html) - comprehensive reference on cross-validation, metrics, and hyperparameter tuning
-- [Beyond Accuracy: Precision and Recall (Google ML Crash Course)](https://developers.google.com/machine-learning/crash-course/classification/precision-and-recall) - clear explanation with interactive examples
-- [A Survey of Cross-Validation Procedures (Arlot & Celisse, 2010)](https://projecteuclid.org/journals/statistics-surveys/volume-4/issue-none/A-survey-of-cross-validation-procedures-for-model-selection/10.1214/09-SS054.full) - rigorous treatment of when and why different CV strategies work
+- [scikit-learn Model Selection Guide](https://scikit-learn.org/stable/model_selection.html) - cross-validation, metric, hyperparameter tuning에 대한 포괄적인 reference
+- [Beyond Accuracy: Precision and Recall (Google ML Crash Course)](https://developers.google.com/machine-learning/crash-course/classification/precision-and-recall) - interactive example을 포함한 명확한 설명
+- [A Survey of Cross-Validation Procedures (Arlot & Celisse, 2010)](https://projecteuclid.org/journals/statistics-surveys/volume-4/issue-none/A-survey-of-cross-validation-procedures-for-model-selection/10.1214/09-SS054.full) - 서로 다른 CV strategy가 언제 왜 작동하는지에 대한 엄밀한 논의

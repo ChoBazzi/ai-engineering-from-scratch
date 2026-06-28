@@ -1,6 +1,6 @@
 ---
 name: skill-linear-probe-runner
-description: Write the complete linear-probe evaluation for any frozen encoder and labelled dataset
+description: 임의의 고정된 인코더와 라벨 데이터셋을 위한 완전한 linear-probe 평가 작성
 version: 1.0.0
 phase: 4
 lesson: 17
@@ -9,32 +9,32 @@ tags: [self-supervised, evaluation, linear-probe, pytorch]
 
 # Linear Probe Runner
 
-Evaluate a frozen encoder's features by training a single linear classifier on top. The standard evaluation for every self-supervised paper.
+고정된 인코더 위에 단일 선형 분류기를 학습해 인코더의 특징을 평가합니다. 모든 자기지도 논문의 표준 평가입니다.
 
-## When to use
+## 사용 시점
 
-- Comparing self-supervised checkpoints.
-- Tracking feature quality over pretraining epochs.
-- Deciding whether a pretrained encoder is good enough for a downstream task without fine-tuning.
+- 자기지도 checkpoint를 비교할 때.
+- 사전학습 epoch에 따른 특징 품질을 추적할 때.
+- 파인튜닝 없이 pretrained encoder가 다운스트림 작업에 충분히 좋은지 판단할 때.
 
-## Inputs
+## 입력
 
-- `encoder`: frozen `nn.Module` returning a fixed-dim feature per image.
-- `feature_dim`: dimensionality of the encoder output.
-- `train_dataset`: labelled dataset (image, class_id).
+- `encoder`: 이미지마다 고정 차원 특징을 반환하는 frozen `nn.Module`.
+- `feature_dim`: 인코더 출력의 차원 수.
+- `train_dataset`: 라벨 데이터셋(image, class_id).
 - `val_dataset`: held-out set.
-- `num_classes`: task classes.
-- `epochs`: typically 100 for ImageNet-scale, 50 for smaller datasets.
+- `num_classes`: 작업 클래스 수.
+- `epochs`: 보통 ImageNet-scale에서는 100, 더 작은 데이터셋에서는 50.
 
-## Steps
+## 단계
 
-1. Set encoder to eval mode and `requires_grad=False` on every parameter.
-2. Feature-extract both train and val sets once. Store as numpy arrays or a memory-mapped file.
-3. Train a `nn.Linear(feature_dim, num_classes)` on the cached features with SGD + cosine schedule.
-4. Standard hyperparameters: `lr=0.1`, `momentum=0.9`, `weight_decay=0`, `batch_size=1024`. Linear probe is surprisingly sensitive to `lr` — sweep if accuracy is poor.
-5. Report top-1 accuracy on val at the end of training.
+1. 인코더를 eval mode로 설정하고 모든 parameter에 `requires_grad=False`를 둡니다.
+2. train set과 val set에서 특징을 한 번씩 추출합니다. numpy array 또는 memory-mapped file로 저장합니다.
+3. 캐시된 특징 위에서 SGD + cosine schedule로 `nn.Linear(feature_dim, num_classes)`를 학습합니다.
+4. 표준 hyperparameter: `lr=0.1`, `momentum=0.9`, `weight_decay=0`, `batch_size=1024`. Linear probe는 의외로 `lr`에 민감합니다. 정확도가 낮으면 sweep하세요.
+5. 학습이 끝나면 val의 top-1 정확도를 보고합니다.
 
-## Output template
+## 출력 템플릿
 
 ```python
 import torch
@@ -86,9 +86,9 @@ def linear_probe(encoder, feature_dim, train_loader, val_loader,
     return best_val
 ```
 
-## Report
+## 보고
 
-```
+```text
 [linear probe]
   encoder:     <name + pretrain checkpoint>
   feature_dim: <int>
@@ -96,9 +96,9 @@ def linear_probe(encoder, feature_dim, train_loader, val_loader,
   best_val_top1: <float>
 ```
 
-## Rules
+## 규칙
 
-- Never update encoder weights during linear probe; that would be a fine-tune, not a probe.
-- Precompute features once; retraining the encoder on every epoch wastes 100x compute.
-- Use SGD with cosine schedule and no weight decay; Adam sometimes underperforms here.
-- Sweep learning rates at least once per encoder family; the optimum varies across SSL methods.
+- Linear probe 중에는 인코더 가중치를 절대 업데이트하지 마세요. 그것은 probe가 아니라 fine-tune입니다.
+- 특징은 한 번만 미리 계산하세요. 매 epoch마다 인코더를 다시 실행하면 compute를 100배 낭비합니다.
+- Cosine schedule과 weight decay 없는 SGD를 사용하세요. Adam은 여기서 종종 성능이 낮습니다.
+- 인코더 계열마다 learning rate를 최소 한 번은 sweep하세요. 최적값은 SSL 방법마다 달라집니다.

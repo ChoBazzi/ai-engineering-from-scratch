@@ -1,148 +1,148 @@
-# MCP Resources and Prompts — Context Exposure Beyond Tools
+# MCP Resources와 Prompts — Tools 너머의 Context 노출
 
-> Tools get 90 percent of MCP attention. The other two server primitives solve different problems. Resources expose data for reading; prompts expose reusable templates as slash-commands. Many servers should use resources instead of wrapping reads in tools, and prompts instead of hard-coding workflows in client prompts. This lesson names the decision rule and walks the `resources/*` and `prompts/*` messages.
+> MCP에서 attention의 90퍼센트는 tools가 가져간다. 하지만 나머지 두 server 프리미티브는 다른 문제를 해결한다. Resources는 읽기 위한 data를 노출하고, prompts는 재사용 가능한 template을 slash-command로 노출한다. 많은 server는 read를 tool로 감싸는 대신 resources를 사용해야 하고, workflow를 client prompt에 hard-code하는 대신 prompts를 사용해야 한다. 이 lesson은 decision rule을 정리하고 `resources/*`와 `prompts/*` message를 따라간다.
 
 **Type:** Build
 **Languages:** Python (stdlib, resource + prompt handler)
 **Prerequisites:** Phase 13 · 07 (MCP server)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Decide between exposing a capability as a tool, a resource, or a prompt for a given domain.
-- Implement `resources/list`, `resources/read`, `resources/subscribe` and handle `notifications/resources/updated`.
-- Implement `prompts/list` and `prompts/get` with argument templates.
-- Recognize when the host surfaces prompts as slash-commands vs auto-injected context.
+- 주어진 domain에서 capability를 tool, resource, prompt 중 무엇으로 노출할지 결정한다.
+- `resources/list`, `resources/read`, `resources/subscribe`를 구현하고 `notifications/resources/updated`를 처리한다.
+- argument template과 함께 `prompts/list`와 `prompts/get`을 구현한다.
+- host가 prompt를 slash-command로 노출하는 경우와 context를 자동 inject하는 경우를 구분한다.
 
-## The Problem
+## 문제
 
-A naive MCP server for a notes app exposes everything as tools: `notes_read`, `notes_list`, `notes_search`. This wraps every data access in a model-driven tool call. Consequences:
+notes app을 위한 순진한 MCP server는 모든 것을 tool로 노출한다. `notes_read`, `notes_list`, `notes_search`가 그 예다. 이는 모든 data access를 model-driven tool call로 감싼다. 결과는 다음과 같다.
 
-- The model has to decide whether to call `notes_read` for every query that might benefit from context.
-- Read-only content cannot be subscribed to or streamed to the host's side panel.
-- Client UIs (Claude Desktop's resource attachment panel, Cursor's "Include file" picker) cannot surface the data.
+- context가 도움이 될 수 있는 모든 query마다 model이 `notes_read`를 호출할지 결정해야 한다.
+- read-only content를 subscribe하거나 host의 side panel로 stream할 수 없다.
+- client UI(Claude Desktop의 resource attachment panel, Cursor의 "Include file" picker)가 data를 surface할 수 없다.
 
-The right split: expose data as a resource, expose mutating or computed actions as tools, expose reusable multi-step workflows as prompts. Each primitive has its UX affordance and its access pattern.
+올바른 분리는 다음과 같다. data는 resource로 노출하고, mutating 또는 computed action은 tool로 노출하며, 재사용 가능한 multi-step workflow는 prompt로 노출한다. 각 프리미티브에는 고유한 UX affordance와 access pattern이 있다.
 
-## The Concept
+## 개념
 
-### Tools vs resources vs prompts — the decision rule
+### Tools vs resources vs prompts — decision rule
 
-| Capability | Primitive |
+| 사용자가 원하는 일 | Primitive |
 |------------|-----------|
-| User wants to search, filter, or transform data | tool |
-| User wants the host to include this data as context | resource |
-| User wants a templated workflow they can re-run | prompt |
+| 사용자가 데이터를 검색, 필터링, 변환하려 함 | tool |
+| 사용자가 host가 이 데이터를 context로 포함하기를 원함 | resource |
+| 사용자가 다시 실행할 수 있는 templated workflow를 원함 | prompt |
 
-Guideline: if the model would benefit from calling it on every related query, it is a tool. If the user would benefit from attaching it to a conversation, it is a resource. If a whole multi-step workflow is the unit the user wants to re-use, it is a prompt.
+기준은 이렇다. 관련 query마다 model이 호출해서 이득을 본다면 tool이다. 사용자가 conversation에 attach해서 이득을 본다면 resource다. 사용자가 재사용하고 싶은 단위가 전체 multi-step workflow라면 prompt다.
 
 ### Resources
 
-`resources/list` returns `{resources: [{uri, name, mimeType, description?}]}`. `resources/read` takes `{uri}` and returns `{contents: [{uri, mimeType, text | blob}]}`.
+`resources/list`는 `{resources: [{uri, name, mimeType, description?}]}`를 반환한다. `resources/read`는 `{uri}`를 받고 `{contents: [{uri, mimeType, text | blob}]}`를 반환한다.
 
-URIs can be anything addressable:
+URI는 주소 지정 가능한 무엇이든 될 수 있다.
 
 - `file:///Users/alice/notes/mcp.md`
 - `postgres://my-db/query/SELECT ...`
 - `notes://note-14` (custom scheme)
 - `memory://session-2026-04-22/recent` (server-specific)
 
-`contents[]` supports both text and binary. Binary uses `blob` as a base64-encoded string plus a `mimeType`.
+`contents[]`는 text와 binary를 모두 지원한다. binary는 base64-encoded string인 `blob`과 `mimeType`을 사용한다.
 
 ### Resource subscriptions
 
-Declare `{resources: {subscribe: true}}` in capabilities. Client calls `resources/subscribe {uri}`. Server sends `notifications/resources/updated {uri}` when the resource changes. Client re-reads.
+capabilities에 `{resources: {subscribe: true}}`를 선언한다. client는 `resources/subscribe {uri}`를 호출한다. resource가 바뀌면 server가 `notifications/resources/updated {uri}`를 보낸다. client는 다시 읽는다.
 
-Use case: a notes server whose resources are files on disk; a file watcher triggers update notifications; Claude Desktop re-pulls the file into context when edited outside the host.
+use case는 disk의 file을 resource로 가진 notes server다. file watcher가 update notification을 trigger하고, host 밖에서 file이 edit되면 Claude Desktop이 해당 file을 context로 다시 가져온다.
 
-### Resource templates (2025-11-25 addition)
+### Resource templates(2025-11-25 addition)
 
-`resourceTemplates` let you expose a parameterized URI pattern: `notes://{id}` with `id` as a completion target. The client can autocomplete ids in the resource picker.
+`resourceTemplates`는 parameterized URI pattern을 노출하게 해 준다. 예를 들어 completion target인 `id`를 가진 `notes://{id}`가 있다. client는 resource picker에서 id를 autocomplete할 수 있다.
 
 ### Prompts
 
-`prompts/list` returns `{prompts: [{name, description, arguments?}]}`. `prompts/get` takes `{name, arguments}` and returns `{description, messages: [{role, content}]}`.
+`prompts/list`는 `{prompts: [{name, description, arguments?}]}`를 반환한다. `prompts/get`은 `{name, arguments}`를 받고 `{description, messages: [{role, content}]}`를 반환한다.
 
-A prompt is a template that fills to a list of messages the host feeds its model. For example, a `code_review` prompt takes a `file_path` argument and returns a three-message sequence: a system message, a user message with the file body, and an assistant kickoff with a reasoning template.
+prompt는 host가 model에 전달할 message list로 채워지는 template이다. 예를 들어 `code_review` prompt는 `file_path` argument를 받고 세 message sequence를 반환한다. system message, file body를 담은 user message, reasoning template이 있는 assistant kickoff가 그것이다.
 
-### Hosts and prompts
+### Hosts와 prompts
 
-Claude Desktop, VS Code, and Cursor expose prompts as slash-commands in the chat UI. The user types `/code_review` and picks arguments from a form. The server's prompt is the contract between "user shortcut" and "full prompt sent to model".
+Claude Desktop, VS Code, Cursor는 chat UI에서 prompt를 slash-command로 노출한다. 사용자는 `/code_review`를 입력하고 form에서 argument를 고른다. server의 prompt는 "user shortcut"과 "model에 보내는 full prompt" 사이의 계약이다.
 
-Not every client supports prompts yet — check capability negotiation. A server with prompt capability declared but a client without prompt support simply will not see the slash commands.
+모든 client가 아직 prompt를 지원하는 것은 아니다. capability negotiation을 확인하라. server가 prompt capability를 선언했지만 client가 prompt를 지원하지 않으면 slash command가 보이지 않을 뿐이다.
 
-### The "list changed" notification
+### "list changed" notification
 
-Both resources and prompts emit `notifications/list_changed` when the set mutates. A notes server that just imported 20 new notes emits `notifications/resources/list_changed`; the client re-calls `resources/list` to pick up the additions.
+resources와 prompts는 set이 mutate될 때 `notifications/list_changed`를 emit한다. 새 note 20개를 방금 import한 notes server는 `notifications/resources/list_changed`를 emit한다. client는 추가분을 반영하기 위해 `resources/list`를 다시 호출한다.
 
 ### Content type conventions
 
-For text: `mimeType: "text/plain"`, `text/markdown`, `application/json`.
-For binary: `image/png`, `application/pdf`, plus the `blob` field.
-For MCP Apps (Lesson 14): `text/html;profile=mcp-app` in a `ui://` URI.
+text에는 `mimeType: "text/plain"`, `text/markdown`, `application/json`을 쓴다.
+binary에는 `image/png`, `application/pdf`와 `blob` field를 쓴다.
+MCP Apps(Lesson 14)에는 `ui://` URI 안에서 `text/html;profile=mcp-app`을 쓴다.
 
 ### Dynamic resources
 
-A resource URI does not have to correspond to a static file. `notes://recent` can return the latest five notes on every read. `db://query/users/active` can execute a parameterized query. The server is free to compute content dynamically.
+resource URI가 static file에 대응해야 하는 것은 아니다. `notes://recent`는 읽을 때마다 최신 note 다섯 개를 반환할 수 있다. `db://query/users/active`는 parameterized query를 실행할 수 있다. server는 content를 동적으로 계산해도 된다.
 
-Rule: if the client can cache by URI, the URI must be stable. If computation is one-shot, the URI should include a timestamp or nonce so the client cache does not stale out.
+규칙은 이렇다. client가 URI로 cache할 수 있다면 URI는 stable해야 한다. computation이 one-shot이라면 client cache가 stale되지 않도록 URI에 timestamp나 nonce를 포함해야 한다.
 
 ### Subscriptions vs polling
 
-Subscription-capable clients get server push via `notifications/resources/updated`. Pre-subscription clients or hosts that do not support it poll by re-reading. Both are spec-compliant. The server's capability declaration tells the client which it supports.
+subscription-capable client는 `notifications/resources/updated`를 통해 server push를 받는다. subscription 이전 client나 이를 지원하지 않는 host는 다시 읽는 방식으로 poll한다. 둘 다 spec-compliant하다. server의 capability declaration이 무엇을 지원하는지 client에게 알려 준다.
 
-Cost of subscriptions: per-session state on the server (who is subscribed to what). Keep the subscribed set bounded; disconnected clients should time out.
+subscription의 비용은 server의 session별 state다. 누가 무엇을 subscribe했는지 보관해야 한다. subscribed set은 bounded하게 유지하고, 연결이 끊긴 client는 timeout 처리해야 한다.
 
 ### Prompts vs system prompts
 
-Prompts in MCP are not system prompts. The host's system prompt (its own operating instructions) and MCP prompts (server-supplied templates invoked by user) live side by side. A well-behaved client never lets a server prompt override its own system prompt; it layers them.
+MCP의 prompts는 system prompts가 아니다. host의 system prompt(자체 운영 지침)와 MCP prompts(사용자가 invoke하는 server-supplied template)는 나란히 존재한다. 잘 동작하는 client는 server prompt가 자신의 system prompt를 override하게 두지 않는다. 대신 layer로 쌓는다.
 
-## Use It
+## 사용하기
 
-`code/main.py` extends the notes server from Lesson 07 with:
+`code/main.py`는 Lesson 07의 notes server를 다음으로 확장한다.
 
-- Per-note resources (`notes://note-1`, etc.) with `resources/subscribe` support.
-- A `review_note` prompt that renders to a three-message template.
-- A file-watcher simulation that emits `notifications/resources/updated` when a note is modified.
-- A `notes://recent` dynamic resource that always returns the latest five notes.
+- `resources/subscribe` support가 있는 note별 resource(`notes://note-1` 등).
+- 세 message template으로 render되는 `review_note` prompt.
+- note가 수정될 때 `notifications/resources/updated`를 emit하는 file-watcher simulation.
+- 항상 최신 note 다섯 개를 반환하는 `notes://recent` dynamic resource.
 
-Run the demo to see the full flow.
+demo를 실행해 전체 flow를 확인하라.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-primitive-splitter.md`. Given a proposed MCP server, the skill categorizes each capability as tool / resource / prompt with a rationale.
+이 lesson은 `outputs/skill-primitive-splitter.md`를 만든다. 제안된 MCP server가 주어지면, 이 skill은 각 capability를 rationale과 함께 tool / resource / prompt로 분류한다.
 
-## Exercises
+## 연습 문제
 
-1. Run `code/main.py`. Observe the initial resource list, then trigger a note edit and verify the `notifications/resources/updated` event fires.
+1. `code/main.py`를 실행하라. initial resource list를 관찰한 다음 note edit을 trigger하고 `notifications/resources/updated` event가 발생하는지 검증하라.
 
-2. Add a `resources/list_changed` emitter: when a new note is created, send the notification so clients re-discover.
+2. `resources/list_changed` emitter를 추가하라. 새 note가 생성되면 client가 다시 discover하도록 notification을 보내라.
 
-3. Design three prompts for a GitHub MCP server: `summarize_pr`, `triage_issue`, `release_notes`. Each with argument schemas. The prompt body should be runnable without further edits.
+3. GitHub MCP server를 위한 prompt 세 개를 설계하라. `summarize_pr`, `triage_issue`, `release_notes`를 만들고 각각 argument schema를 포함하라. prompt body는 추가 수정 없이 runnable해야 한다.
 
-4. Take an existing tool in the Lesson 07 server and classify whether it should remain a tool or be split into a resource plus tool pair. Justify in one sentence.
+4. Lesson 07 server의 기존 tool 하나를 골라 tool로 남겨야 하는지, resource와 tool pair로 나눠야 하는지 분류하라. 한 문장으로 정당화하라.
 
-5. Read the spec's `server/resources` and `server/prompts` sections. Identify the one field in `resources/read` that is rarely populated but spec-supported. Hint: look at `_meta` on resource content.
+5. 사양의 `server/resources`와 `server/prompts` section을 읽어라. `resources/read`에서 드물게 채워지지만 spec-supported인 field 하나를 찾아라. 힌트: resource content의 `_meta`를 보라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
-| Resource | "Exposed data" | URI-addressable content the host can read |
-| Resource URI | "Pointer to data" | Scheme-prefixed identifier (`file://`, `notes://`, etc.) |
-| `resources/subscribe` | "Watch for changes" | Client-opt-in server-push updates for a specific URI |
-| `notifications/resources/updated` | "Resource changed" | Signal to client that a subscribed resource has new content |
-| Resource template | "Parameterized URI" | URI pattern with completion hints for the host picker |
-| Prompt | "Slash-command template" | Named multi-message template with argument slots |
-| Prompt arguments | "Template inputs" | Typed parameters the host collects before rendering |
-| `prompts/get` | "Render template" | Server returns the filled-in message list |
+| 용어 | 사람들이 흔히 하는 말 | 실제 의미 |
+|------|----------------|-----------|
+| Resource | "Exposed data" | host가 읽을 수 있는 URI-addressable content |
+| Resource URI | "data를 가리키는 pointer" | scheme prefix가 붙은 identifier(`file://`, `notes://` 등) |
+| `resources/subscribe` | "변경 감시" | 특정 URI에 대한 client-opt-in server-push update |
+| `notifications/resources/updated` | "Resource changed" | subscribed resource에 새 content가 있음을 client에 알리는 signal |
+| Resource template | "Parameterized URI" | host picker를 위한 completion hint가 있는 URI pattern |
+| Prompt | "Slash-command template" | argument slot을 가진 이름 있는 multi-message template |
+| Prompt arguments | "Template inputs" | render 전에 host가 수집하는 typed parameter |
+| `prompts/get` | "Render template" | server가 채워진 message list를 반환한다 |
 | Content block | "Typed chunk" | `{type: text \| image \| resource \| ui_resource}` |
-| Slash-command UX | "User shortcut" | Host surfaces prompts as commands starting with `/` |
+| Slash-command UX | "User shortcut" | host가 prompt를 `/`로 시작하는 command로 surface한다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [MCP — Concepts: Resources](https://modelcontextprotocol.io/docs/concepts/resources) — resource URIs, subscriptions, and templates
-- [MCP — Concepts: Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) — prompt templates and slash-command integration
-- [MCP — Server resources spec 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/server/resources) — full `resources/*` message reference
-- [MCP — Server prompts spec 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/server/prompts) — full `prompts/*` message reference
-- [MCP — Protocol info site: resources](https://modelcontextprotocol.info/docs/concepts/resources/) — community guide expanding on the official docs
+- [MCP — Concepts: Resources](https://modelcontextprotocol.io/docs/concepts/resources) — resource URI, subscription, template
+- [MCP — Concepts: Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) — prompt template와 slash-command integration
+- [MCP — Server resources spec 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/server/resources) — 전체 `resources/*` message reference
+- [MCP — Server prompts spec 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/server/prompts) — 전체 `prompts/*` message reference
+- [MCP — Protocol info site: resources](https://modelcontextprotocol.info/docs/concepts/resources/) — official docs를 확장한 community guide

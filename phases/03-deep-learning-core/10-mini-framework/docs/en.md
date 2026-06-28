@@ -1,56 +1,56 @@
-# Build Your Own Mini Framework
+# 나만의 미니 프레임워크 만들기
 
-> You have built neurons, layers, networks, backprop, activations, loss functions, optimizers, regularization, initialization, and LR schedules. All as separate pieces. Now wire them together into a framework. Not PyTorch. Not TensorFlow. Yours.
+> 여러분은 뉴런, 층, 네트워크, 역전파, 활성화 함수, 손실 함수, 옵티마이저, regularization, initialization, LR schedule을 만들었습니다. 모두 별개의 조각이었습니다. 이제 그것들을 하나의 framework로 연결합니다. PyTorch도 아니고 TensorFlow도 아닙니다. 여러분의 것입니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** All of Phase 03 (Lessons 01-09)
 **Time:** ~120 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Build a complete deep learning framework (~500 lines) with Module, Linear, ReLU, Sigmoid, Dropout, BatchNorm, Sequential, loss functions, optimizers, and DataLoader
-- Explain the Module abstraction (forward, backward, parameters) and why train/eval mode toggling is necessary
-- Wire all components into a working training loop that trains a 4-layer network on circle classification
-- Map each component of your framework to its PyTorch equivalent (nn.Module, nn.Sequential, optim.Adam, DataLoader)
+- Module, Linear, ReLU, Sigmoid, Dropout, BatchNorm, Sequential, loss function, optimizer, DataLoader를 포함하는 완전한 deep learning framework(~500 lines)를 만듭니다
+- Module 추상화(forward, backward, parameters)와 train/eval mode 전환이 필요한 이유를 설명합니다
+- 모든 component를 작동하는 training loop로 연결해 circle classification에서 4-layer network를 학습합니다
+- framework의 각 component를 PyTorch 대응물(nn.Module, nn.Sequential, optim.Adam, DataLoader)에 매핑합니다
 
-## The Problem
+## 문제
 
-You have ten lessons of building blocks scattered across separate files. A `Value` class here, a training loop there, weight initialization in another file, learning rate schedules in yet another. To train a network, you copy-paste from five different lessons and wire them together by hand.
+여러분에게는 별도 파일에 흩어진 10개 lesson의 building block이 있습니다. 여기에는 `Value` class, 저기에는 training loop, 다른 파일에는 weight initialization, 또 다른 파일에는 learning rate schedule이 있습니다. 네트워크를 학습하려면 다섯 개 lesson에서 copy-paste하고 손으로 연결해야 합니다.
 
-That is what frameworks solve. PyTorch gives you `nn.Module`, `nn.Sequential`, `optim.Adam`, `DataLoader`, and a training loop pattern that ties them together. TensorFlow gives you `keras.Layer`, `keras.Sequential`, `keras.optimizers.Adam`. These are not magic. They are organizational patterns that make it possible to define, train, and evaluate networks without reinventing the plumbing every time.
+framework가 해결하는 것이 바로 이것입니다. PyTorch는 `nn.Module`, `nn.Sequential`, `optim.Adam`, `DataLoader`, 그리고 그것들을 하나로 묶는 training loop pattern을 제공합니다. TensorFlow는 `keras.Layer`, `keras.Sequential`, `keras.optimizers.Adam`을 제공합니다. 이것들은 마법이 아닙니다. 매번 배관을 다시 만들지 않고도 네트워크를 정의하고, 학습하고, 평가할 수 있게 해 주는 조직화 pattern입니다.
 
-You are going to build the same thing in ~500 lines of Python. No numpy. No external dependencies. A framework that can define any feedforward network, train it with SGD or Adam, batch the data, apply dropout and batch normalization, use any activation, and schedule the learning rate.
+여러분은 같은 것을 Python 약 500 lines로 만들 것입니다. numpy도 없고 외부 의존성도 없습니다. 어떤 feedforward network든 정의하고, SGD나 Adam으로 학습하고, data를 batch로 나누고, dropout과 batch normalization을 적용하고, 어떤 activation이든 사용하고, learning rate를 schedule할 수 있는 framework입니다.
 
-When you finish, you will understand exactly what happens when you write `model = nn.Sequential(...)` in PyTorch. You will understand why `model.train()` and `model.eval()` exist. You will understand why `optimizer.zero_grad()` is a separate call. You will understand all of it, because you built all of it.
+끝내고 나면 PyTorch에서 `model = nn.Sequential(...)`을 작성할 때 정확히 무슨 일이 일어나는지 이해하게 됩니다. 왜 `model.train()`과 `model.eval()`이 존재하는지도 이해합니다. 왜 `optimizer.zero_grad()`가 별도 호출인지도 이해합니다. 모든 것을 이해하게 됩니다. 여러분이 전부 만들었기 때문입니다.
 
-## The Concept
+## 개념
 
-### The Module Abstraction
+### Module 추상화
 
-Every layer in PyTorch inherits from `nn.Module`. A Module has three responsibilities:
+PyTorch의 모든 layer는 `nn.Module`을 상속합니다. Module에는 세 가지 책임이 있습니다.
 
-1. **forward()** -- compute the output given inputs
-2. **parameters()** -- return all trainable weights
-3. **backward()** -- compute gradients (handled by autograd in PyTorch, explicit in ours)
+1. **forward()** -- input이 주어졌을 때 output을 계산합니다
+2. **parameters()** -- 모든 trainable weight를 반환합니다
+3. **backward()** -- gradient를 계산합니다(PyTorch에서는 autograd가 처리하고, 여기서는 명시적으로 구현합니다)
 
-A Linear layer is a Module. A ReLU activation is a Module. A dropout layer is a Module. A batch normalization layer is a Module. They all have the same interface.
+Linear layer는 Module입니다. ReLU activation도 Module입니다. dropout layer도 Module입니다. batch normalization layer도 Module입니다. 모두 같은 interface를 갖습니다.
 
 ### Sequential Container
 
-`nn.Sequential` chains Modules. Forward pass: feed data through Module 1, then Module 2, then Module 3. Backward pass: reverse the chain. The container itself is a Module -- it has forward(), parameters(), and backward(). This is the composite pattern: a sequence of Modules is itself a Module.
+`nn.Sequential`은 Module을 chain으로 연결합니다. forward pass는 data를 Module 1, Module 2, Module 3 순서로 통과시킵니다. backward pass는 chain을 거꾸로 갑니다. container 자체도 Module입니다. forward(), parameters(), backward()를 갖습니다. 이것은 composite pattern입니다. Module의 sequence 자체도 Module입니다.
 
 ### Training vs Evaluation Mode
 
-Dropout randomly zeroes neurons during training but passes everything through during evaluation. Batch normalization uses batch statistics during training but running averages during evaluation. The `train()` and `eval()` methods toggle this behavior. Every Module has a `training` flag.
+Dropout은 학습 중에는 neuron을 무작위로 0으로 만들지만 평가 중에는 모든 것을 그대로 통과시킵니다. Batch normalization은 학습 중에는 batch statistic을 사용하지만 평가 중에는 running average를 사용합니다. `train()`과 `eval()` method는 이 동작을 전환합니다. 모든 Module에는 `training` flag가 있습니다.
 
 ### Optimizer
 
-The optimizer updates parameters using their gradients. SGD: `param -= lr * grad`. Adam: maintains momentum and variance estimates, then updates. The optimizer does not know about the network architecture -- it only sees a flat list of parameters and their gradients.
+optimizer는 gradient를 사용해 parameter를 update합니다. SGD는 `param -= lr * grad`입니다. Adam은 momentum과 variance estimate를 유지한 뒤 update합니다. optimizer는 network architecture를 알지 못합니다. parameter와 gradient의 flat list만 봅니다.
 
 ### DataLoader
 
-Batching matters for two reasons. First, you cannot fit the entire dataset in memory for large problems. Second, mini-batch gradient descent provides noise that helps escape local minima. The DataLoader splits data into batches and optionally shuffles between epochs.
+batching은 두 가지 이유로 중요합니다. 첫째, 큰 문제에서는 전체 dataset을 memory에 올릴 수 없습니다. 둘째, mini-batch gradient descent는 local minima에서 벗어나는 데 도움이 되는 noise를 제공합니다. DataLoader는 data를 batch로 나누고 epoch 사이에 선택적으로 shuffle합니다.
 
 ### Framework Architecture
 
@@ -98,15 +98,15 @@ sequenceDiagram
     participant L as Loss
     participant O as Optimizer
 
-    loop Each Epoch
-        DL->>M: batch of inputs
-        M->>M: forward pass (layer by layer)
-        M->>L: predictions
-        L->>L: compute loss
-        L->>M: backward pass (gradients)
-        M->>O: parameters + gradients
-        O->>M: updated parameters
-        O->>O: zero gradients
+    loop 각 Epoch
+        DL->>M: input batch
+        M->>M: forward pass(layer by layer)
+        M->>L: prediction
+        L->>L: loss 계산
+        L->>M: backward pass(gradient)
+        M->>O: parameter + gradient
+        O->>M: updated parameter
+        O->>O: gradient를 0으로 reset
     end
 ```
 
@@ -151,11 +151,11 @@ classDiagram
 gradient-clipping
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Module Base Class
+### 1단계: Module Base Class
 
-The abstract interface that every layer implements.
+모든 layer가 구현하는 추상 interface입니다.
 
 ```python
 class Module:
@@ -178,9 +178,9 @@ class Module:
         self.training = False
 ```
 
-### Step 2: Linear Layer
+### 2단계: Linear Layer
 
-The fundamental building block. Stores weights and biases, computes Wx + b forward, and weight/input gradients backward.
+기본 building block입니다. weight와 bias를 저장하고, forward에서 Wx + b를 계산하며, backward에서 weight/input gradient를 계산합니다.
 
 ```python
 import math
@@ -227,9 +227,9 @@ class Linear(Module):
         return params
 ```
 
-### Step 3: Activation Modules
+### 3단계: Activation Module
 
-ReLU, Sigmoid, and Tanh as Modules. Each caches what it needs for the backward pass.
+ReLU, Sigmoid, Tanh를 Module로 만듭니다. 각각 backward pass에 필요한 값을 cache합니다.
 
 ```python
 class ReLU(Module):
@@ -274,9 +274,9 @@ class Tanh(Module):
         return [g * (1 - o * o) for g, o in zip(grad, self.output)]
 ```
 
-### Step 4: Dropout Module
+### 4단계: Dropout Module
 
-Randomly zeroes elements during training. Scales remaining elements by 1/(1-p) so expected values stay the same. Does nothing during eval.
+학습 중 element를 무작위로 0으로 만듭니다. 남은 element를 1/(1-p)로 scale해 expected value가 같게 유지되도록 합니다. eval 중에는 아무것도 하지 않습니다.
 
 ```python
 class Dropout(Module):
@@ -297,9 +297,9 @@ class Dropout(Module):
         return [g * m for g, m in zip(grad, self.mask)]
 ```
 
-### Step 5: BatchNorm Module
+### 5단계: BatchNorm Module
 
-Normalizes activations to zero mean and unit variance per feature across the batch. Maintains running statistics for eval mode.
+batch 전체에서 feature별 activation을 평균 0, 분산 1로 normalize합니다. eval mode를 위해 running statistic을 유지합니다.
 
 ```python
 class BatchNorm(Module):
@@ -377,9 +377,9 @@ class BatchNorm(Module):
         return params
 ```
 
-### Step 6: Sequential Container
+### 6단계: Sequential Container
 
-Chains modules. Forward goes left-to-right, backward goes right-to-left.
+module을 chain으로 연결합니다. forward는 왼쪽에서 오른쪽으로, backward는 오른쪽에서 왼쪽으로 진행합니다.
 
 ```python
 class Sequential(Module):
@@ -414,9 +414,9 @@ class Sequential(Module):
             module.eval()
 ```
 
-### Step 7: Loss Functions
+### 7단계: Loss Function
 
-MSE and Binary Cross-Entropy. Each returns the loss value and provides a backward() that returns the gradient.
+MSE와 Binary Cross-Entropy입니다. 각각 loss value를 반환하고 gradient를 반환하는 backward()를 제공합니다.
 
 ```python
 class MSELoss:
@@ -455,9 +455,9 @@ class BCELoss:
         return grads
 ```
 
-### Step 8: SGD and Adam Optimizers
+### 8단계: SGD와 Adam Optimizer
 
-Both take a parameter list and update weights using gradients.
+둘 다 parameter list를 받아 gradient로 weight를 update합니다.
 
 ```python
 class SGD:
@@ -520,9 +520,9 @@ class Adam:
                 grad_container[i] = 0.0
 ```
 
-### Step 9: DataLoader
+### 9단계: DataLoader
 
-Splits data into batches, optionally shuffles each epoch.
+data를 batch로 나누고 각 epoch에서 선택적으로 shuffle합니다.
 
 ```python
 class DataLoader:
@@ -546,9 +546,9 @@ class DataLoader:
         return (len(self.data) + self.batch_size - 1) // self.batch_size
 ```
 
-### Step 10: Train a 4-Layer Network on Circle Classification
+### 10단계: Circle Classification에서 4-Layer Network 학습하기
 
-Wire everything together. Define a model, pick a loss, pick an optimizer, run the training loop.
+모든 것을 연결합니다. model을 정의하고, loss를 고르고, optimizer를 고른 뒤 training loop를 실행합니다.
 
 ```python
 def make_circle_data(n=500, seed=42):
@@ -631,9 +631,9 @@ def train():
     return model, test_accuracy
 ```
 
-## Use It
+## 사용하기
 
-Here is the PyTorch equivalent of what you just built:
+방금 만든 것의 PyTorch 대응 코드는 다음과 같습니다.
 
 ```python
 import torch
@@ -668,44 +668,44 @@ for epoch in range(100):
         test_predictions = model(test_inputs)
 ```
 
-The structure is identical. `Sequential`, `Linear`, `ReLU`, `Sigmoid`, `BCELoss`, `Adam`, `zero_grad`, `backward`, `step`, `train`, `eval`. Every concept maps one-to-one. The difference is that PyTorch handles autograd automatically (no need to implement backward() in each module), runs on GPU, and has been optimized for years. But the bones are the same.
+구조는 동일합니다. `Sequential`, `Linear`, `ReLU`, `Sigmoid`, `BCELoss`, `Adam`, `zero_grad`, `backward`, `step`, `train`, `eval`. 모든 개념이 일대일로 대응됩니다. 차이는 PyTorch가 autograd를 자동으로 처리하고(각 module에 backward()를 구현할 필요가 없습니다), GPU에서 실행되며, 수년간 최적화되었다는 것입니다. 하지만 뼈대는 같습니다.
 
-Now when you see PyTorch code, you know exactly what is happening at every line. That understanding is the whole point.
+이제 PyTorch code를 보면 모든 line에서 정확히 무슨 일이 일어나는지 알 수 있습니다. 그 이해가 이 과정의 핵심입니다.
 
-## Ship It
+## 산출물
 
-This lesson produces:
-- `outputs/prompt-framework-architect.md` -- a prompt for designing neural network architectures using framework abstractions
+이 lesson은 다음을 만듭니다.
+- `outputs/prompt-framework-architect.md` -- framework abstraction을 사용해 neural network architecture를 설계하는 prompt
 
-## Exercises
+## 연습 문제
 
-1. Add a `SoftmaxCrossEntropyLoss` class for multi-class classification. Softmax the predictions, compute cross-entropy loss, and handle the combined backward pass. Test it on a 3-class spiral dataset.
+1. multi-class classification을 위한 `SoftmaxCrossEntropyLoss` class를 추가하세요. prediction에 softmax를 적용하고, cross-entropy loss를 계산하고, 결합된 backward pass를 처리하세요. 3-class spiral dataset에서 test하세요.
 
-2. Implement learning rate scheduling in the optimizer: add a `set_lr()` method and wire in the cosine schedule from Lesson 09. Train the circle classifier with warmup + cosine and compare to constant LR.
+2. optimizer에 learning rate scheduling을 구현하세요. `set_lr()` method를 추가하고 Lesson 09의 cosine schedule을 연결하세요. warmup + cosine으로 circle classifier를 학습하고 constant LR과 비교하세요.
 
-3. Add a `save()` and `load()` method to Sequential that serializes all weights to a JSON file and loads them back. Verify that a loaded model produces the same predictions as the original.
+3. 모든 weight를 JSON file로 serialize하고 다시 load하는 `save()`와 `load()` method를 Sequential에 추가하세요. load된 model이 original과 같은 prediction을 만드는지 검증하세요.
 
-4. Implement weight decay (L2 regularization) in the Adam optimizer. Add a `weight_decay` parameter that shrinks weights toward zero each step. Compare training with decay=0 vs decay=0.01.
+4. Adam optimizer에 weight decay(L2 regularization)를 구현하세요. 각 step에서 weight를 0쪽으로 줄이는 `weight_decay` parameter를 추가하세요. decay=0과 decay=0.01의 학습을 비교하세요.
 
-5. Replace the per-sample training loop with proper mini-batch gradient accumulation: accumulate gradients across all samples in a batch, then divide by batch size and take one optimizer step. Measure whether this changes convergence speed.
+5. sample별 training loop를 올바른 mini-batch gradient accumulation으로 바꾸세요. batch의 모든 sample에 대해 gradient를 accumulate한 뒤 batch size로 나누고 optimizer step을 한 번 수행하세요. 이것이 수렴 속도를 바꾸는지 측정하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Module | "A layer" | The base abstraction in a framework -- anything with forward(), backward(), and parameters() |
-| Sequential | "Stack layers in order" | A container that chains modules, applying them in sequence for forward and reverse for backward |
-| Forward pass | "Run the network" | Computing the output by passing input through each module in order |
-| Backward pass | "Compute gradients" | Propagating the loss gradient through each module in reverse to compute parameter gradients |
-| Parameters | "The trainable weights" | All values in the network that the optimizer can update -- weights and biases |
-| Optimizer | "The thing that updates weights" | An algorithm that uses gradients to update parameters, implementing SGD, Adam, or other rules |
-| DataLoader | "The thing that feeds data" | An iterator that splits a dataset into batches, optionally shuffling between epochs |
-| Training mode | "model.train()" | A flag that enables stochastic behavior like dropout and batch normalization with batch stats |
-| Evaluation mode | "model.eval()" | A flag that disables dropout and uses running statistics for batch normalization |
-| Zero grad | "Clear the gradients" | Resetting all parameter gradients to zero before computing the next batch's gradients |
+| Module | "하나의 layer" | framework의 기본 추상화. forward(), backward(), parameters()를 가진 모든 것 |
+| Sequential | "layer를 순서대로 쌓기" | module을 chain으로 연결해 forward에는 순서대로, backward에는 역순으로 적용하는 container |
+| Forward pass | "네트워크 실행" | input을 각 module에 순서대로 통과시켜 output을 계산하는 것 |
+| Backward pass | "gradient 계산" | loss gradient를 각 module에 역순으로 전파해 parameter gradient를 계산하는 것 |
+| Parameters | "학습 가능한 weight" | optimizer가 update할 수 있는 network의 모든 값. weight와 bias |
+| Optimizer | "weight를 update하는 것" | gradient를 사용해 parameter를 update하는 algorithm. SGD, Adam 또는 다른 규칙을 구현합니다 |
+| DataLoader | "data를 공급하는 것" | dataset을 batch로 나누고 epoch 사이에 선택적으로 shuffle하는 iterator |
+| Training mode | "model.train()" | dropout과 batch statistic을 사용하는 batch normalization 같은 stochastic behavior를 켜는 flag |
+| Evaluation mode | "model.eval()" | dropout을 끄고 batch normalization에 running statistic을 사용하게 하는 flag |
+| Zero grad | "gradient 지우기" | 다음 batch의 gradient를 계산하기 전에 모든 parameter gradient를 0으로 reset하는 것 |
 
-## Further Reading
+## 더 읽을거리
 
-- Paszke et al., "PyTorch: An Imperative Style, High-Performance Deep Learning Library" (2019) -- the paper describing PyTorch's design decisions
-- Chollet, "Deep Learning with Python, Second Edition" (2021) -- Chapter 3 covers Keras internals with the same module/layer abstraction
-- Johnson, "Tiny-DNN" (https://github.com/tiny-dnn/tiny-dnn) -- a header-only C++ deep learning framework for understanding framework internals
+- Paszke et al., "PyTorch: An Imperative Style, High-Performance Deep Learning Library" (2019) -- PyTorch의 design decision을 설명하는 논문
+- Chollet, "Deep Learning with Python, Second Edition" (2021) -- Chapter 3은 같은 module/layer abstraction으로 Keras internals를 다룹니다
+- Johnson, "Tiny-DNN" (https://github.com/tiny-dnn/tiny-dnn) -- framework internals를 이해하기 위한 header-only C++ deep learning framework

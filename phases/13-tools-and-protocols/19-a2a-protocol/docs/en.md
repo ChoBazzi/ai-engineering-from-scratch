@@ -1,36 +1,36 @@
 # A2A — Agent-to-Agent Protocol
 
-> MCP is agent-to-tool. A2A (Agent2Agent) is agent-to-agent — an open protocol for letting opaque agents built on different frameworks collaborate. Released by Google in April 2025, donated to the Linux Foundation in June 2025, reaching v1.0 in April 2026 with 150+ supporters including AWS, Cisco, Microsoft, Salesforce, SAP, and ServiceNow. It absorbed IBM's ACP and added the AP2 payments extension. This lesson walks the Agent Card, Task lifecycle, and the two transport bindings.
+> MCP는 agent-to-tool입니다. A2A(Agent2Agent)는 agent-to-agent입니다. 서로 다른 framework 위에 만들어진 opaque agent들이 협업하게 해 주는 open protocol입니다. Google이 2025년 4월 공개했고, 2025년 6월 Linux Foundation에 기증했으며, 2026년 4월 v1.0에 도달했습니다. AWS, Cisco, Microsoft, Salesforce, SAP, ServiceNow를 포함한 150개 이상의 supporter가 있습니다. IBM의 ACP를 흡수했고 AP2 payments extension을 추가했습니다. 이 lesson은 Agent Card, Task lifecycle, 두 transport binding을 살펴봅니다.
 
 **Type:** Build
 **Languages:** Python (stdlib, Agent Card + Task harness)
 **Prerequisites:** Phase 13 · 06 (MCP fundamentals), Phase 13 · 08 (MCP client)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Distinguish agent-to-tool (MCP) from agent-to-agent (A2A) use cases.
-- Publish an Agent Card at `/.well-known/agent.json` with skills and endpoint metadata.
-- Walk the Task lifecycle (submitted → working → input-required → completed / failed / canceled / rejected).
-- Use Messages with Parts (text, file, data) and Artifacts as outputs.
+- agent-to-tool(MCP)과 agent-to-agent(A2A) use case를 구분합니다.
+- `/.well-known/agent.json`에 skill 및 endpoint metadata가 있는 Agent Card를 게시합니다.
+- Task lifecycle(submitted → working → input-required → completed / failed / canceled / rejected)을 따라갑니다.
+- Part(text, file, data)가 있는 Message와 output으로서의 Artifact를 사용합니다.
 
-## The Problem
+## 문제
 
-A customer-service agent needs to delegate report-writing to a specialized writer agent. Options pre-A2A:
+고객 서비스 agent가 report-writing을 전문 writer agent에게 delegate해야 합니다. A2A 이전의 선택지는 다음과 같았습니다.
 
-- Custom REST API. Works but every pairing is a one-off.
-- Shared codebase. Requires the two agents to run the same framework.
-- MCP. Doesn't fit: MCP is for calling tools, not for two agents collaborating while preserving each agent's opaque internal reasoning.
+- Custom REST API. 동작은 하지만 모든 pairing이 one-off입니다.
+- Shared codebase. 두 agent가 같은 framework에서 실행되어야 합니다.
+- MCP. 맞지 않습니다. MCP는 tool을 호출하기 위한 것이지, 각 agent의 opaque internal reasoning을 보존하면서 두 agent가 협업하기 위한 것이 아닙니다.
 
-A2A fills the gap. It models the interaction as one agent sending a Task to another, with a lifecycle, messages, and artifacts. The called agent's internal state stays opaque — the caller sees only task state transitions and eventual outputs.
+A2A는 이 간극을 채웁니다. 한 agent가 다른 agent에게 Task를 보내는 interaction으로 모델링하며 lifecycle, message, artifact를 갖습니다. 호출된 agent의 internal state는 opaque로 유지됩니다. caller는 task state transition과 최종 output만 봅니다.
 
-A2A is the "let agents across frameworks talk to each other" protocol. It does not replace MCP; the two are complementary.
+A2A는 "framework가 다른 agent들이 서로 대화하게 하는" protocol입니다. MCP를 대체하지 않습니다. 둘은 상호 보완적입니다.
 
-## The Concept
+## 개념
 
 ### Agent Card
 
-Every A2A-compliant agent publishes a card at `/.well-known/agent.json`:
+모든 A2A-compliant agent는 `/.well-known/agent.json`에 card를 게시합니다.
 
 ```json
 {
@@ -52,30 +52,30 @@ Every A2A-compliant agent publishes a card at `/.well-known/agent.json`:
 }
 ```
 
-Discovery is URL-based: fetch the card, learn the URL of the A2A endpoint, enumerate skills.
+Discovery는 URL 기반입니다. card를 fetch하고, A2A endpoint의 URL을 배우고, skill을 enumerate합니다.
 
 ### Signed Agent Cards (AP2)
 
-The AP2 extension (September 2025) adds cryptographic signatures to Agent Cards. A publisher signs its own card with a JWT; consumers verify. Prevents impersonation.
+AP2 extension(2025년 9월)은 Agent Card에 cryptographic signature를 추가합니다. publisher가 자기 card를 JWT로 서명하고 consumer가 검증합니다. impersonation을 방지합니다.
 
 ### Task lifecycle
 
-```
+```text
 submitted -> working -> completed | failed | canceled | rejected
              -> input_required -> working (loop via message)
 ```
 
-Clients initiate with `tasks/send`. The called agent transitions through states; clients subscribe to state updates via SSE or poll.
+Client는 `tasks/send`로 시작합니다. 호출된 agent는 state를 전환합니다. client는 SSE로 state update를 subscribe하거나 poll합니다.
 
 ### Messages and Parts
 
-A message carries one or more Parts:
+Message는 하나 이상의 Part를 담습니다.
 
 - `text` — plain content.
-- `file` — base64 blob with mimeType.
-- `data` — typed JSON payload (structured input for the called agent).
+- `file` — mimeType이 있는 base64 blob.
+- `data` — typed JSON payload(호출된 agent를 위한 structured input).
 
-Example:
+예:
 
 ```json
 {
@@ -90,7 +90,7 @@ Example:
 
 ### Artifacts
 
-Outputs are Artifacts, not raw strings. An Artifact is a named, typed output:
+Output은 raw string이 아니라 Artifact입니다. Artifact는 이름과 type이 있는 output입니다.
 
 ```json
 {
@@ -100,89 +100,89 @@ Outputs are Artifacts, not raw strings. An Artifact is a named, typed output:
 }
 ```
 
-Artifacts can be streamed as chunks. The caller accumulates.
+Artifact는 chunk로 stream될 수 있습니다. caller가 누적합니다.
 
 ### Two transport bindings
 
-1. **JSON-RPC over HTTP.** `/a2a` endpoint, POST for requests, optional SSE for streaming. Default binding.
-2. **gRPC.** For enterprise environments where gRPC is native.
+1. **JSON-RPC over HTTP.** `/a2a` endpoint, request에는 POST, streaming에는 optional SSE. 기본 binding입니다.
+2. **gRPC.** gRPC가 native인 enterprise environment용입니다.
 
-Both bindings carry the same logical message shape.
+두 binding은 같은 logical message shape를 전달합니다.
 
 ### Opacity preservation
 
-A key design principle: the called agent's internal state is opaque. The caller sees task state and artifacts. The called agent's chain-of-thought, its tool calls, its sub-agent delegation — all invisible. This is different from MCP, where tool calls are transparent.
+핵심 design principle: 호출된 agent의 internal state는 opaque입니다. caller는 task state와 artifact만 봅니다. 호출된 agent의 chain-of-thought, tool call, sub-agent delegation은 모두 보이지 않습니다. tool call이 transparent한 MCP와 다릅니다.
 
-Rationale: A2A enables competitors to collaborate without revealing internals. A2A can be "call this customer-service agent" without the caller learning how that agent implements the service.
+이유: A2A는 경쟁자끼리도 internals를 공개하지 않고 협업할 수 있게 합니다. A2A는 caller가 service 구현 방식을 알지 않고도 "이 customer-service agent를 호출하라"가 될 수 있습니다.
 
 ### Timeline
 
-- **2025-04-09.** Google announces A2A.
-- **2025-06-23.** Donated to Linux Foundation.
-- **2025-08.** Absorbs IBM's ACP.
-- **2025-09.** AP2 extension (Agent Payments) ships.
-- **2026-04.** v1.0 released with 150+ supporting organizations.
+- **2025-04-09.** Google이 A2A를 발표합니다.
+- **2025-06-23.** Linux Foundation에 기증됩니다.
+- **2025-08.** IBM의 ACP를 흡수합니다.
+- **2025-09.** AP2 extension(Agent Payments)이 출시됩니다.
+- **2026-04.** 150개 이상의 지원 조직과 함께 v1.0이 출시됩니다.
 
 ### Relationship to MCP
 
-| Dimension | MCP | A2A |
+| 비교 기준 | MCP | A2A |
 |-----------|-----|-----|
 | Use case | Agent-to-tool | Agent-to-agent |
-| Opacity | Transparent tool calls | Opaque inner reasoning |
-| Typical caller | Agent runtime | Another agent |
-| State | Tool-call result | Task with lifecycle |
+| Opacity | transparent tool call | opaque inner reasoning |
+| Typical caller | Agent runtime | 다른 agent |
+| State | Tool-call result | lifecycle이 있는 Task |
 | Authorization | OAuth 2.1 (Phase 13 · 16) | JWT-signed Agent Cards (AP2) |
 | Transport | Stdio / Streamable HTTP | JSON-RPC over HTTP / gRPC |
 
-Use MCP when you want to invoke a specific tool. Use A2A when you want to delegate a whole task to another agent. Many production systems use both: an agent uses MCP for its tool layer and A2A for its collaboration layer.
+특정 tool을 호출하려면 MCP를 사용하세요. 전체 task를 다른 agent에게 delegate하려면 A2A를 사용하세요. 많은 production system은 둘 다 사용합니다. agent는 tool layer에 MCP를 쓰고 collaboration layer에 A2A를 씁니다.
 
-## Use It
+## 사용하기
 
-`code/main.py` implements a minimal A2A harness: a research agent publishes its card, a writer agent receives a `tasks/send` with parts including a PDF and a text instruction, transitions through working → input_required → working → completed, and returns a text artifact. All stdlib; uses an in-memory transport to focus on message shapes.
+`code/main.py`는 minimal A2A harness를 구현합니다. research agent가 card를 게시하고, writer agent가 PDF와 text instruction을 포함한 part가 있는 `tasks/send`를 받아 working → input_required → working → completed를 거쳐 text artifact를 반환합니다. 전부 stdlib이며 message shape에 집중하도록 in-memory transport를 사용합니다.
 
-What to look at:
+볼 부분:
 
 - Agent Card JSON shape.
-- Task id assignment and state transitions.
-- Messages with mixed-type parts.
-- Input-required branch mid-task.
-- Artifact return on completion.
+- Task id assignment와 state transition.
+- mixed-type part가 있는 message.
+- task 중간의 input-required branch.
+- completion 시 artifact return.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-a2a-agent-spec.md`. Given a new agent that should be callable by other agents, the skill produces the Agent Card JSON, skills schema, and endpoint blueprint.
+이 lesson은 `outputs/skill-a2a-agent-spec.md`를 만듭니다. 다른 agent가 호출할 수 있어야 하는 새 agent가 주어지면 이 skill은 Agent Card JSON, skills schema, endpoint blueprint를 만듭니다.
 
-## Exercises
+## 연습 문제
 
-1. Run `code/main.py`. Trace the full Task lifecycle, including the input-required pause where the called agent asks for a clarification.
+1. `code/main.py`를 실행하세요. 호출된 agent가 clarification을 요청하는 input-required pause를 포함해 전체 Task lifecycle을 trace하세요.
 
-2. Add a signed Agent Card. Sign with HMAC over the card's canonical JSON. Write a verifier and confirm it fails on a mutated card.
+2. signed Agent Card를 추가하세요. card의 canonical JSON에 HMAC으로 서명하세요. verifier를 작성하고 mutate된 card에서 실패하는지 확인하세요.
 
-3. Implement task streaming: the writer agent emits three incremental artifact chunks over SSE and the caller accumulates them.
+3. task streaming을 구현하세요. writer agent가 SSE로 세 개의 incremental artifact chunk를 emit하고 caller가 누적하게 하세요.
 
-4. Design an A2A agent that wraps an MCP server. Map each MCP tool to an A2A skill. Note the trade-offs — what opacity is lost?
+4. MCP 서버를 wrap하는 A2A agent를 설계하세요. 각 MCP tool을 A2A skill에 매핑하세요. 어떤 opacity가 사라지는지 trade-off를 기록하세요.
 
-5. Read the A2A v1.0 announcement and identify the one feature that is not yet implemented by any framework as of April 2026. (Hint: it relates to multi-hop task delegation.)
+5. A2A v1.0 announcement를 읽고 2026년 4월 기준 어떤 framework도 아직 구현하지 않은 feature 하나를 식별하세요. (힌트: multi-hop task delegation과 관련 있습니다.)
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
-| A2A | "Agent-to-Agent protocol" | Open protocol for opaque agent collaboration |
-| Agent Card | "`.well-known/agent.json`" | Published metadata describing an agent's skills and endpoint |
-| Skill | "A callable unit" | A named operation the agent supports (analog to MCP tool) |
-| Task | "Unit of delegation" | A work item with a lifecycle and final artifact |
-| Message | "Task input" | Carries Parts (text, file, data) |
-| Part | "Typed chunk" | `text` / `file` / `data` element of a message |
-| Artifact | "Task output" | Named, typed output returned on completion |
-| AP2 | "Agent Payments Protocol" | Signed Agent Cards extension for trust and payments |
-| Opacity | "Black-box collaboration" | Called agent's internals are hidden from caller |
-| Input-required | "Task pause" | Lifecycle state when the agent needs more info |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
+|------|----------------|-----------|
+| A2A | "Agent-to-Agent protocol" | opaque agent collaboration을 위한 open protocol |
+| Agent Card | "`.well-known/agent.json`" | agent의 skill과 endpoint를 설명하는 published metadata |
+| Skill | "A callable unit" | agent가 지원하는 named operation(MCP tool의 analog) |
+| Task | "Unit of delegation" | lifecycle과 final artifact가 있는 work item |
+| Message | "Task input" | Part(text, file, data)를 운반함 |
+| Part | "Typed chunk" | message의 `text` / `file` / `data` element |
+| Artifact | "Task output" | completion 시 반환되는 named, typed output |
+| AP2 | "Agent Payments Protocol" | trust와 payment를 위한 Signed Agent Cards extension |
+| Opacity | "Black-box collaboration" | 호출된 agent의 internals가 caller에게 숨겨짐 |
+| Input-required | "Task pause" | agent가 추가 정보를 필요로 할 때의 lifecycle state |
 
-## Further Reading
+## 더 읽을거리
 
 - [a2a-protocol.org](https://a2a-protocol.org/latest/) — canonical A2A specification
 - [a2aproject/A2A — GitHub](https://github.com/a2aproject/A2A) — reference implementations and SDKs
-- [Linux Foundation — A2A launch press release](https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project-to-enable-secure-intelligent-communication-between-ai-agents) — June 2025 governance transfer
-- [Google Cloud — A2A protocol upgrade](https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade) — roadmap and partner momentum
-- [Google Dev — A2A 1.0 milestone](https://discuss.google.dev/t/the-a2a-1-0-milestone-ensuring-and-testing-backward-compatibility/352258) — v1.0 release notes and backward-compat guidance
+- [Linux Foundation — A2A launch press release](https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project-to-enable-secure-intelligent-communication-between-ai-agents) — 2025년 6월 governance transfer
+- [Google Cloud — A2A protocol upgrade](https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade) — roadmap와 partner momentum
+- [Google Dev — A2A 1.0 milestone](https://discuss.google.dev/t/the-a2a-1-0-milestone-ensuring-and-testing-backward-compatibility/352258) — v1.0 release notes 및 backward-compat guidance

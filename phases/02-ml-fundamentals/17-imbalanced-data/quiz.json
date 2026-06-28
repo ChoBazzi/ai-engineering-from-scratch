@@ -2,7 +2,7 @@
   {
     "id": "imbalanced-pre-1",
     "stage": "pre",
-    "question": "A fraud detection dataset has 99.9% legitimate transactions and 0.1% fraud. A model predicts 'legitimate' for every transaction. What is its accuracy?",
+    "question": "사기 탐지 데이터셋에 정상 거래가 99.9%, 사기가 0.1% 있습니다. 어떤 모델이 모든 거래를 '정상'으로 예측합니다. 이 모델의 정확도는 얼마인가요?",
     "options": [
       "50%",
       "0.1%",
@@ -10,58 +10,58 @@
       "100%"
     ],
     "correct": 2,
-    "explanation": "Accuracy = 999/1000 = 99.9%. The model catches zero fraud but looks great by accuracy. This is exactly why accuracy is dangerous for imbalanced datasets."
+    "explanation": "정확도 = 999/1000 = 99.9%입니다. 이 모델은 사기를 하나도 잡지 못하지만 정확도로 보면 훌륭해 보입니다. 이것이 불균형 데이터셋에서 정확도가 위험한 바로 그 이유입니다."
   },
   {
     "id": "imbalanced-pre-2",
     "stage": "pre",
-    "question": "Which metric would correctly identify the always-predict-negative model as useless?",
+    "question": "항상 음성으로 예측하는 모델이 쓸모없다는 것을 올바르게 드러내는 지표는 무엇인가요?",
     "options": [
-      "Accuracy (99.9%)",
-      "Recall (0%) or F1 score (0%)",
-      "Specificity (100%)",
-      "True negative rate (100%)"
+      "정확도(99.9%)",
+      "재현율(0%) 또는 F1 점수(0%)",
+      "특이도(100%)",
+      "진음성률(100%)"
     ],
     "correct": 1,
-    "explanation": "Recall = TP/(TP+FN) = 0/total_positives = 0%. F1 = 2*0*0/(0+0) = 0. Both correctly show the model catches nothing in the positive class. Accuracy hides this failure."
+    "explanation": "재현율 = TP/(TP+FN) = 0/전체_양성 = 0%입니다. F1 = 2*0*0/(0+0) = 0입니다. 둘 다 모델이 양성 클래스를 전혀 잡지 못한다는 사실을 올바르게 보여 줍니다. 정확도는 이 실패를 숨깁니다."
   },
   {
     "id": "imbalanced-post-1",
     "stage": "post",
-    "question": "How does SMOTE generate synthetic minority samples?",
+    "question": "SMOTE는 합성 소수 클래스 샘플을 어떻게 생성하나요?",
     "options": [
-      "By duplicating existing minority samples exactly",
-      "By randomly generating points anywhere in the feature space",
-      "By interpolating between a minority sample and one of its K nearest minority neighbors",
-      "By flipping the labels of majority class samples"
+      "기존 소수 클래스 샘플을 정확히 복제한다",
+      "특성 공간 어디에나 무작위로 점을 생성한다",
+      "소수 클래스 샘플과 그 K개 최근접 소수 클래스 이웃 중 하나 사이를 보간한다",
+      "다수 클래스 샘플의 레이블을 뒤집는다"
     ],
     "correct": 2,
-    "explanation": "SMOTE picks a minority point, selects one of its K nearest minority neighbors, and creates a new point on the line segment between them: new = x + rand(0,1) * (neighbor - x). This produces plausible, non-duplicate samples."
+    "explanation": "SMOTE는 소수 클래스 점을 고르고, 그 K개 최근접 소수 클래스 이웃 중 하나를 선택한 뒤, 둘 사이의 선분 위에 새 점을 만듭니다: new = x + rand(0,1) * (neighbor - x). 이렇게 하면 그럴듯하면서도 중복이 아닌 샘플이 생성됩니다."
   },
   {
     "id": "imbalanced-post-2",
     "stage": "post",
-    "question": "You lower the classification threshold from 0.5 to 0.3 on an imbalanced dataset. What happens to precision and recall?",
+    "question": "불균형 데이터셋에서 분류 임계값을 0.5에서 0.3으로 낮추면 정밀도와 재현율은 어떻게 되나요?",
     "options": [
-      "Both precision and recall increase",
-      "Recall increases (more positives caught) but precision decreases (more false positives)",
-      "Precision increases but recall decreases",
-      "Neither changes -- threshold only affects speed"
+      "정밀도와 재현율이 모두 증가한다",
+      "재현율은 증가하지만(더 많은 양성을 잡음) 정밀도는 감소한다(더 많은 거짓 양성)",
+      "정밀도는 증가하지만 재현율은 감소한다",
+      "둘 다 변하지 않는다 -- 임계값은 속도에만 영향을 준다"
     ],
     "correct": 1,
-    "explanation": "Lowering the threshold means more samples are predicted positive. This catches more true positives (recall up) but also adds more false positives (precision down). Threshold tuning trades precision for recall."
+    "explanation": "임계값을 낮추면 더 많은 샘플이 양성으로 예측됩니다. 이로 인해 더 많은 진양성을 잡아 재현율은 올라가지만, 더 많은 거짓 양성도 추가되어 정밀도는 내려갑니다. 임계값 튜닝은 정밀도와 재현율을 맞바꿉니다."
   },
   {
     "id": "imbalanced-post-3",
     "stage": "post",
-    "question": "Why is AUPRC (Area Under Precision-Recall Curve) more informative than AUC-ROC for highly imbalanced datasets?",
+    "question": "심하게 불균형한 데이터셋에서 AUPRC(정밀도-재현율 곡선 아래 면적)가 AUC-ROC보다 더 유용한 이유는 무엇인가요?",
     "options": [
-      "AUPRC is always higher than AUC-ROC",
-      "A random classifier has AUPRC equal to the positive class rate (e.g., 0.001), making improvements visible, while AUC-ROC starts at 0.5 regardless of imbalance",
-      "AUPRC does not require a threshold",
-      "AUC-ROC cannot be computed for imbalanced data"
+      "AUPRC는 항상 AUC-ROC보다 높다",
+      "무작위 분류기의 AUPRC 기준선은 양성 클래스 비율(예: 0.001)과 같아 개선이 보이지만, AUC-ROC는 불균형과 관계없이 0.5에서 시작한다",
+      "AUPRC는 임계값이 필요 없다",
+      "AUC-ROC는 불균형 데이터에서는 계산할 수 없다"
     ],
     "correct": 1,
-    "explanation": "For imbalanced data, AUC-ROC can look deceptively good because the large number of true negatives inflates the true negative rate. AUPRC's baseline equals the positive rate, making real improvements in detecting the minority class much more apparent."
+    "explanation": "불균형 데이터에서는 많은 진음성 때문에 진음성률이 부풀려져 AUC-ROC가 기만적으로 좋아 보일 수 있습니다. AUPRC의 기준선은 양성 비율과 같아서 소수 클래스를 탐지하는 실제 개선이 훨씬 더 분명하게 보입니다."
   }
 ]

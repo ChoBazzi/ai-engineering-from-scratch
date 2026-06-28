@@ -1,90 +1,90 @@
 {
   "lesson": "13-langgraph-stateful-graphs",
-  "title": "LangGraph: Stateful Graphs and Durable Execution",
+  "title": "LangGraph: Stateful Graph와 Durable Execution",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does LangGraph treat as the core unit of the agent?",
+      "question": "LangGraph는 agent의 core unit을 무엇으로 취급하나요?",
       "options": [
-        "A free-form LLM call",
-        "A state machine with typed state, function nodes, and conditional edges",
-        "A single tool registry",
-        "A vector index"
+        "Free-form LLM call",
+        "Typed state, function node, conditional edge를 가진 state machine",
+        "Single tool registry",
+        "Vector index"
       ],
       "correct": 1,
-      "explanation": "LangGraph models the agent as a state graph: nodes are pure functions, edges are transitions, state is typed and immutable."
+      "explanation": "LangGraph는 agent를 state graph로 모델링합니다. Node는 pure function이고 edge는 transition이며 state는 typed이고 immutable합니다."
     },
     {
       "stage": "pre",
-      "question": "Which problem does durable execution solve?",
+      "question": "Durable execution은 어떤 문제를 해결하나요?",
       "options": [
-        "Reducing inference cost",
-        "Resuming a 40-step run from step 38 when it fails, with exact state, instead of starting over",
-        "Generating embeddings faster",
-        "Translating between providers"
+        "Inference cost 줄이기",
+        "40-step run이 실패했을 때 처음부터 시작하지 않고 exact state로 step 38에서 resume하기",
+        "Embedding을 더 빠르게 생성하기",
+        "Provider 사이 번역하기"
       ],
       "correct": 1,
-      "explanation": "Checkpoints after every node let the runtime resume from the last successful step."
+      "explanation": "모든 node 뒤의 checkpoint를 통해 runtime은 last successful step에서 resume할 수 있습니다."
     },
     {
       "stage": "check",
-      "question": "Which of these is NOT one of the three topologies LangGraph supports?",
+      "question": "다음 중 LangGraph가 지원하는 세 topology 중 하나가 아닌 것은 무엇인가요?",
       "options": [
         "Supervisor",
-        "Swarm (peer-to-peer)",
-        "Hierarchical (nested subgraphs)",
+        "Swarm(peer-to-peer)",
+        "Hierarchical(nested subgraphs)",
         "Gradient ring"
       ],
       "correct": 3,
-      "explanation": "Topologies are supervisor, swarm, and hierarchical. Gradient ring is not a LangGraph topology."
+      "explanation": "Topology는 supervisor, swarm, hierarchical입니다. Gradient ring은 LangGraph topology가 아닙니다."
     },
     {
       "stage": "check",
-      "question": "Why must nodes be deterministic for resume to work cleanly?",
+      "question": "Resume이 깔끔히 작동하려면 왜 node가 deterministic해야 하나요?",
       "options": [
-        "Providers require determinism",
-        "Resume assumes the same inputs produce the same state update; random seeds, wall-clock, and external APIs must be captured",
-        "Determinism reduces token cost",
-        "It is required by the GIL"
+        "Provider가 determinism을 요구하기 때문에",
+        "Resume은 같은 input이 같은 state update를 만든다고 가정합니다. Random seed, wall-clock, external API를 capture해야 합니다",
+        "Determinism이 token cost를 줄이기 때문에",
+        "GIL이 요구하기 때문에"
       ],
       "correct": 1,
-      "explanation": "If a node depends on uncaptured nondeterminism, resume cannot reconstruct the post-step state."
+      "explanation": "Node가 capture되지 않은 nondeterminism에 의존하면 resume이 post-step state를 재구성할 수 없습니다."
     },
     {
       "stage": "check",
-      "question": "What is a conditional edge?",
+      "question": "Conditional edge란 무엇인가요?",
       "options": [
-        "An edge weighted by training loss",
-        "An edge chosen by a function of state, used to branch the graph",
-        "An edge that runs only on GPUs",
-        "An edge with a TTL"
+        "Training loss로 weighted된 edge",
+        "State의 function으로 선택되며 graph를 branch하는 데 쓰이는 edge",
+        "GPU에서만 실행되는 edge",
+        "TTL이 있는 edge"
       ],
       "correct": 1,
-      "explanation": "Conditional edges branch based on state; overusing them makes the graph hard to reason about."
+      "explanation": "Conditional edge는 state를 바탕으로 branch합니다. 과사용하면 graph를 추론하기 어려워집니다."
     },
     {
       "stage": "post",
-      "question": "What goes wrong when checkpoints are too small?",
+      "question": "Checkpoint가 너무 작으면 무엇이 잘못되나요?",
       "options": [
-        "Tool state and memory writes are not recoverable; full state must serialize",
-        "The disk fills up",
-        "The graph cannot reach END",
-        "The model produces shorter answers"
+        "Tool state와 memory write를 recover할 수 없습니다. Full state가 serialize되어야 합니다",
+        "Disk가 가득 찹니다",
+        "Graph가 END에 도달할 수 없습니다",
+        "Model이 더 짧은 answer를 생성합니다"
       ],
       "correct": 0,
-      "explanation": "Only checkpointing conversation turns leaves tool state and memory writes outside resume's reach."
+      "explanation": "Conversation turn만 checkpoint하면 tool state와 memory write가 resume의 범위 밖에 남습니다."
     },
     {
       "stage": "post",
-      "question": "Where does human-in-the-loop fit into LangGraph's design?",
+      "question": "Human-in-the-loop는 LangGraph design에서 어디에 들어맞나요?",
       "options": [
-        "It requires a fork of the runtime",
-        "Pause before a critical node, surface serialized state to a human, accept modifications, resume; the checkpointer makes this cheap",
-        "Only at START and END",
-        "Through a separate provider API"
+        "Runtime fork가 필요합니다",
+        "Critical node 앞에서 pause하고 serialized state를 human에게 surface하며 modification을 받아 resume합니다. Checkpointer가 이를 저렴하게 만듭니다",
+        "START와 END에서만",
+        "별도 provider API를 통해서만"
       ],
       "correct": 1,
-      "explanation": "Because state is already serialized between nodes, human review and edit is a natural pause-and-resume pattern."
+      "explanation": "State가 node 사이에 이미 serialize되므로 human review와 edit는 자연스러운 pause-and-resume pattern입니다."
     }
   ]
 }

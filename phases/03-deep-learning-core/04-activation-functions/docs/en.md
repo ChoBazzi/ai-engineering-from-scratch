@@ -1,170 +1,170 @@
-# Activation Functions
+# 활성화 함수
 
-> Without nonlinearity, your 100-layer network is a fancy matrix multiply. Activations are the gates that let neural networks think in curves.
+> 비선형성이 없으면 100층 네트워크도 그럴듯한 행렬 곱셈에 불과합니다. 활성화 함수는 신경망이 곡선으로 생각하게 해 주는 문입니다.
 
 **Type:** Build
 **Languages:** Python
-**Prerequisites:** Lesson 03.03 (Backpropagation)
+**Prerequisites:** Lesson 03.03 (백프로퍼게이션)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement sigmoid, tanh, ReLU, Leaky ReLU, GELU, Swish, and softmax with their derivatives from scratch
-- Diagnose the vanishing gradient problem by measuring activation magnitudes through 10+ layers with different activations
-- Detect dead neurons in a ReLU network and explain why GELU avoids this failure mode
-- Select the correct activation function for a given architecture (transformer, CNN, RNN, output layer)
+- sigmoid, tanh, ReLU, Leaky ReLU, GELU, Swish, softmax와 그 미분을 직접 구현합니다
+- 서로 다른 활성화 함수로 10개 이상의 층을 통과할 때 활성화값 크기를 측정해 그래디언트 소실 문제를 진단합니다
+- ReLU 네트워크에서 죽은 뉴런을 감지하고 GELU가 왜 이 실패 모드를 피하는지 설명합니다
+- 주어진 아키텍처(transformer, CNN, RNN, 출력층)에 맞는 활성화 함수를 선택합니다
 
-## The Problem
+## 문제
 
-Stack two linear transformations: y = W2(W1x + b1) + b2. Expand it: y = W2W1x + W2b1 + b2. That's just y = Ax + c -- a single linear transformation. No matter how many linear layers you stack, the result collapses to one matrix multiply. Your 100-layer network has the same representational power as a single layer.
+선형 변환 두 개를 쌓아 봅시다. y = W2(W1x + b1) + b2입니다. 전개하면 y = W2W1x + W2b1 + b2입니다. 이것은 결국 y = Ax + c, 즉 하나의 선형 변환입니다. 선형층을 아무리 많이 쌓아도 결과는 하나의 행렬 곱셈으로 접힙니다. 100층 네트워크가 단일 층과 같은 표현력을 갖게 됩니다.
 
-This is not a theoretical curiosity. It means a deep linear network literally cannot learn XOR, cannot classify a spiral dataset, cannot recognize a face. Without activation functions, depth is an illusion.
+이것은 이론적 호기심에 그치지 않습니다. 깊은 선형 네트워크는 문자 그대로 XOR를 학습할 수 없고, 나선형 데이터셋을 분류할 수 없고, 얼굴을 인식할 수 없다는 뜻입니다. 활성화 함수가 없으면 깊이는 착시입니다.
 
-Activation functions break the linearity. They warp the output of each layer through a nonlinear function, giving the network the ability to bend decision boundaries, approximate arbitrary functions, and actually learn. But pick the wrong activation and your gradients vanish to zero (sigmoid in deep networks), explode to infinity (unbounded activations without careful initialization), or your neurons die permanently (ReLU with large negative biases). The choice of activation function directly determines whether your network learns at all.
+활성화 함수는 선형성을 깨뜨립니다. 각 층의 출력을 비선형 함수로 휘게 만들어 네트워크가 결정 경계를 굽히고, 임의의 함수를 근사하고, 실제로 학습할 수 있게 합니다. 하지만 잘못된 활성화 함수를 고르면 그래디언트가 0으로 사라지거나(깊은 네트워크의 sigmoid), 무한대로 폭주하거나(주의 깊은 초기화가 없는 비제한 활성화), 뉴런이 영구히 죽습니다(큰 음수 편향을 가진 ReLU). 활성화 함수 선택은 네트워크가 애초에 학습할 수 있는지를 직접 결정합니다.
 
-## The Concept
+## 개념
 
-### Why Nonlinearity Is Necessary
+### 비선형성이 필요한 이유
 
-Matrix multiplication is composable. Multiplying a vector by matrix A then matrix B is identical to multiplying by AB. This means stacking ten linear layers is mathematically equivalent to one linear layer with one big matrix. All those parameters, all that depth -- wasted. You need something to break the chain. That's what activation functions do.
+행렬 곱셈은 합성 가능합니다. 벡터에 행렬 A를 곱한 뒤 행렬 B를 곱하는 것은 AB를 한 번 곱하는 것과 같습니다. 이는 선형층 열 개를 쌓는 것이 수학적으로 큰 행렬 하나를 가진 선형층 하나와 같다는 뜻입니다. 그 많은 파라미터와 깊이가 모두 낭비됩니다. 이 사슬을 끊을 무언가가 필요합니다. 활성화 함수가 바로 그 일을 합니다.
 
-Here is the proof. A linear layer computes f(x) = Wx + b. Stack two:
+증명은 다음과 같습니다. 선형층은 f(x) = Wx + b를 계산합니다. 두 개를 쌓으면:
 
-```
+```text
 Layer 1: h = W1 * x + b1
 Layer 2: y = W2 * h + b2
 ```
 
-Substitute:
+대입하면:
 
-```
+```text
 y = W2 * (W1 * x + b1) + b2
 y = (W2 * W1) * x + (W2 * b1 + b2)
 y = A * x + c
 ```
 
-One layer. Insert a nonlinear activation g() between layers:
+하나의 층입니다. 층 사이에 비선형 활성화 g()를 넣어 봅시다.
 
-```
+```text
 h = g(W1 * x + b1)
 y = W2 * h + b2
 ```
 
-Now the substitution breaks. W2 * g(W1 * x + b1) + b2 cannot be reduced to a single linear transformation. The network can represent nonlinear functions. Each additional layer with an activation adds representational capacity.
+이제 대입이 깨집니다. W2 * g(W1 * x + b1) + b2는 하나의 선형 변환으로 줄일 수 없습니다. 네트워크가 비선형 함수를 표현할 수 있습니다. 활성화 함수가 있는 층을 하나 더할 때마다 표현 용량이 늘어납니다.
 
 ### Sigmoid
 
-The original activation function for neural networks.
+신경망의 원래 활성화 함수입니다.
 
-```
+```text
 sigmoid(x) = 1 / (1 + e^(-x))
 ```
 
-Output range: (0, 1). Smooth, differentiable, maps any real number to a probability-like value.
+출력 범위는 (0, 1)입니다. 매끄럽고 미분 가능하며, 어떤 실수든 확률처럼 보이는 값으로 매핑합니다.
 
-The derivative:
+미분은 다음과 같습니다.
 
-```
+```text
 sigmoid'(x) = sigmoid(x) * (1 - sigmoid(x))
 ```
 
-The maximum value of this derivative is 0.25, occurring at x = 0. In backpropagation, gradients multiply through layers. Ten layers of sigmoid means the gradient gets multiplied by at most 0.25 ten times:
+이 미분의 최댓값은 x = 0에서 0.25입니다. 백프로퍼게이션에서는 그래디언트가 층을 통과하며 곱해집니다. sigmoid 10층은 그래디언트가 최대 0.25를 10번 곱한다는 뜻입니다.
 
-```
+```text
 0.25^10 = 0.000000953674
 ```
 
-Less than one millionth of the original signal. This is the vanishing gradient problem. Gradients in early layers become so small that weights barely update. The network appears to learn -- loss decreases in later layers -- but the first layers are frozen. Deep sigmoid networks simply do not train.
+원래 신호의 백만분의 일보다 작습니다. 이것이 그래디언트 소실 문제입니다. 앞쪽 층의 그래디언트가 너무 작아져 가중치가 거의 업데이트되지 않습니다. 네트워크가 학습하는 것처럼 보일 수는 있습니다. 뒤쪽 층에서는 손실이 줄어들기 때문입니다. 하지만 첫 층들은 얼어붙어 있습니다. 깊은 sigmoid 네트워크는 단순히 훈련되지 않습니다.
 
-Additional problem: sigmoid outputs are always positive (0 to 1), which means gradients on weights are always the same sign. This causes zig-zagging during gradient descent.
+추가 문제도 있습니다. sigmoid 출력은 항상 양수(0부터 1까지)이므로 가중치에 대한 그래디언트가 항상 같은 부호를 갖습니다. 이는 그래디언트 하강 중 지그재그 움직임을 일으킵니다.
 
 ### Tanh
 
-The centered version of sigmoid.
+sigmoid의 중심화된 버전입니다.
 
-```
+```text
 tanh(x) = (e^x - e^(-x)) / (e^x + e^(-x))
 ```
 
-Output range: (-1, 1). Zero-centered, which eliminates the zig-zag problem.
+출력 범위는 (-1, 1)입니다. 0을 중심으로 하므로 지그재그 문제를 제거합니다.
 
-The derivative:
+미분은 다음과 같습니다.
 
-```
+```text
 tanh'(x) = 1 - tanh(x)^2
 ```
 
-Maximum derivative is 1.0 at x = 0 -- four times better than sigmoid. But the vanishing gradient problem still exists. For large positive or negative inputs, the derivative approaches zero. Ten layers still crush the gradient, just less aggressively.
+최대 미분값은 x = 0에서 1.0입니다. sigmoid보다 네 배 낫습니다. 하지만 그래디언트 소실 문제는 여전히 존재합니다. 큰 양수나 음수 입력에서는 미분값이 0에 가까워집니다. 10층을 통과하면 그래디언트는 여전히 눌려 작아지며, 다만 그 정도가 덜할 뿐입니다.
 
-### ReLU: The Breakthrough
+### ReLU: 돌파구
 
-Rectified Linear Unit. Popularized for deep learning by Nair and Hinton in 2010 (the function itself dates to Fukushima's 1969 work), it changed everything.
+Rectified Linear Unit입니다. 2010년에 Nair와 Hinton이 딥러닝에서 널리 알렸고(함수 자체는 Fukushima의 1969년 작업까지 거슬러 올라갑니다), 모든 것을 바꿨습니다.
 
-```
+```text
 relu(x) = max(0, x)
 ```
 
-Output range: [0, infinity). The derivative is trivially simple:
+출력 범위는 [0, infinity)입니다. 미분은 아주 단순합니다.
 
-```
+```text
 relu'(x) = 1  if x > 0
             0  if x <= 0
 ```
 
-No vanishing gradient for positive inputs. The gradient is exactly 1, passed straight through. This is why deep networks became trainable -- ReLU preserves gradient magnitude across layers.
+양수 입력에서는 그래디언트가 소실되지 않습니다. 그래디언트가 정확히 1이고 그대로 통과합니다. 이것이 깊은 네트워크가 훈련 가능해진 이유입니다. ReLU는 층을 가로질러 그래디언트 크기를 보존합니다.
 
-But there is a failure mode: the dead neuron problem. If a neuron's weighted input is always negative (due to a large negative bias or unfortunate weight initialization), its output is always zero, its gradient is always zero, and it never updates. It is permanently dead. In practice, 10-40% of neurons in a ReLU network can die during training.
+하지만 실패 모드가 있습니다. 죽은 뉴런 문제입니다. 어떤 뉴런의 가중 입력이 항상 음수라면(큰 음수 편향이나 좋지 않은 가중치 초기화 때문에), 출력은 항상 0이고 그래디언트도 항상 0이며 절대 업데이트되지 않습니다. 영구히 죽은 상태가 됩니다. 실제로 ReLU 네트워크의 뉴런 10-40%가 훈련 중 죽을 수 있습니다.
 
 ### Leaky ReLU
 
-The simplest fix for dead neurons.
+죽은 뉴런에 대한 가장 단순한 해결책입니다.
 
-```
+```text
 leaky_relu(x) = x        if x > 0
                 alpha * x if x <= 0
 ```
 
-Where alpha is a small constant, typically 0.01. The negative side has a small slope instead of zero, so dead neurons still get a gradient signal and can recover.
+여기서 alpha는 보통 0.01인 작은 상수입니다. 음수 쪽이 0 대신 작은 기울기를 가지므로 죽은 뉴런도 그래디언트 신호를 받고 회복할 수 있습니다.
 
-### GELU: The Modern Default
+### GELU: 현대적 기본값
 
-Gaussian Error Linear Unit. Introduced by Hendrycks and Gimpel in 2016. Default activation in BERT, GPT, and most modern transformers.
+Gaussian Error Linear Unit입니다. 2016년에 Hendrycks와 Gimpel이 소개했습니다. BERT, GPT, 그리고 대부분의 현대 transformer에서 기본 활성화 함수입니다.
 
-```
+```text
 gelu(x) = x * Phi(x)
 ```
 
-Where Phi(x) is the cumulative distribution function of the standard normal distribution. The approximation used in practice:
+여기서 Phi(x)는 표준 정규분포의 누적분포함수입니다. 실제로 쓰이는 근사는 다음과 같습니다.
 
-```
+```text
 gelu(x) ~= 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
 ```
 
-GELU is smooth everywhere, allows small negative values (unlike ReLU which hard-clips to zero), and has a probabilistic interpretation: it weights each input by how likely it is to be positive under a Gaussian distribution. This smooth gating outperforms ReLU in transformer architectures because it provides better gradient flow and avoids the dead neuron problem entirely.
+GELU는 모든 곳에서 매끄럽고, 0으로 딱 잘라내는 ReLU와 달리 작은 음수 값을 허용하며, 확률적 해석을 갖습니다. 가우시안 분포 아래에서 입력이 양수일 가능성에 따라 각 입력에 가중치를 줍니다. 이 매끄러운 게이팅은 transformer 아키텍처에서 ReLU보다 더 좋은 성능을 냅니다. 그래디언트 흐름이 더 좋고 죽은 뉴런 문제를 완전히 피하기 때문입니다.
 
 ### Swish / SiLU
 
-Self-gated activation discovered by Ramachandran et al. in 2017 through automated search.
+Ramachandran 등이 2017년에 자동 탐색으로 발견한 자기 게이트 활성화 함수입니다.
 
-```
+```text
 swish(x) = x * sigmoid(x)
 ```
 
-Swish is formally x * sigmoid(x). Google discovered it through automated search over activation function space -- a neural network designing parts of neural networks.
+Swish는 형식적으로 x * sigmoid(x)입니다. Google은 활성화 함수 공간을 자동 탐색해 이를 발견했습니다. 신경망이 신경망의 일부를 설계한 셈입니다.
 
-Like GELU, it is smooth, non-monotonic, and allows small negative values. The difference is subtle: Swish uses sigmoid for gating while GELU uses the Gaussian CDF. In practice, performance is nearly identical. Swish is used in EfficientNet and some vision models. GELU dominates in language models.
+GELU처럼 매끄럽고, 단조적이지 않으며, 작은 음수 값을 허용합니다. 차이는 미묘합니다. Swish는 게이팅에 sigmoid를 쓰고 GELU는 Gaussian CDF를 씁니다. 실제 성능은 거의 같습니다. Swish는 EfficientNet과 일부 비전 모델에서 쓰입니다. 언어 모델에서는 GELU가 지배적입니다.
 
-### Softmax: The Output Activation
+### Softmax: 출력 활성화
 
-Not used in hidden layers. Softmax converts a vector of raw scores (logits) into a probability distribution.
+은닉층에는 사용하지 않습니다. Softmax는 원시 점수(logits) 벡터를 확률분포로 변환합니다.
 
-```
+```text
 softmax(x_i) = e^(x_i) / sum(e^(x_j) for all j)
 ```
 
-Every output is between 0 and 1. All outputs sum to 1. This makes it the standard final activation for multi-class classification. The largest logit gets the highest probability, but unlike argmax, softmax is differentiable and preserves information about relative confidence.
+모든 출력은 0과 1 사이입니다. 모든 출력의 합은 1입니다. 그래서 다중 클래스 분류의 표준 최종 활성화 함수가 됩니다. 가장 큰 logit이 가장 높은 확률을 얻지만, argmax와 달리 softmax는 미분 가능하고 상대적 확신도에 대한 정보를 보존합니다.
 
-### Comparison of Shapes
+### 형태 비교
 
 ```mermaid
 graph LR
@@ -180,7 +180,7 @@ graph LR
     G -->|"Smooth gradient<br/>everywhere"| Solution
 ```
 
-### Gradient Flow Comparison
+### 그래디언트 흐름 비교
 
 ```mermaid
 graph TD
@@ -197,7 +197,7 @@ graph TD
     end
 ```
 
-### Which Activation When
+### 언제 어떤 활성화 함수를 쓸까
 
 ```mermaid
 flowchart TD
@@ -220,11 +220,11 @@ flowchart TD
 softmax-temperature
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Implement All Activation Functions with Derivatives
+### Step 1: 모든 활성화 함수와 미분 구현하기
 
-Each function takes a single float and returns a float. Each derivative function takes the same input and returns the gradient.
+각 함수는 단일 float를 받아 float를 반환합니다. 각 미분 함수는 같은 입력을 받아 그래디언트를 반환합니다.
 
 ```python
 import math
@@ -278,9 +278,9 @@ def softmax(xs):
     return [e / total for e in exps]
 ```
 
-### Step 2: Visualize Where Gradients Die
+### Step 2: 그래디언트가 죽는 위치 시각화하기
 
-Compute the gradient at 100 evenly-spaced points from -5 to 5. Print a text histogram showing where each activation's gradient is near-zero.
+-5부터 5까지 균등하게 떨어진 100개 지점에서 그래디언트를 계산합니다. 각 활성화 함수의 그래디언트가 거의 0인 위치를 보여 주는 텍스트 히스토그램을 출력합니다.
 
 ```python
 def gradient_scan(name, derivative_fn, start=-5, end=5, n=100):
@@ -305,9 +305,9 @@ gradient_scan("GELU", gelu_derivative)
 gradient_scan("Swish", swish_derivative)
 ```
 
-### Step 3: Vanishing Gradient Experiment
+### Step 3: 그래디언트 소실 실험
 
-Forward-pass a signal through N layers using sigmoid vs ReLU. Measure how the activation magnitude changes.
+sigmoid와 ReLU를 사용해 신호를 N개 층으로 순전파시킵니다. 활성화값 크기가 어떻게 변하는지 측정합니다.
 
 ```python
 import random
@@ -331,9 +331,9 @@ vanishing_gradient_experiment(relu, "ReLU")
 vanishing_gradient_experiment(gelu, "GELU")
 ```
 
-### Step 4: Dead Neuron Detector
+### Step 4: 죽은 뉴런 감지기
 
-Create a ReLU network, pass random inputs through it, count how many neurons never fire.
+ReLU 네트워크를 만들고 무작위 입력을 통과시킨 뒤, 한 번도 발화하지 않는 뉴런이 몇 개인지 셉니다.
 
 ```python
 def dead_neuron_detector(n_inputs=5, hidden_size=20, n_samples=1000):
@@ -368,9 +368,9 @@ def dead_neuron_detector(n_inputs=5, hidden_size=20, n_samples=1000):
 dead_neuron_detector()
 ```
 
-### Step 5: Training Comparison -- Sigmoid vs ReLU vs GELU
+### Step 5: 훈련 비교 -- Sigmoid vs ReLU vs GELU
 
-Train the same two-layer network on the circle dataset (points inside a circle = class 1, outside = class 0) with three different activations. Compare convergence speed.
+같은 2층 네트워크를 원 데이터셋(원 안의 점 = class 1, 바깥 = class 0)에서 세 가지 다른 활성화 함수로 훈련합니다. 수렴 속도를 비교합니다.
 
 ```python
 def make_circle_data(n=200, seed=42):
@@ -461,9 +461,9 @@ for name, losses in results.items():
     print(f"  {name:10s}: start={losses[0]:.4f} -> end={losses[-1]:.4f} (improvement: {(1 - losses[-1]/losses[0])*100:.1f}%)")
 ```
 
-## Use It
+## 사용하기
 
-PyTorch provides all of these as both functional and module forms:
+PyTorch는 이 모든 것을 함수형과 모듈 형태로 모두 제공합니다.
 
 ```python
 import torch
@@ -489,48 +489,48 @@ model = nn.Sequential(
 )
 ```
 
-Hidden layers in a transformer: GELU. Hidden layers in a CNN: ReLU. Output layer for classification: softmax. Output layer for regression: none (linear). Output layer for probabilities: sigmoid. That's it. Start with these defaults. Change them only when you have evidence.
+Transformer의 은닉층은 GELU입니다. CNN의 은닉층은 ReLU입니다. 분류의 출력층은 softmax입니다. 회귀의 출력층은 없음(linear)입니다. 확률을 내는 출력층은 sigmoid입니다. 기본값은 이 정도입니다. 증거가 있을 때만 바꾸세요.
 
-RNNs and LSTMs use tanh for hidden state and sigmoid for gates, but if you're building from scratch today, you're probably not using RNNs. If neurons are dying in your ReLU network, switch to GELU. Don't reach for Leaky ReLU unless you have a specific reason -- GELU solves the dead neuron problem and gives better gradient flow.
+RNN과 LSTM은 은닉 상태에 tanh를, 게이트에 sigmoid를 사용합니다. 하지만 오늘 처음부터 만든다면 아마 RNN을 쓰지는 않을 것입니다. ReLU 네트워크에서 뉴런이 죽고 있다면 GELU로 바꾸세요. 구체적인 이유가 없다면 Leaky ReLU부터 집어 들지 마세요. GELU는 죽은 뉴런 문제를 해결하고 더 나은 그래디언트 흐름을 제공합니다.
 
-## Ship It
+## 결과물
 
-This lesson produces:
-- `outputs/prompt-activation-selector.md` -- a reusable prompt that helps you pick the right activation function for any architecture
+이 레슨의 결과물:
+- `outputs/prompt-activation-selector.md` -- 어떤 아키텍처에서든 올바른 활성화 함수를 고르는 데 도움을 주는 재사용 가능한 프롬프트
 
-## Exercises
+## 연습 문제
 
-1. Implement Parametric ReLU (PReLU) where the negative slope alpha is a learnable parameter. Train it on the circle dataset and compare to fixed Leaky ReLU.
+1. 음수 기울기 alpha가 학습 가능한 파라미터인 Parametric ReLU(PReLU)를 구현하세요. 원 데이터셋에서 훈련하고 고정된 Leaky ReLU와 비교하세요.
 
-2. Run the vanishing gradient experiment with 50 layers instead of 10. Plot the magnitude at each layer for sigmoid, tanh, ReLU, and GELU. At which layer does each activation's signal effectively reach zero?
+2. 그래디언트 소실 실험을 10층 대신 50층으로 실행하세요. sigmoid, tanh, ReLU, GELU에 대해 각 층의 크기를 그리세요. 각 활성화 함수의 신호는 어느 층에서 사실상 0에 도달하나요?
 
-3. Implement the ELU (Exponential Linear Unit): elu(x) = x if x > 0, alpha * (e^x - 1) if x <= 0. Compare its dead neuron rate to ReLU on the same network.
+3. ELU(Exponential Linear Unit)를 구현하세요. elu(x) = x if x > 0, alpha * (e^x - 1) if x <= 0입니다. 같은 네트워크에서 죽은 뉴런 비율을 ReLU와 비교하세요.
 
-4. Build a "gradient health monitor" that runs during training: at each epoch, compute the average gradient magnitude at each layer. Print a warning when any layer's gradient drops below 0.001 or exceeds 100.
+4. 훈련 중 실행되는 "gradient health monitor"를 만드세요. 각 epoch마다 각 층의 평균 그래디언트 크기를 계산합니다. 어떤 층의 그래디언트가 0.001 아래로 떨어지거나 100을 넘으면 경고를 출력하세요.
 
-5. Modify the training comparison to use the XOR dataset from Lesson 01 instead of circles. Which activation converges fastest on XOR? Why does this differ from the circle results?
+5. 훈련 비교를 수정해 원 대신 Lesson 01의 XOR 데이터셋을 사용하세요. XOR에서는 어떤 활성화 함수가 가장 빨리 수렴하나요? 왜 원 결과와 다를까요?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Activation function | "The nonlinear part" | A function applied to each neuron's output that breaks linearity, enabling the network to learn nonlinear mappings |
-| Vanishing gradient | "Gradients disappear in deep networks" | Gradients shrink exponentially through layers when the activation's derivative is less than 1, making early layers untrainable |
-| Exploding gradient | "Gradients blow up" | Gradients grow exponentially through layers when the effective multiplier exceeds 1, causing unstable training |
-| Dead neuron | "A neuron that stopped learning" | A ReLU neuron whose input is permanently negative, producing zero output and zero gradient |
-| Sigmoid | "Squishes values to 0-1" | The logistic function 1/(1+e^-x), historically important but causes vanishing gradients in deep networks |
-| ReLU | "Clips negatives to zero" | max(0, x) -- the activation that made deep learning practical by preserving gradient magnitude |
-| GELU | "The transformer activation" | Gaussian Error Linear Unit, a smooth activation that weights inputs by their probability of being positive |
-| Swish/SiLU | "Self-gated ReLU" | x * sigmoid(x), discovered through automated search, used in EfficientNet |
-| Softmax | "Turns scores into probabilities" | Normalizes a vector of logits into a probability distribution where all values are in (0,1) and sum to 1 |
-| Leaky ReLU | "ReLU that doesn't die" | max(alpha*x, x) where alpha is small (0.01), preventing dead neurons by allowing small negative gradients |
-| Saturation | "The flat part of sigmoid" | Regions where an activation's derivative approaches zero, blocking gradient flow |
-| Logit | "The raw score before softmax" | The unnormalized output of the final layer before applying softmax or sigmoid |
+| Activation function | "비선형 부분" | 선형성을 깨뜨려 네트워크가 비선형 매핑을 학습하게 하는, 각 뉴런의 출력에 적용되는 함수 |
+| Vanishing gradient | "깊은 네트워크에서 그래디언트가 사라진다" | 활성화 함수의 미분값이 1보다 작을 때 그래디언트가 층을 통과하며 지수적으로 작아져 앞쪽 층을 훈련 불가능하게 만드는 현상 |
+| Exploding gradient | "그래디언트가 터진다" | 유효 배율이 1을 넘을 때 그래디언트가 층을 통과하며 지수적으로 커져 불안정한 훈련을 일으키는 현상 |
+| Dead neuron | "학습을 멈춘 뉴런" | 입력이 영구히 음수여서 출력과 그래디언트가 0인 ReLU 뉴런 |
+| Sigmoid | "값을 0-1로 눌러 넣는다" | 1/(1+e^-x)인 로지스틱 함수로, 역사적으로 중요하지만 깊은 네트워크에서 그래디언트 소실을 일으킴 |
+| ReLU | "음수를 0으로 자른다" | max(0, x)로, 그래디언트 크기를 보존해 딥러닝을 실용적으로 만든 활성화 함수 |
+| GELU | "transformer 활성화" | Gaussian Error Linear Unit으로, 입력이 양수일 확률에 따라 가중하는 매끄러운 활성화 함수 |
+| Swish/SiLU | "자기 게이트 ReLU" | x * sigmoid(x)로, 자동 탐색을 통해 발견되었고 EfficientNet에서 사용됨 |
+| Softmax | "점수를 확률로 바꾼다" | logits 벡터를 모든 값이 (0,1)에 있고 합이 1인 확률분포로 정규화함 |
+| Leaky ReLU | "죽지 않는 ReLU" | alpha가 작은 값(0.01)일 때 max(alpha*x, x)로, 작은 음수 그래디언트를 허용해 죽은 뉴런을 방지함 |
+| Saturation | "sigmoid의 평평한 부분" | 활성화 함수의 미분값이 0에 가까워져 그래디언트 흐름을 막는 영역 |
+| Logit | "softmax 전의 원시 점수" | softmax나 sigmoid를 적용하기 전 최종 층의 정규화되지 않은 출력 |
 
-## Further Reading
+## 더 읽을거리
 
-- Nair & Hinton, "Rectified Linear Units Improve Restricted Boltzmann Machines" (2010) -- the paper that introduced ReLU and enabled training of deep networks
-- Hendrycks & Gimpel, "Gaussian Error Linear Units (GELUs)" (2016) -- introduced the activation function that became the default for transformers
-- Ramachandran et al., "Searching for Activation Functions" (2017) -- used automated search to discover Swish, showing that activation design can be automated
-- Glorot & Bengio, "Understanding the difficulty of training deep feedforward neural networks" (2010) -- the paper that diagnosed vanishing/exploding gradients and proposed Xavier initialization
-- Goodfellow, Bengio, Courville, "Deep Learning" Chapter 6.3 (https://www.deeplearningbook.org/) -- rigorous treatment of hidden units and activation functions
+- Nair & Hinton, "Rectified Linear Units Improve Restricted Boltzmann Machines" (2010) -- ReLU를 소개하고 깊은 네트워크 훈련을 가능하게 한 논문
+- Hendrycks & Gimpel, "Gaussian Error Linear Units (GELUs)" (2016) -- transformer의 기본값이 된 활성화 함수를 소개한 논문
+- Ramachandran et al., "Searching for Activation Functions" (2017) -- 자동 탐색으로 Swish를 발견해 활성화 설계도 자동화될 수 있음을 보인 논문
+- Glorot & Bengio, "Understanding the difficulty of training deep feedforward neural networks" (2010) -- 그래디언트 소실/폭주를 진단하고 Xavier 초기화를 제안한 논문
+- Goodfellow, Bengio, Courville, "Deep Learning" Chapter 6.3 (https://www.deeplearningbook.org/) -- 은닉 유닛과 활성화 함수에 대한 엄밀한 설명

@@ -1,107 +1,107 @@
-# Audio Evaluation — WER, MOS, UTMOS, MMAU, FAD, and the Open Leaderboards
+# 오디오 평가 — WER, MOS, UTMOS, MMAU, FAD, 그리고 공개 리더보드
 
-> You cannot ship what you cannot measure. This lesson names the 2026 metrics for every audio task: ASR (WER, CER, RTFx), TTS (MOS, UTMOS, SECS, WER-on-ASR-round-trip), audio-language (MMAU, LongAudioBench), music (FAD, CLAP), and speaker (EER). Plus the leaderboards where you compare.
+> 측정할 수 없는 것은 배포할 수 없다. 이 lesson은 모든 오디오 작업의 2026년 지표를 정리한다. ASR(WER, CER, RTFx), TTS(MOS, UTMOS, SECS, WER-on-ASR-round-trip), audio-language(MMAU, LongAudioBench), 음악(FAD, CLAP), 화자(EER). 그리고 비교할 수 있는 leaderboard까지 다룬다.
 
 **Type:** Learn
 **Languages:** Python
 **Prerequisites:** Phase 6 · 04, 06, 07, 09, 10; Phase 2 · 09 (Model Evaluation)
 **Time:** ~60 minutes
 
-## The Problem
+## 문제
 
-Every audio task has multiple metrics, each measuring a different axis. Using the wrong metric is how you ship a model that looks great on your dashboard and terribly in production. The 2026 canonical list:
+모든 오디오 작업에는 여러 지표가 있고, 각 지표는 서로 다른 축을 측정한다. 잘못된 지표를 쓰면 dashboard에서는 훌륭해 보이지만 프로덕션에서는 형편없는 모델을 배포하게 된다. 2026년의 정식 목록:
 
-| Task | Primary | Secondary |
+| 작업 | 주 지표 | 보조 지표 |
 |------|---------|-----------|
 | ASR | WER | CER · RTFx · first-token latency |
 | TTS | MOS / UTMOS | SECS · WER-on-ASR-round-trip · CER · TTFA |
-| Voice cloning | SECS (ECAPA cosine) | MOS · CER |
-| Speaker verification | EER | minDCF · FAR / FRR at operating point |
-| Diarization | DER | JER · speaker confusion |
-| Audio classification | top-1 · mAP | macro F1 · per-class recall |
-| Music generation | FAD | CLAP · listening panel MOS |
-| Audio language model | MMAU-Pro | LongAudioBench · AudioCaps FENSE |
+| 음성 클로닝 | SECS (ECAPA cosine) | MOS · CER |
+| 화자 검증 | EER | minDCF · FAR / FRR at operating point |
+| 화자 분리 | DER | JER · speaker confusion |
+| 오디오 분류 | top-1 · mAP | macro F1 · per-class recall |
+| 음악 생성 | FAD | CLAP · listening panel MOS |
+| 오디오 언어 모델 | MMAU-Pro | LongAudioBench · AudioCaps FENSE |
 | Streaming S2S | latency P50/P95 | WER · MOS |
 
-## The Concept
+## 개념
 
 ![Audio evaluation matrix — metrics vs tasks vs 2026 leaderboards](../assets/eval-landscape.svg)
 
-### ASR metrics
+### ASR 지표
 
-**WER (Word Error Rate).** `(S + D + I) / N`. Lowercase, strip punctuation, normalize numbers before scoring. Use `jiwer` or OpenAI's `whisper_normalizer`. &lt; 5% = human-parity read speech.
+**WER (Word Error Rate).** `(S + D + I) / N`. 점수 계산 전에 소문자화하고, 구두점을 제거하며, 숫자를 정규화한다. `jiwer`나 OpenAI의 `whisper_normalizer`를 사용하라. &lt; 5%는 낭독 음성에서 인간 수준이다.
 
-**CER (Character Error Rate).** Same formula, character-level. Used for tone languages (Mandarin, Cantonese) where word segmentation is ambiguous.
+**CER (Character Error Rate).** 같은 공식이지만 문자 단위다. 단어 분할이 모호한 성조 언어(중국어 표준어, 광둥어)에 사용한다.
 
-**RTFx (inverse real-time factor).** Audio seconds processed per wall-clock second. Higher is better. Parakeet-TDT hits 3380×. Whisper-large-v3 is ~30×.
+**RTFx (inverse real-time factor).** wall-clock 1초당 처리한 오디오 초 수. 높을수록 좋다. Parakeet-TDT는 3380×에 도달한다. Whisper-large-v3는 약 30×다.
 
-**First-token latency.** Wall-clock from audio input to first transcript token. Critical for streaming. Deepgram Nova-3: ~150 ms.
+**First-token latency.** 오디오 입력부터 첫 전사 token까지의 wall-clock 시간. 스트리밍에서 중요하다. Deepgram Nova-3는 약 150ms다.
 
-### TTS metrics
+### TTS 지표
 
-**MOS (Mean Opinion Score).** 1-5 human rating. Gold standard but slow. Collect 20+ listeners per sample, 100+ samples per model.
+**MOS (Mean Opinion Score).** 사람이 매기는 1-5점 평가. 표준이지만 느리다. 모델당 100개 이상의 sample에 대해 sample마다 20명 이상의 청취자를 모아라.
 
-**UTMOS (2022-2026).** Learned MOS predictor. Correlates ~0.9 with human MOS on standard benchmarks. F5-TTS: UTMOS 3.95; ground truth: 4.08.
+**UTMOS (2022-2026).** 학습된 MOS 예측기. 표준 벤치마크에서 인간 MOS와 약 0.9 상관을 보인다. F5-TTS: UTMOS 3.95. ground truth: 4.08.
 
-**SECS (Speaker Encoder Cosine Similarity).** For voice cloning. ECAPA embedding cosine between reference and cloned output. &gt; 0.75 = recognizable clone.
+**SECS (Speaker Encoder Cosine Similarity).** 음성 클로닝용. reference와 clone 출력 사이의 ECAPA embedding cosine. &gt; 0.75면 알아볼 수 있는 clone이다.
 
-**WER-on-ASR-round-trip.** Run Whisper over TTS output, compute WER against the input text. Catches intelligibility regressions. 2026 SOTA: &lt; 2% CER.
+**WER-on-ASR-round-trip.** TTS 출력에 Whisper를 실행하고 입력 텍스트와 WER을 계산한다. 명료도 회귀를 잡아낸다. 2026년 SOTA는 &lt; 2% CER이다.
 
-**TTFA (time-to-first-audio).** Wall-clock latency. Kokoro-82M: ~100 ms; F5-TTS: ~1 s.
+**TTFA (time-to-first-audio).** wall-clock 지연 시간. Kokoro-82M은 약 100ms, F5-TTS는 약 1초다.
 
-### Voice-cloning-specific
+### 음성 클로닝 전용
 
-**SECS + MOS + CER** as a triple. Cloning that scores high SECS but low MOS means timbre-right-but-unnatural; the opposite means natural voice but wrong speaker.
+**SECS + MOS + CER**를 세트로 본다. SECS는 높지만 MOS가 낮은 클로닝은 음색은 맞지만 부자연스럽다는 뜻이다. 반대는 자연스럽지만 화자가 틀렸다는 뜻이다.
 
-### Speaker verification
+### 화자 검증
 
-**EER (Equal Error Rate).** The threshold where False Accept Rate equals False Reject Rate. ECAPA on VoxCeleb1-O: 0.87%.
+**EER (Equal Error Rate).** False Accept Rate가 False Reject Rate와 같아지는 임계값이다. VoxCeleb1-O의 ECAPA: 0.87%.
 
-**minDCF (min Detection Cost).** Weighted cost at a chosen operating point (often FAR=0.01). More production-relevant than EER.
+**minDCF (min Detection Cost).** 선택한 operating point(보통 FAR=0.01)에서의 가중 비용이다. EER보다 프로덕션 관련성이 높다.
 
-### Diarization
+### 화자 분리
 
-**DER (Diarization Error Rate).** `(FA + Miss + Confusion) / total_speaker_time`. Missed speech + false-alarm speech + speaker-confusion, each as a fraction. AMI meetings: DER ~10-20% is realistic. pyannote 3.1 + Precision-2 commercial: &lt;10% DER on well-recorded audio.
+**DER (Diarization Error Rate).** `(FA + Miss + Confusion) / total_speaker_time`. 놓친 음성 + false-alarm 음성 + 화자 혼동을 각각 비율로 합친다. AMI meeting에서는 DER 약 10-20%가 현실적이다. pyannote 3.1 + Precision-2 commercial은 잘 녹음된 오디오에서 &lt;10% DER이다.
 
-**JER (Jaccard Error Rate).** Alternative to DER, robust to short-segment bias.
+**JER (Jaccard Error Rate).** DER의 대안이며 짧은 segment bias에 더 견고하다.
 
-### Audio classification
+### 오디오 분류
 
-Multi-label: **mAP (mean Average Precision)** over all classes. AudioSet: 0.548 mAP for BEATs-iter3.
+Multi-label: 모든 class에 대한 **mAP (mean Average Precision)**. AudioSet: BEATs-iter3가 0.548 mAP.
 
-Multi-class exclusive: **top-1, top-5 accuracy**. Speech Commands v2: 99.0% top-1 (Audio-MAE).
+상호 배타적 multi-class: **top-1, top-5 accuracy**. Speech Commands v2: 99.0% top-1(Audio-MAE).
 
-Imbalanced: **macro F1** + **per-class recall**. Report per-class — aggregate accuracy hides which classes fail.
+불균형 데이터: **macro F1** + **per-class recall**. class별로 보고하라. aggregate accuracy는 어떤 class가 실패하는지 숨긴다.
 
-### Music generation
+### 음악 생성
 
-**FAD (Fréchet Audio Distance).** Distance between VGGish-embedding distributions of real vs generated audio. MusicGen-small on MusicCaps: 4.5. MusicLM: 4.0. Lower better.
+**FAD (Fréchet Audio Distance).** 실제 오디오와 생성 오디오의 VGGish embedding 분포 사이 거리. MusicCaps의 MusicGen-small: 4.5. MusicLM: 4.0. 낮을수록 좋다.
 
-**CLAP Score.** Text-audio alignment score using CLAP embeddings. &gt; 0.3 = reasonable alignment.
+**CLAP Score.** CLAP embedding을 사용한 텍스트-오디오 정렬 점수. &gt; 0.3이면 합리적인 정렬이다.
 
-**Listening panel MOS.** Still the final word for consumer-grade music. Suno v5 ELO 1293 on TTS Arena (from paired human preferences).
+**Listening panel MOS.** 소비자용 음악에서는 여전히 최종 판단이다. Suno v5는 TTS Arena에서 paired human preference 기준 ELO 1293이다.
 
-### Audio-language benchmarks
+### 오디오-언어 벤치마크
 
-**MMAU (Massive Multi-Audio Understanding).** 10k audio-QA pairs.
+**MMAU (Massive Multi-Audio Understanding).** 1만 개 audio-QA 쌍.
 
-**MMAU-Pro.** 1800 hard items, four categories: speech / sound / music / multi-audio. Random chance 25% on 4-way. Gemini 2.5 Pro overall ~60%; multi-audio ~22% across all models.
+**MMAU-Pro.** 어려운 1800개 항목, 네 범주: speech / sound / music / multi-audio. 4지선다 무작위 확률은 25%. Gemini 2.5 Pro 전체는 약 60%, multi-audio는 모든 모델에서 약 22%.
 
-**LongAudioBench.** Multi-minute clips with semantic queries. Audio Flamingo Next beats Gemini 2.5 Pro.
+**LongAudioBench.** 의미 질의가 있는 여러 분 길이의 클립. Audio Flamingo Next가 Gemini 2.5 Pro를 앞선다.
 
-**AudioCaps / Clotho.** Captioning benchmarks. SPICE, CIDEr, FENSE metrics.
+**AudioCaps / Clotho.** 캡셔닝 벤치마크. SPICE, CIDEr, FENSE 지표.
 
-### Streaming speech-to-speech
+### 스트리밍 speech-to-speech
 
-**Latency P50 / P95 / P99.** Wall-clock from end-of-user-speech to first audible response. Moshi: 200 ms; GPT-4o Realtime: 300 ms.
+**Latency P50 / P95 / P99.** 사용자 발화 종료부터 첫 가청 응답까지의 wall-clock 시간. Moshi: 200ms. GPT-4o Realtime: 300ms.
 
-**WER / MOS** on the output.
+**WER / MOS**를 출력에 적용한다.
 
-**Barge-in responsiveness.** Time from user interrupt to assistant mute. Target &lt; 150 ms.
+**Barge-in responsiveness.** 사용자가 끼어든 시점부터 assistant mute까지의 시간. 목표는 &lt; 150ms.
 
-### The 2026 leaderboards
+### 2026년 리더보드
 
-| Leaderboard | Tracks | URL |
+| 리더보드 | 트랙 | URL |
 |------------|--------|-----|
 | Open ASR Leaderboard (HF) | English + multilingual + long-form | `huggingface.co/spaces/hf-audio/open_asr_leaderboard` |
 | TTS Arena (HF) | English TTS | `huggingface.co/spaces/TTS-AGI/TTS-Arena` |
@@ -111,9 +111,9 @@ Imbalanced: **macro F1** + **per-class recall**. Report per-class — aggregate 
 | MMAU music subset | Music LALM | (within MMAU) |
 | HEAR benchmark | Self-supervised audio | `hearbenchmark.com` |
 
-## Build It
+## 직접 만들기
 
-### Step 1: WER with normalization
+### 1단계: 정규화가 포함된 WER
 
 ```python
 from jiwer import wer, Compose, ToLowerCase, RemovePunctuation, Strip
@@ -128,7 +128,7 @@ score = wer(
 # ~0.17
 ```
 
-### Step 2: TTS round-trip WER
+### 2단계: TTS round-trip WER
 
 ```python
 def ttr_wer(tts_model, asr_model, texts):
@@ -140,7 +140,7 @@ def ttr_wer(tts_model, asr_model, texts):
     return sum(errors) / len(errors)
 ```
 
-### Step 3: SECS for voice cloning
+### 3단계: 음성 클로닝용 SECS
 
 ```python
 from speechbrain.inference.speaker import EncoderClassifier
@@ -151,7 +151,7 @@ emb_clone = sv.encode_batch(load_wav("cloned.wav"))
 secs = torch.nn.functional.cosine_similarity(emb_ref, emb_clone, dim=-1).item()
 ```
 
-### Step 4: FAD for music generation
+### 4단계: 음악 생성용 FAD
 
 ```python
 from frechet_audio_distance import FrechetAudioDistance
@@ -159,7 +159,7 @@ fad = FrechetAudioDistance()
 score = fad.get_fad_score("generated_folder/", "reference_folder/")
 ```
 
-### Step 5: EER for speaker verification (same code as Lesson 6)
+### 5단계: 화자 검증용 EER(Lesson 6과 같은 코드)
 
 ```python
 def eer(same_scores, diff_scores):
@@ -173,52 +173,52 @@ def eer(same_scores, diff_scores):
     return best[1]
 ```
 
-## Use It
+## 활용하기
 
-Pair every deploy with a fixed eval harness that runs on every model update. Three cardinal rules:
+모든 배포에는 모델 업데이트마다 실행되는 고정 eval harness를 붙여라. 세 가지 기본 규칙:
 
-1. **Normalize before scoring.** Lowercase, punctuation-strip, number-expand. Report the normalization rule.
-2. **Report distributions, not averages.** P50/P95/P99 for latency. Per-class recall for classification. Per-category for MMAU.
-3. **Run one canonical public benchmark.** Even if your production data differs, reporting on Open ASR / TTS Arena / MMAU lets reviewers compare apples-to-apples.
+1. **점수 계산 전에 정규화하라.** 소문자화, 구두점 제거, 숫자 확장. 정규화 규칙을 보고하라.
+2. **평균이 아니라 분포를 보고하라.** 지연 시간은 P50/P95/P99. 분류는 per-class recall. MMAU는 범주별.
+3. **하나의 정식 공개 벤치마크를 실행하라.** 프로덕션 데이터가 다르더라도 Open ASR / TTS Arena / MMAU에 보고하면 리뷰어가 같은 기준으로 비교할 수 있다.
 
-## Pitfalls
+## 함정
 
-- **UTMOS extrapolation.** Trained on VCTK-style clean speech; scores noisy / cloned / emotional audio poorly.
-- **MOS panel bias.** 20 Amazon Mechanical Turk workers ≠ 20 target users. Pay for a domain panel if stakes are high.
-- **FAD depends on reference set.** Compare against the same reference distribution across models.
-- **Aggregate WER.** A 5% WER overall can hide 30% WER on accented speech. Report by demographic slice.
-- **Public benchmark saturation.** Most frontier models are near the ceiling on standard benchmarks. Build an in-house held-out set that reflects your traffic.
+- **UTMOS 외삽.** VCTK 스타일의 깨끗한 음성에서 학습했다. 잡음/클론/감정 오디오 점수는 부정확하다.
+- **MOS panel bias.** Amazon Mechanical Turk 작업자 20명은 대상 사용자 20명이 아니다. 중요도가 높다면 도메인 panel에 비용을 지불하라.
+- **FAD는 reference set에 의존한다.** 모델 간 비교에는 같은 reference distribution을 사용하라.
+- **Aggregate WER.** 전체 WER 5%가 억양 있는 음성의 WER 30%를 숨길 수 있다. demographic slice별로 보고하라.
+- **공개 벤치마크 포화.** 대부분의 frontier model은 표준 벤치마크에서 천장에 가깝다. 실제 traffic을 반영하는 내부 hold-out set을 만들어라.
 
-## Ship It
+## 내보내기
 
-Save as `outputs/skill-audio-evaluator.md`. Pick metrics, benchmarks, and reporting format for any audio model release.
+`outputs/skill-audio-evaluator.md`로 저장하라. 모든 오디오 모델 release에 대해 지표, 벤치마크, 보고 형식을 고른다.
 
-## Exercises
+## 연습 문제
 
-1. **Easy.** Run `code/main.py`. Compute WER / CER / EER / SECS / FAD-ish / MMAU-ish on toy inputs.
-2. **Medium.** Build a TTS round-trip WER harness. Run your Kokoro or F5-TTS output through Whisper. Compute WER over 50 prompts. Flag prompts with WER &gt; 10%.
-3. **Hard.** Score your Lesson 10 LALM choice on MMAU-Pro speech + multi-audio subsets (50 items each). Report per-category accuracy and compare with the published number.
+1. **쉬움.** `code/main.py`를 실행하라. toy input에서 WER / CER / EER / SECS / FAD-ish / MMAU-ish를 계산한다.
+2. **보통.** TTS round-trip WER harness를 만들어라. Kokoro 또는 F5-TTS 출력을 Whisper에 통과시켜라. 50개 prompt에 대해 WER을 계산하고, WER &gt; 10%인 prompt를 표시하라.
+3. **어려움.** Lesson 10의 LALM 선택지를 MMAU-Pro speech + multi-audio subset에서 채점하라(각 50개 항목). 범주별 accuracy를 보고하고 공개 수치와 비교하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 하는 말 | 실제 의미 |
 |------|-----------------|-----------------------|
-| WER | ASR score | `(S+D+I)/N` at word level after normalization. |
-| CER | Character WER | For tone languages or char-level systems. |
-| MOS | Human opinion | 1-5 rating; 20+ listeners × 100 samples. |
-| UTMOS | ML MOS predictor | Learned model; correlates ~0.9 with human MOS. |
-| SECS | Voice-clone similarity | ECAPA cosine between reference and clone. |
-| EER | Speaker verif score | Threshold where FAR = FRR. |
+| WER | ASR 점수 | 정규화 후 단어 수준 `(S+D+I)/N`. |
+| CER | 문자 WER | 성조 언어나 문자 수준 시스템용. |
+| MOS | 사람 의견 | 1-5점 평가. 20명 이상 청취자 × 100 samples. |
+| UTMOS | ML MOS 예측기 | 학습된 모델. 인간 MOS와 약 0.9 상관. |
+| SECS | Voice-clone similarity | reference와 clone 사이의 ECAPA cosine. |
+| EER | Speaker verif score | FAR = FRR이 되는 임계값. |
 | DER | Diarization score | (FA + Miss + Confusion) / total. |
-| FAD | Music-gen quality | Fréchet distance on VGGish embeddings. |
-| RTFx | Throughput | Audio seconds per wall-clock second. |
+| FAD | Music-gen quality | VGGish embedding 위의 Fréchet distance. |
+| RTFx | 처리량 | wall-clock 1초당 오디오 초 수. |
 
-## Further Reading
+## 더 읽을거리
 
-- [jiwer](https://github.com/jitsi/jiwer) — WER/CER library with normalization utilities.
-- [UTMOS (Saeki et al. 2022)](https://arxiv.org/abs/2204.02152) — learned MOS predictor.
-- [Fréchet Audio Distance (Kilgour et al. 2019)](https://arxiv.org/abs/1812.08466) — the music-gen standard.
-- [Open ASR Leaderboard](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard) — 2026 live rankings.
-- [TTS Arena](https://huggingface.co/spaces/TTS-AGI/TTS-Arena) — human-vote TTS leaderboard.
+- [jiwer](https://github.com/jitsi/jiwer) — 정규화 유틸리티가 있는 WER/CER 라이브러리.
+- [UTMOS (Saeki et al. 2022)](https://arxiv.org/abs/2204.02152) — 학습된 MOS 예측기.
+- [Fréchet Audio Distance (Kilgour et al. 2019)](https://arxiv.org/abs/1812.08466) — 음악 생성 표준.
+- [Open ASR Leaderboard](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard) — 2026년 live ranking.
+- [TTS Arena](https://huggingface.co/spaces/TTS-AGI/TTS-Arena) — 사람 투표 기반 TTS leaderboard.
 - [MMAU-Pro benchmark](https://mmaubenchmark.github.io/) — LALM reasoning leaderboard.
-- [HEAR benchmark](https://hearbenchmark.com/) — audio SSL benchmarks.
+- [HEAR benchmark](https://hearbenchmark.com/) — audio SSL benchmark.

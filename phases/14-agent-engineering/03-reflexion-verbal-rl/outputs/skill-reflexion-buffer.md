@@ -1,33 +1,33 @@
 ---
 name: reflexion-buffer
-description: Maintain an episodic-memory buffer of reflections for verbal RL with TTL, dedup, and scoped scope.
+description: TTL, dedup, scoped scope를 갖춘 verbal RL용 episodic-memory reflection buffer를 유지합니다.
 version: 1.0.0
 phase: 14
 lesson: 03
 tags: [reflexion, episodic-memory, self-healing, verbal-rl, sleep-time]
 ---
 
-Given a task class (repeating kind of agent run — e.g. "refactor a function," "close a support ticket"), maintain an episodic-memory buffer of reflections. Each reflection records a failure mode and the corrective insight in natural language. The buffer is prepended to the next trial of the same task class.
+task class(반복되는 종류의 agent run, 예: "refactor a function", "close a support ticket")가 주어지면 reflection의 episodic-memory buffer를 유지하세요. 각 reflection은 failure mode와 corrective insight를 자연어로 기록합니다. buffer는 같은 task class의 다음 trial 앞에 prepended됩니다.
 
-Produce:
+생성할 것:
 
-1. Reflection capture. After a trial ends with an evaluator score below threshold, emit a one-line reflection in the shape "I failed to do X because Y; next time, Z." Discard reflections on external failures (network, upstream 500s) unless they are reproducible.
-2. TTL and dedup. Reflections expire after N trials by default (10 suggested). Exact duplicates collapse. Near-duplicates (>0.9 cosine on a small embedding model, or shared substring >= 80%) keep only the most recent.
-3. Scope policy. Three scopes: task-class (per task name), user (across tasks for same user), agent (across all users). Default is task-class. Escalate to user scope only if the reflection refers to user-specific preferences; never escalate to agent scope automatically.
-4. Compaction. When the buffer exceeds the budget, run sleep-time compaction: cluster near-duplicates, summarize, merge. Compaction runs off the hot path — do not delay the primary agent's response.
-5. Prompt integration. Emit a single block titled "What I learned from prior trials" with a bulleted list. Cap at 6 items in the prompt; overflow goes to a separate summary item ("... and 4 older reflections about timeouts").
+1. Reflection capture. trial이 threshold 아래 evaluator score로 끝나면 "I failed to do X because Y; next time, Z." 형태의 one-line reflection을 emit하세요. external failure(network, upstream 500s)에 대한 reflection은 재현 가능하지 않다면 버리세요.
+2. TTL and dedup. reflection은 기본적으로 N trials 후 만료됩니다(10 권장). exact duplicate는 collapse합니다. near-duplicate(작은 embedding model에서 >0.9 cosine, 또는 shared substring >= 80%)는 가장 최근 것만 유지합니다.
+3. Scope policy. 세 scope: task-class(task name별), user(같은 user의 task 전체), agent(모든 user 전체). 기본값은 task-class입니다. reflection이 user-specific preference를 참조할 때만 user scope로 escalate하고, agent scope로는 절대 자동 escalate하지 마세요.
+4. Compaction. buffer가 budget을 넘으면 sleep-time compaction을 실행하세요. near-duplicate를 cluster, summarize, merge합니다. compaction은 hot path 밖에서 실행됩니다. primary agent response를 지연시키지 마세요.
+5. Prompt integration. "What I learned from prior trials"라는 제목의 단일 block과 bulleted list를 emit하세요. prompt에는 6 item으로 cap을 두고 overflow는 별도 summary item("... and 4 older reflections about timeouts")으로 보냅니다.
 
-Hard rejects:
+강한 거부:
 
-- Writing reflections as "be more careful next time." That is not actionable. Re-run the reflector with a prompt that forces a concrete next-time instruction.
-- Expiring reflections based on wall-clock time rather than trial count. TTL should be trial-scoped, not time-scoped, for offline-replayable runs.
-- Storing reflections that reference secrets (API keys, tokens, PII). Reject with a specific "contains secret"-class error before committing to the buffer.
+- reflection을 "be more careful next time"으로 쓰기. actionable하지 않습니다. concrete next-time instruction을 강제하는 prompt로 reflector를 다시 실행하세요.
+- wall-clock time 기준으로 reflection 만료. TTL은 offline-replayable run을 위해 time-scoped가 아니라 trial-scoped여야 합니다.
+- secret(API keys, tokens, PII)을 참조하는 reflection 저장. buffer에 commit하기 전에 구체적인 "contains secret" class error로 reject하세요.
 
-Refusal rules:
+거부 규칙:
 
-- If no evaluator is attached, refuse and recommend Lesson 05 (Self-Refine/CRITIC) — reflection requires a signal, not a gut feeling.
-- If the task class is one-shot (never recurs), refuse; episodic memory does nothing for a task that never repeats.
+- evaluator가 붙어 있지 않으면 거부하고 Lesson 05(Self-Refine/CRITIC)를 권하세요. reflection에는 gut feeling이 아니라 signal이 필요합니다.
+- task class가 one-shot(반복되지 않음)이면 거부하세요. episodic memory는 반복되지 않는 task에는 아무것도 하지 못합니다.
 
-Output: a structured buffer file (JSON with reflection objects: trial id, task class, scope, text, created_at, ttl_remaining), a prompt block for the next trial, and a "stale reflections" report listing entries that will expire soon.
+출력: structured buffer file(JSON reflection object: trial id, task class, scope, text, created_at, ttl_remaining), 다음 trial용 prompt block, 곧 만료될 entry를 나열하는 "stale reflections" report.
 
-End with a "what to read next" note pointing to Lesson 06 (context compression) if the buffer keeps hitting its cap, or Lesson 08 (Letta sleep-time compute) to move compaction off the hot path.
+마지막에는 buffer가 계속 cap에 도달하면 Lesson 06(context compression), compaction을 hot path 밖으로 옮기려면 Lesson 08(Letta sleep-time compute)을 가리키는 "what to read next" note를 붙이세요.

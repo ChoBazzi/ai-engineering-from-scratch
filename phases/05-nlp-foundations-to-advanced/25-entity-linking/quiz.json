@@ -4,99 +4,99 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does entity linking add on top of NER?",
+      "question": "Entity linking은 NER 위에 무엇을 추가하나요?",
       "options": [
-        "Translations",
-        "Sentiment polarity",
-        "Part-of-speech tags",
-        "It maps each detected mention to a unique entry in a knowledge base (Wikidata, Wikipedia, or a domain KB)"
+        "번역",
+        "sentiment polarity",
+        "part-of-speech tag",
+        "감지된 각 mention을 knowledge base(Wikidata, Wikipedia, 또는 domain KB)의 고유 entry에 매핑합니다"
       ],
       "correct": 3,
-      "explanation": "EL turns a mention into a canonical KB id, disambiguating between same-name entities."
+      "explanation": "EL은 mention을 canonical KB id로 바꾸어, 이름이 같은 entity 사이의 모호성을 해소합니다."
     },
     {
       "stage": "pre",
-      "question": "What are the two main subtasks in entity linking?",
+      "question": "Entity linking의 두 가지 주요 하위 작업은 무엇인가요?",
       "options": [
-        "Tokenization and parsing",
-        "POS tagging and lemmatization",
-        "Embedding and clustering",
-        "Candidate generation (shortlist of plausible KB entries) and disambiguation (pick the right one given context)"
+        "Tokenization과 parsing",
+        "POS tagging과 lemmatization",
+        "Embedding과 clustering",
+        "Candidate generation(그럴듯한 KB entry shortlist)과 disambiguation(context를 보고 맞는 것을 선택)"
       ],
       "correct": 3,
-      "explanation": "EL decomposes into proposing candidates then ranking them by contextual fit."
+      "explanation": "EL은 candidate를 제안한 다음 contextual fit으로 ranking하는 과정으로 나뉩니다."
     },
     {
       "stage": "check",
-      "question": "Why must mention recall be reported alongside disambiguation accuracy?",
+      "question": "왜 mention recall을 disambiguation accuracy와 함께 보고해야 하나요?",
       "options": [
-        "Mention recall is mandatory by GDPR",
-        "Recall replaces precision",
-        "Disambiguation cannot recover from missing candidates; the pipeline is bounded by candidate-generation recall",
-        "Recall is required by spaCy"
+        "Mention recall은 GDPR에서 의무입니다",
+        "Recall이 precision을 대체합니다",
+        "Disambiguation은 누락된 candidate를 복구할 수 없습니다. pipeline은 candidate-generation recall에 의해 제한됩니다",
+        "Recall은 spaCy에서 요구합니다"
       ],
       "correct": 2,
-      "explanation": "If candidates miss the gold entity, no disambiguator can fix it; recall floors pipeline quality."
+      "explanation": "candidate가 gold entity를 놓치면 어떤 disambiguator도 고칠 수 없습니다. recall이 pipeline 품질의 바닥을 정합니다."
     },
     {
       "stage": "check",
-      "question": "How does GENRE perform entity linking?",
+      "question": "GENRE는 entity linking을 어떻게 수행하나요?",
       "options": [
-        "Decodes the entity's canonical name token-by-token under constrained decoding over a trie of valid KB ids",
-        "By BM25",
-        "By computing TF-IDF",
-        "By PageRank"
+        "유효한 KB id의 trie 위에서 constrained decoding을 사용해 entity의 canonical name을 token-by-token으로 decode합니다",
+        "BM25로 수행합니다",
+        "TF-IDF를 계산해서 수행합니다",
+        "PageRank로 수행합니다"
       ],
       "correct": 0,
-      "explanation": "GENRE generates the canonical KB name with constrained decoding to guarantee a valid id."
+      "explanation": "GENRE는 constrained decoding으로 canonical KB name을 생성해 유효한 id를 보장합니다."
     },
     {
       "stage": "check",
-      "question": "What is NIL handling in entity linking?",
+      "question": "Entity linking에서 NIL handling은 무엇인가요?",
       "options": [
-        "Predicting a 'not in KB' label when no candidate is a real match (emerging entities, obscure people)",
-        "Returning the entire candidate list",
-        "Lowercasing the input",
-        "Skipping every mention"
+        "실제 match가 되는 candidate가 없을 때(새로 등장한 entity, 잘 알려지지 않은 사람) 'not in KB' label을 예측하는 것",
+        "전체 candidate list를 반환하는 것",
+        "입력을 lowercase로 바꾸는 것",
+        "모든 mention을 건너뛰는 것"
       ],
       "correct": 0,
-      "explanation": "NIL prediction prevents guessing wrong KB ids for entities the KB does not cover."
+      "explanation": "NIL prediction은 KB가 포괄하지 않는 entity에 대해 잘못된 KB id를 추측하는 일을 막습니다."
     },
     {
       "stage": "post",
-      "question": "Why does popularity bias hurt entity linking in specialized domains?",
+      "question": "왜 popularity bias가 specialized domain의 entity linking을 해치나요?",
       "options": [
-        "Models trained on web data over-predict frequent entities (e.g. basketball Jordan over the ML researcher Michael I. Jordan)",
-        "It biases toward older entities only",
-        "Popularity removes NIL",
-        "Popularity helps recall"
+        "web data로 학습한 model은 빈번한 entity를 과다 예측합니다(예: ML researcher Michael I. Jordan보다 basketball Jordan을 선택)",
+        "오래된 entity에만 bias가 생깁니다",
+        "Popularity가 NIL을 제거합니다",
+        "Popularity는 recall에 도움이 됩니다"
       ],
       "correct": 0,
-      "explanation": "Popularity priors skew predictions away from less-common, domain-specific name-clashes."
+      "explanation": "Popularity prior는 덜 흔하고 domain-specific한 name-clash에서 prediction을 엉뚱한 쪽으로 기울게 합니다."
     },
     {
       "stage": "post",
-      "question": "What is a safe LLM-EL pattern in 2026?",
+      "question": "2026년에 안전한 LLM-EL pattern은 무엇인가요?",
       "options": [
-        "Provide a candidate list and use constrained JSON output that the LLM can only choose from valid KB ids",
-        "Just prompt 'find the entity'",
-        "Free-form generation",
-        "Skip candidate generation"
+        "candidate list를 제공하고, LLM이 유효한 KB id 중에서만 선택할 수 있는 constrained JSON output을 사용합니다",
+        "그냥 'find the entity'라고 prompt합니다",
+        "free-form generation을 사용합니다",
+        "candidate generation을 건너뜁니다"
       ],
       "correct": 0,
-      "explanation": "Constraining the LLM to a valid candidate list prevents made-up KB ids and keeps output queryable."
+      "explanation": "LLM을 유효한 candidate list로 constrain하면 만들어낸 KB id를 방지하고 output을 query 가능하게 유지합니다."
     },
     {
       "stage": "post",
-      "question": "Why must NER mention boundaries be exact for entity linking to work?",
+      "question": "Entity linking이 작동하려면 왜 NER mention boundary가 정확해야 하나요?",
       "options": [
-        "Boundary errors propagate: 'Bank of America' clipped to 'Bank' surfaces wrong candidates and tanks EL recall",
-        "Boundary precision only affects NER metrics, not entity-linking candidate quality",
-        "Boundaries change tokenization",
-        "Boundaries break Wikipedia lookups"
+        "Boundary error는 전파됩니다. 'Bank of America'가 'Bank'로 잘리면 잘못된 candidate가 surface되고 EL recall이 무너집니다",
+        "Boundary precision은 NER metric에만 영향을 주고 entity-linking candidate 품질에는 영향을 주지 않습니다",
+        "Boundary가 tokenization을 바꿉니다",
+        "Boundary가 Wikipedia lookup을 깨뜨립니다"
       ],
       "correct": 0,
-      "explanation": "Mis-bounded mentions retrieve the wrong alias set, propagating errors into disambiguation."
+      "explanation": "잘못 경계가 잡힌 mention은 잘못된 alias set을 retrieve하여 error를 disambiguation으로 전파합니다."
     }
   ]
 }

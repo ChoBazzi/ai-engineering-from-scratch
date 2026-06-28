@@ -1,78 +1,78 @@
-# Voice Anti-Spoofing & Audio Watermarking — ASVspoof 5, AudioSeal, WaveVerify
+# 음성 anti-spoofing과 오디오 watermarking — ASVspoof 5, AudioSeal, WaveVerify
 
-> Voice cloning shipped faster than defenses. 2026 production voice systems need two things: a detector (AASIST, RawNet2) that classifies real vs fake speech, and a watermark (AudioSeal) that survives compression and editing. Ship both or do not ship voice cloning.
+> 음성 클로닝은 방어책보다 빠르게 배포되었다. 2026년 프로덕션 음성 시스템에는 두 가지가 필요하다. 실제 음성과 가짜 음성을 분류하는 감지기(AASIST, RawNet2), 그리고 압축과 편집을 견디는 watermark(AudioSeal)다. 둘 다 넣어 배포하거나, 음성 클로닝을 배포하지 말라.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 6 · 06 (Speaker Recognition), Phase 6 · 08 (Voice Cloning)
 **Time:** ~75 minutes
 
-## The Problem
+## 문제
 
-Three related defenses:
+관련된 세 가지 방어책:
 
-1. **Anti-spoofing / deepfake detection.** Given an audio clip, is it synthetic or real? ASVspoof benchmarks (ASVspoof 2019 → 2021 → 5) are the gold standard.
-2. **Audio watermarking.** Embed an imperceptible signal in generated audio that a detector can extract later. AudioSeal (Meta) and WavMark are the open options.
-3. **Authenticated provenance.** Cryptographic signing of audio files + metadata. C2PA / Content Authenticity Initiative.
+1. **Anti-spoofing / deepfake detection.** 오디오 클립이 주어졌을 때 합성인가, 실제인가? ASVspoof 벤치마크(ASVspoof 2019 → 2021 → 5)가 표준이다.
+2. **Audio watermarking.** 생성된 오디오 안에 사람이 들을 수 없는 신호를 삽입하고, 나중에 감지기가 추출할 수 있게 한다. AudioSeal(Meta)과 WavMark가 공개 선택지다.
+3. **Authenticated provenance.** 오디오 파일 + 메타데이터의 암호학적 서명. C2PA / Content Authenticity Initiative.
 
-Detection handles adversaries who don't cooperate. Watermarking handles compliance — AI-generated audio should be identifiable as such. Both are required in 2026.
+감지는 협조하지 않는 공격자를 다룬다. Watermarking은 규정 준수를 다룬다. AI 생성 오디오는 그렇게 식별 가능해야 한다. 2026년에는 둘 다 필요하다.
 
-## The Concept
+## 개념
 
 ![Anti-spoofing vs watermarking vs provenance — three defense layers](../assets/spoofing-watermark.svg)
 
-### ASVspoof 5 — the 2024-2025 benchmark
+### ASVspoof 5 — 2024-2025 벤치마크
 
-Biggest change from prior editions:
+이전 판본과 비교한 가장 큰 변화:
 
-- **Crowdsourced data** (not studio clean) — realistic conditions.
-- **~2000 speakers** (vs ~100 before).
-- **32 attack algorithms.** TTS + voice conversion + adversarial perturbation.
-- **Two tracks.** Countermeasure (CM) standalone detection; Spoofing-robust ASV (SASV) for biometric systems.
+- **크라우드소싱 데이터**(스튜디오급 깨끗한 데이터가 아님) — 현실적인 조건.
+- **약 2000명의 화자**(이전에는 약 100명).
+- **32개 공격 알고리즘.** TTS + voice conversion + adversarial perturbation.
+- **두 트랙.** Countermeasure(CM) 단독 감지. 생체 인식 시스템을 위한 Spoofing-robust ASV(SASV).
 
-State-of-the-art on ASVspoof 5: ~7.23% EER. On the older ASVspoof 2019 LA: 0.42% EER. Real-world deployment: expect 5-10% EER on in-the-wild clips.
+ASVspoof 5의 최신 성능은 약 7.23% EER이다. 더 오래된 ASVspoof 2019 LA에서는 0.42% EER이다. 실제 배포에서는 in-the-wild 클립에서 5-10% EER을 예상하라.
 
-### AASIST and RawNet2 — detection model families
+### AASIST와 RawNet2 — 감지 모델 계열
 
-**AASIST** (2021, updated through 2026). Graph-attention on spectral features. Current SOTA on ASVspoof 5 countermeasure task.
+**AASIST**(2021, 2026년까지 업데이트). 스펙트럼 feature 위의 graph-attention. 현재 ASVspoof 5 countermeasure task의 SOTA다.
 
-**RawNet2.** Convolutional front-end over raw waveform + TDNN backbone. Simpler baseline; still competitive with fine-tuning.
+**RawNet2.** 원시 파형 위의 convolutional front-end + TDNN backbone. 더 단순한 기준선이지만 fine-tuning하면 여전히 경쟁력 있다.
 
-**NeXt-TDNN + SSL features.** 2025 variant: ECAPA-style + WavLM features + focal loss. Achieves the 0.42% EER on ASVspoof 2019 LA.
+**NeXt-TDNN + SSL features.** 2025년 변형: ECAPA 스타일 + WavLM features + focal loss. ASVspoof 2019 LA에서 0.42% EER을 달성한다.
 
-### AudioSeal — the 2024 watermark default
+### AudioSeal — 2024년 watermark 기본값
 
-Meta's **AudioSeal** (Jan 2024, v0.2 Dec 2024). Key design:
+Meta의 **AudioSeal**(2024년 1월, v0.2는 2024년 12월). 핵심 설계:
 
-- **Localized.** Detects the watermark per-frame at 16 kHz sample resolution (1/16000 s).
-- **Generator + detector jointly trained.** Generator learns to embed inaudible signal; detector learns to find it through augmentations.
-- **Robust.** Survives MP3 / AAC compression, EQ, speed-shift ±10%, noise mix +10 dB SNR.
-- **Fast.** Detector runs at 485× realtime; 1000× faster than WavMark.
-- **Capacity.** 16-bit payload (can encode model ID, generation timestamp, user ID) embeddable in each utterance.
+- **국소적이다.** 16kHz 샘플 해상도(1/16000초)에서 프레임 단위로 watermark를 감지한다.
+- **Generator + detector 공동 학습.** Generator는 들리지 않는 신호를 삽입하도록 배우고, detector는 augmentation을 거쳐 이를 찾도록 배운다.
+- **견고하다.** MP3 / AAC 압축, EQ, ±10% speed-shift, +10dB SNR 잡음 혼합을 견딘다.
+- **빠르다.** Detector는 실시간 485배 속도로 실행된다. WavMark보다 1000배 빠르다.
+- **용량.** 16-bit payload(모델 ID, 생성 timestamp, 사용자 ID를 인코딩 가능)를 각 발화에 삽입할 수 있다.
 
 ### WavMark
 
-The pre-AudioSeal open baseline. Invertible neural network, 32 bits/sec. Problems:
+AudioSeal 이전의 공개 기준선이다. Invertible neural network, 32 bits/sec. 문제:
 
-- Synchronization brute-force is slow.
-- Can be removed by Gaussian noise or MP3 compression.
-- Not real-time friendly.
+- 동기화를 brute-force로 찾는 과정이 느리다.
+- Gaussian noise나 MP3 압축으로 제거될 수 있다.
+- 실시간 친화적이지 않다.
 
-### WaveVerify (July 2025)
+### WaveVerify (2025년 7월)
 
-Addresses AudioSeal's weaknesses — specifically temporal manipulations (reversal, speed). Uses FiLM-based generator + Mixture-of-Experts detector. Competitive with AudioSeal on standard attacks; handles temporal edits.
+AudioSeal의 약점, 특히 시간 조작(반전, 속도)을 다룬다. FiLM 기반 generator + Mixture-of-Experts detector를 사용한다. 표준 공격에서는 AudioSeal과 경쟁 가능하고, 시간 편집을 처리한다.
 
-### The gap adversaries exploit
+### 공격자가 노리는 빈틈
 
-From AudioMarkBench: "under pitch shift, all watermarks show Bit Recovery Accuracy below 0.6, indicating near-complete removal." **Pitch-shift is the universal attack.** No 2026 watermark is fully robust to aggressive pitch modification. This is why you need detection (AASIST) alongside watermarking.
+AudioMarkBench에 따르면 "pitch shift에서 모든 watermark는 0.6 미만의 Bit Recovery Accuracy를 보이며, 거의 완전한 제거를 나타낸다." **Pitch-shift는 범용 공격이다.** 2026년의 어떤 watermark도 공격적인 pitch modification에 완전히 견고하지 않다. 그래서 watermarking과 함께 감지(AASIST)가 필요하다.
 
 ### C2PA / Content Authenticity Initiative
 
-Not an ML technique — a manifest format. Audio files carry cryptographically signed metadata about creation tool, author, date. Audobox / Seamless use it. Good for provenance; does nothing if a bad actor re-encodes and strips metadata.
+ML 기법이 아니라 manifest 형식이다. 오디오 파일은 생성 도구, 작성자, 날짜에 관한 암호학적으로 서명된 메타데이터를 담는다. Audobox / Seamless가 사용한다. 출처 증명에는 좋지만, 악의적 행위자가 재인코딩해서 메타데이터를 제거하면 아무것도 하지 못한다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: a simple spectral-feature detector (toy)
+### 1단계: 단순한 스펙트럼 특징 감지기(toy)
 
 ```python
 def spectral_rolloff(spec, percentile=0.85):
@@ -93,9 +93,9 @@ def is_suspicious(audio):
     return rolloff / len(spec) > 0.92
 ```
 
-Synthetic speech often has unusually flat high-frequency energy. Production detectors use AASIST, not this. But the intuition holds.
+합성 음성은 종종 고주파 에너지가 비정상적으로 평평하다. 프로덕션 감지기는 이것이 아니라 AASIST를 쓴다. 하지만 직관은 유효하다.
 
-### Step 2: AudioSeal embed + detect
+### 2단계: AudioSeal 삽입 + 감지
 
 ```python
 from audioseal import AudioSeal
@@ -110,11 +110,11 @@ watermark = generator.get_watermark(audio, sample_rate=16000, message=payload)
 watermarked = audio + watermark
 
 result, decoded_payload = detector.detect_watermark(watermarked, sample_rate=16000)
-# result: float in [0, 1] — probability of watermark presence
-# decoded_payload: 16 bits; match against embedded payload
+# result: float in [0, 1] — watermark 존재 확률
+# decoded_payload: 16 bits; 삽입한 payload와 비교
 ```
 
-### Step 3: evaluation — EER
+### 3단계: 평가 — EER
 
 ```python
 def eer(real_scores, fake_scores):
@@ -128,7 +128,7 @@ def eer(real_scores, fake_scores):
     return best[1]
 ```
 
-### Step 4: the production integration
+### 4단계: 프로덕션 통합
 
 ```python
 def safe_tts(text, voice, clone_reference=None):
@@ -140,53 +140,53 @@ def safe_tts(text, voice, clone_reference=None):
     return audio_with_wm, manifest
 ```
 
-Every generation ships: (1) watermark, (2) signed manifest, (3) retention-policy-compliant audit log.
+모든 생성물은 (1) watermark, (2) 서명된 manifest, (3) 보존 정책을 준수하는 audit log를 함께 제공한다.
 
-## Use It
+## 활용하기
 
-| Use case | Defense |
+| 사용 사례 | 방어책 |
 |----------|---------|
-| Shipping TTS / voice cloning | AudioSeal embed on every output (non-negotiable) |
-| Biometric voice unlock | AASIST + ECAPA ensemble; liveness challenge |
-| Call-center fraud detection | AASIST on 20% sample of incoming calls |
-| Podcast authenticity | C2PA signing on upload, AudioSeal if AI-generated |
-| Research / training detectors | ASVspoof 5 train/dev/eval sets |
+| TTS / voice cloning 배포 | 모든 출력에 AudioSeal 삽입(타협 불가) |
+| 생체 음성 잠금 해제 | AASIST + ECAPA ensemble; liveness challenge |
+| 콜센터 사기 감지 | 수신 통화의 20% 샘플에 AASIST |
+| 팟캐스트 진위성 | 업로드 시 C2PA signing, AI 생성이면 AudioSeal |
+| 감지기 연구 / 학습 | ASVspoof 5 train/dev/eval sets |
 
-## Pitfalls
+## 함정
 
-- **Watermark without detector ever running.** Pointless. Ship the detector in your CI.
-- **Detection without calibration.** AASIST trained on ASVspoof LA overfits; real-world accuracy drops. Calibrate on your domain.
-- **Pitch-shift gap.** Aggressive pitch shift removes most watermarks. Have a detection fallback.
-- **Metadata strip-and-rehost.** C2PA is trivially bypassable by re-encoding. Always add cryptographic + perceptual (watermark) defense together.
-- **Liveness as detection.** Ask user to say a random phrase. Prevents replay attacks but not real-time cloning.
+- **Watermark를 넣고 detector를 전혀 실행하지 않음.** 무의미하다. CI에 detector를 배포하라.
+- **보정 없는 감지.** ASVspoof LA로 학습한 AASIST는 과적합된다. 실제 정확도는 떨어진다. 도메인에서 보정하라.
+- **Pitch-shift 빈틈.** 공격적인 pitch shift는 대부분의 watermark를 제거한다. 감지 fallback을 둬라.
+- **Metadata strip-and-rehost.** C2PA는 재인코딩으로 쉽게 우회된다. 항상 암호학적 방어 + 지각적 방어(watermark)를 함께 추가하라.
+- **Liveness를 감지로 착각.** 사용자에게 임의 문구를 말하게 하라. replay attack은 막지만 실시간 클로닝은 막지 못한다.
 
-## Ship It
+## 내보내기
 
-Save as `outputs/skill-spoof-defender.md`. Pick detection model, watermark, provenance manifest, and operational playbook for a voice-gen deployment.
+`outputs/skill-spoof-defender.md`로 저장하라. 음성 생성 배포를 위한 감지 모델, watermark, provenance manifest, 운영 playbook을 고른다.
 
-## Exercises
+## 연습 문제
 
-1. **Easy.** Run `code/main.py`. Toy detector + toy watermark embed/detect on synthetic audio.
-2. **Medium.** Install `audioseal`, embed a 16-bit payload in a TTS output, re-decode. Corrupt the audio with noise and measure Bit Recovery Accuracy.
-3. **Hard.** Fine-tune a RawNet2 or AASIST on ASVspoof 2019 LA. Measure EER. Test on a held-out set of F5-TTS-generated clips — see how OOD detection degrades.
+1. **쉬움.** `code/main.py`를 실행하라. 합성 오디오에서 toy detector + toy watermark 삽입/감지를 수행한다.
+2. **보통.** `audioseal`을 설치하고 TTS 출력에 16-bit payload를 삽입한 뒤 다시 디코딩하라. 오디오에 잡음을 넣고 Bit Recovery Accuracy를 측정하라.
+3. **어려움.** ASVspoof 2019 LA에서 RawNet2 또는 AASIST를 fine-tune하라. EER을 측정하라. F5-TTS로 생성한 별도 hold-out 클립 세트에서 테스트하고 OOD 감지가 얼마나 나빠지는지 확인하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 하는 말 | 실제 의미 |
 |------|-----------------|-----------------------|
-| ASVspoof | The benchmark | Biennial challenge; 2024 = ASVspoof 5. |
-| CM (countermeasure) | Detector | Classifier: real speech vs synthetic / converted. |
-| SASV | Speaker verif + CM | Integrated biometric + spoof detection. |
-| AudioSeal | Meta watermark | Localized, 16-bit payload, 485× faster than WavMark. |
-| Bit Recovery Accuracy | Watermark survival | Fraction of payload bits recovered after attack. |
-| C2PA | Provenance manifest | Cryptographic metadata about creation / authorship. |
-| AASIST | Detector family | Graph-attention-based anti-spoofing SOTA. |
+| ASVspoof | 벤치마크 | 격년 challenge. 2024 = ASVspoof 5. |
+| CM (countermeasure) | 감지기 | 분류기: 실제 음성 vs 합성 / 변환 음성. |
+| SASV | Speaker verif + CM | 통합 생체 인식 + spoof 감지. |
+| AudioSeal | Meta watermark | 국소적, 16-bit payload, WavMark보다 485× 빠름. |
+| Bit Recovery Accuracy | Watermark 생존성 | 공격 후 복구된 payload bit의 비율. |
+| C2PA | Provenance manifest | 생성 / 저작권에 관한 암호학적 메타데이터. |
+| AASIST | 감지기 계열 | Graph-attention 기반 anti-spoofing SOTA. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Todisco et al. (2024). ASVspoof 5](https://dl.acm.org/doi/10.1016/j.csl.2025.101825) — the current benchmark.
-- [Defossez et al. (2024). AudioSeal](https://arxiv.org/abs/2401.17264) — the watermark default.
-- [Chen et al. (2025). WaveVerify](https://arxiv.org/abs/2507.21150) — MoE detector for temporal attacks.
-- [Jung et al. (2022). AASIST](https://arxiv.org/abs/2110.01200) — the SOTA detection backbone.
-- [AudioMarkBench (2024)](https://proceedings.neurips.cc/paper_files/paper/2024/file/5d9b7775296a641a1913ab6b4425d5e8-Paper-Datasets_and_Benchmarks_Track.pdf) — robustness evaluation.
-- [C2PA specification](https://c2pa.org/specifications/specifications/) — provenance manifest format.
+- [Todisco et al. (2024). ASVspoof 5](https://dl.acm.org/doi/10.1016/j.csl.2025.101825) — 현재 벤치마크.
+- [Defossez et al. (2024). AudioSeal](https://arxiv.org/abs/2401.17264) — watermark 기본값.
+- [Chen et al. (2025). WaveVerify](https://arxiv.org/abs/2507.21150) — 시간 공격을 위한 MoE detector.
+- [Jung et al. (2022). AASIST](https://arxiv.org/abs/2110.01200) — SOTA 감지 backbone.
+- [AudioMarkBench (2024)](https://proceedings.neurips.cc/paper_files/paper/2024/file/5d9b7775296a641a1913ab6b4425d5e8-Paper-Datasets_and_Benchmarks_Track.pdf) — 견고성 평가.
+- [C2PA specification](https://c2pa.org/specifications/specifications/) — provenance manifest 형식.

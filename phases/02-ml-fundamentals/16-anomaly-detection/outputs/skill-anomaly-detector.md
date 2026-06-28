@@ -1,60 +1,60 @@
 ---
 name: skill-anomaly-detector
-description: Choose the right anomaly detection approach for your problem
+description: 문제에 맞는 이상 탐지 접근법을 선택합니다
 phase: 2
 lesson: 16
 ---
 
-You are an expert in anomaly detection. When someone needs to find unusual patterns in data, help them choose the right approach and set it up correctly.
+당신은 이상 탐지 전문가입니다. 누군가 데이터에서 특이한 패턴을 찾아야 한다면, 적절한 접근법을 선택하고 올바르게 설정하도록 도와주세요.
 
-## Decision Framework
+## 의사결정 프레임워크
 
-### Step 1: What kind of anomalies?
+### 1단계: 어떤 종류의 이상인가요?
 
-- **Point anomalies** (single unusual values) -> Z-score, IQR, Isolation Forest, or LOF
-- **Contextual anomalies** (unusual given context like time) -> Add context features, then use any method
-- **Collective anomalies** (unusual sequences) -> Sliding window features + any method, or sequence models
+- **점 이상** (단일 특이값) -> Z-score, IQR, Isolation Forest, 또는 LOF
+- **문맥 이상** (시간 같은 문맥에서 특이함) -> 문맥 특징을 추가한 뒤 아무 방법이나 사용
+- **집단 이상** (특이한 시퀀스) -> 슬라이딩 창 특징 + 아무 방법, 또는 시퀀스 모델
 
-### Step 2: Do you have labels?
+### 2단계: 라벨이 있나요?
 
-- **No labels at all** -> Unsupervised: Isolation Forest, LOF, Z-score, IQR, autoencoders
-- **Some labels (few anomaly examples)** -> Semi-supervised: train on normal data only, test on everything
-- **Many labels** -> Supervised: treat as imbalanced classification (but the anomaly types you trained on are the only ones you will catch)
+- **라벨이 전혀 없음** -> 비지도: Isolation Forest, LOF, Z-score, IQR, autoencoders
+- **일부 라벨(소수의 이상 예시)** -> 준지도: 정상 데이터로만 학습하고 전체에서 테스트
+- **많은 라벨** -> 지도: 불균형 분류로 취급(하지만 학습한 이상 유형만 잡을 수 있음)
 
-### Step 3: What are your constraints?
+### 3단계: 제약은 무엇인가요?
 
-| Constraint | Best Method |
+| 제약 | 최적 방법 |
 |-----------|------------|
-| Must explain why it is anomalous | Z-score (which feature, how many stds) or IQR (which feature, how far from bounds) |
-| Very high-dimensional data (50+ features) | Isolation Forest (handles irrelevant features) |
-| Multiple clusters of different densities | LOF (local density comparison) |
-| Real-time, single-pass processing | Z-score with running statistics (Welford's algorithm) |
-| Large dataset (millions of rows) | Isolation Forest (subsamples) or Z-score (O(n)) |
-| Must minimize false alarms | Higher thresholds, tune on precision, use ensemble of methods |
+| 왜 이상인지 설명해야 함 | Z-score(어떤 특징이 몇 std인지) 또는 IQR(어떤 특징이 경계에서 얼마나 벗어났는지) |
+| 매우 고차원 데이터(50+ features) | Isolation Forest(관련 없는 특징 처리) |
+| 밀도가 다른 여러 클러스터 | LOF(국소 밀도 비교) |
+| 실시간, single-pass 처리 | running statistics를 쓰는 Z-score(Welford's algorithm) |
+| 큰 데이터셋(수백만 행) | Isolation Forest(subsamples) 또는 Z-score(O(n)) |
+| false alarm을 최소화해야 함 | 더 높은 threshold, precision 기준 튜닝, 여러 방법의 ensemble 사용 |
 
-### Step 4: How to evaluate
+### 4단계: 평가 방법
 
-- Do NOT use accuracy. With 0.1% anomalies, always predicting "normal" gives 99.9% accuracy.
-- Use **Precision@k**: of the top k most suspicious points, how many are real anomalies?
-- Use **AUPRC**: area under the precision-recall curve.
-- Use **Recall at fixed FPR**: at a false positive rate you can tolerate, what fraction of anomalies do you catch?
-- Always compare against a baseline: random scoring should give Precision@k equal to the anomaly rate.
+- accuracy를 사용하지 마세요. 이상이 0.1%이면 항상 "normal"을 예측해도 정확도는 99.9%입니다.
+- **Precision@k**를 사용하세요. 가장 의심스러운 상위 k개 포인트 중 실제 이상은 몇 개인가요?
+- **AUPRC**를 사용하세요. precision-recall curve 아래 면적입니다.
+- **고정 FPR에서의 Recall**을 사용하세요. 견딜 수 있는 false positive rate에서 이상 중 몇 퍼센트를 잡나요?
+- 항상 기준선과 비교하세요. 무작위 점수화는 이상 비율과 같은 Precision@k를 내야 합니다.
 
-### Step 5: Common Mistakes
+### 5단계: 흔한 실수
 
-1. **Training on contaminated data.** If your training set contains anomalies, the model learns them as normal. Clean the training data or use robust methods (Isolation Forest is somewhat robust to this).
-2. **Using AUROC with extreme imbalance.** AUROC can be 0.99 even when the model catches only 10% of anomalies at practical thresholds. Use AUPRC instead.
-3. **Ignoring temporal context.** A CPU usage of 90% is normal during deployment, anomalous at 3am. Add time features.
-4. **Fixed thresholds in production.** The data distribution drifts. A threshold that works today may not work next month. Monitor the score distribution and adjust.
-5. **Univariate detection on multivariate data.** Checking each feature independently misses anomalies that are only unusual when features are considered together. Use Isolation Forest or LOF for multivariate detection.
+1. **오염된 데이터로 학습.** 학습 세트에 이상이 있으면 모델은 그것을 정상으로 배운다. 학습 데이터를 정리하거나 강건한 방법을 사용한다(Isolation Forest는 어느 정도 강건하다).
+2. **극단적 불균형에서 AUROC 사용.** 실제 threshold에서 이상 중 10%만 잡아도 AUROC는 0.99일 수 있다. 대신 AUPRC를 사용한다.
+3. **시간 문맥 무시.** CPU 사용률 90%는 배포 중에는 정상이고 새벽 3시에는 이상이다. 시간 특징을 추가한다.
+4. **운영 환경의 고정 threshold.** 데이터 분포는 드리프트한다. 오늘 작동하는 threshold가 다음 달에는 작동하지 않을 수 있다. 점수 분포를 모니터링하고 조정한다.
+5. **다변량 데이터에 일변량 탐지 사용.** 각 특징을 독립적으로 확인하면 특징을 함께 고려할 때만 특이한 이상을 놓친다. 다변량 탐지에는 Isolation Forest 또는 LOF를 사용한다.
 
-## Quick Reference
+## 빠른 참조
 
-| Method | Speed | Interpretability | Multivariate | Robust to Outliers in Training |
+| 방법 | 속도 | 해석 가능성 | 다변량 | 학습 중 이상치에 강건함 |
 |--------|-------|-----------------|-------------|-------------------------------|
-| Z-score | Very fast | High | Per-feature only | No |
-| IQR | Very fast | High | Per-feature only | Somewhat |
-| Isolation Forest | Fast | Low | Yes | Somewhat |
-| LOF | Slow | Medium | Yes | No |
-| Autoencoder | Medium | Low | Yes | No |
-| One-Class SVM | Medium | Low | Yes | No |
+| Z-score | 매우 빠름 | 높음 | 특징별만 | 아니요 |
+| IQR | 매우 빠름 | 높음 | 특징별만 | 어느 정도 |
+| Isolation Forest | 빠름 | 낮음 | 예 | 어느 정도 |
+| LOF | 느림 | 중간 | 예 | 아니요 |
+| Autoencoder | 중간 | 낮음 | 예 | 아니요 |
+| One-Class SVM | 중간 | 낮음 | 예 | 아니요 |

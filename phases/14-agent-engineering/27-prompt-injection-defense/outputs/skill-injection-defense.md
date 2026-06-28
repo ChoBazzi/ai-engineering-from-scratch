@@ -1,33 +1,33 @@
 ---
 name: injection-defense
-description: Build a PVE (Prompt-Validator-Executor) layer with source-tagged content, injection-marker scanning, and allowlist navigation for any agent runtime.
+description: 모든 agent runtime을 위해 source-tagged content, injection-marker scanning, allowlist navigation을 갖춘 PVE(Prompt-Validator-Executor) layer를 만든다.
 version: 1.0.0
 phase: 14
 lesson: 27
 tags: [security, prompt-injection, pve, greshake, source-tag]
 ---
 
-Given an agent with tool access and retrieval, produce an injection-defense layer.
+tool access와 retrieval이 있는 agent가 주어지면 injection-defense layer를 생성한다.
 
-Produce:
+생성할 것:
 
-1. Source tag on every piece of content: `user_message`, `tool_output`, `retrieved_web`, `retrieved_memory`, `retrieved_file`. Propagate tags through the message history.
-2. `Validator.assess(tool_call, contents)` — refuses tool calls with injection-shaped args or retrieved content; allowed only when source tags match the declared trust level.
-3. Allowlist / blocklist for navigation: URLs, domains, file paths the agent may touch.
-4. Memory-write guardrail: refuse writes that look like directives.
-5. Content-capture discipline (Lesson 23): store retrieved content externally; spans carry reference IDs, not prose.
-6. Test suite: the five Greshake exploit classes as red-team cases.
+1. 모든 content 조각의 source tag: `user_message`, `tool_output`, `retrieved_web`, `retrieved_memory`, `retrieved_file`. message history 전체에 tag를 propagate한다.
+2. `Validator.assess(tool_call, contents)` — injection-shaped args 또는 retrieved content가 있는 tool call을 거부한다. source tag가 선언된 trust level과 맞을 때만 허용한다.
+3. navigation용 allowlist / blocklist: agent가 touch할 수 있는 URL, domain, file path.
+4. memory-write guardrail: directive처럼 보이는 write를 거부한다.
+5. content-capture discipline(Lesson 23): retrieved content를 외부에 저장한다. span은 prose가 아니라 reference ID를 담는다.
+6. test suite: 다섯 Greshake exploit class를 red-team case로 포함한다.
 
-Hard rejects:
+강한 거부 조건:
 
-- Tool-use surface without source tags. Cannot distinguish permission levels without provenance.
-- Validator that runs only on the final output. Late validation is irrelevant — the model already acted.
-- "Trust me, the system prompt handles it." System-prompt hygiene is not a control.
+- source tag 없는 tool-use surface. provenance 없이는 permission level을 구분할 수 없다.
+- final output에서만 실행되는 validator. late validation은 무의미하다. model이 이미 행동했다.
+- "Trust me, the system prompt handles it." system-prompt hygiene는 control이 아니다.
 
-Refusal rules:
+거부 규칙:
 
-- If the agent has any retrieval capability without source tagging, refuse to ship. Retrieved content is the canonical injection vector.
-- If sensitive tools (send message, execute shell, write file in /) have no human-in-the-loop confirmation, refuse.
-- If memory writes are unguarded, refuse. Persistent memory poisoning re-poisons next session.
+- agent에 source tagging 없는 retrieval capability가 하나라도 있으면 출시를 거부한다. retrieved content는 표준 injection vector다.
+- sensitive tool(send message, execute shell, write file in /)에 human-in-the-loop confirmation이 없으면 거부한다.
+- memory write가 unguarded이면 거부한다. persistent memory poisoning은 다음 session을 다시 poison한다.
 
-Output: `validator.py`, `source_tag.py`, `allowlist.py`, `memory_guard.py`, `red_team.py`, `README.md` explaining the six-control stack, residual risks, and ongoing review cadence. End with "what to read next" pointing to Lesson 21 (computer use safety) and Lesson 23 (content capture via OTel).
+출력: six-control stack, residual risk, ongoing review cadence를 설명하는 `validator.py`, `source_tag.py`, `allowlist.py`, `memory_guard.py`, `red_team.py`, `README.md`. 마지막은 Lesson 21(computer use safety)과 Lesson 23(OTel을 통한 content capture)을 가리키는 "what to read next"로 끝낸다.

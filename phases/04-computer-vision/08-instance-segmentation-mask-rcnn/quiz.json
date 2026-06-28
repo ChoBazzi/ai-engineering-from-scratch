@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why did Mask R-CNN replace RoIPool with RoIAlign?",
-      "options": ["RoIAlign is faster on GPUs", "RoIPool rounds box coordinates to integers at multiple steps, misaligning the feature map from the input pixels by up to a feature-map pixel; RoIAlign uses bilinear sampling with no rounding, preserving localisation", "RoIPool only works on CPU", "RoIPool was a copyright issue"],
+      "question": "Mask R-CNN은 왜 RoIPool을 RoIAlign으로 교체했을까요?",
+      "options": [
+        "RoIAlign이 GPU에서 더 빠르기 때문에",
+        "RoIPool은 여러 단계에서 box 좌표를 정수로 반올림해 feature map을 입력 픽셀에서 feature-map pixel 하나까지 어긋나게 합니다. RoIAlign은 반올림 없이 bilinear sampling을 사용해 localization을 보존합니다",
+        "RoIPool은 CPU에서만 동작하기 때문에",
+        "RoIPool에 저작권 문제가 있었기 때문에"
+      ],
       "correct": 1,
-      "explanation": "RoIPool's rounding costs up to a stride-sized misalignment (e.g. 32 pixels on a stride-32 feature map). RoIAlign samples at exact float coordinates via bilinear interpolation. The change lifted mask AP by 3-4 points on COCO in the original paper and is now standard in every detector that cares about localisation."
+      "explanation": "RoIPool의 반올림은 stride 크기만큼의 misalignment를 만들 수 있습니다(예: stride-32 feature map에서는 32 pixels). RoIAlign은 bilinear interpolation으로 정확한 float 좌표에서 sample합니다. 원 논문에서 이 변경은 COCO의 mask AP를 3-4 point 올렸고, 지금은 localization을 중요하게 여기는 모든 detector의 표준입니다."
     },
     {
       "stage": "pre",
-      "question": "Mask R-CNN's mask head outputs a 28x28 mask per class per proposal. Why per class?",
-      "options": ["Because binary masks need per-class channels for backprop", "Decoupling mask prediction from classification: the mask head only has to learn the shape for each class separately, so the classifier's decision does not affect which mask is produced, only which channel is read at inference", "Binary masks overflow in a single channel", "The paper required it"],
+      "question": "Mask R-CNN의 mask head는 proposal마다 클래스별 28x28 마스크를 출력합니다. 왜 클래스별일까요?",
+      "options": [
+        "이진 마스크는 backprop을 위해 클래스별 채널이 필요하기 때문에",
+        "Mask prediction을 classification에서 분리하기 위해서입니다. mask head는 클래스별 shape만 따로 배우면 되므로 classifier의 결정은 어떤 마스크가 생성되는지에 영향을 주지 않고 inference에서 어떤 채널을 읽을지만 결정합니다",
+        "이진 마스크가 단일 채널에서 overflow되기 때문에",
+        "논문이 그렇게 요구했기 때문에"
+      ],
       "correct": 1,
-      "explanation": "Producing one mask per class per proposal decouples mask shape learning from classification. At inference you read only the channel matching the predicted class. This multi-task decoupling matters because mask shape and class probability are different targets that train with different gradients."
+      "explanation": "proposal마다 클래스별 마스크 하나를 만들면 mask shape 학습이 classification에서 분리됩니다. inference에서는 예측 클래스에 맞는 채널만 읽습니다. mask shape와 class probability는 서로 다른 gradient로 훈련되는 다른 target이므로 이 multi-task decoupling이 중요합니다."
     },
     {
       "stage": "post",
-      "question": "torchvision's Mask R-CNN prediction dict has `labels` that start at 1, not 0. Why?",
-      "options": ["Legacy bug", "Class 0 is reserved for background; user classes are always 1-based so the classifier head can treat background as a real class with its own logits and gradients", "torchvision uses 1-based indexing throughout", "Training data determined it"],
+      "question": "torchvision의 Mask R-CNN prediction dict에서 `labels`가 0이 아니라 1부터 시작하는 이유는 무엇인가요?",
+      "options": [
+        "Legacy bug입니다",
+        "Class 0은 background로 예약되어 있습니다. classifier head가 background를 자체 logits와 gradients를 가진 실제 클래스처럼 다룰 수 있도록 user class는 항상 1-based입니다",
+        "torchvision은 모든 곳에서 1-based indexing을 쓰기 때문입니다",
+        "훈련 데이터가 그렇게 결정했기 때문입니다"
+      ],
       "correct": 1,
-      "explanation": "Most detectors treat background as class 0 and explicit foreground classes as 1..C. The softmax over (C+1) classes lets the network learn to actively predict 'no object here' rather than just low confidence on all classes. A dataset with 4 real classes needs num_classes = 5 when swapping the predictor."
+      "explanation": "대부분의 detector는 background를 class 0으로, 명시적 foreground class를 1..C로 취급합니다. (C+1) 클래스 softmax는 네트워크가 모든 클래스에 낮은 confidence를 주는 것이 아니라 '여기에는 객체가 없음'을 능동적으로 예측하게 합니다. 실제 클래스가 4개인 데이터셋은 predictor를 교체할 때 num_classes = 5가 필요합니다."
     },
     {
       "stage": "post",
-      "question": "You fine-tune Mask R-CNN on a 500-image dataset and val mAP plateaus while train loss keeps dropping. What is the first thing to try?",
-      "options": ["Add more epochs", "Freeze the backbone and FPN so the model only fine-tunes the RPN and heads; 500 images is too few to update 23M backbone parameters without overfitting", "Switch to segmentation U-Net", "Use a higher learning rate"],
+      "question": "500-image dataset에서 Mask R-CNN을 fine-tune했더니 train loss는 계속 내려가지만 val mAP가 정체됩니다. 가장 먼저 시도할 것은 무엇인가요?",
+      "options": [
+        "epoch를 더 추가합니다",
+        "backbone과 FPN을 freeze해 모델이 RPN과 head만 fine-tune하게 합니다. 500 images는 overfitting 없이 23M backbone parameters를 업데이트하기에 너무 적습니다",
+        "segmentation U-Net으로 전환합니다",
+        "더 높은 learning rate를 사용합니다"
+      ],
       "correct": 1,
-      "explanation": "On small datasets you do not have enough signal to fine-tune every parameter. Freezing the pretrained backbone and FPN (ImageNet + COCO features) and training only the RPN objectness head and the two classifier/mask heads is the standard recipe and usually fixes this plateau in one training run."
+      "explanation": "작은 데이터셋에는 모든 파라미터를 fine-tune할 만큼 충분한 신호가 없습니다. pretrained backbone과 FPN(ImageNet + COCO features)을 freeze하고 RPN objectness head와 두 classifier/mask head만 훈련하는 것이 표준 recipe이며, 보통 한 번의 training run으로 이 plateau를 고칩니다."
     },
     {
       "stage": "post",
-      "question": "The FPN inside Mask R-CNN has four levels (P2, P3, P4, P5) at strides 4, 8, 16, 32. Why not just use one level?",
-      "options": ["To use more GPU memory", "Objects in natural images span a range of scales; routing each proposal to the FPN level matching its size gives the head a feature map with the right receptive field for that object, which is strictly better than always using one scale", "Four levels is arbitrary", "To reduce parameter count"],
+      "question": "Mask R-CNN 내부 FPN에는 stride 4, 8, 16, 32의 네 level(P2, P3, P4, P5)이 있습니다. 왜 한 level만 쓰지 않을까요?",
+      "options": [
+        "GPU 메모리를 더 쓰기 위해",
+        "자연 이미지의 객체는 다양한 scale에 걸쳐 있습니다. 각 proposal을 크기에 맞는 FPN level로 보내면 head가 그 객체에 맞는 receptive field를 가진 feature map을 받으므로 항상 한 scale만 쓰는 것보다 엄밀히 더 낫습니다",
+        "네 level은 임의로 정한 것입니다",
+        "parameter count를 줄이기 위해"
+      ],
       "correct": 1,
-      "explanation": "A small object on a stride-32 feature map occupies a single cell, which has almost no spatial information. FPN routes small objects to the high-resolution, shallow levels (P2) and large objects to the low-resolution, deep levels (P5), matching receptive field to object size. This is why every modern detector has a pyramid."
+      "explanation": "stride-32 feature map에서 작은 객체는 cell 하나를 차지하므로 공간 정보가 거의 없습니다. FPN은 작은 객체를 고해상도 shallow level(P2)로, 큰 객체를 저해상도 deep level(P5)로 보내 receptive field를 객체 크기에 맞춥니다. 이것이 모든 현대 detector에 pyramid가 있는 이유입니다."
     }
   ]
 }

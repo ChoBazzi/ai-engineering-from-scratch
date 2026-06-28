@@ -1,34 +1,34 @@
 {
   "lesson": "18-agno-and-mastra-runtimes",
-  "title": "Agno and Mastra: Production Runtimes",
+  "title": "Agno와 Mastra: 프로덕션 런타임",
   "questions": [
     {
       "stage": "pre",
-      "question": "Which language pairing does the lesson recommend for each runtime?",
+      "question": "lesson은 각 runtime에 어떤 language pairing을 권장하는가?",
       "options": [
-        "Agno for TypeScript, Mastra for Python",
-        "Agno for Python, Mastra for TypeScript",
-        "Both are Rust-first",
-        "Both are Go-first"
+        "Agno는 TypeScript, Mastra는 Python",
+        "Agno는 Python, Mastra는 TypeScript",
+        "둘 다 Rust-first",
+        "둘 다 Go-first"
       ],
       "correct": 1,
-      "explanation": "Agno is Python (FastAPI-shaped); Mastra is TypeScript (Vercel AI SDK-shaped)."
+      "explanation": "Agno는 Python(FastAPI 형태)이고 Mastra는 TypeScript(Vercel AI SDK 형태)다."
     },
     {
       "stage": "pre",
-      "question": "What is Agno's recommended production deployment shape?",
+      "question": "Agno가 권장하는 production deployment shape는 무엇인가?",
       "options": [
-        "A long-lived stateful daemon",
-        "A stateless session-scoped FastAPI backend; each request starts a fresh agent and session state lives in a DB",
-        "A serverless cron worker only",
-        "A WebSocket-only server"
+        "long-lived stateful daemon",
+        "stateless session-scoped FastAPI backend. 각 request가 fresh agent를 시작하고 session state는 DB에 둔다",
+        "serverless cron worker 전용",
+        "WebSocket-only server"
       ],
       "correct": 1,
-      "explanation": "Stateless FastAPI per request; session state externalized to a DB."
+      "explanation": "request마다 stateless FastAPI를 사용하고 session state는 DB로 externalize한다."
     },
     {
       "stage": "check",
-      "question": "What are Mastra's three primitives?",
+      "question": "Mastra의 세 가지 primitive는 무엇인가?",
       "options": [
         "Agents, Tools, Workflows",
         "Actor, Message, Inbox",
@@ -36,55 +36,55 @@
         "Node, Edge, State"
       ],
       "correct": 0,
-      "explanation": "Agents (LLM + role), Tools (Zod-typed), and Workflows are Mastra's three primitives."
+      "explanation": "Agents(LLM + role), Tools(Zod typed), Workflows가 Mastra의 세 가지 primitive다."
     },
     {
       "stage": "check",
-      "question": "Roughly what agent-instantiation cost does Agno target per its docs?",
+      "question": "Agno 문서가 목표로 하는 agent-instantiation 비용은 대략 얼마인가?",
       "options": [
-        "About 2 microseconds with about 3.75 KiB per agent",
-        "About 200 milliseconds and 100 MiB per agent",
-        "About 1 second and 1 GiB per agent",
-        "About 10 minutes and 4 GiB per agent"
+        "agent당 약 2 microsecond와 약 3.75 KiB",
+        "agent당 약 200 millisecond와 100 MiB",
+        "agent당 약 1 second와 1 GiB",
+        "agent당 약 10 minute와 4 GiB"
       ],
       "correct": 0,
-      "explanation": "Agno's docs cite about 2 microseconds and about 3.75 KiB per agent."
+      "explanation": "Agno 문서는 agent당 약 2 microsecond와 약 3.75 KiB를 인용한다."
     },
     {
       "stage": "check",
-      "question": "What does Mastra's Unified Model Router give?",
+      "question": "Mastra의 Unified Model Router는 무엇을 제공하는가?",
       "options": [
-        "A single client surface for thousands of models across many providers",
-        "A queue for tool calls",
-        "A vector DB layer",
-        "A graph checkpointer"
+        "많은 provider에 걸친 수천 개 model을 위한 단일 client surface",
+        "tool call용 queue",
+        "vector DB layer",
+        "graph checkpointer"
       ],
       "correct": 0,
-      "explanation": "Mastra's Unified Model Router cites 3,300+ models across 94 providers."
+      "explanation": "Mastra의 Unified Model Router는 94개 provider의 3,300개 이상 model을 인용한다."
     },
     {
       "stage": "post",
-      "question": "When is perf-for-perf's-sake the wrong reason to pick Agno?",
+      "question": "언제 perf-for-perf's-sake가 Agno를 고르는 잘못된 이유가 되는가?",
       "options": [
-        "When the workload is one slow agent call per request and overhead is not the bottleneck",
-        "When using Python 3.13",
-        "When deploying to AWS",
-        "When using Langfuse"
+        "workload가 request당 느린 agent call 하나이고 overhead가 병목이 아닐 때",
+        "Python 3.13을 사용할 때",
+        "AWS에 배포할 때",
+        "Langfuse를 사용할 때"
       ],
       "correct": 0,
-      "explanation": "2 microseconds matters at chat fan-in scale, not for a single slow call per request."
+      "explanation": "2 microsecond는 chat fan-in 규모에서는 중요하지만 request당 느린 call 하나에는 중요하지 않다."
     },
     {
       "stage": "post",
-      "question": "What licensing surface should you read carefully before forking Mastra?",
+      "question": "Mastra를 fork하기 전에 어떤 licensing surface를 주의 깊게 읽어야 하는가?",
       "options": [
-        "There is no license file",
-        "ee/ directories are source-available rather than Apache 2.0 and restrict commercial use",
-        "All of Mastra is GPL",
-        "Mastra requires CLA but no license review"
+        "license file이 없다",
+        "ee/ 디렉터리는 Apache 2.0이 아니라 source-available이며 commercial use를 제한한다",
+        "Mastra 전체가 GPL이다",
+        "Mastra는 CLA만 요구하고 license review는 필요 없다"
       ],
       "correct": 1,
-      "explanation": "Mastra is Apache 2.0 except for ee/ which is source-available; check the restrictions before forking."
+      "explanation": "Mastra는 ee/를 제외하면 Apache 2.0이고 ee/는 source-available이다. fork 전 제한을 확인하라."
     }
   ]
 }

@@ -1,38 +1,38 @@
 ---
 name: skill-depth-to-pointcloud
-description: Build point clouds from depth maps with correct intrinsics handling and export to .ply
+description: 올바른 intrinsics handling과 .ply export로 depth maps에서 point clouds를 만듭니다
 version: 1.0.0
 phase: 4
 lesson: 26
 tags: [depth, point-cloud, 3d, intrinsics]
 ---
 
-# Depth to Point Cloud
+# Depth를 Point Cloud로 변환
 
-Turn a depth map plus a colour image into a textured point cloud, exportable for visualisation or further 3D work.
+depth map과 colour image를 textured point cloud로 바꿉니다. visualisation이나 추가 3D 작업을 위해 export할 수 있습니다.
 
-## When to use
+## 언제 사용할까
 
-- Visualising depth predictions as an actual 3D scene.
-- Bootstrapping a sparse 3D reconstruction from a single image.
-- Producing input for 3DGS training when SfM fails.
-- Comparing predicted depth against LiDAR ground truth.
+- depth predictions를 실제 3D scene처럼 시각화할 때.
+- single image에서 sparse 3D reconstruction을 bootstrapping할 때.
+- SfM이 실패할 때 3DGS training input을 만들 때.
+- predicted depth를 LiDAR ground truth와 비교할 때.
 
-## Inputs
+## 입력
 
-- `depth`: `(H, W)` numpy array of depths in the same units you want in the output (metres recommended).
-- `rgb`: `(H, W, 3)` numpy array of colours (uint8 or float32 [0, 1]).
-- `intrinsics`: `(fx, fy, cx, cy)` in pixel units.
-- Optional `depth_scale`: multiplier to convert predicted depth units to metres.
+- `depth`: output에서 원하는 단위의 depths를 담은 `(H, W)` numpy array(metres 권장).
+- `rgb`: colours를 담은 `(H, W, 3)` numpy array(uint8 또는 float32 [0, 1]).
+- `intrinsics`: pixel units의 `(fx, fy, cx, cy)`.
+- 선택적 `depth_scale`: predicted depth units를 metres로 변환하는 multiplier.
 
-## Pipeline
+## 파이프라인
 
-1. **Validate** — depth must be positive and finite everywhere you plan to include. Mask out invalid pixels.
-2. **Lift** — `X = (u - cx) * d / fx`, `Y = (v - cy) * d / fy`, `Z = d` per pixel.
-3. **Pair** with RGB — each 3D point gets an `(r, g, b)` triple from the matching pixel.
-4. **Export** — PLY (portable), `.xyz` (lightweight), `.pcd` (Open3D-native), `.las`/`.laz` (geospatial).
+1. **Validate** - 포함하려는 모든 곳에서 depth는 positive and finite여야 합니다. invalid pixels를 mask out합니다.
+2. **Lift** - pixel별로 `X = (u - cx) * d / fx`, `Y = (v - cy) * d / fy`, `Z = d`.
+3. **Pair** with RGB - 각 3D point는 대응 pixel의 `(r, g, b)` triple을 받습니다.
+4. **Export** - PLY(portable), `.xyz`(lightweight), `.pcd`(Open3D-native), `.las`/`.laz`(geospatial).
 
-## Implementation template
+## 구현 템플릿
 
 ```python
 import numpy as np
@@ -75,9 +75,9 @@ def write_ply(path, points, colors=None, valid_mask=None):
                 f.write(f"{pt[0]:.4f} {pt[1]:.4f} {pt[2]:.4f}\n")
 ```
 
-## Report
+## 보고서
 
-```
+```text
 [export]
   input depth shape:  (H, W)
   valid points:       <N> of <H*W>
@@ -86,10 +86,10 @@ def write_ply(path, points, colors=None, valid_mask=None):
   scale:              metres | millimetres | normalised
 ```
 
-## Rules
+## 규칙
 
-- Always mask invalid depth (zero, NaN, inf, saturated); including them produces a cloud of garbage points at the origin.
-- For prediction from a relative-depth model, do NOT export as metric; prefix output filename with `relative_` to signal the convention.
-- Keep the camera coordinate convention consistent (OpenCV: +X right, +Y down, +Z forward). Swap signs if the downstream tool expects OpenGL (+Y up).
-- For dense scenes (> 1M points), offer a subsample parameter; PLY files > 500 MB are awkward to load everywhere.
-- Never silently clip depth to produce "reasonable" output; clip explicitly with warned thresholds so users know what was discarded.
+- invalid depth(zero, NaN, inf, saturated)는 항상 mask합니다. 포함하면 origin 주변에 garbage points cloud가 생깁니다.
+- relative-depth model의 prediction이면 metric으로 export하지 마세요. convention을 알리기 위해 output filename에 `relative_` prefix를 붙입니다.
+- camera coordinate convention을 일관되게 유지합니다(OpenCV: +X right, +Y down, +Z forward). downstream tool이 OpenGL(+Y up)을 기대하면 sign을 바꿉니다.
+- dense scenes(> 1M points)에는 subsample parameter를 제공합니다. PLY files > 500 MB는 어디서든 로드하기 번거롭습니다.
+- "reasonable" output을 만들려고 depth를 조용히 clip하지 마세요. 무엇이 버려졌는지 사용자가 알 수 있도록 threshold를 경고와 함께 명시적으로 clip합니다.

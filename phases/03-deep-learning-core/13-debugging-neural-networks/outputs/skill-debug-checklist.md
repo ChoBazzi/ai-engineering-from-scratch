@@ -1,108 +1,108 @@
 ---
 name: skill-debug-checklist
-description: Decision-tree checklist for debugging neural network training failures
+description: 신경망 학습 실패를 디버깅하기 위한 결정 트리 체크리스트
 version: 1.0.0
 phase: 3
 lesson: 13
 tags: [debugging, neural-networks, training, diagnostics, deep-learning]
 ---
 
-# Neural Network Debug Checklist
+# 신경망 디버그 체크리스트
 
-Systematic debugging protocol for when training goes wrong. Work through these in order -- most bugs are caught in the first 3 steps.
+학습이 잘못될 때 사용할 체계적인 디버깅 프로토콜입니다. 순서대로 진행하세요. 대부분의 버그는 처음 3단계에서 잡힙니다.
 
-## Before training (prevent bugs)
+## 학습 전(버그 예방)
 
-1. Print model architecture and parameter count. Does the size make sense for your data?
-2. Run a single forward pass with random input. Does the output shape match your target shape?
-3. Check that labels are the correct dtype (CrossEntropyLoss needs Long, BCELoss needs Float)
-4. Verify data normalization: inputs should have mean near 0 and std near 1
-5. Print 5 random (input, label) pairs. Do the labels match what you expect?
-6. Confirm train/test split has no duplicate samples
+1. 모델 아키텍처와 파라미터 수를 출력합니다. 크기가 데이터에 맞게 합리적인가요?
+2. 무작위 입력으로 순전파를 한 번 실행합니다. 출력 shape가 target shape와 일치하나요?
+3. 레이블이 올바른 dtype인지 확인합니다(CrossEntropyLoss는 Long이 필요하고, BCELoss는 Float가 필요함)
+4. 데이터 정규화를 검증합니다. 입력은 평균이 0 근처, 표준편차가 1 근처여야 합니다
+5. 무작위 (input, label) 쌍 5개를 출력합니다. 레이블이 기대와 일치하나요?
+6. train/test 분할에 중복 샘플이 없는지 확인합니다
 
-## Overfit-one-batch test (60 seconds, catches 80% of bugs)
+## 한 배치 과적합 테스트(60초, 버그의 80%를 잡음)
 
-1. Take 8-32 samples from your training set
-2. Train for 200 steps with a reasonable learning rate
-3. Loss should approach 0. Training accuracy should hit 100%
-4. If it fails: the bug is in your model, loss function, or training loop -- not your data or hyperparameters
-5. If it passes: proceed to full training
+1. 학습 세트에서 8-32개 샘플을 가져옵니다
+2. 합리적인 학습률로 200 스텝 학습합니다
+3. 손실은 0에 가까워져야 합니다. 학습 정확도는 100%에 도달해야 합니다
+4. 실패하면 버그는 데이터나 하이퍼파라미터가 아니라 모델, 손실 함수, 또는 학습 루프에 있습니다
+5. 통과하면 전체 학습으로 진행합니다
 
-## Loss not decreasing
+## 손실이 감소하지 않음
 
-1. Check learning rate. Try 3 values: current/10, current, current*10
-2. Print gradient norms per layer. All zeros means dead network or detached graph
-3. Check `requires_grad=True` on parameters. Check that `loss.backward()` is called
-4. Check that `optimizer.zero_grad()` is called before `loss.backward()`
-5. Check that `optimizer.step()` is called after `loss.backward()`
-6. Verify model parameters are passed to the optimizer: `optimizer = Adam(model.parameters())`
+1. 학습률을 확인합니다. current/10, current, current*10 세 값을 시도합니다
+2. 레이어별 그래디언트 노름을 출력합니다. 전부 0이면 죽은 네트워크이거나 detach된 그래프입니다
+3. 파라미터의 `requires_grad=True`를 확인합니다. `loss.backward()`가 호출되는지 확인합니다
+4. `loss.backward()` 전에 `optimizer.zero_grad()`가 호출되는지 확인합니다
+5. `loss.backward()` 뒤에 `optimizer.step()`이 호출되는지 확인합니다
+6. 모델 파라미터가 옵티마이저에 전달되는지 검증합니다: `optimizer = Adam(model.parameters())`
 
-## Loss is NaN or Inf
+## 손실이 NaN 또는 Inf
 
-1. Reduce learning rate by 10x
-2. Add epsilon to all log() calls: `torch.log(x + 1e-7)`
-3. Add epsilon to all division: `x / (y + 1e-8)`
-4. Clamp predictions: `torch.clamp(pred, 1e-7, 1 - 1e-7)` before BCE loss
-5. Use `torch.autograd.detect_anomaly()` to find the exact operation
-6. Check for NaN in input data: `assert not torch.isnan(x).any()`
+1. 학습률을 10배 낮춥니다
+2. 모든 log() 호출에 epsilon을 추가합니다: `torch.log(x + 1e-7)`
+3. 모든 나누기에 epsilon을 추가합니다: `x / (y + 1e-8)`
+4. BCE 손실 전에 예측을 클램프합니다: `torch.clamp(pred, 1e-7, 1 - 1e-7)`
+5. 정확한 연산을 찾기 위해 `torch.autograd.detect_anomaly()`를 사용합니다
+6. 입력 데이터의 NaN을 확인합니다: `assert not torch.isnan(x).any()`
 
-## Loss oscillating
+## 손실이 진동함
 
-1. Reduce learning rate by 3-10x
-2. Increase batch size (reduces gradient noise)
-3. Add gradient clipping: `torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)`
-4. Switch from SGD to Adam (adaptive LR per parameter)
-5. Add learning rate warmup for the first 5-10% of training
+1. 학습률을 3-10배 낮춥니다
+2. 배치 크기를 늘립니다(그래디언트 노이즈 감소)
+3. 그래디언트 클리핑을 추가합니다: `torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)`
+4. SGD에서 Adam으로 전환합니다(파라미터별 적응형 LR)
+5. 학습의 처음 5-10%에 학습률 워밍업을 추가합니다
 
-## Overfitting (train acc high, test acc low)
+## 과적합(train acc 높음, test acc 낮음)
 
-1. Add dropout (start with p=0.1, increase to 0.5)
-2. Add weight decay to optimizer: `Adam(params, weight_decay=1e-4)`
-3. Reduce model size (fewer layers or narrower layers)
-4. Add data augmentation
-5. Use early stopping: stop when validation loss increases for 5+ epochs
-6. Check for data leakage between train and test sets
+1. 드롭아웃을 추가합니다(p=0.1에서 시작해 0.5까지 증가)
+2. 옵티마이저에 가중치 감쇠를 추가합니다: `Adam(params, weight_decay=1e-4)`
+3. 모델 크기를 줄입니다(더 적은 레이어 또는 더 좁은 레이어)
+4. 데이터 증강을 추가합니다
+5. 조기 종료를 사용합니다. 검증 손실이 5 에폭 이상 증가하면 멈춥니다
+6. train 세트와 test 세트 사이의 데이터 누수를 확인합니다
 
-## Underfitting (both train and test acc low)
+## 과소적합(train acc와 test acc 모두 낮음)
 
-1. Increase model capacity (more layers, wider layers)
-2. Train for more epochs
-3. Increase learning rate (carefully)
-4. Remove regularization temporarily to verify the model can learn
-5. Check that your model is expressive enough for the task
+1. 모델 용량을 늘립니다(더 많은 레이어, 더 넓은 레이어)
+2. 더 많은 에폭 동안 학습합니다
+3. 학습률을 올립니다(조심스럽게)
+4. 모델이 학습할 수 있는지 검증하기 위해 정규화를 일시적으로 제거합니다
+5. 모델이 작업에 충분한 표현력을 갖는지 확인합니다
 
-## Dead ReLU neurons
+## 죽은 ReLU 뉴런
 
-1. Check fraction of zero activations per layer. >50% is a problem
-2. Switch to LeakyReLU(0.01) or GELU
-3. Use Kaiming initialization for weights
-4. Reduce learning rate (large updates can push neurons into the dead zone)
-5. Add batch normalization before activation functions
+1. 레이어별 0 활성화 비율을 확인합니다. 50%를 넘으면 문제입니다
+2. LeakyReLU(0.01) 또는 GELU로 전환합니다
+3. 가중치에 Kaiming 초기화를 사용합니다
+4. 학습률을 낮춥니다(큰 업데이트는 뉴런을 죽은 영역으로 밀어 넣을 수 있음)
+5. 활성화 함수 앞에 배치 정규화를 추가합니다
 
-## Quick reference: learning rate starting points
+## 빠른 참조: 학습률 시작점
 
-| Optimizer | Task | Starting LR |
+| 옵티마이저 | 작업 | 시작 LR |
 |-----------|------|------------|
-| Adam | Training from scratch | 1e-3 |
-| Adam | Fine-tuning pretrained | 1e-5 |
-| SGD + momentum | Training from scratch | 1e-1 |
-| SGD + momentum | Fine-tuning pretrained | 1e-3 |
-| AdamW | Transformer training | 3e-4 |
+| Adam | 처음부터 학습 | 1e-3 |
+| Adam | 사전학습 모델 파인튜닝 | 1e-5 |
+| SGD + momentum | 처음부터 학습 | 1e-1 |
+| SGD + momentum | 사전학습 모델 파인튜닝 | 1e-3 |
+| AdamW | Transformer 학습 | 3e-4 |
 
-## Quick reference: batch size effects
+## 빠른 참조: 배치 크기 효과
 
-| Batch size | Gradient noise | Memory | Generalization |
+| 배치 크기 | 그래디언트 노이즈 | 메모리 | 일반화 |
 |-----------|---------------|--------|---------------|
-| 8-16 | High (noisy) | Low | Often better |
-| 32-64 | Moderate | Moderate | Good default |
-| 128-256 | Low (smooth) | High | May need warmup |
-| 512+ | Very low | Very high | Needs LR scaling |
+| 8-16 | 높음(노이즈 많음) | 낮음 | 종종 더 좋음 |
+| 32-64 | 보통 | 보통 | 좋은 기본값 |
+| 128-256 | 낮음(매끄러움) | 높음 | 워밍업이 필요할 수 있음 |
+| 512+ | 매우 낮음 | 매우 높음 | LR 스케일링 필요 |
 
-## When nothing works
+## 아무것도 효과가 없을 때
 
-1. Simplify the model to 1 hidden layer. Does it learn?
-2. Simplify the data to 100 samples. Does it overfit?
-3. Replace your loss with MSE. Does it converge?
-4. Replace your optimizer with SGD(lr=0.01). Does it make progress?
-5. Replace your data with synthetic data (e.g., y = x[0] > 0). Does it learn?
-6. If none of these work: the bug is in code you are not looking at (data loading, preprocessing, tensor shapes)
+1. 모델을 은닉 레이어 1개로 단순화합니다. 학습되나요?
+2. 데이터를 100개 샘플로 단순화합니다. 과적합되나요?
+3. 손실을 MSE로 바꿉니다. 수렴하나요?
+4. 옵티마이저를 SGD(lr=0.01)로 바꿉니다. 진전이 있나요?
+5. 데이터를 합성 데이터로 바꿉니다(예: y = x[0] > 0). 학습되나요?
+6. 이 중 아무것도 효과가 없다면, 버그는 보고 있지 않은 코드에 있습니다(데이터 로딩, 전처리, 텐서 shape)

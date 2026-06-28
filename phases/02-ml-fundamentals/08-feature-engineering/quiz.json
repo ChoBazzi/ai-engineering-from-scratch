@@ -2,66 +2,66 @@
   {
     "id": "feateng-pre-1",
     "stage": "pre",
-    "question": "Why is feature engineering often more impactful than choosing a fancier algorithm?",
+    "question": "feature engineering이 더 화려한 알고리즘을 고르는 것보다 더 큰 영향을 주는 경우가 많은 이유는 무엇인가요?",
     "options": [
-      "Feature engineering makes the code run faster",
-      "Good features expose patterns to the model that raw data hides, making even simple models effective",
-      "Feature engineering eliminates the need for a test set",
-      "Fancy algorithms cannot process raw data"
+      "feature engineering은 코드를 더 빠르게 실행하게 만든다",
+      "좋은 feature는 원시 데이터가 숨기는 패턴을 모델에 드러내어 단순한 모델도 효과적으로 만든다",
+      "feature engineering은 test set의 필요성을 없앤다",
+      "화려한 알고리즘은 원시 데이터를 처리할 수 없다"
     ],
     "correct": 1,
-    "explanation": "The representation of data matters more than the algorithm. A well-engineered feature like BMI (weight/height^2) directly exposes the relevant pattern, making even logistic regression competitive with complex ensembles."
+    "explanation": "데이터의 표현은 알고리즘보다 더 중요합니다. BMI(weight/height^2)처럼 잘 설계된 feature는 관련 패턴을 직접 드러내어 logistic regression도 복잡한 ensemble과 경쟁할 수 있게 만듭니다."
   },
   {
     "id": "feateng-pre-2",
     "stage": "pre",
-    "question": "What is one-hot encoding?",
+    "question": "one-hot encoding이란 무엇인가요?",
     "options": [
-      "Replacing each category with its frequency in the dataset",
-      "Creating one binary column per category, with exactly one column set to 1 per row",
-      "Converting all features to values between 0 and 1",
-      "Encoding the target variable as a probability"
+      "각 category를 데이터셋에서의 빈도로 대체하는 것",
+      "category마다 하나의 binary column을 만들고, 각 row에서 정확히 하나의 column만 1로 설정하는 것",
+      "모든 feature를 0과 1 사이의 값으로 변환하는 것",
+      "target variable을 확률로 encoding하는 것"
     ],
     "correct": 1,
-    "explanation": "One-hot encoding creates a binary column for each unique category. For a color feature with values red/blue/green, it produces three columns: is_red, is_blue, is_green."
+    "explanation": "One-hot encoding은 고유한 category마다 binary column을 만듭니다. red/blue/green 값을 가진 color feature라면 is_red, is_blue, is_green 세 column을 만듭니다."
   },
   {
     "id": "feateng-post-1",
     "stage": "post",
-    "question": "What is the data leakage risk with target encoding?",
+    "question": "target encoding에서 data leakage 위험은 무엇인가요?",
     "options": [
-      "It makes the model too slow to train",
-      "It replaces categories with the mean target value, which can leak information from the test set if not computed on training data only",
-      "It creates too many features",
-      "It only works with binary targets"
+      "모델 학습이 너무 느려진다",
+      "category를 평균 target 값으로 대체하므로, training data에서만 계산하지 않으면 test set의 정보가 새어 나갈 수 있다",
+      "feature를 너무 많이 만든다",
+      "binary target에서만 작동한다"
     ],
     "correct": 1,
-    "explanation": "Target encoding replaces each category with the mean target for that category. If computed on the full dataset (including test data), test labels leak into training features, inflating performance estimates."
+    "explanation": "Target encoding은 각 category를 해당 category의 평균 target으로 대체합니다. 전체 데이터셋(test data 포함)에서 계산하면 test label이 training feature로 새어 들어가 성능 추정치가 부풀려집니다."
   },
   {
     "id": "feateng-post-2",
     "stage": "post",
-    "question": "TF-IDF weights a word by its inverse document frequency. What is the effect?",
+    "question": "TF-IDF는 inverse document frequency로 단어에 가중치를 줍니다. 그 효과는 무엇인가요?",
     "options": [
-      "Common words like 'the' get high weight because they appear frequently",
-      "Rare, distinctive words get higher weight while common words get lower weight",
-      "All words get equal weight regardless of frequency",
-      "Only the most frequent word in each document is kept"
+      "'the' 같은 흔한 단어는 자주 등장하므로 높은 가중치를 받는다",
+      "드물고 구별력 있는 단어는 더 높은 가중치를 받고 흔한 단어는 더 낮은 가중치를 받는다",
+      "모든 단어는 빈도와 관계없이 같은 가중치를 받는다",
+      "각 문서에서 가장 빈번한 단어만 유지된다"
     ],
     "correct": 1,
-    "explanation": "IDF = log(total docs / docs containing word). Common words (appearing in many documents) get low IDF. Rare, distinctive words get high IDF, making them more influential in the representation."
+    "explanation": "IDF = log(total docs / docs containing word)입니다. 흔한 단어(많은 문서에 등장하는 단어)는 낮은 IDF를 받습니다. 드물고 구별력 있는 단어는 높은 IDF를 받아 표현에서 더 큰 영향을 갖습니다."
   },
   {
     "id": "feateng-post-3",
     "stage": "post",
-    "question": "You have two features with correlation 0.98. Why might you remove one?",
+    "question": "correlation이 0.98인 두 feature가 있습니다. 왜 하나를 제거할 수 있을까요?",
     "options": [
-      "Highly correlated features always cause the model to crash",
-      "They are redundant -- both carry nearly the same information, and keeping both increases overfitting risk without adding signal",
-      "Correlated features make the data non-stationary",
-      "Correlation above 0.5 means the features are measuring different things"
+      "상관관계가 높은 feature는 항상 모델을 crash시킨다",
+      "둘은 중복적이며 거의 같은 정보를 담고 있고, 둘 다 유지하면 signal을 추가하지 못한 채 overfitting 위험만 키운다",
+      "상관된 feature는 데이터를 non-stationary하게 만든다",
+      "correlation이 0.5를 넘으면 feature들이 서로 다른 것을 측정한다는 뜻이다"
     ],
     "correct": 1,
-    "explanation": "Features with r=0.98 are nearly redundant. Keeping both adds a noisy duplicate that increases dimensionality, overfitting risk, and multicollinearity without providing new information about the target."
+    "explanation": "r=0.98인 feature들은 거의 중복입니다. 둘 다 유지하면 target에 대한 새 정보를 제공하지 못한 채 차원, overfitting 위험, multicollinearity를 늘리는 noisy duplicate가 추가됩니다."
   }
 ]

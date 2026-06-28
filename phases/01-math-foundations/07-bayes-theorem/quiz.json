@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "In Bayes' theorem, what is the 'prior'?",
-      "options": ["The probability of the evidence", "Your belief about a hypothesis before observing any evidence", "The probability of the evidence given the hypothesis", "The final updated probability after seeing evidence"],
+      "question": "Bayes' theorem에서 'prior'는 무엇인가요?",
+      "options": ["evidence의 확률", "어떤 evidence도 관측하기 전 hypothesis에 대한 믿음", "hypothesis가 주어졌을 때 evidence의 확률", "evidence를 본 뒤의 최종 갱신 확률"],
       "correct": 1,
-      "explanation": "The prior P(A) represents your initial belief about hypothesis A before seeing any data. It gets updated to the posterior P(A|B) after observing evidence B."
+      "explanation": "prior P(A)는 어떤 data를 보기 전 hypothesis A에 대한 초기 믿음을 나타냅니다. evidence B를 관측한 뒤 posterior P(A|B)로 갱신됩니다."
     },
     {
       "stage": "pre",
-      "question": "A rare disease affects 1 in 10,000 people. A 99% accurate test returns positive. What is the approximate probability you have the disease?",
-      "options": ["99%", "About 1%", "50%", "10%"],
+      "question": "희귀병이 10,000명 중 1명에게 영향을 줍니다. 99% 정확한 검사가 양성을 반환했습니다. 병에 걸렸을 대략적인 확률은 얼마인가요?",
+      "options": ["99%", "약 1%", "50%", "10%"],
       "correct": 1,
-      "explanation": "Despite 99% test accuracy, the disease is so rare (0.01%) that most positive results come from healthy people (false positives). Bayes' theorem gives P(sick|positive) = ~0.98%, not 99%."
+      "explanation": "검사 정확도가 99%라도, 병이 매우 드물기 때문에(0.01%) 대부분의 양성 결과는 건강한 사람(false positives)에게서 나옵니다. Bayes' theorem은 P(sick|positive) = 약 0.98%를 주며, 99%가 아닙니다."
     },
     {
       "stage": "post",
-      "question": "What is Laplace smoothing in a Naive Bayes classifier and why is it necessary?",
-      "options": ["It normalizes feature values to have zero mean and unit variance", "It adds a small count to every feature to prevent zero probabilities from unseen words, which would zero out the entire product", "It smooths the decision boundary between classes", "It reduces the dimensionality of the feature space"],
+      "question": "Naive Bayes classifier에서 Laplace smoothing은 무엇이며 왜 필요한가요?",
+      "options": ["feature value를 평균 0, 분산 1로 normalize한다", "보지 못한 단어 때문에 zero probability가 생겨 전체 product가 0이 되는 것을 막기 위해 모든 feature에 작은 count를 더한다", "class 사이 decision boundary를 부드럽게 만든다", "feature space의 dimensionality를 줄인다"],
       "correct": 1,
-      "explanation": "Without smoothing, a word never seen in spam training data gets P(word|spam)=0, making the entire product zero regardless of other strong spam indicators. Adding 1 to each count prevents this."
+      "explanation": "smoothing이 없으면 spam training data에서 한 번도 보지 못한 단어는 P(word|spam)=0을 얻고, 다른 강한 spam indicator가 있어도 전체 product를 0으로 만듭니다. 각 count에 1을 더하면 이를 막습니다."
     },
     {
       "stage": "post",
-      "question": "How does MAP (Maximum A Posteriori) estimation differ from MLE (Maximum Likelihood Estimation)?",
-      "options": ["MAP uses a larger dataset than MLE", "MAP incorporates a prior distribution over parameters, equivalent to adding regularization, while MLE only uses the likelihood", "MAP is faster to compute than MLE", "MLE always produces better results than MAP"],
+      "question": "MAP (Maximum A Posteriori) estimation은 MLE (Maximum Likelihood Estimation)와 어떻게 다른가요?",
+      "options": ["MAP은 MLE보다 더 큰 dataset을 사용한다", "MAP은 parameter에 대한 prior distribution을 포함하며 regularization을 추가하는 것과 동등하지만, MLE는 likelihood만 사용한다", "MAP은 MLE보다 계산이 빠르다", "MLE는 항상 MAP보다 좋은 결과를 낸다"],
       "correct": 1,
-      "explanation": "MAP maximizes P(data|params) * P(params) while MLE maximizes P(data|params) alone. The prior P(params) acts as regularization -- a Gaussian prior equals L2 regularization, a Laplace prior equals L1."
+      "explanation": "MAP은 P(data|params) * P(params)를 최대화하고, MLE는 P(data|params)만 최대화합니다. prior P(params)는 regularization처럼 작동합니다. Gaussian prior는 L2 regularization, Laplace prior는 L1과 같습니다."
     },
     {
       "stage": "post",
-      "question": "In sequential Bayesian updating, you start with Beta(1,1) and observe 7 heads and 3 tails. What is the posterior?",
+      "question": "sequential Bayesian updating에서 Beta(1,1)로 시작해 앞면 7번과 뒷면 3번을 관측했습니다. posterior는 무엇인가요?",
       "options": ["Beta(7, 3)", "Beta(8, 4)", "Beta(1.7, 1.3)", "Normal(0.7, 0.1)"],
       "correct": 1,
-      "explanation": "The Beta-Binomial conjugate update adds successes to the first parameter and failures to the second: Beta(1+7, 1+3) = Beta(8, 4). The posterior mean is 8/12 = 0.667."
+      "explanation": "Beta-Binomial conjugate update는 successes를 첫 번째 parameter에, failures를 두 번째 parameter에 더합니다: Beta(1+7, 1+3) = Beta(8, 4). posterior mean은 8/12 = 0.667입니다."
     }
   ]
 }

@@ -1,11 +1,11 @@
-# Glossary
+# 용어집
 
-Two resources to cut through the noise:
+잡음을 걷어내기 위한 두 가지 자료입니다.
 
-- **[terms.md](terms.md)** - 60+ AI terms explained. What people say vs what it actually means.
-- **[myths.md](myths.md)** - 20 common AI misconceptions busted with what's actually going on.
+- **[terms.md](terms.md)** - AI 용어 60개 이상 설명. 사람들이 말하는 뜻과 실제 의미를 비교합니다.
+- **[myths.md](myths.md)** - 흔한 AI 오해 20가지를 실제로 무슨 일이 일어나는지와 함께 바로잡습니다.
 
-Each term entry follows the pattern:
-- **What people say** - the common (often wrong) understanding
-- **What it actually means** - the real definition
-- **Why it's called that** - origin of the name (when interesting)
+각 용어 항목은 다음 패턴을 따릅니다.
+- **사람들이 말하는 뜻** - 흔한, 종종 틀린 이해
+- **실제로 의미하는 것** - 실제 정의
+- **왜 그렇게 부르는가** - 흥미로운 경우 이름의 유래

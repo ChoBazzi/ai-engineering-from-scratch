@@ -1,27 +1,27 @@
-# Mission - Capstone: Ship a Reusable Agent Workbench Pack
+# 미션 - Capstone: 재사용 가능한 Agent Workbench Pack 배포
 
-## Goal
-Assemble the eleven prior lessons into a versioned `outputs/agent-workbench-pack/` directory with an installer that lays it idempotently into any target repo.
+## 목표
+이전 열한 개 레슨을 versioned `outputs/agent-workbench-pack/` directory로 조립하고, 어떤 target repo에도 idempotently 배치하는 installer를 만듭니다.
 
-## Inputs
-- Schemas, scripts, and docs from lessons 32 through 40
-- The pack layout: `AGENTS.md`, `docs/`, `schemas/`, `scripts/`, `bin/`, `README.md`, `VERSION`
+## 입력
+- lesson 32부터 40까지의 schema, script, doc
+- pack layout: `AGENTS.md`, `docs/`, `schemas/`, `scripts/`, `bin/`, `README.md`, `VERSION`
 
-## Deliverables
-- `outputs/agent-workbench-pack/` with the full layout populated
-- `bin/install.sh` (or `bin/install.py`) that refuses to overwrite without `--force`
-- `VERSION` file plus a `README.md` describing what stays in and what stays out
+## 산출물
+- 전체 layout이 채워진 `outputs/agent-workbench-pack/`
+- `--force` 없이는 overwrite를 거부하는 `bin/install.sh`(또는 `bin/install.py`)
+- 무엇이 포함되고 무엇이 제외되는지 설명하는 `VERSION` file 및 `README.md`
 
-## Acceptance
-- `python3 code/main.py` exits zero and prints the pack tree
-- Re-running the assembler is idempotent
-- `bin/install.sh` into a fresh target leaves a working workbench: state, board, rules, scope, init, runner, gate, reviewer, handoff all in place
+## 합격 기준
+- `python3 code/main.py`가 0으로 종료하고 pack tree를 출력
+- assembler를 다시 실행해도 idempotent
+- fresh target에 `bin/install.sh`를 실행하면 state, board, rules, scope, init, runner, gate, reviewer, handoff가 모두 제자리에 있는 동작하는 workbench가 남음
 
-## Out of scope
-- Per-project task content. Tasks belong on the target repo's board, not in the pack.
-- Vendor SDK calls. The pack is framework-agnostic by design.
+## 범위 밖
+- project별 task content. task는 pack이 아니라 target repo의 board에 속합니다.
+- vendor SDK call. pack은 설계상 framework-agnostic입니다.
 
-## References
-- `docs/en.md` - full lesson
+## 참고
+- `docs/en.md` - 전체 레슨
 - `code/main.py` - reference implementation
-- `outputs/skill-workbench-pack.md` - extracted skill
+- `outputs/skill-workbench-pack.md` - 추출된 skill

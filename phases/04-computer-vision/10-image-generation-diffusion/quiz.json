@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why can diffusion training pick any timestep t directly instead of simulating the forward Markov chain step by step?",
-      "options": ["It is an approximation that ignores the intermediate steps", "Because the composition of many Gaussian additions still yields a Gaussian, giving a closed-form q(x_t|x_0) = N(sqrt(alpha_bar_t) x_0, (1 - alpha_bar_t) I) that you can sample in one step", "Because x_t is independent of x_0", "It is required by PyTorch's autograd"],
+      "question": "Diffusion training은 왜 forward Markov chain을 step by step으로 simulate하지 않고 임의의 timestep t를 직접 고를 수 있을까요?",
+      "options": [
+        "Intermediate step을 무시하는 approximation이기 때문에",
+        "여러 Gaussian addition의 composition도 여전히 Gaussian이므로 closed-form q(x_t|x_0) = N(sqrt(alpha_bar_t) x_0, (1 - alpha_bar_t) I)가 생기며, 이것을 한 step으로 sample할 수 있기 때문입니다",
+        "x_t가 x_0와 independent이기 때문에",
+        "PyTorch autograd가 요구하기 때문입니다"
+      ],
       "correct": 1,
-      "explanation": "Repeated Gaussian additions close up analytically. The cumulative product alpha_bar_t encodes 'how much signal is left after t steps', and you can sample x_t directly without running the chain. This is why diffusion training is O(1) per step rather than O(T)."
+      "explanation": "반복된 Gaussian addition은 analytic하게 닫힙니다. Cumulative product alpha_bar_t는 't step 후 signal이 얼마나 남았는가'를 encode하며, chain을 실행하지 않고 x_t를 직접 sample할 수 있습니다. 이것이 diffusion training이 step마다 O(T)가 아니라 O(1)인 이유입니다."
     },
     {
       "stage": "pre",
-      "question": "What does a DDPM's neural network actually predict?",
-      "options": ["The next image x_{t-1} directly", "The noise epsilon that was added at step t, from which x_{t-1}'s mean is derived analytically", "The class label of the input", "The signal-to-noise ratio"],
+      "question": "DDPM의 neural network는 실제로 무엇을 예측할까요?",
+      "options": [
+        "다음 image x_{t-1}를 직접 예측합니다",
+        "step t에서 추가된 noise epsilon을 예측하고, 그로부터 x_{t-1}의 mean이 analytic하게 유도됩니다",
+        "Input의 class label을 예측합니다",
+        "Signal-to-noise ratio를 예측합니다"
+      ],
       "correct": 1,
-      "explanation": "DDPM parameterises the model to predict epsilon. Given the noise prediction and the noise schedule, x_{t-1}'s Gaussian mean and variance are closed-form. Predicting epsilon instead of x_0 or x_{t-1} simplifies the loss to a plain MSE and gives numerically better gradients."
+      "explanation": "DDPM은 model이 epsilon을 예측하도록 parameterise합니다. Noise prediction과 noise schedule이 주어지면 x_{t-1}의 Gaussian mean과 variance는 closed-form입니다. x_0나 x_{t-1} 대신 epsilon을 예측하면 loss가 plain MSE로 단순해지고 수치적으로 더 좋은 gradient를 제공합니다."
     },
     {
       "stage": "post",
-      "question": "Why does DDIM achieve similar sample quality to DDPM with ~20x fewer steps?",
-      "options": ["DDIM changes the training objective", "DDIM reformulates sampling as a deterministic ODE whose trajectory can be discretised with far fewer steps while hitting nearly the same endpoint; no retraining required", "DDIM uses a faster model architecture", "DDIM generates smaller images"],
+      "question": "DDIM은 왜 약 20배 더 적은 step으로 DDPM과 비슷한 sample quality를 달성할까요?",
+      "options": [
+        "DDIM이 training objective를 바꾸기 때문에",
+        "DDIM은 sampling을 deterministic ODE로 재구성하며, 그 trajectory는 훨씬 적은 step으로 discretise해도 거의 같은 endpoint에 도달합니다. retraining은 필요 없습니다",
+        "DDIM이 더 빠른 model architecture를 사용하기 때문에",
+        "DDIM이 더 작은 image를 생성하기 때문에"
+      ],
       "correct": 1,
-      "explanation": "DDIM's key observation is that the reverse process, when re-parameterised deterministically, becomes an ODE that a few steps approximate well. The model (weights and loss) is unchanged from DDPM; only the sampler differs. A DDPM checkpoint can be used with a DDIM, DPM-Solver, or Euler sampler interchangeably."
+      "explanation": "DDIM의 핵심 관찰은 reverse process를 deterministic하게 re-parameterise하면 몇 step으로도 잘 approximate되는 ODE가 된다는 것입니다. Model(weight와 loss)은 DDPM과 같고 sampler만 다릅니다. DDPM checkpoint는 DDIM, DPM-Solver, Euler sampler와 서로 바꿔 사용할 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "You plot `alpha_bar_t` for a linear beta schedule with T=1000 and see it drops to near-zero by t=600. Why does this matter?",
-      "options": ["It does not matter", "The last 40% of timesteps add almost no signal; training those timesteps teaches the network to denoise noise that is already approximately N(0, I), which wastes capacity. Cosine or sigmoid schedules fix this by spreading the noise injection more evenly", "alpha_bar_t must be zero at the end", "PyTorch requires a linear schedule"],
+      "question": "T=1000인 linear beta schedule에서 `alpha_bar_t`를 plot했더니 t=600쯤 near-zero로 떨어졌습니다. 이것이 왜 중요할까요?",
+      "options": [
+        "중요하지 않습니다",
+        "마지막 40%의 timestep은 거의 signal을 추가하지 않습니다. 그 timestep을 훈련하면 이미 대략 N(0, I)인 noise를 denoise하도록 network를 가르치게 되어 capacity를 낭비합니다. Cosine 또는 sigmoid schedule은 noise injection을 더 고르게 퍼뜨려 이 문제를 고칩니다",
+        "alpha_bar_t는 끝에서 반드시 zero여야 합니다",
+        "PyTorch는 linear schedule을 요구합니다"
+      ],
       "correct": 1,
-      "explanation": "Linear beta schedules finish the diffusion process too early. By t=600 the signal is already destroyed; training and sampling through t=600-1000 adds nothing. Cosine schedules (Nichol & Dhariwal) keep signal around longer, which is why modern models use them, especially at lower resolutions."
+      "explanation": "Linear beta schedule은 diffusion process를 너무 일찍 끝냅니다. t=600이면 signal이 이미 파괴되어 있습니다. t=600-1000까지 training과 sampling을 계속해도 얻는 것이 없습니다. Cosine schedule(Nichol & Dhariwal)은 signal을 더 오래 유지하기 때문에 현대 model, 특히 낮은 resolution model에서 사용됩니다."
     },
     {
       "stage": "post",
-      "question": "Why does time conditioning get added to the U-Net via a sinusoidal embedding instead of a one-hot timestep?",
-      "options": ["One-hot vectors are too large", "A sinusoidal embedding is smooth in t, which lets the network interpolate between timesteps it has not seen exactly and encodes scale information the architecture can use additively at multiple depths", "Sinusoidal is required by BatchNorm", "One-hot would violate the chain rule"],
+      "question": "Time conditioning은 왜 one-hot timestep 대신 sinusoidal embedding으로 U-Net에 더해질까요?",
+      "options": [
+        "One-hot vector가 너무 크기 때문에",
+        "Sinusoidal embedding은 t에 대해 smooth하므로 network가 정확히 보지 않은 timestep 사이를 interpolate할 수 있고, architecture가 여러 depth에서 additively 사용할 수 있는 scale information을 encode합니다",
+        "Sinusoidal은 BatchNorm이 요구하기 때문에",
+        "One-hot은 chain rule을 위반하기 때문에"
+      ],
       "correct": 1,
-      "explanation": "Sinusoidal embeddings give the network a continuous representation of t at multiple frequencies. Any timestep is a unique point in that embedding space, and nearby timesteps are nearby embeddings. That lets the model generalise across all T values with far fewer parameters than a learned per-timestep embedding. Same idea as transformer positional encoding."
+      "explanation": "Sinusoidal embedding은 network에 여러 frequency에서 t의 continuous representation을 제공합니다. 모든 timestep은 그 embedding space의 unique point이고, 가까운 timestep은 가까운 embedding입니다. 덕분에 model은 learned per-timestep embedding보다 훨씬 적은 parameter로 모든 T 값에 generalise할 수 있습니다. Transformer positional encoding과 같은 아이디어입니다."
     }
   ]
 }

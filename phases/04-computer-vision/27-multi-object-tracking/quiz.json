@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the Hungarian algorithm do in tracking-by-detection?",
-      "options": ["It filters out low-confidence detections", "It solves the minimum-cost one-to-one assignment between tracks and detections — typically using 1 - IoU as cost — to match each track to at most one detection and vice versa", "It trains the detector", "It predicts future trajectories"],
+      "question": "tracking-by-detection에서 Hungarian algorithm은 무엇을 하는가?",
+      "options": ["low-confidence detection을 걸러 낸다", "track과 detection 사이의 minimum-cost 일대일 assignment를 푼다. 보통 1 - IoU를 cost로 사용해 각 track이 최대 하나의 detection과, 각 detection이 최대 하나의 track과 매칭되게 한다", "detector를 학습한다", "미래 trajectory를 예측한다"],
       "correct": 1,
-      "explanation": "Every tracking-by-detection frame does an assignment problem: M tracks, N detections, find the best one-to-one match. Hungarian is the optimal polynomial algorithm for this. Cost is usually 1 - IoU (higher overlap = lower cost). scipy.optimize.linear_sum_assignment is the standard implementation. SORT, DeepSORT, ByteTrack, BoT-SORT all use it."
+      "explanation": "모든 tracking-by-detection 프레임은 assignment 문제를 푼다. M개의 track과 N개의 detection이 있을 때 최적의 일대일 match를 찾는다. Hungarian은 이를 위한 최적 polynomial algorithm이다. Cost는 보통 1 - IoU다(겹침이 클수록 cost가 낮다). scipy.optimize.linear_sum_assignment가 표준 구현이다. SORT, DeepSORT, ByteTrack, BoT-SORT가 모두 이것을 사용한다."
     },
     {
       "stage": "pre",
-      "question": "ByteTrack's distinguishing contribution is what?",
-      "options": ["A new backbone", "A second-stage association that tries to match leftover tracks to low-confidence detections, recovering short occlusions and IDs that standard trackers would lose by dropping those detections", "A new Kalman filter", "An appearance embedding"],
+      "question": "ByteTrack을 구분하는 기여는 무엇인가?",
+      "options": ["새로운 backbone", "남은 track을 low-confidence detection과 매칭하려고 시도하는 second-stage association으로, 표준 tracker가 그런 detection을 버려 잃어버릴 짧은 occlusion과 ID를 회복한다", "새로운 Kalman filter", "appearance embedding"],
       "correct": 1,
-      "explanation": "Most trackers discard detections below a confidence threshold (~0.5). ByteTrack keeps them and runs a second Hungarian pass to try to match them to tracks that did not match any high-confidence detection. This recovers brief occlusions and crossings, lifting IDF1 significantly on MOT17 without any learned appearance features. Its simplicity makes it the default in Ultralytics and Roboflow Supervision."
+      "explanation": "대부분의 tracker는 confidence threshold(~0.5) 아래의 detection을 버린다. ByteTrack은 그것들을 유지하고, 어떤 high-confidence detection과도 매칭되지 않은 track에 대해 두 번째 Hungarian pass를 실행한다. 이는 짧은 occlusion과 crossing을 회복해, 학습된 appearance feature 없이도 MOT17에서 IDF1을 크게 끌어올린다. 단순성 덕분에 Ultralytics와 Roboflow Supervision의 기본값이 되었다."
     },
     {
       "stage": "post",
-      "question": "How does SAM 2's memory-based tracker avoid explicit Hungarian-style association?",
-      "options": ["It runs SORT internally", "It stores per-instance spatio-temporal features in a memory bank; on each new frame, cross-attention between memory and current features directly produces the mask of the same instance, with association implicit in the attention operation", "It uses a Kalman filter", "It requires hand-labelled IDs per frame"],
+      "question": "SAM 2의 memory-based tracker는 명시적인 Hungarian-style association을 어떻게 피하는가?",
+      "options": ["내부적으로 SORT를 실행한다", "instance별 spatio-temporal feature를 memory bank에 저장한다. 새 프레임마다 memory와 현재 feature 사이의 cross-attention이 같은 instance의 mask를 직접 만들며, association은 attention 연산에 암묵적으로 들어 있다", "Kalman filter를 사용한다", "프레임마다 손으로 label한 ID가 필요하다"],
       "correct": 1,
-      "explanation": "SAM 2 replaces the detect-then-associate loop with a memory-conditional segmenter. The memory bank holds the instance's features from previous frames. At each new frame, the decoder cross-attends the new frame's features against the memory, and the resulting mask is the same instance — no external assignment step. This handles long occlusions gracefully because the memory stays even when the instance disappears for many frames."
+      "explanation": "SAM 2는 detect-then-associate loop를 memory-conditional segmenter로 대체한다. Memory bank는 이전 프레임의 instance feature를 보관한다. 각 새 프레임에서 decoder는 새 프레임 feature를 memory와 cross-attend하고, 결과 mask는 같은 instance가 된다. 외부 assignment 단계가 없다. Instance가 여러 프레임 동안 사라져도 memory가 남아 있기 때문에 긴 occlusion을 자연스럽게 처리한다."
     },
     {
       "stage": "post",
-      "question": "For surveillance video where keeping each person's ID consistent is the primary requirement, which metric should you report?",
-      "options": ["MOTA", "IDF1 — the harmonic mean of ID precision and recall; measures identity preservation over time rather than per-frame detection accuracy", "Top-1 accuracy", "FID"],
+      "question": "각 사람의 ID를 일관되게 유지하는 것이 주된 요구사항인 surveillance video에서는 어떤 metric을 보고해야 하는가?",
+      "options": ["MOTA", "IDF1 — ID precision과 recall의 harmonic mean이며, 프레임별 detection accuracy보다 시간에 따른 identity preservation을 측정한다", "Top-1 accuracy", "FID"],
       "correct": 1,
-      "explanation": "MOTA conflates detection and association errors, so a tracker with many false positives can hide its ID failures. IDF1 is designed for the 'who is who over time' question: it matches predicted tracks to ground-truth tracks globally across the whole video and computes F1 on the identity labels. For surveillance and crowd analytics, IDF1 is the metric to report; HOTA is the broader academic standard."
+      "explanation": "MOTA는 detection error와 association error를 섞기 때문에 false positive가 많은 tracker가 ID 실패를 숨길 수 있다. IDF1은 '시간이 지나도 누가 누구인가'라는 질문을 위해 설계되었다. 전체 비디오에 걸쳐 predicted track을 ground-truth track과 전역적으로 매칭하고 identity label에 대한 F1을 계산한다. Surveillance와 crowd analytics에서는 IDF1을 보고해야 하며, HOTA는 더 넓은 학술 표준이다."
     },
     {
       "stage": "post",
-      "question": "SAM 3.1 Object Multiplex (March 2026) introduces shared memory across many tracked instances. What does that enable?",
-      "options": ["Lower accuracy", "Efficient multi-object tracking — one shared memory bank with per-instance query tokens replaces N separate memory banks, so cost scales sub-linearly in number of instances and concert-crowd-sized scenes become tractable", "Cloud-only inference", "A new training objective"],
+      "question": "SAM 3.1 Object Multiplex(2026년 3월)는 추적되는 많은 instance 사이에 shared memory를 도입한다. 이것은 무엇을 가능하게 하는가?",
+      "options": ["더 낮은 정확도", "효율적인 multi-object tracking — per-instance query token이 있는 하나의 shared memory bank가 N개의 별도 memory bank를 대체하므로 instance 수에 대한 비용이 sub-linear하게 증가하고 콘서트 군중 규모의 scene도 다룰 수 있게 된다", "cloud-only inference", "새로운 training objective"],
       "correct": 1,
-      "explanation": "Pre-Multiplex SAM 2 / SAM 3 tracked each object with its own memory bank; cost scaled linearly with the number of instances. Multiplex (March 2026) introduces one shared memory with per-instance query tokens that fetch instance-specific features. Many-object tracking — crowds, traffic, warehouse workers — becomes efficient for the first time with a memory-based tracker."
+      "explanation": "Multiplex 이전의 SAM 2 / SAM 3는 각 object를 자체 memory bank로 추적했기 때문에 비용이 instance 수에 선형으로 증가했다. Multiplex(2026년 3월)는 instance-specific feature를 가져오는 per-instance query token이 있는 하나의 shared memory를 도입한다. Crowds, traffic, warehouse workers 같은 many-object tracking이 memory-based tracker로 처음 효율적이 된다."
     }
   ]
 }

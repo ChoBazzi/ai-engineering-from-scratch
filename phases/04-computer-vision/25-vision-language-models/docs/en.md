@@ -1,30 +1,30 @@
-# Vision-Language Models — The ViT-MLP-LLM Pattern
+# 비전-언어 모델 - ViT-MLP-LLM 패턴
 
-> A vision encoder converts an image into tokens. An MLP projector maps those tokens into the LLM's embedding space. A language model does the rest. That pattern — ViT-MLP-LLM — is every production VLM in 2026.
+> 비전 인코더가 이미지를 토큰으로 변환합니다. MLP 프로젝터가 그 토큰을 LLM의 임베딩 공간으로 매핑합니다. 나머지는 언어 모델이 처리합니다. 이 패턴, 즉 ViT-MLP-LLM은 2026년 모든 프로덕션 VLM의 기본형입니다.
 
 **Type:** Learn + Use
 **Languages:** Python
 **Prerequisites:** Phase 4 Lesson 14 (ViT), Phase 4 Lesson 18 (CLIP), Phase 7 Lesson 02 (Self-Attention)
-**Time:** ~75 minutes
+**Time:** ~75분
 
-## Learning Objectives
+## 학습 목표
 
-- State the ViT-MLP-LLM architecture and explain what each of the three components contributes
-- Compare Qwen3-VL, InternVL3.5, LLaVA-Next, and GLM-4.6V on parameter count, context length, and benchmark performance
-- Explain DeepStack: why multi-level ViT features tighten vision-language alignment better than a single last-layer feature
-- Measure VLM hallucination in production with Cross-Modal Error Rate (CMER) and act on the signal
+- ViT-MLP-LLM 아키텍처를 설명하고 세 구성 요소가 각각 무엇을 기여하는지 설명한다
+- Qwen3-VL, InternVL3.5, LLaVA-Next, GLM-4.6V를 파라미터 수, 컨텍스트 길이, 벤치마크 성능 기준으로 비교한다
+- DeepStack을 설명한다: 다중 레벨 ViT 특징이 단일 마지막 레이어 특징보다 비전-언어 정렬을 더 강하게 만드는 이유
+- Cross-Modal Error Rate(CMER)로 프로덕션 VLM 환각을 측정하고 그 신호에 대응한다
 
-## The Problem
+## 문제
 
-CLIP (Phase 4 Lesson 18) gives you a shared embedding space for images and text, which is enough for zero-shot classification and retrieval. It cannot answer "how many red cars are in this image?" because CLIP does not generate text — it only scores similarities.
+CLIP(Phase 4 Lesson 18)은 이미지와 텍스트를 위한 공유 임베딩 공간을 제공합니다. 이는 제로샷 분류와 검색에는 충분합니다. 하지만 CLIP은 "이 이미지에 빨간 자동차가 몇 대 있나요?"라는 질문에 답할 수 없습니다. CLIP은 텍스트를 생성하지 않고 유사도만 점수화하기 때문입니다.
 
-Vision-Language Models (VLMs) — Qwen3-VL, InternVL3.5, LLaVA-Next, GLM-4.6V — bolt a CLIP-family image encoder to a full language model. The model sees an image plus a question and generates an answer. In 2026 open-source VLMs rival or beat GPT-5 and Gemini-2.5-Pro on multimodal benchmarks (MMMU, MMBench, DocVQA, ChartQA, MathVista, OSWorld).
+Vision-Language Models(VLMs)인 Qwen3-VL, InternVL3.5, LLaVA-Next, GLM-4.6V는 CLIP 계열 이미지 인코더를 완전한 언어 모델에 붙입니다. 모델은 이미지와 질문을 함께 보고 답을 생성합니다. 2026년 오픈 소스 VLM은 멀티모달 벤치마크(MMMU, MMBench, DocVQA, ChartQA, MathVista, OSWorld)에서 GPT-5와 Gemini-2.5-Pro에 맞먹거나 능가합니다.
 
-The trio of pieces (ViT, projector, LLM) is the standard. The differences between models are in which ViT, which projector, which LLM, the training data, and the alignment recipe. Once you understand the pattern, swapping any component is mechanical.
+세 구성 요소(ViT, projector, LLM)의 조합이 표준입니다. 모델 간 차이는 어떤 ViT, 어떤 projector, 어떤 LLM, 어떤 학습 데이터, 어떤 정렬 레시피를 쓰는지에 있습니다. 이 패턴을 이해하면 어떤 구성 요소든 기계적으로 교체할 수 있습니다.
 
-## The Concept
+## 개념
 
-### The ViT-MLP-LLM architecture
+### ViT-MLP-LLM 아키텍처
 
 ```mermaid
 flowchart LR
@@ -44,29 +44,29 @@ flowchart LR
     style LLM fill:#dcfce7,stroke:#16a34a
 ```
 
-1. **Vision encoder** — a pretrained ViT (CLIP-L/14, SigLIP, DINOv3, or a fine-tuned variant). Produces patch tokens.
-2. **Projector** — a small module (2-4 layer MLP, or a Q-former) that maps vision tokens into the LLM's embedding dimension. This is where most of the fine-tuning happens.
-3. **LLM** — a decoder-only language model (Qwen3, Llama, Mistral, GLM, InternLM). Reads the vision + text tokens in sequence, generates text.
+1. **비전 인코더** - 사전 학습된 ViT(CLIP-L/14, SigLIP, DINOv3 또는 파인튜닝된 변형). 패치 토큰을 생성합니다.
+2. **프로젝터** - 비전 토큰을 LLM의 임베딩 차원으로 매핑하는 작은 모듈(2-4 레이어 MLP 또는 Q-former)입니다. 파인튜닝의 대부분이 여기서 일어납니다.
+3. **LLM** - 디코더 전용 언어 모델(Qwen3, Llama, Mistral, GLM, InternLM). 비전 + 텍스트 토큰을 시퀀스로 읽고 텍스트를 생성합니다.
 
-All three pieces are trainable in principle. In practice, the vision encoder and LLM stay mostly frozen while the projector trains — a few billion parameters of signal for cheap.
+원칙적으로 세 부분 모두 학습 가능합니다. 실제로는 비전 인코더와 LLM은 대부분 고정하고 projector만 학습합니다. 저렴하게 수십억 파라미터의 신호를 활용하는 방식입니다.
 
 ### DeepStack
 
-Vanilla projection uses only the last ViT layer. DeepStack (Qwen3-VL) samples features from multiple ViT depths and stacks them. Deeper layers carry high-level semantics; shallower layers carry fine-grained spatial and textural information. Feeding both into the LLM closes the gap between "what does the image contain" (semantics) and "where exactly" (spatial grounding).
+기본 projection은 마지막 ViT 레이어만 사용합니다. DeepStack(Qwen3-VL)은 여러 ViT 깊이에서 특징을 샘플링해 쌓습니다. 깊은 레이어는 고수준 의미를 담고, 얕은 레이어는 세밀한 공간 정보와 질감 정보를 담습니다. 둘 다 LLM에 넣으면 "이미지에 무엇이 있는가"(의미)와 "정확히 어디에 있는가"(공간 grounding) 사이의 간극이 줄어듭니다.
 
-### Three training stages
+### 세 가지 학습 단계
 
-Modern VLMs train in stages:
+현대 VLM은 단계적으로 학습합니다.
 
-1. **Alignment** — freeze ViT and LLM. Train only the projector on image-caption pairs. Teaches the projector to map vision space into language space.
-2. **Pre-training** — unfreeze everything. Train on large-scale interleaved image-text data (500M+ pairs). Builds the model's visual knowledge.
-3. **Instruction tuning** — fine-tune on curated (image, question, answer) triples. Teaches conversational behaviour and task formats. This is what turns a "vision-aware LM" into a usable assistant.
+1. **정렬** - ViT와 LLM을 고정합니다. 이미지-캡션 쌍에서 projector만 학습합니다. projector가 비전 공간을 언어 공간으로 매핑하도록 가르칩니다.
+2. **사전 학습** - 모든 것을 고정 해제합니다. 대규모 interleaved image-text 데이터(5억+ 쌍)로 학습합니다. 모델의 시각 지식을 구축합니다.
+3. **지시 튜닝** - 선별된 (image, question, answer) triples로 파인튜닝합니다. 대화 행동과 태스크 형식을 가르칩니다. 이것이 "비전을 아는 LM"을 사용 가능한 어시스턴트로 바꿉니다.
 
-Most LoRA fine-tunes target stage 3 with a small labelled dataset.
+대부분의 LoRA 파인튜닝은 작은 라벨링 데이터셋으로 3단계를 겨냥합니다.
 
-### Model family comparison (early 2026)
+### 모델 계열 비교(2026년 초)
 
-| Model | Params | Vision encoder | LLM | Context | Strengths |
+| 모델 | 파라미터 | 비전 인코더 | LLM | 컨텍스트 | 강점 |
 |-------|--------|----------------|-----|---------|-----------|
 | Qwen3-VL-235B-A22B (MoE) | 235B (22B active) | custom ViT + DeepStack | Qwen3 | 256K | General SOTA, GUI agent |
 | Qwen3-VL-30B-A3B (MoE) | 30B (3B active) | custom ViT + DeepStack | Qwen3 | 256K | Smaller MoE alternative |
@@ -77,39 +77,39 @@ Most LoRA fine-tunes target stage 3 with a small labelled dataset.
 | GLM-4.6V | ~70B | custom | GLM | 64K | Open-source, strong OCR |
 | MiniCPM-V-2.6 | 8B | SigLIP | MiniCPM | 32K | Edge-friendly |
 
-### Visual agents
+### 시각 에이전트
 
-Qwen3-VL-235B reaches top global performance on OSWorld — a benchmark for **visual agents** that operate GUIs (desktop, mobile, web). The model sees a screenshot, understands the UI, and emits actions (click, type, scroll). Combined with tools, it closes the loop on common desktop tasks. This is what most 2026 "AI PC" demos run under the hood.
+Qwen3-VL-235B는 GUI(데스크톱, 모바일, 웹)를 조작하는 **시각 에이전트** 벤치마크인 OSWorld에서 전 세계 최상위 성능을 냅니다. 모델은 스크린샷을 보고 UI를 이해한 뒤 동작(클릭, 입력, 스크롤)을 내보냅니다. 도구와 결합하면 일반적인 데스크톱 작업의 루프를 닫을 수 있습니다. 이것이 2026년 대부분의 "AI PC" 데모가 내부에서 실행하는 방식입니다.
 
-### Agentic capabilities + RoPE variants
+### 에이전트 능력 + RoPE 변형
 
-VLMs need to know **when** a frame is in a video. Qwen3-VL evolved from T-RoPE (temporal rotary position embeddings) to **text-based time alignment** — explicit timestamp text tokens interleaved with video frames. The model sees "`<timestamp 00:32>` frame, prompt" and can reason about temporal relationships.
+VLM은 비디오에서 프레임이 **언제** 나타나는지 알아야 합니다. Qwen3-VL은 T-RoPE(temporal rotary position embeddings)에서 **텍스트 기반 시간 정렬**로 발전했습니다. 즉, 명시적 timestamp 텍스트 토큰을 비디오 프레임 사이에 끼워 넣습니다. 모델은 "`<timestamp 00:32>` frame, prompt"를 보고 시간 관계를 추론할 수 있습니다.
 
-### The alignment problem
+### 정렬 문제
 
-12% of image-text pairs in a crawled dataset contain descriptions not fully grounded in the image. A VLM trained on this silently learns to hallucinate — fabricate objects, misread numbers, invent relationships. In production this is the dominant failure mode.
+크롤링된 데이터셋의 이미지-텍스트 쌍 중 12%는 이미지에 완전히 grounded되지 않은 설명을 포함합니다. 이런 데이터로 학습한 VLM은 조용히 환각을 배웁니다. 객체를 날조하고, 숫자를 잘못 읽고, 관계를 만들어냅니다. 프로덕션에서는 이것이 지배적인 실패 모드입니다.
 
-Skywork.ai introduced the **Cross-Modal Error Rate (CMER)** to track it:
+Skywork.ai는 이를 추적하기 위해 **Cross-Modal Error Rate(CMER)** 를 도입했습니다.
 
-```
+```text
 CMER = fraction of outputs where the text confidence is high but the image-text similarity (via a CLIP-family checker) is low
 ```
 
-High CMER means the model is confidently saying things not grounded in the image. Monitoring CMER and treating it as a production KPI cut hallucination rate by ~35% in their deployment. The trick is not "fix the model" but "route high-CMER outputs to human review."
+CMER가 높다는 것은 모델이 이미지에 grounded되지 않은 내용을 확신 있게 말한다는 뜻입니다. CMER를 모니터링하고 프로덕션 KPI로 다룬 결과, 해당 배포에서는 환각률을 약 35% 줄였습니다. 핵심은 "모델을 고친다"가 아니라 "CMER가 높은 출력을 사람 검토로 라우팅한다"입니다.
 
-### Fine-tuning with LoRA / QLoRA
+### LoRA / QLoRA로 파인튜닝
 
-Full fine-tuning of a 70B VLM is out of reach for most teams. LoRA (rank 16-64) on attention + projector layers, or QLoRA with 4-bit base weights, fits on a single A100 / H100. Cost: 5,000-50,000 examples, $100-$5,000 in compute, 2-10 hours of training.
+70B VLM 전체 파인튜닝은 대부분의 팀에게 현실적이지 않습니다. attention + projector 레이어에 LoRA(rank 16-64)를 적용하거나 4-bit base weights를 쓰는 QLoRA를 적용하면 단일 A100 / H100에 들어갑니다. 비용: 예제 5,000-50,000개, 컴퓨트 $100-$5,000, 학습 2-10시간.
 
-### Spatial reasoning is still weak
+### 공간 추론은 여전히 약하다
 
-Current VLMs score 50-60% on spatial reasoning benchmarks (above-below, left-right, counting, distance). If your use case depends on "which object is on top of which," validate heavily — generic VLM performance is below human. Better-than-VLM alternatives for pure spatial tasks: a specialised keypoint / pose estimator, a depth model, or a detection model with box geometry post-processed.
+현재 VLM은 공간 추론 벤치마크(above-below, left-right, counting, distance)에서 50-60%를 기록합니다. 사용 사례가 "어떤 객체가 어떤 객체 위에 있는가"에 의존한다면 강하게 검증해야 합니다. 일반 VLM 성능은 사람보다 낮습니다. 순수 공간 태스크에서 VLM보다 나은 대안은 특화된 keypoint / pose estimator, depth model, 또는 box geometry를 후처리하는 detection model입니다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: The projector
+### 1단계: 프로젝터
 
-The part you will train most often. 2-4 layer MLP with GELU.
+가장 자주 학습하게 될 부분입니다. GELU가 있는 2-4 레이어 MLP입니다.
 
 ```python
 import torch
@@ -129,11 +129,11 @@ class Projector(nn.Module):
         return self.net(x)
 ```
 
-Input is a `(N_patches, d_vit)` token tensor. Output is `(N_patches, d_llm)`. The LLM treats every output row as just another token.
+입력은 `(N_patches, d_vit)` 토큰 텐서입니다. 출력은 `(N_patches, d_llm)`입니다. LLM은 출력의 각 행을 또 하나의 토큰처럼 취급합니다.
 
-### Step 2: Assemble ViT-MLP-LLM end-to-end
+### 2단계: ViT-MLP-LLM을 end-to-end로 조립하기
 
-Skeleton of the forward pass for a minimal VLM. Real code uses `transformers`; this is the conceptual layout.
+최소 VLM의 forward pass 뼈대입니다. 실제 코드는 `transformers`를 사용합니다. 여기서는 개념적 배치만 보여줍니다.
 
 ```python
 class MinimalVLM(nn.Module):
@@ -171,11 +171,11 @@ class MinimalVLM(nn.Module):
         return out
 ```
 
-The `<image>` placeholder token in the text gets replaced with real image embeddings — same pattern LLaVA, Qwen-VL, and InternVL use.
+텍스트의 `<image>` placeholder token이 실제 이미지 임베딩으로 대체됩니다. LLaVA, Qwen-VL, InternVL이 쓰는 것과 같은 패턴입니다.
 
-### Step 3: CMER computation
+### 3단계: CMER 계산
 
-A lightweight runtime check.
+가벼운 런타임 검사입니다.
 
 ```python
 import torch.nn.functional as F
@@ -194,11 +194,11 @@ def cross_modal_error_rate(image_emb, text_emb, text_confidence, sim_threshold=0
     return high_conf_low_sim.float().mean().item()
 ```
 
-Treat CMER as a production KPI. Monitor it per endpoint, per prompt type, per customer. Rising CMER indicates the model is starting to hallucinate on some input distribution.
+CMER를 프로덕션 KPI로 다루세요. endpoint별, prompt type별, customer별로 모니터링합니다. CMER 상승은 모델이 어떤 입력 분포에서 환각을 시작하고 있음을 나타냅니다.
 
-### Step 4: Toy VLM classifier (runnable)
+### 4단계: 장난감 VLM 분류기(실행 가능)
 
-Demonstrate the projector trains. Fake "ViT features" go in; a tiny LLM-style token predicts a class.
+projector가 학습된다는 것을 보여줍니다. 가짜 "ViT features"가 들어가고, 작은 LLM 스타일 토큰이 클래스를 예측합니다.
 
 ```python
 class ToyVLM(nn.Module):
@@ -213,15 +213,15 @@ class ToyVLM(nn.Module):
         return self.head(pooled)
 ```
 
-One can fit this on synthetic (feature, class) pairs in under 200 steps — enough to show the projector pattern works.
+합성 (feature, class) 쌍에 대해 200 step 미만으로 맞출 수 있습니다. projector 패턴이 동작한다는 것을 보이기에는 충분합니다.
 
-## Use It
+## 사용하기
 
-Three ways production teams use VLMs in 2026:
+2026년 프로덕션 팀이 VLM을 쓰는 방식은 세 가지입니다.
 
-- **Hosted API** — OpenAI Vision, Anthropic Claude Vision, Google Gemini Vision. Zero infra, vendor risk.
-- **Open-source self-host** — Qwen3-VL or InternVL3.5 via `transformers` and `vllm`. Full control, higher up-front effort.
-- **Fine-tune on domain** — load Qwen2.5-VL-7B or LLaVA-1.6-7B, LoRA on 5k-50k custom examples, serve with `vllm` or `TGI`.
+- **호스팅 API** - OpenAI Vision, Anthropic Claude Vision, Google Gemini Vision. 인프라가 없지만 벤더 리스크가 있습니다.
+- **오픈 소스 셀프 호스팅** - `transformers`와 `vllm`으로 Qwen3-VL 또는 InternVL3.5를 실행합니다. 완전한 제어권이 있지만 초기 노력이 큽니다.
+- **도메인 파인튜닝** - Qwen2.5-VL-7B 또는 LLaVA-1.6-7B를 로드하고, 커스텀 예제 5k-50k개로 LoRA를 적용한 뒤 `vllm` 또는 `TGI`로 서빙합니다.
 
 ```python
 from transformers import AutoProcessor, AutoModelForVision2Seq
@@ -244,35 +244,35 @@ generated = model.generate(**inputs, max_new_tokens=256)
 answer = processor.decode(generated[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
 ```
 
-`apply_chat_template` hides the `<image>` placeholder tokenisation; the model handles the merge internally.
+`apply_chat_template`은 `<image>` placeholder tokenization을 숨깁니다. 모델이 내부에서 merge를 처리합니다.
 
-## Ship It
+## 배포하기
 
-This lesson produces:
+이 lesson은 다음을 만듭니다.
 
-- `outputs/prompt-vlm-selector.md` — picks Qwen3-VL / InternVL3.5 / LLaVA-Next / API given accuracy, latency, context length, and budget.
-- `outputs/skill-cmer-monitor.md` — emits the code to instrument a production VLM endpoint with cross-modal error rate, per-endpoint dashboards, and alerting thresholds.
+- `outputs/prompt-vlm-selector.md` - 정확도, 지연 시간, 컨텍스트 길이, 예산을 기준으로 Qwen3-VL / InternVL3.5 / LLaVA-Next / API를 고릅니다.
+- `outputs/skill-cmer-monitor.md` - 프로덕션 VLM endpoint에 cross-modal error rate, endpoint별 dashboard, alerting threshold를 계측하는 코드를 내보냅니다.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Run three prompts ("what is this?", "count the objects", "describe the scene") through any open VLM on five images. Score each answer as correct / partially correct / hallucinated by hand. Compute a first-pass CMER-like rate.
-2. **(Medium)** Fine-tune Qwen2.5-VL-3B or LLaVA-1.6-7B with LoRA (rank 16) on 500 images of a target domain with captions. Compare zero-shot vs fine-tuned MMBench-style accuracy.
-3. **(Hard)** Replace the VLM's image encoder with DINOv3 instead of its default SigLIP/CLIP. Re-train only the projector (frozen LLM + frozen DINOv3). Measure whether dense-prediction tasks (counting, spatial reasoning) improve.
+1. **(쉬움)** 임의의 오픈 VLM에 이미지 5장을 넣고 세 가지 prompt("what is this?", "count the objects", "describe the scene")를 실행합니다. 각 답을 손으로 correct / partially correct / hallucinated로 점수화합니다. 첫 번째 CMER 유사 비율을 계산합니다.
+2. **(보통)** 대상 도메인의 이미지 500장과 캡션으로 Qwen2.5-VL-3B 또는 LLaVA-1.6-7B를 LoRA(rank 16) 파인튜닝합니다. zero-shot과 fine-tuned MMBench 스타일 정확도를 비교합니다.
+3. **(어려움)** VLM의 이미지 인코더를 기본 SigLIP/CLIP 대신 DINOv3로 교체합니다. projector만 다시 학습합니다(frozen LLM + frozen DINOv3). dense-prediction task(counting, spatial reasoning)가 개선되는지 측정합니다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 표현 | 실제 의미 |
 |------|----------------|----------------------|
-| ViT-MLP-LLM | "The VLM pattern" | Vision encoder + projector + language model; every 2026 VLM |
-| Projector | "The bridge" | 2-4 layer MLP (or Q-former) that maps vision tokens into LLM embedding space |
-| DeepStack | "Qwen3-VL feature trick" | Multi-level ViT features stacked rather than last-layer only |
-| Image token | "<image> placeholder" | Special token in the text stream replaced by projected vision embeddings |
-| CMER | "Hallucination KPI" | Cross-Modal Error Rate; high when text confidence is high but image-text similarity is low |
-| Visual agent | "VLM that clicks" | VLM operating GUIs (OSWorld, mobile, web) with tool calls |
-| Q-former | "Fixed-count token bridge" | BLIP-2 style projector producing a fixed number of visual query tokens |
-| Alignment / pre-training / instruction tuning | "Three stages" | Standard VLM training pipeline |
+| ViT-MLP-LLM | "VLM 패턴" | Vision encoder + projector + language model; 2026년 모든 VLM |
+| Projector | "다리" | 비전 토큰을 LLM embedding space로 매핑하는 2-4 레이어 MLP(또는 Q-former) |
+| DeepStack | "Qwen3-VL feature trick" | 마지막 레이어만 쓰지 않고 multi-level ViT features를 쌓는 방식 |
+| Image token | "<image> placeholder" | projected vision embeddings로 대체되는 text stream 안의 special token |
+| CMER | "Hallucination KPI" | Cross-Modal Error Rate; text confidence는 높지만 image-text similarity가 낮을 때 높음 |
+| Visual agent | "클릭하는 VLM" | tool call로 GUI(OSWorld, mobile, web)를 조작하는 VLM |
+| Q-former | "고정 개수 token bridge" | 고정된 수의 visual query tokens를 생성하는 BLIP-2 스타일 projector |
+| Alignment / pre-training / instruction tuning | "세 단계" | 표준 VLM 학습 pipeline |
 
-## Further Reading
+## 더 읽을거리
 
 - [Qwen3-VL Technical Report (arXiv 2511.21631)](https://arxiv.org/abs/2511.21631)
 - [InternVL3.5 Advancing Open-Source Multimodal Models (arXiv 2508.18265)](https://arxiv.org/html/2508.18265v1)

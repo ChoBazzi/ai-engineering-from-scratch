@@ -1,32 +1,32 @@
 ---
 name: otel-genai
-description: Instrument an agent with OpenTelemetry GenAI semantic conventions — invoke_agent, chat, tool_call spans with correct attributes and opt-in content capture.
+description: OpenTelemetry GenAI semantic conventions로 agent를 instrument한다. 올바른 attribute와 opt-in content capture를 갖춘 invoke_agent, chat, tool_call span을 사용한다.
 version: 1.0.0
 phase: 14
 lesson: 23
 tags: [opentelemetry, genai, observability, tracing, semantic-conventions]
 ---
 
-Given an agent runtime, wire OTel GenAI semantic conventions.
+agent runtime이 주어지면 OTel GenAI semantic conventions를 연결한다.
 
-Produce:
+생성할 것:
 
-1. `invoke_agent` span per agent run. Kind CLIENT for remote agent services, INTERNAL for in-process. Name: `invoke_agent {gen_ai.agent.name}`.
-2. `chat` span per LLM call with `gen_ai.operation.name=chat`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`.
-3. `tool_call` span per tool invocation with `gen_ai.tool.name` and, when applicable, `gen_ai.data_source.id` (RAG corpus / memory store).
-4. Opt-in content capture: default OFF; when ON, store inputs/outputs externally and record `*.reference_id` on spans.
-5. Context propagation: use W3C trace context headers so multi-process runs (Claude Agent SDK CLI subprocess) stitch into one trace.
+1. agent run마다 `invoke_agent` span. remote agent service는 kind CLIENT, in-process는 INTERNAL. 이름: `invoke_agent {gen_ai.agent.name}`.
+2. LLM call마다 `gen_ai.operation.name=chat`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`을 가진 `chat` span.
+3. tool invocation마다 `gen_ai.tool.name`과 해당 시 `gen_ai.data_source.id`(RAG corpus / memory store)를 가진 `tool_call` span.
+4. Opt-in content capture: 기본 OFF. ON일 때 input/output을 외부에 저장하고 span에 `*.reference_id`를 기록한다.
+5. Context propagation: multi-process run(Claude Agent SDK CLI subprocess)이 하나의 trace로 이어지도록 W3C trace context header를 사용한다.
 
-Hard rejects:
+강한 거부 조건:
 
-- Capturing full prompts/outputs inline by default. PII and secret leakage risk; also violates the spec.
-- Missing `gen_ai.provider.name`. Multi-provider dashboards break.
-- Orphan tool spans. Always set parent-child relation via active context.
+- 기본적으로 full prompt/output을 inline capture함. PII와 secret 누출 위험이 있고 spec도 위반한다.
+- `gen_ai.provider.name` 누락. multi-provider dashboard가 깨진다.
+- orphan tool span. 항상 active context를 통해 parent-child 관계를 설정한다.
 
-Refusal rules:
+거부 규칙:
 
-- If the runtime cannot propagate context across process boundaries, refuse. Multi-process trace stitching is required for Claude Agent SDK + CLI users.
-- If the product has regulatory constraints (HIPAA, GDPR), refuse inline content capture. External store with access control only.
-- If the backend does not set `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`, warn: attribute names may change on collector upgrade.
+- runtime이 process boundary를 넘어 context를 propagate할 수 없으면 거부한다. Claude Agent SDK + CLI 사용자는 multi-process trace stitching이 필요하다.
+- 제품에 규제 제약(HIPAA, GDPR)이 있으면 inline content capture를 거부한다. access control이 있는 external store만 허용한다.
+- backend가 `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`을 설정하지 않으면 경고한다. collector upgrade 때 attribute name이 바뀔 수 있다.
 
-Output: `tracer.py`, `attributes.py`, `content_store.py`, `README.md` explaining span structure, stability opt-in, and content-capture policy. End with "what to read next" pointing to Lesson 24 (backends: Langfuse, Phoenix, Opik) or Lesson 17 for Claude Agent SDK trace-context propagation.
+출력: span structure, stability opt-in, content-capture policy를 설명하는 `tracer.py`, `attributes.py`, `content_store.py`, `README.md`. 마지막은 Lesson 24(backend: Langfuse, Phoenix, Opik) 또는 Claude Agent SDK trace-context propagation을 위한 Lesson 17을 가리키는 "what to read next"로 끝낸다.

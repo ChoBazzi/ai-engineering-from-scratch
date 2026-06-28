@@ -1,37 +1,37 @@
 [
   {
-    "question": "What problem do embeddings solve that keyword search cannot?",
-    "options": ["Embeddings are faster", "Embeddings capture semantic meaning, matching 'payment didn't go through' with 'charge was declined' even though they share no words", "Embeddings use less storage", "Embeddings work offline"],
+    "question": "embedding은 keyword search가 해결하지 못하는 어떤 문제를 해결하나요?",
+    "options": ["embedding이 더 빠르다", "embedding은 의미를 포착해 공통 단어가 없어도 'payment didn't go through'와 'charge was declined'를 매칭한다", "embedding은 저장 공간을 덜 사용한다", "embedding은 offline에서 작동한다"],
     "correct": 1,
-    "explanation": "Keyword search treats words as independent symbols. Embeddings map text to high-dimensional vectors where semantic similarity = geometric proximity. Texts with the same meaning cluster together regardless of word choice.",
+    "explanation": "keyword search는 단어를 독립적인 기호로 취급합니다. embedding은 텍스트를 고차원 벡터로 매핑하며, 이 공간에서는 의미적 유사성 = 기하학적 근접성입니다. 같은 의미의 텍스트는 단어 선택과 무관하게 함께 cluster됩니다.",
     "stage": "pre"
   },
   {
-    "question": "What does cosine similarity measure between two embedding vectors?",
-    "options": ["The Euclidean distance", "The angle between the vectors, indicating how similar their directions are regardless of magnitude", "The sum of their components", "The number of matching dimensions"],
+    "question": "cosine similarity는 두 embedding vector 사이에서 무엇을 측정하나요?",
+    "options": ["유클리드 거리", "크기와 무관하게 두 벡터의 방향이 얼마나 비슷한지 나타내는 벡터 사이의 각도", "두 벡터 성분의 합", "일치하는 차원의 개수"],
     "correct": 1,
-    "explanation": "Cosine similarity = dot(A,B) / (|A|*|B|). It ranges from -1 (opposite) to 1 (identical direction). Two texts with the same meaning will have vectors pointing in nearly the same direction, giving cosine similarity near 1.",
+    "explanation": "cosine similarity = dot(A,B) / (|A|*|B|)입니다. 값은 -1(반대 방향)부터 1(동일한 방향)까지입니다. 같은 의미의 두 텍스트는 거의 같은 방향을 가리키는 벡터를 가지므로 cosine similarity가 1에 가깝습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the typical dimensionality of modern text embedding models?",
-    "options": ["2-10 dimensions", "50-100 dimensions", "768-3072 dimensions", "100,000+ dimensions"],
+    "question": "현대 text embedding 모델의 일반적인 차원 수는 얼마인가요?",
+    "options": ["2-10차원", "50-100차원", "768-3072차원", "100,000차원 이상"],
     "correct": 2,
-    "explanation": "Modern embedding models (OpenAI text-embedding-3, BGE, E5) produce vectors with 768 to 3072 dimensions. Higher dimensions capture more nuance but cost more to store and search.",
+    "explanation": "현대 embedding 모델(OpenAI text-embedding-3, BGE, E5)은 768-3072차원의 벡터를 생성합니다. 차원이 높을수록 더 많은 뉘앙스를 포착하지만 저장과 검색 비용이 증가합니다.",
     "stage": "post"
   },
   {
-    "question": "Why should you evaluate embedding quality using retrieval benchmarks rather than just inspecting similarity scores?",
-    "options": ["Similarity scores are always wrong", "Absolute similarity values vary by model; what matters is whether relevant documents rank higher than irrelevant ones (precision@k, recall)", "Retrieval benchmarks are faster", "Similarity scores don't use cosine distance"],
+    "question": "embedding 품질을 단순히 similarity score만 보지 말고 retrieval benchmark로 평가해야 하는 이유는 무엇인가요?",
+    "options": ["similarity score는 항상 틀리기 때문", "절대 similarity 값은 모델마다 다르며, 중요한 것은 관련 문서가 무관한 문서보다 위에 랭크되는지(precision@k, recall)이기 때문", "retrieval benchmark가 더 빠르기 때문", "similarity score는 cosine distance를 사용하지 않기 때문"],
     "correct": 1,
-    "explanation": "A cosine similarity of 0.85 might mean 'very similar' for one model and 'somewhat similar' for another. Retrieval metrics (precision@k, recall) measure what actually matters: does the right document come back?",
+    "explanation": "cosine similarity 0.85가 어떤 모델에서는 '매우 유사'를, 다른 모델에서는 '어느 정도 유사'를 뜻할 수 있습니다. retrieval metric(precision@k, recall)은 실제로 중요한 것, 즉 올바른 문서가 반환되는지를 측정합니다.",
     "stage": "post"
   },
   {
-    "question": "When would you use a local/open-source embedding model instead of an API-based one?",
-    "options": ["Local models are always better", "When you need data privacy, offline operation, lower cost at scale, or domain-specific fine-tuning", "Local models produce higher quality embeddings", "API models don't support batching"],
+    "question": "API 기반 모델 대신 local/open-source embedding 모델을 언제 사용하나요?",
+    "options": ["local 모델이 항상 더 좋을 때", "데이터 프라이버시, offline 동작, scale에서의 낮은 비용, domain-specific fine-tuning이 필요할 때", "local 모델이 더 높은 품질의 embedding을 만들 때", "API 모델이 batching을 지원하지 않을 때"],
     "correct": 1,
-    "explanation": "API embeddings (OpenAI, Cohere) are easy but send your data externally. Local models (BGE, E5, Nomic) keep data private, eliminate per-call costs at scale, and can be fine-tuned on domain-specific data.",
+    "explanation": "API embedding(OpenAI, Cohere)은 사용하기 쉽지만 데이터를 외부로 보냅니다. local 모델(BGE, E5, Nomic)은 데이터를 private하게 유지하고, scale에서 호출당 비용을 없애며, domain-specific 데이터로 fine-tuning할 수 있습니다.",
     "stage": "post"
   }
 ]

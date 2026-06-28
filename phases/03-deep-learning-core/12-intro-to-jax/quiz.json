@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the fundamental design difference between PyTorch and JAX?",
-    "options": ["PyTorch is faster", "PyTorch mutates tensors eagerly while JAX compiles pure functions without side effects", "JAX doesn't support GPUs", "PyTorch doesn't support automatic differentiation"],
+    "question": "PyTorch와 JAX의 근본적인 설계 차이는 무엇인가요?",
+    "options": ["PyTorch가 더 빠릅니다", "PyTorch는 텐서를 eager하게 변경하는 반면 JAX는 side effect 없는 pure function을 컴파일합니다", "JAX는 GPU를 지원하지 않습니다", "PyTorch는 자동 미분을 지원하지 않습니다"],
     "correct": 1,
-    "explanation": "PyTorch uses eager execution with mutable state (e.g., tensor.grad is modified in place). JAX embraces functional programming: functions are pure, state is explicit, and jit compilation optimizes entire computation graphs.",
+    "explanation": "PyTorch는 mutable state와 함께 eager execution을 사용합니다(예: tensor.grad가 제자리에서 수정됨). JAX는 functional programming을 받아들입니다. 함수는 pure하고, state는 명시적이며, jit compilation이 전체 computation graph를 최적화합니다.",
     "stage": "pre"
   },
   {
-    "question": "What does jax.jit do?",
-    "options": ["It adds dropout regularization", "It compiles a Python function into optimized XLA code that runs much faster than interpreted Python", "It initializes model weights", "It computes gradients"],
+    "question": "jax.jit는 무엇을 하나요?",
+    "options": ["dropout regularization을 추가합니다", "Python 함수를 interpreted Python보다 훨씬 빠르게 실행되는 최적화된 XLA 코드로 컴파일합니다", "모델 weight를 초기화합니다", "그래디언트를 계산합니다"],
     "correct": 1,
-    "explanation": "jax.jit traces a function and compiles it to XLA (Accelerated Linear Algebra) machine code. The first call is slow (compilation), but subsequent calls run the optimized compiled version.",
+    "explanation": "jax.jit는 함수를 trace하고 XLA(Accelerated Linear Algebra) machine code로 컴파일합니다. 첫 호출은 느리지만(compilation), 이후 호출은 최적화된 컴파일 버전으로 실행됩니다.",
     "stage": "pre"
   },
   {
-    "question": "What does jax.vmap do?",
-    "options": ["Vectorizes a function to run over a batch dimension without writing explicit loops", "Validates model architecture", "Manages GPU memory", "Computes second-order gradients"],
+    "question": "jax.vmap은 무엇을 하나요?",
+    "options": ["명시적 루프를 작성하지 않고 batch dimension 위에서 실행되도록 함수를 vectorize합니다", "모델 아키텍처를 검증합니다", "GPU 메모리를 관리합니다", "2차 그래디언트를 계산합니다"],
     "correct": 0,
-    "explanation": "jax.vmap automatically vectorizes a function written for a single example to process an entire batch. You write code for one sample and vmap handles batching, often more efficiently than manual batch loops.",
+    "explanation": "jax.vmap은 단일 예제를 위해 작성된 함수를 전체 배치를 처리하도록 자동으로 vectorize합니다. 하나의 샘플에 대한 코드를 작성하면 vmap이 batching을 처리하며, 보통 수동 batch loop보다 더 효율적입니다.",
     "stage": "post"
   },
   {
-    "question": "How does JAX handle model state (weights) differently than PyTorch?",
-    "options": ["JAX stores weights on CPU only", "JAX requires explicit state passing -- weights are function arguments, not mutable object attributes", "JAX doesn't support trainable weights", "JAX and PyTorch handle state identically"],
+    "question": "JAX는 PyTorch와 다르게 모델 state(weight)를 어떻게 다루나요?",
+    "options": ["JAX는 weight를 CPU에만 저장합니다", "JAX는 명시적 state 전달을 요구합니다. weight는 mutable object attribute가 아니라 함수 인자입니다", "JAX는 trainable weight를 지원하지 않습니다", "JAX와 PyTorch는 state를 동일하게 다룹니다"],
     "correct": 1,
-    "explanation": "In PyTorch, weights live inside nn.Module objects and are mutated in place. In JAX, weights are passed explicitly as function arguments and returned as new values. No mutation, no hidden state.",
+    "explanation": "PyTorch에서는 weight가 nn.Module 객체 안에 있고 제자리에서 변경됩니다. JAX에서는 weight가 함수 인자로 명시적으로 전달되고 새 값으로 반환됩니다. mutation도 hidden state도 없습니다.",
     "stage": "post"
   },
   {
-    "question": "When would you choose JAX over PyTorch?",
-    "options": ["For quick prototyping of small models", "When training at massive scale on TPU pods, where compilation and functional transforms provide significant speedups", "When you need the largest ecosystem of pretrained models", "For deployment on mobile devices"],
+    "question": "언제 PyTorch 대신 JAX를 선택하겠나요?",
+    "options": ["작은 모델을 빠르게 prototyping할 때", "compilation과 functional transform이 큰 속도 향상을 제공하는 TPU pod에서 초대규모 학습을 할 때", "pretrained model의 가장 큰 생태계가 필요할 때", "모바일 device에 배포할 때"],
     "correct": 1,
-    "explanation": "JAX excels at scale: jit compilation eliminates Python overhead, pmap handles multi-device parallelism naturally, and XLA optimization across the full computation graph gives significant speedups on TPU clusters.",
+    "explanation": "JAX는 scale에서 강합니다. jit compilation은 Python overhead를 제거하고, pmap은 multi-device parallelism을 자연스럽게 처리하며, 전체 computation graph에 걸친 XLA 최적화는 TPU cluster에서 큰 속도 향상을 제공합니다.",
     "stage": "post"
   }
 ]

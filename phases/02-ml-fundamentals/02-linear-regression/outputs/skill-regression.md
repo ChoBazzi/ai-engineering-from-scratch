@@ -1,60 +1,60 @@
 ---
 name: skill-regression
-description: Choose the right regression approach based on data characteristics and problem constraints
+description: data characteristics와 problem constraints에 따라 올바른 regression 접근법 선택하기
 version: 1.0.0
 phase: 2
 lesson: 2
 tags: [regression, linear-regression, polynomial-regression, ridge, regularization]
 ---
 
-# Regression Strategy Guide
+# Regression 전략 가이드
 
-Regression predicts continuous values. The right approach depends on the relationship between features and target, the number of features, and the risk of overfitting.
+Regression은 continuous values를 예측합니다. 올바른 접근법은 features와 target 사이의 관계, features 수, overfitting 위험에 따라 달라집니다.
 
-## Decision Checklist
+## 의사결정 체크리스트
 
-1. Is the relationship between features and target approximately linear?
-   - Yes: start with ordinary linear regression
-   - No: try polynomial features or a nonlinear model
+1. features와 target 사이의 관계가 대략 linear인가요?
+   - 예: ordinary linear regression으로 시작
+   - 아니요: polynomial features 또는 nonlinear model 시도
 
-2. How many features do you have relative to samples?
-   - Few features, many samples: ordinary linear regression works fine
-   - Many features, few samples: use regularization (Ridge or Lasso)
-   - More features than samples: Lasso (L1) to select features, or Ridge (L2) to shrink all weights
+2. samples에 비해 features가 얼마나 많나요?
+   - features가 적고 samples가 많음: ordinary linear regression이 잘 동작
+   - features가 많고 samples가 적음: regularization (Ridge 또는 Lasso) 사용
+   - samples보다 features가 많음: feature selection에는 Lasso (L1), 모든 weights 축소에는 Ridge (L2)
 
-3. Do you need interpretability?
-   - Yes: linear regression with few features, or Lasso for automatic feature selection
-   - No: polynomial features, or move to tree-based models or neural networks
+3. interpretability가 필요한가요?
+   - 예: features가 적은 linear regression, 또는 automatic feature selection을 위한 Lasso
+   - 아니요: polynomial features, 또는 tree-based models나 neural networks로 이동
 
-4. Is your dataset small (under 10,000 rows)?
-   - Use the normal equation (closed-form solution) for speed
-   - Cross-validation is essential for reliable evaluation
+4. dataset이 작은가요 (10,000 rows 미만)?
+   - 속도를 위해 normal equation (closed-form solution) 사용
+   - 신뢰할 수 있는 evaluation을 위해 cross-validation이 필수
 
-5. Is your dataset large (millions of rows)?
-   - Use stochastic gradient descent (SGD) or mini-batch gradient descent
-   - The normal equation is too slow due to O(n^3) matrix inversion
+5. dataset이 큰가요 (수백만 rows)?
+   - stochastic gradient descent (SGD) 또는 mini-batch gradient descent 사용
+   - normal equation은 O(n^3) matrix inversion 때문에 너무 느림
 
-## When to use each approach
+## 각 접근법을 사용할 때
 
-**Ordinary Linear Regression**: baseline for any regression task. Start here. If R-squared is acceptable and the model is simple, stop here.
+**Ordinary Linear Regression**: 모든 regression task의 baseline입니다. 여기서 시작하세요. R-squared가 허용 가능하고 model이 단순하면 여기서 멈추세요.
 
-**Polynomial Regression**: the scatter plot shows a curve, not a line. Start with degree 2. Increase only if justified by validation performance. Degree > 5 almost always overfits.
+**Polynomial Regression**: scatter plot이 line이 아니라 curve를 보입니다. degree 2로 시작하세요. validation performance로 정당화될 때만 높이세요. Degree > 5는 거의 항상 overfits합니다.
 
-**Ridge Regression (L2)**: many correlated features. All weights shrink toward zero but none become exactly zero. Good when you believe all features contribute.
+**Ridge Regression (L2)**: correlated features가 많을 때 사용합니다. 모든 weights가 zero 쪽으로 shrink되지만 정확히 zero가 되지는 않습니다. 모든 features가 기여한다고 믿을 때 좋습니다.
 
-**Lasso Regression (L1)**: many features and you suspect only a few matter. Lasso drives irrelevant feature weights to exactly zero, performing automatic feature selection.
+**Lasso Regression (L1)**: features가 많고 그중 일부만 중요하다고 의심될 때 사용합니다. Lasso는 관련 없는 feature weights를 정확히 zero로 만들어 automatic feature selection을 수행합니다.
 
-**Elastic Net**: combines L1 and L2 penalties. Use when you have many correlated features and want some feature selection.
+**Elastic Net**: L1과 L2 penalties를 결합합니다. correlated features가 많고 일부 feature selection도 원할 때 사용하세요.
 
-## Common mistakes
+## 흔한 실수
 
-- Skipping feature scaling before gradient descent (convergence becomes extremely slow)
-- Using test set performance to tune hyperparameters (use validation set or cross-validation)
-- Fitting high-degree polynomials without checking validation error (training R^2 always increases with degree)
-- Ignoring residual plots (R^2 can be misleading if residuals show patterns)
-- Treating R^2 as the only metric (check residual distribution, MAE, and domain-specific thresholds)
+- gradient descent 전에 feature scaling을 건너뛰기 (convergence가 매우 느려짐)
+- hyperparameters를 조정하는 데 test set performance 사용하기 (validation set 또는 cross-validation 사용)
+- validation error를 확인하지 않고 high-degree polynomials fitting하기 (training R^2는 degree가 올라갈수록 항상 증가)
+- residual plots 무시하기 (residuals에 patterns가 있으면 R^2가 misleading할 수 있음)
+- R^2를 유일한 metric으로 취급하기 (residual distribution, MAE, domain-specific thresholds 확인)
 
-## Quick reference
+## 빠른 참조
 
 | Method | When to use | Regularization | Feature selection |
 |--------|------------|---------------|-------------------|

@@ -1,150 +1,150 @@
-# Audio-Language Models: the Whisper to Audio Flamingo 3 Arc
+# 오디오-언어 모델: Whisper에서 Audio Flamingo 3까지의 흐름
 
-> Whisper (Radford et al., December 2022) settled speech recognition — 680k hours of weakly-supervised multilingual speech, a simple encoder-decoder transformer, a benchmark that made every subsequent ASR release cite it. But recognition is not reasoning. Asking "what instruments are in this recording" or "what emotion is the speaker expressing" or "what happened at minute 3" requires audio understanding, not transcription. Qwen-Audio, SALMONN, LTU, and NVIDIA's Audio Flamingo 3 (AF3, July 2025) progressively built that stack: keep Whisper-class encoders, bolt on Q-formers, train on audio-text instruction data, add chain-of-thought reasoning. This lesson walks the arc.
+> Whisper(Radford et al., 2022년 12월)는 speech recognition을 정리했다. 68만 시간의 weakly-supervised multilingual speech, 단순한 encoder-decoder transformer, 이후 모든 ASR release가 인용하게 만든 benchmark가 있었다. 그러나 recognition은 reasoning이 아니다. "이 녹음에 어떤 악기가 있나", "화자가 어떤 감정을 표현하나", "3분 지점에 무슨 일이 있었나"라고 묻는 것은 transcription이 아니라 audio understanding을 요구한다. Qwen-Audio, SALMONN, LTU, NVIDIA의 Audio Flamingo 3(AF3, 2025년 7월)는 이 stack을 점진적으로 만들었다. Whisper급 encoder를 유지하고, Q-former를 붙이고, audio-text instruction data로 학습하며, chain-of-thought reasoning을 더했다. 이 lesson은 그 arc를 따라간다.
 
 **Type:** Build
 **Languages:** Python (stdlib, log-Mel spectrogram + audio Q-former skeleton)
 **Prerequisites:** Phase 6 (Speech and Audio), Phase 12 · 03 (Q-Former)
 **Time:** ~180 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Compute a log-Mel spectrogram from a waveform: windowing, FFT, filter banks, log transform.
-- Compare encoder options: Whisper encoder, BEATs, AF-Whisper hybrid. When each wins.
-- Build an audio Q-former: N learnable queries cross-attending to spectrogram patches.
-- Explain cascaded (Whisper-then-LLM) vs end-to-end audio-LLM training: why end-to-end scales better for reasoning.
+- waveform에서 log-Mel spectrogram을 계산한다: windowing, FFT, filter bank, log transform.
+- encoder option을 비교한다: Whisper encoder, BEATs, AF-Whisper hybrid. 각각 언제 이기는지 판단한다.
+- audio Q-former를 만든다: N개의 learnable query가 spectrogram patch에 cross-attend한다.
+- cascaded(Whisper-then-LLM)와 end-to-end audio-LLM training을 설명한다. reasoning에는 end-to-end가 왜 더 잘 scale되는지 이해한다.
 
-## The Problem
+## 문제
 
-Speech recognition was solved by Whisper. OCR-of-audio is a commodity. But "commodity" stops at transcription. If the model cannot reason over what it heard — timing, speakers, emotion, music structure, environmental sounds — transcription alone cannot drive product features.
+Speech recognition은 Whisper가 해결했다. OCR-of-audio는 commodity다. 하지만 "commodity"는 transcription에서 멈춘다. 모델이 들은 것에 대해 reasoning할 수 없다면, 즉 timing, speaker, emotion, music structure, environmental sound를 다루지 못한다면 transcription만으로는 제품 feature를 만들 수 없다.
 
-Three obvious routes:
+명백한 route는 세 가지다.
 
-1. Cascade: Whisper transcribes, LLM reasons over the transcript. Works for pure-speech scenarios. Fails for music, environmental audio, multi-speaker overlap, emotion.
+1. Cascade: Whisper가 transcribe하고, LLM이 transcript 위에서 reasoning한다. pure-speech scenario에서는 동작한다. music, environmental audio, multi-speaker overlap, emotion에서는 실패한다.
 
-2. End-to-end audio-LLM: an audio encoder feeds audio tokens directly into an LLM, skipping transcription. Preserves acoustic information (emotion, speaker, environment). Needs new training data.
+2. End-to-end audio-LLM: audio encoder가 audio token을 직접 LLM에 넣어 transcription을 건너뛴다. acoustic information(emotion, speaker, environment)을 보존한다. 새 training data가 필요하다.
 
-3. Hybrid: audio encoder + text decoder that can both transcribe and reason. Qwen-Audio and Audio Flamingo pick this route.
+3. Hybrid: transcribe도 reasoning도 할 수 있는 audio encoder + text decoder. Qwen-Audio와 Audio Flamingo가 이 route를 택한다.
 
-## The Concept
+## 개념
 
-### Log-Mel spectrogram: the input feature
+### Log-Mel 스펙트로그램: 입력 특징
 
-Every audio encoder starts with the same feature: a log-Mel spectrogram.
+모든 audio encoder는 같은 feature에서 시작한다. log-Mel spectrogram이다.
 
-1. Resample to 16 kHz.
-2. Short-time Fourier transform with 25ms windows, 10ms hop.
-3. Take magnitude of the FFT result.
-4. Apply Mel filter banks (typically 80 filters log-spaced 0-8000 Hz) to warp to perceptual frequency.
-5. Log compress (log(1 + x)) for dynamic range.
+1. 16 kHz로 resample한다.
+2. 25ms window, 10ms hop으로 short-time Fourier transform을 수행한다.
+3. FFT 결과의 magnitude를 취한다.
+4. Mel filter bank(보통 0-8000 Hz에 log-spaced된 80 filter)를 적용해 perceptual frequency로 warp한다.
+5. dynamic range를 위해 log compress(log(1 + x))한다.
 
-Result: a 2D array of shape (T, 80) where T is the number of time frames. For a 30-second clip at 100 Hz frame rate: (3000, 80).
+결과는 shape (T, 80)의 2D array이며, T는 time frame 수다. 100 Hz frame rate에서 30초 clip은 (3000, 80)이다.
 
-### Whisper's encoder
+### Whisper의 encoder
 
-Whisper's encoder is a 12-layer ViT-style transformer processing the log-Mel spectrogram as a sequence of time frames. Output: one hidden-state vector per time frame.
+Whisper의 encoder는 log-Mel spectrogram을 time frame sequence로 처리하는 12-layer ViT-style transformer다. 출력은 time frame마다 하나의 hidden-state vector다.
 
-For ASR, Whisper's decoder is a cross-attention transformer that generates text tokens conditioned on the encoder output. Standard encoder-decoder.
+ASR에서는 Whisper decoder가 encoder output에 조건화되어 text token을 생성하는 cross-attention transformer다. 표준 encoder-decoder다.
 
-For ALMs (audio-LLMs), you want the encoder output as input to a different LLM. The pattern: Whisper encoder frozen, Q-former trainable, LLM frozen or tuned.
+ALM(audio-LLM)에서는 encoder output을 다른 LLM의 input으로 쓰고 싶다. 패턴은 frozen Whisper encoder, trainable Q-former, frozen 또는 tuned LLM이다.
 
-### BEATs and audio-specific encoders
+### BEATs와 audio-specific encoder
 
-Whisper was trained on speech-dominant data. It is weaker for music and environmental audio.
+Whisper는 speech-dominant data로 학습되었다. music과 environmental audio에는 약하다.
 
-BEATs (Chen et al., 2022) is a self-supervised transformer trained on AudioSet. Captures music and environmental sounds better than Whisper at the same parameter count.
+BEATs(Chen et al., 2022)는 AudioSet으로 학습한 self-supervised transformer다. 같은 parameter count에서 music과 environmental sound를 Whisper보다 잘 포착한다.
 
-AF-Whisper (Audio Flamingo 3's hybrid): concat Whisper + BEATs features as the audio input. Whisper carries linguistic signal, BEATs carries acoustic signal.
+AF-Whisper(Audio Flamingo 3의 hybrid): Whisper + BEATs feature를 concat하여 audio input으로 사용한다. Whisper는 linguistic signal을, BEATs는 acoustic signal을 담당한다.
 
-### Audio Q-former
+### 오디오 Q-Former
 
-Same pattern as BLIP-2's visual Q-former. A fixed number of learnable queries (often 32 or 64) cross-attend over the audio encoder's output frames. The queries become audio tokens consumed by the LLM.
+BLIP-2의 visual Q-former와 같은 패턴이다. 고정 개수의 learnable query(대개 32 또는 64)가 audio encoder의 output frame 전체에 cross-attend한다. 이 query가 LLM이 소비하는 audio token이 된다.
 
-Training alignment stage: Q-former alone, contrastive + captioning losses on audio-text pairs (AudioCaps, Clotho). Instruction stage: end-to-end, unfreeze LLM, train on instruction data.
+Training alignment stage: Q-former만 학습하며, audio-text pair(AudioCaps, Clotho)에 contrastive + captioning loss를 사용한다. Instruction stage: end-to-end로 LLM을 unfreeze하고 instruction data로 학습한다.
 
-### The arc — SALMONN, Qwen-Audio, AF3
+### Arc — SALMONN, Qwen-Audio, AF3
 
-SALMONN (Tang et al., 2023): Whisper + BEATs + Q-former + LLaMA. The first open audio-LLM with serious reasoning ability. Benchmarks on MMAU show ~0.55 composite.
+SALMONN(Tang et al., 2023): Whisper + BEATs + Q-former + LLaMA. 진지한 reasoning 능력을 가진 첫 오픈 audio-LLM이다. MMAU benchmark composite는 약 0.55다.
 
-Qwen-Audio (Chu et al., 2023): similar architecture, trained on a richer dataset, tuned for multi-turn dialogue. MMAU ~0.60.
+Qwen-Audio(Chu et al., 2023): 유사한 architecture지만 더 풍부한 dataset으로 학습하고 multi-turn dialogue에 맞게 tuned했다. MMAU 약 0.60.
 
-LTU — Listen, Think, Understand (Gong et al., 2023): explicit reasoning data, focus on chain-of-thought over audio clips. Smaller but more focused.
+LTU — Listen, Think, Understand(Gong et al., 2023): 명시적 reasoning data, audio clip에 대한 chain-of-thought에 집중한다. 더 작지만 더 집중된 모델이다.
 
-Audio Flamingo 3 (Goel et al., July 2025): the current open SOTA. 8B LLM backbone (Qwen2 7B), Whisper-large encoder concat BEATs, 64-query Q-former, training on 1M+ audio-text instruction pairs. MMAU 0.72, matches proprietary frontier on some sub-tasks.
+Audio Flamingo 3(Goel et al., 2025년 7월): 현재 오픈 SOTA. 8B LLM backbone(Qwen2 7B), Whisper-large encoder concat BEATs, 64-query Q-former, 100만+ audio-text instruction pair로 학습. MMAU 0.72이며 일부 sub-task에서는 proprietary frontier와 맞먹는다.
 
-AF3 also introduces on-demand chain-of-thought for audio: the model can optionally emit thinking tokens ("let me identify the instruments first: ...") before the final answer. Accuracy on complex reasoning tasks lifts 3-5 points when thinking is enabled.
+AF3는 audio용 on-demand chain-of-thought도 도입한다. 모델은 최종 답 전에 thinking token("먼저 악기를 식별하자: ...")을 선택적으로 emit할 수 있다. thinking을 켜면 complex reasoning task accuracy가 3-5 point 오른다.
 
-### Cascaded vs end-to-end
+### 캐스케이드와 end-to-end
 
 Cascaded pipeline:
 
-1. Whisper transcribes audio → text.
-2. LLM reasons over text.
+1. Whisper가 audio를 text로 transcribe한다.
+2. LLM이 text 위에서 reasoning한다.
 
-Works perfectly for "summarize this podcast." Fails for:
-- "What's the mood of this song?" — mood is in the sound, not words.
-- "Who is speaking, Alice or Bob?" — requires speaker identification.
-- "At what second does the explosion happen?" — temporal grounding lost in text.
-- "Is this real or generated audio?" — deepfake detection needs acoustic features.
+"이 podcast를 요약해 줘"에는 완벽히 동작한다. 다음에는 실패한다.
+- "이 곡의 mood는 어떤가?" — mood는 말이 아니라 소리에 있다.
+- "Alice와 Bob 중 누가 말하고 있나?" — speaker identification이 필요하다.
+- "폭발음은 몇 초에 발생하나?" — text에서 temporal grounding이 사라진다.
+- "이것은 real audio인가 generated audio인가?" — deepfake detection은 acoustic feature가 필요하다.
 
-End-to-end preserves acoustic signal. Qwen-Audio and AF3 handle music, environment, and emotion natively.
+End-to-end는 acoustic signal을 보존한다. Qwen-Audio와 AF3는 music, environment, emotion을 native하게 처리한다.
 
 ### 2026 production recipe
 
-For a new audio-understanding product:
+새 audio-understanding product 기준:
 
-- Cascaded if: transcription is the goal, no music, no emotion inference.
-- AF3 / Qwen-Audio-family if: music, emotion, multi-speaker, or complex audio reasoning.
+- 목표가 transcription이고, music도 emotion inference도 없다면 cascaded.
+- music, emotion, multi-speaker, complex audio reasoning이 있다면 AF3 / Qwen-Audio-family.
 
-Cascaded is cheaper and simpler. End-to-end is more capable.
+Cascaded는 더 싸고 단순하다. End-to-end는 더 능력이 좋다.
 
-### MMAU — the audio reasoning benchmark
+### MMAU — audio reasoning benchmark
 
-MMAU (Massive Multimodal Audio Understanding) is the 2024-2025 audio reasoning benchmark:
+MMAU(Massive Multimodal Audio Understanding)는 2024-2025 audio reasoning benchmark다.
 
-- 10,000 audio-text QA pairs across speech, music, environmental sounds.
-- Covers classification, temporal reasoning, causal reasoning, open-ended QA.
-- Tests what cascaded pipelines systematically miss.
+- speech, music, environmental sound 전반의 10,000개 audio-text QA pair.
+- classification, temporal reasoning, causal reasoning, open-ended QA를 포함한다.
+- cascaded pipeline이 체계적으로 놓치는 것을 테스트한다.
 
-Open SOTA (AF3) at 0.72; proprietary frontier ~0.78 (Gemini 2.5 Pro, Claude Opus 4.7). The gap is smaller than VideoMME's open-vs-closed delta, indicating audio-LLMs are maturing.
+오픈 SOTA(AF3)는 0.72, proprietary frontier는 약 0.78(Gemini 2.5 Pro, Claude Opus 4.7)이다. 격차가 VideoMME의 open-vs-closed delta보다 작아 audio-LLM이 성숙 중임을 보여 준다.
 
-## Use It
+## 활용하기
 
 `code/main.py`:
 
-- Implements log-Mel spectrogram computation in stdlib: windowing, naive DFT, Mel filter-bank.
-- Audio Q-former skeleton: given encoder output frames, compute Q, K, V, attention, and emit N tokens.
-- Cascaded-vs-end-to-end comparison on a toy task.
+- stdlib으로 log-Mel spectrogram computation을 구현한다: windowing, naive DFT, Mel filter-bank.
+- Audio Q-former skeleton: encoder output frame이 주어지면 Q, K, V, attention을 계산하고 N token을 emit한다.
+- toy task에서 cascaded-vs-end-to-end를 비교한다.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-audio-llm-pipeline-picker.md`. Given an audio task (transcription, music tagging, emotion inference, multi-speaker diarization, environment classification), it picks cascaded, end-to-end AF3, or a hybrid.
+이 lesson은 `outputs/skill-audio-llm-pipeline-picker.md`를 만든다. audio task(transcription, music tagging, emotion inference, multi-speaker diarization, environment classification)가 주어지면 cascaded, end-to-end AF3, hybrid 중 하나를 고른다.
 
-## Exercises
+## 연습 문제
 
-1. Compute the log-Mel spectrogram dimension for a 30-second clip at 16kHz, 25ms window, 10ms hop, 80 Mel bins. How does this change at 48kHz?
+1. 16kHz, 25ms window, 10ms hop, 80 Mel bin에서 30초 clip의 log-Mel spectrogram dimension을 계산하라. 48kHz에서는 어떻게 바뀌는가?
 
-2. Why does Whisper underperform on music? What audio features does BEATs capture that Whisper does not?
+2. Whisper가 music에서 성능이 낮은 이유는 무엇인가? BEATs는 Whisper가 포착하지 못하는 어떤 audio feature를 포착하는가?
 
-3. Audio Q-former with 64 queries vs 32: at what task complexity does 64 pay off? 32 save compute for what?
+3. 64 query audio Q-former와 32 query audio Q-former를 비교하라. 어떤 task complexity에서 64가 비용을 상쇄하는가? 32는 어떤 경우 compute를 절약하는가?
 
-4. Read AF3 Section 4 on on-demand thinking. Propose three audio tasks where chain-of-thought helps the most.
+4. AF3 Section 4의 on-demand thinking을 읽어라. chain-of-thought가 가장 도움이 되는 audio task 세 가지를 제안하라.
 
-5. Implement a minimal diarization pipeline using AF3's output. How do you signal speaker changes?
+5. AF3 output을 사용해 최소 diarization pipeline을 구현하라. speaker change를 어떻게 signal할 것인가?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 부르는 말 | 실제 의미 |
 |------|-----------------|------------------------|
-| Log-Mel spectrogram | "Mel features" | 2D (time, frequency) array of log-magnitude values after Mel filter banks |
-| Audio Q-former | "Audio Perceiver" | Cross-attention bottleneck from audio encoder output to fixed-length queries feeding the LLM |
-| Cascaded | "ASR-then-LLM" | Pipeline where Whisper transcribes and a text LLM reasons; loses acoustic information |
-| End-to-end | "Audio-LLM" | Audio features enter the LLM directly via Q-former; preserves acoustic signal |
-| BEATs | "Audio AudioSet encoder" | SSL transformer trained on AudioSet; strong on music + environmental sounds |
-| MMAU | "Audio reasoning bench" | 10k QA pairs across speech, music, environment; 2024 eval standard |
-| On-demand thinking | "Audio CoT" | Model can optionally emit reasoning tokens before final answer, lifts accuracy 3-5 pts |
+| Log-Mel spectrogram | "Mel features" | Mel filter bank 이후 log-magnitude value로 이루어진 2D (time, frequency) array |
+| Audio Q-former | "Audio Perceiver" | audio encoder output에서 LLM으로 들어가는 fixed-length query로 가는 cross-attention bottleneck |
+| Cascaded | "ASR-then-LLM" | Whisper가 transcribe하고 text LLM이 reasoning하는 pipeline. acoustic information을 잃는다 |
+| End-to-end | "Audio-LLM" | audio feature가 Q-former를 통해 LLM에 직접 들어간다. acoustic signal을 보존한다 |
+| BEATs | "Audio AudioSet encoder" | AudioSet으로 학습한 SSL transformer. music + environmental sound에 강하다 |
+| MMAU | "Audio reasoning bench" | speech, music, environment 전반의 10k QA pair. 2024 eval standard |
+| On-demand thinking | "Audio CoT" | 모델이 최종 답 전에 reasoning token을 선택적으로 emit할 수 있으며 accuracy를 3-5 point 올린다 |
 
-## Further Reading
+## 더 읽을거리
 
 - [Radford et al. — Whisper (arXiv:2212.04356)](https://arxiv.org/abs/2212.04356)
 - [Chu et al. — Qwen-Audio (arXiv:2311.07919)](https://arxiv.org/abs/2311.07919)

@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "In the ViT-MLP-LLM VLM pattern, which component is most commonly trained while the others are kept frozen during alignment?",
-      "options": ["The vision encoder", "The projector (the 2-4 layer MLP between ViT and LLM) — it maps vision tokens into the LLM's embedding space and carries most of the cross-modal alignment signal", "The LLM", "All components are always trained together"],
+      "question": "ViT-MLP-LLM VLM 패턴에서 alignment 중 다른 구성 요소는 고정한 채 가장 흔히 학습하는 구성 요소는 무엇인가요?",
+      "options": [
+        "비전 인코더",
+        "프로젝터(ViT와 LLM 사이의 2-4 레이어 MLP) - 비전 토큰을 LLM의 임베딩 공간으로 매핑하며 cross-modal alignment 신호의 대부분을 담당합니다",
+        "LLM",
+        "모든 구성 요소는 항상 함께 학습됩니다"
+      ],
       "correct": 1,
-      "explanation": "The standard VLM recipe trains the projector first with ViT and LLM frozen (alignment stage), then optionally unfreezes everything for pre-training and instruction tuning. The projector is small (tens to hundreds of millions of params) and takes the brunt of the modality bridge. Fine-tuning in production often trains only the projector + LoRA on attention — cheap and effective."
+      "explanation": "표준 VLM 레시피는 먼저 ViT와 LLM을 고정하고 projector를 학습합니다(alignment stage). 그다음 선택적으로 모든 것을 고정 해제해 pre-training과 instruction tuning을 진행합니다. projector는 작고(수천만에서 수억 params) modality bridge의 핵심 부담을 집니다. 프로덕션 파인튜닝은 종종 projector + attention의 LoRA만 학습합니다. 저렴하고 효과적입니다."
     },
     {
       "stage": "pre",
-      "question": "DeepStack (used in Qwen3-VL) does what?",
-      "options": ["Uses only the deepest ViT layer's features", "Stacks features from multiple ViT depths before projection, so the LLM sees both high-level semantics (deep layers) and fine-grained spatial detail (shallow layers)", "Doubles the depth of the LLM", "Is a specific quantisation scheme"],
+      "question": "DeepStack(Qwen3-VL에서 사용됨)은 무엇을 하나요?",
+      "options": [
+        "가장 깊은 ViT 레이어의 특징만 사용합니다",
+        "projection 전에 여러 ViT 깊이의 특징을 쌓아서 LLM이 고수준 의미(deep layers)와 세밀한 공간 디테일(shallow layers)을 모두 보게 합니다",
+        "LLM의 깊이를 두 배로 만듭니다",
+        "특정 quantisation scheme입니다"
+      ],
       "correct": 1,
-      "explanation": "Vanilla VLMs project only last-layer ViT features. DeepStack samples multiple depths, concatenates, and projects. Deep layers give semantics ('this is a chart'); shallow layers give position and texture ('the bar at x=120 is red'). The combination closes the grounding gap on tasks requiring fine localisation, like GUI agent actions or dense captioning."
+      "explanation": "기본 VLM은 마지막 레이어 ViT 특징만 project합니다. DeepStack은 여러 깊이를 샘플링하고 concatenate한 뒤 project합니다. 깊은 레이어는 의미('이것은 차트다')를 제공하고, 얕은 레이어는 위치와 질감('x=120의 막대는 빨간색이다')을 제공합니다. 이 조합은 GUI agent actions나 dense captioning처럼 세밀한 localization이 필요한 태스크에서 grounding gap을 줄입니다."
     },
     {
       "stage": "post",
-      "question": "A production VLM shows high text confidence but the generated text describes objects not present in the image. Which metric captures this failure?",
-      "options": ["Perplexity", "Cross-Modal Error Rate (CMER) — fraction of outputs where text confidence is high but image-text cosine similarity (via a CLIP-family checker) is low; ~12% typical on uncurated web data", "Accuracy on MMMU", "Token generation latency"],
+      "question": "프로덕션 VLM이 높은 text confidence를 보이지만 생성 텍스트가 이미지에 없는 객체를 설명합니다. 이 실패를 포착하는 지표는 무엇인가요?",
+      "options": [
+        "Perplexity",
+        "Cross-Modal Error Rate(CMER) - text confidence는 높지만 image-text cosine similarity(CLIP 계열 checker 사용)가 낮은 output의 비율입니다. 비선별 웹 데이터에서는 약 12%가 일반적입니다",
+        "MMMU 정확도",
+        "Token generation latency"
+      ],
       "correct": 1,
-      "explanation": "CMER is a production alignment KPI. It catches the classic VLM hallucination pattern: the model is sure about its text, but the text is not grounded in the image. Monitor CMER per endpoint and prompt type; treat rising CMER as a signal that the model is drifting out of distribution or encountering a prompt category it cannot handle. Skywork.ai cut hallucinations ~35% by making CMER a first-class KPI."
+      "explanation": "CMER는 프로덕션 alignment KPI입니다. 모델은 자신의 텍스트를 확신하지만 그 텍스트가 이미지에 grounded되지 않는 전형적인 VLM 환각 패턴을 잡아냅니다. endpoint와 prompt type별로 CMER를 모니터링하세요. CMER 상승은 모델이 분포 밖으로 drift하거나 처리하지 못하는 prompt category를 만난다는 신호로 다룹니다. Skywork.ai는 CMER를 일급 KPI로 만들어 환각을 약 35% 줄였습니다."
     },
     {
       "stage": "post",
-      "question": "Why do modern VLMs use SigLIP or custom vision encoders rather than a supervised ImageNet ResNet as the backbone?",
-      "options": ["SigLIP is faster", "CLIP/SigLIP-style encoders are trained jointly with text, so their output space is already approximately aligned with language; the projector then has to do much less work and the model reasons better about visual-textual concepts", "ResNets cannot produce tokens", "SigLIP has more parameters"],
+      "question": "현대 VLM은 왜 supervised ImageNet ResNet이 아니라 SigLIP 또는 custom vision encoder를 backbone으로 사용하나요?",
+      "options": [
+        "SigLIP이 더 빠르기 때문입니다",
+        "CLIP/SigLIP 스타일 encoder는 텍스트와 함께 학습되므로 출력 공간이 이미 언어와 대략 정렬되어 있습니다. 따라서 projector가 해야 할 일이 훨씬 줄고 모델이 visual-textual concepts를 더 잘 추론합니다",
+        "ResNet은 토큰을 만들 수 없기 때문입니다",
+        "SigLIP의 파라미터가 더 많기 때문입니다"
+      ],
       "correct": 1,
-      "explanation": "Vision-language pretraining shapes the encoder to live in a text-compatible space. A supervised ImageNet ResNet was trained without any text signal, so bridging to an LLM requires much larger projectors and more data. CLIP/SigLIP/DINOv3 encoders produce features that an LLM can consume with a few linear layers. Almost every SOTA VLM uses a CLIP-family or SigLIP encoder for this reason."
+      "explanation": "vision-language pretraining은 encoder가 text-compatible space에 놓이도록 만듭니다. supervised ImageNet ResNet은 텍스트 신호 없이 학습되었으므로 LLM으로 연결하려면 훨씬 큰 projector와 더 많은 데이터가 필요합니다. CLIP/SigLIP/DINOv3 encoder는 LLM이 몇 개의 linear layer만으로 소비할 수 있는 특징을 만듭니다. 거의 모든 SOTA VLM이 이런 이유로 CLIP 계열 또는 SigLIP encoder를 사용합니다."
     },
     {
       "stage": "post",
-      "question": "Qwen3-VL-235B-A22B achieves top scores on OSWorld. What is OSWorld, and what does this imply?",
-      "options": ["A synthetic benchmark", "An agent benchmark where the model operates desktop GUIs — identifies buttons, reads UI state, emits actions; Qwen3-VL's top scores imply VLMs are now viable visual agents for GUI automation", "A pose-estimation benchmark", "A video QA benchmark"],
+      "question": "Qwen3-VL-235B-A22B는 OSWorld에서 최고 점수를 달성합니다. OSWorld는 무엇이며, 이것은 무엇을 의미하나요?",
+      "options": [
+        "합성 벤치마크",
+        "모델이 데스크톱 GUI를 조작하는 agent benchmark입니다. 버튼을 식별하고 UI 상태를 읽으며 action을 내보냅니다. Qwen3-VL의 최고 점수는 VLM이 이제 GUI automation을 위한 실용적인 visual agent가 되었음을 뜻합니다",
+        "pose-estimation benchmark",
+        "video QA benchmark"
+      ],
       "correct": 1,
-      "explanation": "OSWorld tests whether a model can autonomously operate a desktop environment via screenshots. Qwen3-VL's top global scores indicate the 'visual agent' paradigm — VLM reads screen, decides action, tool-calls the mouse/keyboard — has crossed into practical territory. This is what 2026 AI PC demos run; it is also a direct route into automated QA, RPA, and accessibility products."
+      "explanation": "OSWorld는 모델이 screenshot을 통해 데스크톱 환경을 자율적으로 조작할 수 있는지 테스트합니다. Qwen3-VL의 전 세계 최고 점수는 'visual agent' 패러다임, 즉 VLM이 화면을 읽고 action을 결정한 뒤 mouse/keyboard를 tool-call하는 방식이 실용 영역에 들어왔음을 보여줍니다. 이것이 2026 AI PC 데모가 실행하는 방식이며 automated QA, RPA, accessibility products로 가는 직접 경로이기도 합니다."
     }
   ]
 }

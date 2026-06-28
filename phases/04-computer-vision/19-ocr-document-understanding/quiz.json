@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does OCR use CTC loss instead of plain cross-entropy?",
-      "options": ["CTC is faster", "OCR maps a fixed-length feature sequence to a variable-length character sequence without per-timestep alignment; CTC loss marginalises over all alignments that reduce to the target after removing repeats and blanks, so you can train without character-level timing labels", "CTC is required by PyTorch", "Cross-entropy overflows for long sequences"],
+      "question": "OCR은 왜 plain cross-entropy 대신 CTC loss를 사용하나요?",
+      "options": ["CTC가 더 빠르기 때문입니다", "OCR은 per-timestep alignment 없이 fixed-length feature sequence를 variable-length character sequence로 mapping합니다. CTC loss는 repeat과 blank를 제거한 뒤 target으로 줄어드는 모든 alignment에 대해 marginalize하므로 character-level timing label 없이 train할 수 있습니다", "PyTorch가 CTC를 요구하기 때문입니다", "Cross-entropy는 긴 sequence에서 overflow하기 때문입니다"],
       "correct": 1,
-      "explanation": "Recognition produces one distribution per time step, but the target text has no per-step alignment. CTC handles that by summing over every alignment that reduces to the target via the merge-repeats-and-remove-blanks operation. This is why CRNNs can be trained on just (image, text) pairs without knowing where each character starts and ends in the image."
+      "explanation": "Recognition은 time step마다 distribution 하나를 만들지만 target text에는 per-step alignment가 없습니다. CTC는 merge-repeats-and-remove-blanks operation을 거쳐 target으로 줄어드는 모든 alignment를 합산해 이를 처리합니다. 그래서 CRNN은 이미지에서 각 character가 어디서 시작하고 끝나는지 몰라도 (image, text) pair만으로 train할 수 있습니다."
     },
     {
       "stage": "pre",
-      "question": "In CTC decoding, what does the blank token do?",
-      "options": ["Pads the sequence to a fixed length", "Separates adjacent identical characters so that outputs like 'hello' with a double L can be produced by the model emitting 'h e l _ l o' — without the blank, 'l l' would collapse to one 'l'", "Masks noisy regions", "Indicates end of sequence"],
+      "question": "CTC decoding에서 blank token은 무엇을 하나요?",
+      "options": ["sequence를 fixed length로 padding합니다", "인접한 동일 character를 분리해 model이 'h e l _ l o'를 emit하면 double L이 있는 'hello' 같은 output을 만들 수 있게 합니다. blank가 없으면 'l l'은 하나의 'l'로 collapse됩니다", "noisy region을 mask합니다", "sequence의 끝을 나타냅니다"],
       "correct": 1,
-      "explanation": "The blank is the mechanism that lets CTC encode double characters. 'll' needs a blank between the two l's so the 'merge repeats' step keeps them distinct: 'l _ l' survives merging, 'l l' does not. Without the blank, CTC cannot represent any word containing adjacent identical characters."
+      "explanation": "blank는 CTC가 double character를 encode하게 해주는 mechanism입니다. 'll'은 두 l 사이에 blank가 있어야 'merge repeats' step에서 서로 구분되어 남습니다. 'l _ l'은 merging 후에도 살아남지만 'l l'은 그렇지 않습니다. blank가 없으면 CTC는 인접한 동일 character를 포함한 어떤 단어도 표현할 수 없습니다."
     },
     {
       "stage": "post",
-      "question": "Why is greedy CTC decoding sometimes better than beam search on simple datasets?",
-      "options": ["Greedy is always better", "When the model is confident at every step (clean handwriting, printed fonts), greedy's argmax is usually the beam winner; beam search adds latency with no accuracy gain. On noisy or ambiguous inputs, beam search helps", "Beam search requires a language model", "Greedy is easier to implement"],
+      "question": "단순한 dataset에서 greedy CTC decoding이 때때로 beam search보다 나은 이유는 무엇인가요?",
+      "options": ["Greedy가 항상 더 좋기 때문입니다", "model이 모든 step에서 confident할 때(clean handwriting, printed fonts), greedy의 argmax가 보통 beam winner입니다. beam search는 accuracy gain 없이 latency만 추가합니다. noisy하거나 ambiguous한 input에서는 beam search가 도움이 됩니다", "Beam search에는 language model이 필요하기 때문입니다", "Greedy가 구현하기 더 쉽기 때문입니다"],
       "correct": 1,
-      "explanation": "Beam search only wins when the per-step argmax is unreliable — ambiguous characters, overlapping letters, degraded scans. For clean printed text, the model is confident at each step and greedy is within 1% CER of beam. Always benchmark both; the latency trade is real."
+      "explanation": "Beam search는 per-step argmax가 unreliable할 때만 이깁니다. ambiguous character, overlapping letter, degraded scan이 그런 경우입니다. clean printed text에서는 model이 각 step에서 confident하고 greedy는 beam과 CER 차이가 1% 이내입니다. 항상 둘 다 benchmark해야 합니다. latency trade는 실제입니다."
     },
     {
       "stage": "post",
-      "question": "Donut skips explicit text detection and character recognition. How?",
-      "options": ["It uses an external OCR engine internally", "It is a ViT encoder + text decoder trained to produce the final output string (often JSON) directly from the image; the model learns both localisation and recognition implicitly through the training objective", "It is limited to document categories with fixed layouts", "It preprocesses images with a CNN text detector"],
+      "question": "Donut은 explicit text detection과 character recognition을 건너뜁니다. 어떻게 가능한가요?",
+      "options": ["내부적으로 external OCR engine을 사용합니다", "image에서 final output string(대개 JSON)을 직접 생성하도록 train된 ViT encoder + text decoder입니다. model은 training objective를 통해 localisation과 recognition을 모두 implicit하게 학습합니다", "fixed layout을 가진 document category로 제한됩니다", "CNN text detector로 image를 preprocess합니다"],
       "correct": 1,
-      "explanation": "Donut is an end-to-end model: the ViT encoder sees the whole document, the transformer decoder emits the target text or JSON auto-regressively. No pipeline of detector + recogniser + layout module. This skips error accumulation across stages but requires large labelled training sets for the specific document types you care about."
+      "explanation": "Donut은 end-to-end model입니다. ViT encoder가 전체 document를 보고 transformer decoder가 target text 또는 JSON을 auto-regressively emit합니다. detector + recogniser + layout module pipeline이 없습니다. stage 사이의 error accumulation을 건너뛰지만, 관심 있는 특정 document type에 대해 large labelled training set이 필요합니다."
     },
     {
       "stage": "post",
-      "question": "For extracting `invoice_total` from receipts, which approach is typically best in 2026?",
-      "options": ["A hand-crafted regex on Tesseract output", "Fine-tuned Donut or a VLM on a small labelled set of the target receipts; both handle layout and semantic extraction in one model and generalise across receipt variants better than pipeline-based approaches", "Only classical OCR is reliable enough", "A separate CNN for each field"],
+      "question": "receipt에서 `invoice_total`을 추출하려면 2026년에 일반적으로 어떤 approach가 가장 좋나요?",
+      "options": ["Tesseract output에 hand-crafted regex를 적용합니다", "target receipt의 small labelled set에서 fine-tuned Donut 또는 VLM을 사용합니다. 둘 다 layout과 semantic extraction을 한 model에서 처리하며 pipeline-based approach보다 receipt variant 전반에 더 잘 generalize합니다", "classical OCR만 충분히 reliable합니다", "각 field마다 별도 CNN을 둡니다"],
       "correct": 1,
-      "explanation": "Structured-field extraction used to be the domain of LayoutLM + heuristics. End-to-end models (Donut, Qwen-VL-OCR) have overtaken that path: they accept an image and produce the JSON directly. For a small set of labelled receipts (100-1000), fine-tuning Donut reaches higher F1 than any pipeline of OCR + rules."
+      "explanation": "Structured-field extraction은 예전에는 LayoutLM + heuristic의 영역이었습니다. End-to-end model(Donut, Qwen-VL-OCR)이 그 path를 앞질렀습니다. image를 받아 JSON을 직접 생성합니다. labelled receipt small set(100-1000개)에서는 Donut fine-tuning이 OCR + rule pipeline보다 더 높은 F1에 도달합니다."
     }
   ]
 }

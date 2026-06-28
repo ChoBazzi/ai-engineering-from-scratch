@@ -1,31 +1,31 @@
 ---
 name: two-loss-trainer-designer
-description: Design a Transfusion / MMDiT-style two-loss training setup (NTP on one modality, diffusion on another) with loss weights, mask design, and schedule.
+description: Loss weight, mask design, schedule을 포함해 Transfusion / MMDiT식 two-loss training setup(NTP on one modality, diffusion on another)을 설계한다.
 version: 1.0.0
 phase: 12
 lesson: 13
 tags: [transfusion, mmdit, two-loss, flow-matching, hybrid-attention]
 ---
 
-Given a multimodal training spec (two modalities, which gets NTP and which gets diffusion, target model scale, target sample length), design a working two-loss setup.
+Multimodal training spec(two modalities, 어느 쪽이 NTP를 받고 어느 쪽이 diffusion을 받는지, target model scale, target sample length)이 주어지면 작동 가능한 two-loss setup을 설계하라.
 
-Produce:
+다음을 산출하라.
 
-1. Modality split. Which tokens are discrete (NTP) and which are continuous (diffusion). Justify by content type (text always discrete; images, audio, video can go either way).
-2. Attention mask. Draw the block-triangular mask for an example sequence. Specify bidirectional regions and causal regions.
-3. Loss weights. Starting weights for (text_loss, image_loss). Recommend tuning by target gradient-norm ratio. Cite Transfusion's ~0.1 default.
-4. Flow-matching vs DDPM. Pick the diffusion variant; flow matching for simpler math, rectified flow for fewer inference steps.
-5. Inference plan. NTP path (autoregressive sampling over text) + diffusion path (conditional denoise over image patches). Specify denoise steps (10-30).
-6. MMDiT vs Transfusion split. When to add modality-specific block weights (MMDiT) vs share fully (Transfusion); rule of thumb by parameter count.
+1. Modality split. 어떤 token이 discrete(NTP)이고 어떤 token이 continuous(diffusion)인지. Content type으로 정당화하라(text는 항상 discrete, image/audio/video는 어느 쪽도 가능).
+2. Attention mask. Example sequence에 대한 block-triangular mask를 그려라. Bidirectional region과 causal region을 명시하라.
+3. Loss weights. (text_loss, image_loss)의 starting weight. Target gradient-norm ratio로 tuning하라고 추천하라. Transfusion의 ~0.1 default를 언급하라.
+4. Flow-matching vs DDPM. Diffusion variant를 고르라. 더 단순한 수학에는 flow matching, 더 적은 inference step에는 rectified flow.
+5. Inference plan. NTP path(text 위 autoregressive sampling) + diffusion path(image patch 위 conditional denoise). Denoise step(10-30)을 명시하라.
+6. MMDiT vs Transfusion split. 언제 modality-specific block weight(MMDiT)를 추가하고 언제 fully shared(Transfusion)로 둘지. Parameter count 기준 rule of thumb을 제시하라.
 
-Hard rejects:
-- Claiming one mask fits all sequences. Each sample has a different image span and needs its own block-triangular mask.
-- Using DDPM without rectified flow or flow matching. Both need fewer inference steps and are simpler to tune.
-- Balancing losses by fixed weight without measuring gradient-norm ratio.
+강한 거절:
+- 하나의 mask가 모든 sequence에 맞는다고 주장하는 것. 각 sample은 image span이 다르고 자기 block-triangular mask가 필요하다.
+- Rectified flow 또는 flow matching 없이 DDPM을 쓰는 것. 둘 다 inference step이 더 적고 tuning이 더 단순하다.
+- Gradient-norm ratio 측정 없이 fixed weight로 loss를 balance하는 것.
 
-Refusal rules:
-- If user wants only understanding (image in, text out), refuse and recommend LLaVA-style late fusion (Lesson 12.05). Two-loss is for generation.
-- If user wants <1B model, refuse two-loss and recommend discrete tokens (Chameleon) — at small scale the diffusion head underfits.
-- If user cannot afford dual inference (NTP + diffusion loops), refuse and recommend Show-o (discrete diffusion, single loop) or Emu3.
+거절 규칙:
+- 사용자가 understanding만 원하면(image in, text out) 거부하고 LLaVA식 late fusion(Lesson 12.05)을 추천하라. Two-loss는 generation용이다.
+- 사용자가 <1B model을 원하면 two-loss를 거부하고 discrete token(Chameleon)을 추천하라. 작은 scale에서는 diffusion head가 underfit된다.
+- 사용자가 dual inference(NTP + diffusion loop)를 감당할 수 없으면 거부하고 Show-o(discrete diffusion, single loop) 또는 Emu3를 추천하라.
 
-Output: one-page design with modality split, mask diagram, loss weights, flow variant, inference plan, and MMDiT-vs-shared decision. End with arXiv 2408.11039 (Transfusion) and 2403.03206 (SD3) for canonical references.
+출력: modality split, mask diagram, loss weight, flow variant, inference plan, MMDiT-vs-shared decision을 담은 one-page design. Canonical reference로 arXiv 2408.11039(Transfusion)와 2403.03206(SD3)을 끝에 붙여라.

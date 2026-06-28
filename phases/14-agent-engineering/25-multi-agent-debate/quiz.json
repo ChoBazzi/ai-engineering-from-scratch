@@ -1,90 +1,90 @@
 {
   "lesson": "25-multi-agent-debate",
-  "title": "Multi-Agent Debate and Collaboration",
+  "title": "Multi-Agent Debate와 Collaboration",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the Society of Minds protocol have N model instances do?",
+      "question": "Society of Minds protocol에서 N개의 model instance는 무엇을 하는가?",
       "options": [
-        "Each runs a different benchmark",
-        "Independently propose answers, then over R rounds read and critique each other's proposals until they converge",
-        "Train on a shared dataset",
-        "Negotiate prices"
+        "각각 다른 benchmark를 실행한다",
+        "독립적으로 답을 제안한 뒤 R round 동안 서로의 proposal을 읽고 critique하며 수렴한다",
+        "공유 dataset으로 train한다",
+        "가격을 협상한다"
       ],
       "correct": 1,
-      "explanation": "N proposers, R rounds, cross-critique, convergence is the canonical Du et al. debate."
+      "explanation": "N proposer, R round, cross-critique, convergence가 표준 Du et al. debate다."
     },
     {
       "stage": "pre",
-      "question": "Why does cross-model debate (e.g. ChatGPT + Bard) outperform single-model debate?",
+      "question": "cross-model debate(예: ChatGPT + Bard)가 single-model debate보다 나은 이유는 무엇인가?",
       "options": [
-        "Different vendors negotiate prices",
-        "Heterogeneity reduces shared blind spots so cross-critique catches more errors",
-        "It is cheaper",
-        "Vendors share weights"
+        "서로 다른 vendor가 가격을 협상하기 때문이다",
+        "heterogeneity가 공유 blind spot을 줄여 cross-critique가 더 많은 error를 잡기 때문이다",
+        "더 저렴하기 때문이다",
+        "vendor가 weight를 공유하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Mixing models brings independent error distributions, which raises the ceiling of debate."
+      "explanation": "model을 섞으면 독립적인 error distribution이 생겨 debate의 상한을 높인다."
     },
     {
       "stage": "check",
-      "question": "What is the main token-cost win of a sparse topology over full mesh?",
+      "question": "sparse topology가 full mesh보다 token cost에서 얻는 주된 이점은 무엇인가?",
       "options": [
-        "Sparse topology requires no models",
-        "Each debater reads only a subset of peers, so critique-op count drops while accuracy often matches",
-        "Sparse topology doubles the rounds",
-        "It removes the LLM"
+        "sparse topology에는 model이 필요 없다",
+        "각 debater가 peer의 subset만 읽기 때문에 critique-op 수가 줄고 accuracy는 종종 맞먹는다",
+        "sparse topology는 round를 두 배로 늘린다",
+        "LLM을 제거한다"
       ],
       "correct": 1,
-      "explanation": "Sparse (star, ring, hub-and-spoke) reduces critique ops without losing accuracy on many tasks."
+      "explanation": "sparse(star, ring, hub-and-spoke)는 많은 task에서 accuracy를 잃지 않고 critique ops를 줄인다."
     },
     {
       "stage": "check",
-      "question": "Which case does the lesson list as where debate hurts?",
+      "question": "이 lesson은 debate가 해로운 경우로 무엇을 든가?",
       "options": [
         "Open-ended reasoning",
-        "A simple factual lookup, because one lookup is cheaper than five debates",
+        "simple factual lookup. 한 번의 lookup이 다섯 번의 debate보다 싸기 때문이다",
         "Chess move validity",
         "Biography generation"
       ],
       "correct": 1,
-      "explanation": "Latency- and cost-sensitive trivial lookups do not benefit from N x R debate."
+      "explanation": "latency와 cost에 민감한 trivial lookup은 N x R debate의 이점을 얻지 못한다."
     },
     {
       "stage": "check",
-      "question": "What is convergence collapse?",
+      "question": "convergence collapse란 무엇인가?",
       "options": [
-        "Network outage",
-        "All agents converge on the first wrong answer; mitigate with required disagreement rounds",
-        "Process crash",
+        "network outage",
+        "모든 agent가 첫 번째 오답으로 수렴하는 것. 필수 disagreement round로 완화한다",
+        "process crash",
         "TLS handshake failure"
       ],
       "correct": 1,
-      "explanation": "Early agreement on a wrong answer is mitigated by forcing distinct round-1 proposals."
+      "explanation": "오답에 대한 이른 agreement는 round 1에서 서로 다른 proposal을 강제해 완화한다."
     },
     {
       "stage": "post",
-      "question": "Why does prompt homogenization undermine debate?",
+      "question": "prompt homogenization이 debate를 약화시키는 이유는 무엇인가?",
       "options": [
-        "It violates Apache 2.0",
-        "Identical prompts produce nearly identical answers, removing the cross-critique signal",
-        "It uses too many tokens",
-        "It bypasses the supervisor"
+        "Apache 2.0을 위반하기 때문이다",
+        "동일한 prompt가 거의 동일한 답을 만들어 cross-critique signal을 제거하기 때문이다",
+        "token을 너무 많이 쓰기 때문이다",
+        "supervisor를 우회하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Diverse prompts (and ideally diverse models) keep the proposal distribution wide."
+      "explanation": "다양한 prompt(그리고 가능하면 다양한 model)가 proposal distribution을 넓게 유지한다."
     },
     {
       "stage": "post",
-      "question": "Which production pattern is a debate variant per the lesson?",
+      "question": "이 lesson에 따르면 어떤 production pattern이 debate variant인가?",
       "options": [
-        "Anthropic orchestrator-workers with a synthesis step",
-        "Pure single-shot RAG",
-        "Cron-only schedule",
-        "Vector indexing"
+        "synthesis step이 있는 Anthropic orchestrator-workers",
+        "pure single-shot RAG",
+        "cron-only schedule",
+        "vector indexing"
       ],
       "correct": 0,
-      "explanation": "Orchestrator-workers with synthesis is a debate-shaped pattern in production."
+      "explanation": "synthesis가 있는 orchestrator-workers는 production의 debate-shaped pattern이다."
     }
   ]
 }

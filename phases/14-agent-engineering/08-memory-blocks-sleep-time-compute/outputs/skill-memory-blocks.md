@@ -1,33 +1,33 @@
 ---
 name: memory-blocks
-description: Generate a Letta-shaped three-tier memory system (core blocks, recall, archival) with a sleep-time consolidation agent off the critical path.
+description: Critical path 밖의 sleep-time consolidation agent를 포함해 Letta 모양의 three-tier memory system(core blocks, recall, archival)을 생성합니다.
 version: 1.0.0
 phase: 14
 lesson: 08
 tags: [memory, letta, blocks, sleep-time, consolidation]
 ---
 
-Given a target runtime, a primary model, and a (possibly stronger) sleep-time model, produce a three-tier memory system with explicit block types and async consolidation.
+Target runtime, primary model, 그리고 (가능하면 더 강한) sleep-time model이 주어지면, 명시적인 block type과 async consolidation을 갖춘 three-tier memory system을 만드세요.
 
-Produce:
+생성할 것:
 
-1. `Block` type with `label`, `value`, `limit`, `description`, `version`, `history`. Every write bumps version and records the old value. Expose `near_limit(threshold=0.8)`.
-2. A `BlockStore` with at minimum three default blocks: `human` (facts about the user), `persona` (agent self-concept), and `task` (current scope). Allow user-defined blocks.
-3. A `Recall` store — turn log paginated by session. Auto-write every turn. Tail evicts on cap but remains retrievable.
-4. An `Archival` store — at least two backends (vector, KV). Insert returns record id. Invalidate rather than delete on contradiction.
-5. A `PrimaryAgent` that handles turns and only issues raw writes. No summarization on the critical path.
-6. A `SleepTimeAgent` that runs between turns: summarize blocks over threshold, invalidate contradicted archival records, write `learned_context` into shared blocks.
+1. `label`, `value`, `limit`, `description`, `version`, `history`를 가진 `Block` type. 모든 write는 version을 올리고 old value를 기록합니다. `near_limit(threshold=0.8)`을 노출하세요.
+2. 최소 세 default block을 가진 `BlockStore`: `human`(사용자에 대한 fact), `persona`(agent self-concept), `task`(현재 scope). 사용자 정의 block을 허용하세요.
+3. `Recall` store — session별로 pagination되는 turn log. 모든 turn을 자동으로 write합니다. Tail은 cap에서 evict되지만 retrievable 상태로 남습니다.
+4. `Archival` store — 최소 두 backend(vector, KV). Insert는 record id를 반환합니다. Contradiction이 있으면 delete가 아니라 invalidate하세요.
+5. Turn을 처리하고 raw write만 발행하는 `PrimaryAgent`. Critical path에서 summarization을 하지 마세요.
+6. Turn 사이에 실행되는 `SleepTimeAgent`: threshold를 넘은 block을 요약하고, contradicted archival record를 무효화하며, `learned_context`를 shared block에 씁니다.
 
 Hard rejects:
 
-- Any memory op that runs synchronously during a user-facing turn except a direct lookup. Summarization, consolidation, invalidation belong to the sleep-time pass.
-- Deleting archival records on contradiction. Invalidate so history remains auditable.
-- Writing to the Persona or Safety block without a review step. These blocks shape behavior globally; silent writes mask bugs.
+- Direct lookup을 제외하고 user-facing turn 중 동기적으로 실행되는 모든 memory op. Summarization, consolidation, invalidation은 sleep-time pass에 속합니다.
+- Contradiction 시 archival record를 delete하는 것. History가 audit 가능하게 남도록 invalidate하세요.
+- Review step 없이 Persona 또는 Safety block에 write하는 것. 이 block들은 전역 behavior를 형성하므로 silent write는 bug를 숨깁니다.
 
 Refusal rules:
 
-- If the runtime cannot persist blocks across sessions, refuse to ship a product described as "memory." Downgrade the claim.
-- If the sleep-time agent has no trace output, refuse. Silent consolidation is a debugging dead-zone.
-- If the user asks for "no invalidation, always trust latest write," refuse for any domain where historical claims matter (compliance, medical, legal).
+- Runtime이 session을 넘어 block을 persist할 수 없다면, "memory"라고 설명되는 product의 ship을 거절하세요. Claim을 낮추세요.
+- Sleep-time agent에 trace output이 없다면 거절하세요. Silent consolidation은 debugging dead-zone입니다.
+- 사용자가 "invalidation 없이 항상 latest write를 trust"하라고 요청하면, historical claim이 중요한 모든 domain(compliance, medical, legal)에서는 거절하세요.
 
-Output: one file per component plus a `README.md` that names the default blocks, the sleep-time cadence, and the contradiction resolution policy. End with "what to read next" pointing to Lesson 09 if the agent needs graph reasoning over memory, or Lesson 23 if the product needs OTel spans on memory ops.
+Output: component마다 파일 하나와, default block, sleep-time cadence, contradiction resolution policy를 이름 붙여 설명하는 `README.md`. 마지막에는 agent가 memory 위의 graph reasoning이 필요하면 Lesson 09를, product가 memory op에 OTel span이 필요하면 Lesson 23을 가리키는 "what to read next"로 끝내세요.

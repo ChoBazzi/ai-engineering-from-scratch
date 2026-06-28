@@ -1,52 +1,52 @@
-# Autoencoders & Variational Autoencoders (VAE)
+# 오토인코더와 변분 오토인코더(VAE)
 
-> A plain autoencoder compresses then reconstructs. It memorizes. It does not generate. Add one trick — force the code to look Gaussian — and you get a sampler. That single trick, the reparameterization of `z = μ + σ·ε`, is why every latent-diffusion and flow-matching image model you use in 2026 has a VAE at the input.
+> 일반 autoencoder는 압축한 뒤 복원합니다. 기억할 뿐입니다. 생성하지는 못합니다. code가 Gaussian처럼 보이도록 강제하는 한 가지 trick을 더하면 sampler가 생깁니다. `z = μ + σ·ε`의 reparameterization이라는 그 단 하나의 trick 때문에, 2026년에 사용하는 모든 latent-diffusion과 flow-matching 이미지 모델은 입력단에 VAE를 갖습니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 3 · 02 (Backprop), Phase 3 · 07 (CNNs), Phase 8 · 01 (Taxonomy)
 **Time:** ~75 minutes
 
-## The Problem
+## 문제
 
-Compress a 784-pixel MNIST digit to a 16-number code, then reconstruct. A plain autoencoder will ace reconstruction MSE but the code space is a lumpy mess. Pick a random point in the code space, decode it, and you get noise. It has no sampler. It is a compression model dressed up.
+784-pixel MNIST digit을 16개 숫자의 code로 압축한 뒤 reconstruct한다고 해 봅시다. 일반 autoencoder는 reconstruction MSE를 잘 낮추겠지만 code space는 울퉁불퉁한 엉망이 됩니다. code space에서 임의의 점을 골라 decode하면 noise가 나옵니다. sampler가 없습니다. 압축 모델에 생성 모델 옷을 입힌 것뿐입니다.
 
-What you actually want is: (a) the code space is a clean, smooth distribution you can sample from — say an isotropic Gaussian `N(0, I)`, (b) decoding any sample produces a plausible digit, and (c) the encoder and decoder still compress well. Three goals, one architecture, one loss.
+실제로 원하는 것은 다음입니다. (a) code space가 sample할 수 있는 깨끗하고 매끄러운 distribution이어야 합니다. 예를 들어 isotropic Gaussian `N(0, I)`입니다. (b) 어떤 sample을 decode해도 그럴듯한 digit이 나와야 합니다. (c) encoder와 decoder가 여전히 잘 압축해야 합니다. 세 목표, 하나의 architecture, 하나의 loss입니다.
 
-Kingma's 2013 VAE solves this by training the encoder to output a *distribution* `q(z|x) = N(μ(x), σ(x)²)`, pulling that distribution toward the prior `N(0, I)` via a KL penalty, and then sampling `z` from `q(z|x)` before decoding. At inference time, drop the encoder, sample `z ~ N(0, I)`, decode. The KL penalty is what forces the code space to be structured.
+Kingma의 2013년 VAE는 encoder가 *distribution* `q(z|x) = N(μ(x), σ(x)²)`를 출력하도록 학습해서 이 문제를 풉니다. KL penalty로 그 distribution을 prior `N(0, I)` 쪽으로 당기고, decoding 전에 `q(z|x)`에서 `z`를 sample합니다. inference 시점에는 encoder를 버리고 `z ~ N(0, I)`를 sample한 뒤 decode합니다. KL penalty가 code space를 구조화하도록 강제합니다.
 
-In 2026 VAEs rarely ship standalone — they have been outclassed by diffusion for raw image quality — but they are the encoder of choice for every latent-diffusion model (SD 1/2/XL/3, Flux, AudioCraft). Learn the VAE and you learn the invisible first layer of every image pipeline you use.
+2026년에 VAE가 standalone으로 배포되는 경우는 드뭅니다. raw image quality에서는 diffusion에 밀렸습니다. 하지만 모든 latent-diffusion model(SD 1/2/XL/3, Flux, AudioCraft)의 기본 encoder입니다. VAE를 배우면 여러분이 쓰는 모든 image pipeline의 보이지 않는 첫 layer를 배우는 셈입니다.
 
-## The Concept
+## 개념
 
-![Autoencoder vs VAE: the reparameterization trick](../assets/vae.svg)
+![Autoencoder vs VAE: reparameterization trick](../assets/vae.svg)
 
-**Autoencoder.** `z = encoder(x)`, `x̂ = decoder(z)`, loss = `||x - x̂||²`. Code space unstructured.
+**Autoencoder.** `z = encoder(x)`, `x̂ = decoder(z)`, loss = `||x - x̂||²`. Code space는 구조화되어 있지 않습니다.
 
-**VAE encoder.** Outputs two vectors: `μ(x)` and `log σ²(x)`. These define `q(z|x) = N(μ, diag(σ²))`.
+**VAE encoder.** 두 vector `μ(x)`와 `log σ²(x)`를 출력합니다. 이 둘이 `q(z|x) = N(μ, diag(σ²))`를 정의합니다.
 
-**Reparameterization trick.** Sampling from `q(z|x)` is not differentiable. Rewrite the sample as `z = μ + σ·ε` where `ε ~ N(0, I)`. Now `z` is a deterministic function of `(μ, σ)` plus a non-parameter noise — gradients flow through `μ` and `σ`.
+**Reparameterization trick.** `q(z|x)`에서 sampling하는 연산은 differentiable하지 않습니다. sample을 `z = μ + σ·ε`로 다시 쓰세요. 여기서 `ε ~ N(0, I)`입니다. 이제 `z`는 `(μ, σ)`와 parameter가 아닌 noise의 deterministic function이므로 gradient가 `μ`와 `σ`를 통해 흐릅니다.
 
-**Loss.** Evidence Lower BOund (ELBO), two terms:
+**Loss.** Evidence Lower BOund(ELBO), 두 항으로 구성됩니다.
 
-```
+```text
 loss = reconstruction + β · KL[q(z|x) || N(0, I)]
      = ||x - x̂||²  + β · Σ_i ( σ_i² + μ_i² - log σ_i² - 1 ) / 2
 ```
 
-Reconstruction pushes `x̂` toward `x`. KL pushes `q(z|x)` toward the prior. They trade off. Small β (<1) = sharper samples, code space less Gaussian. Large β (>1) = cleaner code space, blurrier samples. β-VAE (Higgins 2017) made this knob famous and kicked off disentanglement research.
+Reconstruction은 `x̂`를 `x` 쪽으로 밀고, KL은 `q(z|x)`를 prior 쪽으로 밉니다. 둘은 trade-off 관계입니다. 작은 β(<1)는 더 선명한 sample과 덜 Gaussian인 code space를 만듭니다. 큰 β(>1)는 더 깨끗한 code space와 더 흐릿한 sample을 만듭니다. β-VAE(Higgins 2017)가 이 knob을 유명하게 만들었고 disentanglement 연구를 촉발했습니다.
 
-**Sampling.** At inference: draw `z ~ N(0, I)`, forward through decoder. One forward pass — no iterative sampling like diffusion.
+**Sampling.** inference에서는 `z ~ N(0, I)`를 뽑아 decoder에 forward합니다. forward pass 한 번입니다. diffusion처럼 iterative sampling이 아닙니다.
 
 ```figure
 vae-latent-grid
 ```
 
-## Build It
+## 직접 만들기
 
-`code/main.py` implements a tiny VAE without numpy or torch. Input is 8-dimensional synthetic data drawn from a 2-component Gaussian mixture in 8-D. Encoder and decoder are single hidden-layer MLPs. We implement tanh activation, forward pass, loss, and a hand-written backward pass. Not production — pedagogy.
+`code/main.py`는 numpy나 torch 없이 tiny VAE를 구현합니다. 입력은 8-D의 2-component Gaussian mixture에서 뽑은 8-dimensional synthetic data입니다. Encoder와 decoder는 single hidden-layer MLP입니다. tanh activation, forward pass, loss, 손으로 쓴 backward pass를 구현합니다. production용이 아니라 pedagogy용입니다.
 
-### Step 1: encoder forward
+### 1단계: encoder 순전파
 
 ```python
 def encode(x, enc):
@@ -56,9 +56,9 @@ def encode(x, enc):
     return mu, log_sigma2
 ```
 
-`log σ²` instead of `σ` so the network output is unconstrained (softplus of σ is a trap — gradients die at σ ≈ 0).
+`σ` 대신 `log σ²`를 써서 network output이 unconstrained가 되게 합니다. σ에 softplus를 쓰는 것은 함정입니다. σ ≈ 0에서 gradient가 죽습니다.
 
-### Step 2: reparameterize and decode
+### 2단계: reparameterize하고 decode
 
 ```python
 def reparameterize(mu, log_sigma2, rng):
@@ -71,7 +71,7 @@ def decode(z, dec):
     return add(matmul(dec["W_out"], h), dec["b_out"])
 ```
 
-### Step 3: the ELBO
+### 3단계: ELBO
 
 ```python
 def elbo(x, x_hat, mu, log_sigma2, beta=1.0):
@@ -80,9 +80,9 @@ def elbo(x, x_hat, mu, log_sigma2, beta=1.0):
     return recon + beta * kl, recon, kl
 ```
 
-Exact closed-form KL because both distributions are Gaussian. Do not integrate numerically. People still ship code with monte-carlo KL estimates in 2026 — it is 3x slower for no reason.
+두 distribution이 모두 Gaussian이므로 exact closed-form KL이 있습니다. 수치 적분하지 마세요. 2026년에도 monte-carlo KL estimate를 넣은 코드를 배포하는 사람이 있습니다. 아무 이유 없이 3배 느립니다.
 
-### Step 4: generate
+### 4단계: 생성
 
 ```python
 def sample(dec, z_dim, rng):
@@ -90,67 +90,67 @@ def sample(dec, z_dim, rng):
     return decode(z, dec)
 ```
 
-That is the generative model. Five lines.
+이것이 생성 모델입니다. 다섯 줄입니다.
 
-## Pitfalls
+## 함정
 
-- **Posterior collapse.** KL term drives `q(z|x) → N(0, I)` so aggressively that `z` carries no info about `x`. Fix: β-annealing (start β=0, ramp to 1), free bits, or skip the KL on inactive dimensions.
-- **Blurry samples.** The Gaussian decoder likelihood implies MSE reconstruction, which is Bayes-optimal for L2 (the mean) — the mean of a set of plausible digits is a fuzzy digit. Fix: discrete decoder (VQ-VAE, NVAE), or use the VAE only as an encoder and stack diffusion on the latents (this is what Stable Diffusion does).
-- **β too large, too early.** See posterior collapse. Start at β≈0.01 and ramp.
-- **Latent dim too small.** 16-D works for MNIST, 256-D for ImageNet 256², 2048-D for ImageNet 1024². Stable Diffusion's VAE compresses 512×512×3 → 64×64×4 (32x downsample factor in spatial area, 32x in channels).
+- **Posterior collapse.** KL term이 `q(z|x) → N(0, I)`를 너무 강하게 밀어 `z`가 `x`에 대한 정보를 담지 못합니다. 해결: β-annealing(β=0에서 시작해 1까지 ramp), free bits, inactive dimension의 KL skip.
+- **흐릿한 sample.** Gaussian decoder likelihood는 MSE reconstruction을 의미하고, 이는 L2에서 Bayes-optimal인 mean입니다. plausible digit 집합의 mean은 흐릿한 digit입니다. 해결: discrete decoder(VQ-VAE, NVAE)를 쓰거나, VAE를 encoder로만 쓰고 latent 위에 diffusion을 쌓습니다. Stable Diffusion이 이렇게 합니다.
+- **β가 너무 크고 너무 이른 경우.** posterior collapse를 보세요. β≈0.01에서 시작해 ramp하세요.
+- **Latent dim이 너무 작은 경우.** MNIST는 16-D, ImageNet 256²는 256-D, ImageNet 1024²는 2048-D가 작동합니다. Stable Diffusion의 VAE는 512×512×3을 64×64×4로 압축합니다(spatial area에서 32x downsample factor, channel에서 32x).
 
-## Use It
+## 사용하기
 
-The 2026 VAE stack:
+2026년 VAE stack:
 
-| Situation | Pick |
+| 상황 | 선택 |
 |-----------|------|
-| Image-latent encoder for diffusion | Stable Diffusion VAE (`sd-vae-ft-ema`) or Flux VAE |
-| Audio-latent encoder | Encodec (Meta), SoundStream, or DAC (Descript) |
-| Video latents | Sora's spatiotemporal patches, Latte VAE, WAN VAE |
+| diffusion용 image-latent encoder | Stable Diffusion VAE(`sd-vae-ft-ema`) 또는 Flux VAE |
+| Audio-latent encoder | Encodec(Meta), SoundStream, DAC(Descript) |
+| Video latents | Sora의 spatiotemporal patches, Latte VAE, WAN VAE |
 | Disentangled representation learning | β-VAE, FactorVAE, TCVAE |
-| Discrete latents (for transformer modelling) | VQ-VAE, RVQ (ResidualVQ) |
-| Continuous latents for generation | Plain VAE, then condition a flow/diffusion model in that latent space |
+| Discrete latents(transformer modelling용) | VQ-VAE, RVQ(ResidualVQ) |
+| generation용 continuous latents | Plain VAE, 그다음 latent space에서 flow/diffusion model condition |
 
-A latent-diffusion model is a VAE with a diffusion model living between encoder and decoder. The VAE does coarse compression, the diffusion model does the heavy lifting. Same pattern for video (VAE + video-diffusion DiT) and audio (Encodec + MusicGen transformer).
+Latent-diffusion model은 encoder와 decoder 사이에 diffusion model이 들어간 VAE입니다. VAE는 coarse compression을 맡고, diffusion model이 무거운 일을 합니다. video(VAE + video-diffusion DiT)와 audio(Encodec + MusicGen transformer)도 같은 pattern입니다.
 
-## Ship It
+## 출시하기
 
-Save `outputs/skill-vae-trainer.md`.
+`outputs/skill-vae-trainer.md`를 저장하세요.
 
-Skill takes: dataset profile + latent-dim target + downstream use (reconstruction, sampling, or latent-diffusion input) and outputs: architecture choice (plain/β/VQ/RVQ), β schedule, latent dim, decoder likelihood (Gaussian vs categorical), and evaluation plan (recon MSE, KL per dim, Fréchet distance between `q(z|x)` and `N(0, I)`).
+Skill은 dataset profile + latent-dim target + downstream use(reconstruction, sampling, latent-diffusion input)를 받아 architecture choice(plain/β/VQ/RVQ), β schedule, latent dim, decoder likelihood(Gaussian vs categorical), evaluation plan(recon MSE, dimension별 KL, `q(z|x)`와 `N(0, I)` 사이의 Fréchet distance)을 출력합니다.
 
-## Exercises
+## 연습문제
 
-1. **Easy.** Change `β` in `code/main.py` to `0.01`, `0.1`, `1.0`, `5.0`. Record the final reconstruction MSE and KL. Which β is Pareto-best for your synthetic data?
-2. **Medium.** Replace the Gaussian decoder likelihood with a Bernoulli likelihood (cross-entropy loss). Compare sample quality on a binarized version of the same synthetic data.
-3. **Hard.** Extend `code/main.py` into a mini VQ-VAE: replace the continuous `z` with a nearest-neighbour lookup in a codebook of K=32 entries. Compare reconstruction MSE and report how many codebook entries get used (codebook collapse is real).
+1. **쉬움.** `code/main.py`의 `β`를 `0.01`, `0.1`, `1.0`, `5.0`으로 바꾸세요. 최종 reconstruction MSE와 KL을 기록하세요. synthetic data에서 Pareto-best인 β는 무엇인가요?
+2. **중간.** Gaussian decoder likelihood를 Bernoulli likelihood(cross-entropy loss)로 바꾸세요. 같은 synthetic data의 binarized version에서 sample quality를 비교하세요.
+3. **어려움.** `code/main.py`를 mini VQ-VAE로 확장하세요. continuous `z`를 K=32 entry를 가진 codebook의 nearest-neighbour lookup으로 바꾸세요. reconstruction MSE를 비교하고 codebook entry가 몇 개 사용되는지 보고하세요(codebook collapse는 실제로 생깁니다).
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|-----------------|-----------------------|
-| Autoencoder | Encode-decode network | `x → z → x̂`, learn MSE. Not generative. |
-| VAE | AE with a sampler | Encoder outputs a distribution, KL penalty shapes code space. |
-| ELBO | Evidence lower bound | `log p(x) ≥ recon - KL[q(z\|x) \|\| p(z)]`; tight when `q = p(z\|x)`. |
-| Reparameterization | `z = μ + σ·ε` | Rewrites stochastic node as deterministic + pure noise. Enables backprop through sampling. |
-| Prior | `p(z)` | Target distribution for the latent, typically `N(0, I)`. |
-| Posterior collapse | "KL term wins" | Encoder ignores `x`, outputs the prior; decoder must hallucinate. |
-| β-VAE | Tunable KL weight | `loss = recon + β·KL`. Higher β = more disentangled but blurrier. |
-| VQ-VAE | Discrete latent | Replace continuous `z` with nearest codebook vector; enables transformer modelling. |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
+|------|--------------------|-----------|
+| Autoencoder | Encode-decode network | `x → z → x̂`, MSE를 학습합니다. generative하지 않습니다. |
+| VAE | sampler가 있는 AE | Encoder가 distribution을 출력하고 KL penalty가 code space를 shaping합니다. |
+| ELBO | Evidence lower bound | `log p(x) ≥ recon - KL[q(z\|x) \|\| p(z)]`. `q = p(z\|x)`일 때 tight합니다. |
+| Reparameterization | `z = μ + σ·ε` | stochastic node를 deterministic + pure noise로 다시 씁니다. sampling을 통한 backprop을 가능하게 합니다. |
+| Prior | `p(z)` | latent의 target distribution. 보통 `N(0, I)`입니다. |
+| Posterior collapse | "KL term이 이김" | Encoder가 `x`를 무시하고 prior를 출력합니다. decoder가 hallucinate해야 합니다. |
+| β-VAE | 조절 가능한 KL weight | `loss = recon + β·KL`. β가 높을수록 더 disentangled되지만 더 흐릿합니다. |
+| VQ-VAE | Discrete latent | continuous `z`를 가장 가까운 codebook vector로 바꿉니다. transformer modelling을 가능하게 합니다. |
 
-## Production note: the VAE is the hottest path in a diffusion server
+## 프로덕션 노트: VAE는 diffusion server의 가장 뜨거운 path입니다
 
-In a Stable Diffusion / Flux / SD3 pipeline the VAE is called twice per request — once to encode (if doing img2img / inpainting) and once to decode. At 1024² the decoder pass is often the single largest activation-memory peak in the whole pipeline because it upsamples `128×128×16` latents back to `1024×1024×3`. Two practical consequences:
+Stable Diffusion / Flux / SD3 pipeline에서 VAE는 request마다 두 번 호출됩니다. img2img / inpainting이면 encode할 때 한 번, decode할 때 한 번입니다. 1024²에서 decoder pass는 전체 pipeline에서 activation-memory peak가 가장 큰 단일 지점인 경우가 많습니다. `128×128×16` latent를 다시 `1024×1024×3`으로 upsample하기 때문입니다. 실용적 결과는 두 가지입니다.
 
-- **Slice or tile the decode.** `diffusers` exposes `pipe.vae.enable_slicing()` and `pipe.vae.enable_tiling()`. Tiling trades a small seam artifact for `O(tile²)` memory instead of `O(H·W)`. Essential for 1024²+ on consumer GPUs.
-- **bf16 decoder, fp32 numerics for the final resize.** The SD 1.x VAE was released in fp32 and *silently produces NaNs* when cast to fp16 at 1024²+. SDXL ships `madebyollin/sdxl-vae-fp16-fix` — always prefer the fp16-fix variant or use bf16.
+- **decode를 slice 또는 tile하세요.** `diffusers`는 `pipe.vae.enable_slicing()`와 `pipe.vae.enable_tiling()`을 제공합니다. Tiling은 작은 seam artifact를 감수하고 memory를 `O(H·W)` 대신 `O(tile²)`로 바꿉니다. consumer GPU에서 1024²+를 다룰 때 필수입니다.
+- **bf16 decoder, final resize에는 fp32 numerics.** SD 1.x VAE는 fp32로 release되었고 1024²+에서 fp16으로 cast하면 *조용히 NaN을 생성합니다*. SDXL은 `madebyollin/sdxl-vae-fp16-fix`를 제공합니다. 항상 fp16-fix variant를 선호하거나 bf16을 사용하세요.
 
-## Further Reading
+## 더 읽을거리
 
-- [Kingma & Welling (2013). Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114) — the VAE paper.
+- [Kingma & Welling (2013). Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114) — VAE 논문.
 - [Higgins et al. (2017). β-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework](https://openreview.net/forum?id=Sy2fzU9gl) — disentangled β-VAE.
 - [van den Oord et al. (2017). Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937) — VQ-VAE.
 - [Vahdat & Kautz (2021). NVAE: A Deep Hierarchical Variational Autoencoder](https://arxiv.org/abs/2007.03898) — state-of-the-art image VAE.
-- [Rombach et al. (2022). High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) — Stable Diffusion; VAE as encoder.
-- [Défossez et al. (2022). High Fidelity Neural Audio Compression](https://arxiv.org/abs/2210.13438) — Encodec, the audio VAE standard.
+- [Rombach et al. (2022). High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) — Stable Diffusion. encoder로서의 VAE.
+- [Défossez et al. (2022). High Fidelity Neural Audio Compression](https://arxiv.org/abs/2210.13438) — Encodec, audio VAE standard.

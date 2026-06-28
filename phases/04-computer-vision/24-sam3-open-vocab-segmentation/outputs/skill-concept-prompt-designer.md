@@ -1,50 +1,50 @@
 ---
 name: skill-concept-prompt-designer
-description: Turn user utterances into well-formed SAM 3 concept prompts with splitting, disambiguation, and fallbacks
+description: 사용자 발화를 splitting, disambiguation, fallbacks를 갖춘 잘 구성된 SAM 3 concept prompt로 변환
 version: 1.0.0
 phase: 4
 lesson: 24
 tags: [sam3, open-vocab, prompt-engineering, segmentation]
 ---
 
-# Concept Prompt Designer
+# Concept Prompt 설계기
 
-SAM 3's accuracy depends heavily on how the concept prompt is phrased. This skill normalises free-form user utterances into prompts that SAM 3 handles well.
+SAM 3의 정확도는 concept prompt가 어떻게 표현되는지에 크게 좌우됩니다. 이 skill은 자유 형식의 사용자 발화를 SAM 3가 잘 처리하는 prompt로 정규화합니다.
 
-## When to use
+## 사용할 때
 
-- Building a UI that accepts natural-language object queries.
-- Exposing SAM 3 through an API where upstream callers send sentences.
-- Debugging poor SAM 3 matches — often the prompt is malformed, not the model.
+- 자연어 object query를 받는 UI를 만들 때.
+- upstream caller가 문장을 보내는 API를 통해 SAM 3를 노출할 때.
+- SAM 3 match 품질이 나쁜 이유를 디버깅할 때. 문제는 모델이 아니라 malformed prompt인 경우가 많습니다.
 
-## Inputs
+## 입력
 
-- `utterance`: raw user string.
-- `context`: optional domain hint (e.g. "surveillance", "medical", "retail").
-- `max_concepts`: maximum concepts to extract per utterance; default 5.
+- `utterance`: 원본 사용자 문자열.
+- `context`: 선택적 domain hint(예: "surveillance", "medical", "retail").
+- `max_concepts`: utterance당 추출할 최대 concepts 수. 기본값 5.
 
-## Rules SAM 3 prefers
+## SAM 3가 선호하는 규칙
 
-- **Short noun phrases, not sentences.** `"cat"` wins over `"there is a cat"`.
-- **Concrete nouns.** `"skateboard"` wins over `"thing to ride on"`.
-- **Modifiers immediately before the noun.** `"red car"` wins over `"car that is red"`.
-- **Lowercase.** SAM 3 is robust but empirically slightly better on lowercase inputs.
-- **Singular or plural.** Both work; plural helps when multiple instances are expected.
+- **문장이 아니라 짧은 noun phrases.** `"there is a cat"`보다 `"cat"`이 낫습니다.
+- **구체적인 명사.** `"thing to ride on"`보다 `"skateboard"`가 낫습니다.
+- **modifier는 noun 바로 앞에.** `"car that is red"`보다 `"red car"`가 낫습니다.
+- **소문자.** SAM 3는 robust하지만 경험적으로 lowercase input에서 약간 더 좋습니다.
+- **단수 또는 복수.** 둘 다 동작합니다. 여러 instance가 예상될 때는 plural이 도움이 됩니다.
 
-## Steps
+## 단계
 
-1. **Tokenise by common separators** — comma, semicolon, "and", "or", "&".
-2. **Drop filler prefixes** — "find", "show me", "segment", "detect", "locate", "a", "an", "the".
-3. **Keep prepositional modifiers** only if they are visual — `"striped red umbrella"` yes, `"umbrella from yesterday"` no (the `"from yesterday"` is not in-image).
-4. **Disambiguate collisions** using the optional `context`:
-   - `"window"` in surveillance context -> `"building window"`.
-   - `"window"` in medical context -> often error; suggest user clarify.
-5. **Fallback** to the exact string if splitting yields zero concepts *and* the utterance contains at least one concrete noun. If no concrete noun can be extracted, do not emit a concept — return only warnings and ask the user to clarify (see Rules).
-6. **Cap at `max_concepts`.** If more concepts were extracted than the caller asked for, keep the first `max_concepts` in utterance order and emit the rest under `dropped` with reason `"exceeded max_concepts"`. This keeps latency bounded when a user pastes a long enumeration.
+1. **일반 구분자로 tokenise** — comma, semicolon, "and", "or", "&".
+2. **filler prefix 제거** — "find", "show me", "segment", "detect", "locate", "a", "an", "the".
+3. **prepositional modifier는 시각적인 경우에만 유지** — `"striped red umbrella"`는 yes, `"umbrella from yesterday"`는 no입니다(`"from yesterday"`는 image 안에 있지 않습니다).
+4. **선택적 `context`로 collision을 disambiguate**:
+   - surveillance context의 `"window"` -> `"building window"`.
+   - medical context의 `"window"` -> 보통 오류입니다. 사용자에게 명확히 해 달라고 제안하세요.
+5. splitting 결과 concept이 0개이고 utterance에 구체 명사가 하나 이상 있으면 exact string으로 **fallback**합니다. 추출 가능한 구체 명사가 없으면 concept을 emit하지 마세요. warnings만 반환하고 사용자에게 명확히 해 달라고 요청하세요(규칙 참고).
+6. **`max_concepts`에서 자르세요.** 추출된 concept이 caller가 요청한 것보다 많으면 utterance 순서의 처음 `max_concepts`만 유지하고 나머지는 reason `"exceeded max_concepts"`와 함께 `dropped`에 넣으세요. 사용자가 긴 열거를 붙여 넣어도 latency가 bounded됩니다.
 
-## Output format
+## 출력 형식
 
-```
+```text
 [designed prompts]
   utterance:    <original>
   concepts:     ["concept_1", "concept_2", ...]
@@ -56,9 +56,9 @@ SAM 3's accuracy depends heavily on how the concept prompt is phrased. This skil
   Merge outputs with distinct concept tags per detection.
 ```
 
-## Examples
+## 예시
 
-```
+```text
 in:  "can you find me a cat or two dogs?"
 out: ["cat", "dogs"]
 dropped: ["can you find me", "a", "or two", "?"]
@@ -76,9 +76,9 @@ in:  "striped red umbrella, green hat, pink balloon"
 out: ["striped red umbrella", "green hat", "pink balloon"]
 ```
 
-## Rules
+## 규칙
 
-- Never pass sentences longer than 8 words to SAM 3 — accuracy drops above that.
-- When an utterance contains no extractable concrete nouns, do not run SAM 3; return the warnings and ask for clarification.
-- Do not split on punctuation inside quoted strings; preserve `"black and white cat"` as one concept if it is quoted.
-- Always log the original utterance and the derived concepts for production debugging.
+- 8단어보다 긴 문장을 SAM 3에 전달하지 마세요. 그 이상에서는 정확도가 떨어집니다.
+- utterance에 추출 가능한 구체 명사가 없으면 SAM 3를 실행하지 마세요. warnings를 반환하고 clarification을 요청하세요.
+- quoted string 안의 punctuation에서는 split하지 마세요. quote된 경우 `"black and white cat"`을 하나의 concept으로 보존하세요.
+- 프로덕션 디버깅을 위해 original utterance와 derived concepts를 항상 log하세요.

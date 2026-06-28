@@ -1,27 +1,27 @@
-# Mission - Reviewer Agent: Separate Builder from Marker
+# 미션 - Reviewer Agent: Builder와 Marker 분리
 
-## Goal
-Build a reviewer loop that reads the builder's artifacts read-only and emits a `review_report.json` scored across five dimensions, totalling out of 10, with a verdict of pass, soft_fail, or hard_fail.
+## 목표
+builder의 artifact를 read-only로 읽고 다섯 dimension에서 10점 만점으로 채점한 `review_report.json`을 출력하는 reviewer loop를 만듭니다. verdict는 pass, soft_fail, hard_fail 중 하나입니다.
 
-## Inputs
-- `ReviewerInputs` bundling diff, state, feedback, and verification verdict from prior lessons
-- Rubric dimensions: problem fit, scope discipline, assumptions, verification quality, handoff readiness
+## 입력
+- 이전 레슨의 diff, state, feedback, verification verdict를 묶는 `ReviewerInputs`
+- Rubric dimension: problem fit, scope discipline, assumptions, verification quality, handoff readiness
 
-## Deliverables
-- One scoring function per dimension (stub-grade for the lesson, deterministic)
-- `review_report.json` writer with five scores, total, and verdict
-- Two demo cases: a clean change and a "right tests, wrong problem" change
+## 산출물
+- dimension마다 하나의 scoring function(레슨용 stub-grade, deterministic)
+- 다섯 score, total, verdict를 쓰는 `review_report.json` writer
+- 두 demo case: 깨끗한 change와 "right tests, wrong problem" change
 
-## Acceptance
-- `python3 code/main.py` exits zero
-- The clean change scores at least 7 with verdict `pass`
-- The wrong-problem change drops below 5 on at least one dimension and verdict flips to `hard_fail`
+## 합격 기준
+- `python3 code/main.py`가 0으로 종료
+- clean change는 7점 이상과 `pass` verdict를 받음
+- wrong-problem change는 최소 한 dimension에서 5점 미만으로 떨어지고 verdict가 `hard_fail`로 바뀜
 
-## Out of scope
-- Real LLM calls. The lesson stubs each dimension; the skill swaps in a model later.
-- Editing the diff. The reviewer reads, scores, and reports. Patches are the builder's job next turn.
+## 범위 밖
+- 실제 LLM 호출. 레슨은 각 dimension을 stub으로 두며, skill은 나중에 모델로 바꿉니다.
+- diff 수정. reviewer는 읽고, 채점하고, 보고합니다. patch는 다음 turn builder의 일입니다.
 
-## References
-- `docs/en.md` - full lesson
+## 참고
+- `docs/en.md` - 전체 레슨
 - `code/main.py` - reference implementation
-- `outputs/skill-reviewer-agent.md` - extracted skill
+- `outputs/skill-reviewer-agent.md` - 추출된 skill

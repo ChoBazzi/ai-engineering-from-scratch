@@ -1,46 +1,46 @@
-# Norms and Distances
+# 노름과 거리
 
-> Your distance function defines what "similar" means. Choose wrong and everything downstream breaks.
+> distance function은 "비슷하다"의 의미를 정의합니다. 잘못 고르면 그 뒤의 모든 것이 깨집니다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 1, Lessons 01 (Linear Algebra Intuition), 02 (Vectors, Matrices & Operations)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement L1, L2, cosine, Mahalanobis, Jaccard, and edit distance functions from scratch
-- Select the appropriate distance metric for a given ML task and explain why alternatives fail
-- Connect L1 and L2 norms to LASSO and Ridge regularization and their geometric constraint regions
-- Demonstrate how the same dataset produces different nearest neighbors under different metrics
+- L1, L2, cosine, Mahalanobis, Jaccard, edit distance functions를 처음부터 구현하기
+- 주어진 ML task에 적절한 distance metric을 선택하고 다른 대안이 실패하는 이유 설명하기
+- L1과 L2 norms를 LASSO 및 Ridge regularization과 그 기하학적 constraint regions에 연결하기
+- 같은 dataset이 다른 metrics 아래에서 서로 다른 nearest neighbors를 만든다는 것을 시연하기
 
-## The Problem
+## 문제
 
-You have two vectors. Maybe they are word embeddings. Maybe they are user profiles. Maybe they are pixel arrays. You need to know: how close are they?
+두 vector가 있습니다. word embeddings일 수도 있고 user profiles일 수도 있고 pixel arrays일 수도 있습니다. 알아야 할 것은 이것입니다. 얼마나 가까운가?
 
-The answer depends entirely on which distance function you pick. Two data points can be nearest neighbors under one metric and far apart under another. Your KNN classifier, your recommendation engine, your vector database, your clustering algorithm, your loss function -- they all depend on this choice. Get it wrong and your model optimizes for the wrong thing.
+답은 어떤 distance function을 고르느냐에 완전히 달려 있습니다. 두 data point는 한 metric에서는 nearest neighbors이고 다른 metric에서는 멀리 떨어져 있을 수 있습니다. KNN classifier, recommendation engine, vector database, clustering algorithm, loss function은 모두 이 선택에 의존합니다. 잘못 고르면 모델은 잘못된 것을 최적화합니다.
 
-There is no universal best distance. L2 works for spatial data. Cosine similarity dominates NLP. Jaccard handles sets. Edit distance handles strings. Mahalanobis accounts for correlations. Wasserstein moves probability mass. Each one encodes a different assumption about what "similar" means.
+보편적으로 최선인 distance는 없습니다. L2는 spatial data에 맞습니다. Cosine similarity는 NLP를 지배합니다. Jaccard는 set을 처리합니다. Edit distance는 string을 처리합니다. Mahalanobis는 correlation을 고려합니다. Wasserstein은 probability mass를 이동합니다. 각각은 "similar"가 무엇인지에 대한 다른 가정을 인코딩합니다.
 
-This lesson builds every major distance function from scratch, shows you when each one is the right tool, and demonstrates how the same data produces completely different nearest neighbors depending on which metric you use.
+이 lesson은 주요 distance function을 처음부터 만들고, 각각을 언제 써야 하는지 보여주며, 같은 data가 metric에 따라 완전히 다른 nearest neighbors를 만든다는 것을 시연합니다.
 
-## The Concept
+## 개념
 
-### Norms: measuring vector magnitude
+### Norms: vector magnitude 측정
 
-A norm measures the "size" of a vector. Every distance function between two vectors can be written as the norm of their difference: d(a, b) = ||a - b||. So understanding norms is understanding distances.
+norm은 vector의 "size"를 측정합니다. 두 vector 사이의 모든 distance function은 차이의 norm으로 쓸 수 있습니다: d(a, b) = ||a - b||. 따라서 norms를 이해하는 것은 distances를 이해하는 것입니다.
 
-### L1 Norm (Manhattan distance)
+### L1 norm(Manhattan distance) 설명
 
-The L1 norm sums the absolute values of all components.
+L1 norm은 모든 component의 absolute value를 합산합니다.
 
-```
+```text
 ||x||_1 = |x_1| + |x_2| + ... + |x_n|
 ```
 
-It is called Manhattan distance because it measures how far you walk on a city grid where you can only move along axes. No diagonals.
+city grid에서 axis를 따라만 움직일 수 있을 때 얼마나 걸어야 하는지를 측정하므로 Manhattan distance라고 부릅니다. 대각선은 없습니다.
 
-```
+```text
 Point A = (1, 1)
 Point B = (4, 5)
 
@@ -49,26 +49,26 @@ L1 distance = |4-1| + |5-1| = 3 + 4 = 7
 On a grid, you walk 3 blocks east and 4 blocks north.
 ```
 
-When to use L1:
-- High-dimensional sparse data (text features, one-hot encodings)
-- When you want robustness to outliers (a single huge difference does not dominate)
-- Feature selection problems (L1 regularization promotes sparsity)
+L1을 사용할 때:
+- High-dimensional sparse data(text features, one-hot encodings)
+- outliers에 robust해야 할 때(하나의 huge difference가 지배하지 않음)
+- feature selection problems(L1 regularization은 sparsity를 촉진)
 
-Connection to L1 regularization (Lasso): adding ||w||_1 to your loss function penalizes the sum of absolute weight values. This pushes small weights to exactly zero, performing automatic feature selection. The L1 penalty creates diamond-shaped constraint regions in weight space, and the corners of diamonds lie on the axes where some weights are zero.
+L1 regularization(Lasso)과의 연결: loss function에 ||w||_1을 더하면 absolute weight values의 합을 penalize합니다. 이는 작은 weights를 정확히 0으로 밀어 automatic feature selection을 수행합니다. L1 penalty는 weight space에서 diamond-shaped constraint regions를 만들고, diamond의 corner는 일부 weights가 0인 axis 위에 있습니다.
 
-Connection to loss functions: Mean Absolute Error (MAE) is the average L1 distance between predictions and targets. It penalizes all errors linearly, making it robust to outliers compared to MSE.
+loss functions와의 연결: Mean Absolute Error(MAE)는 predictions와 targets 사이의 평균 L1 distance입니다. 모든 error를 선형으로 penalize하므로 MSE보다 outliers에 robust합니다.
 
-### L2 Norm (Euclidean distance)
+### L2 norm(Euclidean distance) 설명
 
-The L2 norm is the straight-line distance. Square root of the sum of squared components.
+L2 norm은 straight-line distance입니다. squared components 합의 square root입니다.
 
-```
+```text
 ||x||_2 = sqrt(x_1^2 + x_2^2 + ... + x_n^2)
 ```
 
-This is the distance you learned in geometry class. Pythagoras in n dimensions.
+기하 시간에 배운 distance입니다. n dimensions의 Pythagoras입니다.
 
-```
+```text
 Point A = (1, 1)
 Point B = (4, 5)
 
@@ -77,106 +77,106 @@ L2 distance = sqrt((4-1)^2 + (5-1)^2) = sqrt(9 + 16) = sqrt(25) = 5.0
 The straight line, cutting diagonally through the grid.
 ```
 
-When to use L2:
+L2를 사용할 때:
 - Low-to-medium dimensional continuous data
-- When the feature scales are comparable
-- Physical distances (spatial data, sensor readings)
-- Image similarity at the pixel level
+- feature scales가 comparable할 때
+- Physical distances(spatial data, sensor readings)
+- pixel level의 image similarity
 
-Connection to L2 regularization (Ridge): adding ||w||_2^2 to your loss function penalizes large weights. Unlike L1, it does not push weights to zero. It shrinks all weights toward zero proportionally. The L2 penalty creates circular constraint regions, so there are no corners on axes. Weights get small but rarely exactly zero.
+L2 regularization(Ridge)과의 연결: loss function에 ||w||_2^2를 더하면 큰 weights를 penalize합니다. L1과 달리 weights를 0으로 밀지 않습니다. 모든 weights를 비례적으로 0 쪽으로 줄입니다. L2 penalty는 circular constraint regions를 만들므로 axis 위 corner가 없습니다. weights는 작아지지만 거의 정확히 0이 되지는 않습니다.
 
-Connection to loss functions: Mean Squared Error (MSE) is the average of L2 distances squared. Squaring penalizes large errors more heavily than small ones.
+loss functions와의 연결: Mean Squared Error(MSE)는 L2 distances squared의 평균입니다. 제곱은 작은 error보다 큰 error를 훨씬 강하게 penalize합니다.
 
-```
+```text
 MAE (L1 loss):  |y - y_hat|         Linear penalty. Robust to outliers.
 MSE (L2 loss):  (y - y_hat)^2       Quadratic penalty. Sensitive to outliers.
 ```
 
-### Lp Norms: the general family
+### Lp Norms: 일반 family
 
-L1 and L2 are special cases of the Lp norm:
+L1과 L2는 Lp norm의 special cases입니다.
 
-```
+```text
 ||x||_p = (|x_1|^p + |x_2|^p + ... + |x_n|^p)^(1/p)
 ```
 
-Different values of p produce different shaped "unit balls" (the set of all points at distance 1 from the origin):
+p의 값에 따라 서로 다른 모양의 "unit balls"(origin에서 distance 1인 모든 points의 집합)가 만들어집니다.
 
-```
+```text
 p=1:    Diamond shape      (corners on axes)
 p=2:    Circle/sphere      (the usual round ball)
 p=3:    Superellipse       (rounded square)
 p=inf:  Square/hypercube   (flat sides along axes)
 ```
 
-### L-infinity Norm (Chebyshev distance)
+### L-infinity norm(Chebyshev distance) 설명
 
-As p approaches infinity, the Lp norm converges to the maximum absolute component.
+p가 infinity에 가까워질수록 Lp norm은 최대 absolute component로 수렴합니다.
 
-```
+```text
 ||x||_inf = max(|x_1|, |x_2|, ..., |x_n|)
 ```
 
-The distance between two points is determined by the single dimension where they differ the most. All other dimensions are ignored.
+두 point 사이의 distance는 가장 많이 다른 단일 dimension으로 결정됩니다. 다른 모든 dimensions는 무시됩니다.
 
-```
+```text
 Point A = (1, 1)
 Point B = (4, 5)
 
 L-inf distance = max(|4-1|, |5-1|) = max(3, 4) = 4
 ```
 
-When to use L-infinity:
-- When the worst-case deviation in any single dimension matters
-- Game boards (a king in chess moves in L-infinity: one step in any direction costs 1)
-- Manufacturing tolerances (every dimension must be within spec)
+L-infinity를 사용할 때:
+- 단일 dimension의 worst-case deviation이 중요할 때
+- Game boards(체스의 king은 L-infinity로 움직임: 어느 방향이든 한 칸 비용이 1)
+- Manufacturing tolerances(모든 dimension이 spec 안에 있어야 함)
 
-### Cosine Similarity and Cosine Distance
+### Cosine Similarity와 Cosine Distance
 
-Cosine similarity measures the angle between two vectors, ignoring their magnitudes.
+Cosine similarity는 두 vector 사이의 angle을 측정하며 magnitude는 무시합니다.
 
-```
+```text
 cos_sim(a, b) = (a . b) / (||a||_2 * ||b||_2)
 ```
 
-It ranges from -1 (opposite directions) to +1 (same direction). Perpendicular vectors have cosine similarity 0.
+범위는 -1(opposite directions)부터 +1(same direction)까지입니다. perpendicular vectors의 cosine similarity는 0입니다.
 
-Cosine distance converts it to a distance: cosine_distance = 1 - cosine_similarity. This ranges from 0 (identical direction) to 2 (opposite direction).
+Cosine distance는 이를 distance로 바꿉니다: cosine_distance = 1 - cosine_similarity. 범위는 0(identical direction)부터 2(opposite direction)까지입니다.
 
-```
+```text
 a = (1, 0)    b = (1, 1)
 
 cos_sim = (1*1 + 0*1) / (1 * sqrt(2)) = 1/sqrt(2) = 0.707
 cos_dist = 1 - 0.707 = 0.293
 ```
 
-Why cosine dominates NLP and embeddings: in text, document length should not affect similarity. A document about cats that is twice as long as another document about cats should still be "similar." Cosine similarity ignores magnitude (length) and only cares about direction. Two documents with the same word distribution but different lengths point in the same direction and get cosine similarity 1.0.
+cosine이 NLP와 embeddings를 지배하는 이유: text에서는 document length가 similarity에 영향을 주면 안 됩니다. cats에 대한 문서가 다른 cats 문서보다 두 배 길어도 여전히 "similar"해야 합니다. Cosine similarity는 magnitude(length)를 무시하고 direction만 봅니다. 같은 word distribution을 가진 길이가 다른 두 문서는 같은 방향을 가리키며 cosine similarity 1.0을 얻습니다.
 
-When to use cosine similarity:
-- Text similarity (TF-IDF vectors, word embeddings, sentence embeddings)
-- Any domain where magnitude is noise and direction is signal
-- Recommendation systems (user preference vectors)
-- Embedding search (vector databases almost always use cosine or dot product)
+cosine similarity를 사용할 때:
+- Text similarity(TF-IDF vectors, word embeddings, sentence embeddings)
+- magnitude가 noise이고 direction이 signal인 모든 domain
+- Recommendation systems(user preference vectors)
+- Embedding search(vector databases는 거의 항상 cosine 또는 dot product 사용)
 
-### Dot Product Similarity vs Cosine Similarity
+### Dot product similarity와 cosine similarity
 
-The dot product of two vectors is:
+두 vector의 dot product는 다음과 같습니다.
 
-```
+```text
 a . b = a_1*b_1 + a_2*b_2 + ... + a_n*b_n
       = ||a|| * ||b|| * cos(angle)
 ```
 
-Cosine similarity is the dot product normalized by both magnitudes. When both vectors are already unit-normalized (magnitude = 1), dot product and cosine similarity are identical.
+Cosine similarity는 두 magnitude로 normalized된 dot product입니다. 두 vector가 이미 unit-normalized(magnitude = 1)이면 dot product와 cosine similarity는 동일합니다.
 
-```
+```text
 If ||a|| = 1 and ||b|| = 1:
     a . b = cos(angle between a and b)
 ```
 
-When they differ: dot product includes magnitude information. A vector with larger magnitude gets a higher dot product score. This matters in some retrieval systems where you want "popular" items to rank higher. The magnitude acts as an implicit quality or importance signal.
+차이점: dot product는 magnitude information을 포함합니다. magnitude가 큰 vector는 더 높은 dot product score를 얻습니다. 일부 retrieval system에서는 "popular" items를 더 높게 ranking하고 싶으므로 이것이 중요합니다. magnitude는 implicit quality 또는 importance signal처럼 작동합니다.
 
-```
+```text
 a = (3, 0)    b = (1, 0)    c = (0, 1)
 
 dot(a, b) = 3     dot(a, c) = 0
@@ -185,27 +185,27 @@ cos(a, b) = 1.0   cos(a, c) = 0.0
 Both agree on direction, but dot product also reflects magnitude.
 ```
 
-In practice:
-- Use cosine similarity when you want pure directional similarity
-- Use dot product when magnitudes carry meaningful information
-- Many vector databases (Pinecone, Weaviate, Qdrant) let you choose between them
-- If your embeddings are L2-normalized, the choice does not matter
+실무에서는:
+- pure directional similarity를 원하면 cosine similarity를 사용하세요
+- magnitude가 의미 있는 정보를 담고 있으면 dot product를 사용하세요
+- 많은 vector databases(Pinecone, Weaviate, Qdrant)는 둘 중 선택하게 해줍니다
+- embeddings가 L2-normalized라면 선택은 중요하지 않습니다
 
-### Mahalanobis Distance
+### Mahalanobis distance 설명
 
-Euclidean distance treats all dimensions equally. But if your features are correlated or have different scales, L2 gives misleading results.
+Euclidean distance는 모든 dimension을 동일하게 취급합니다. 그러나 features가 correlated이거나 scale이 다르면 L2는 misleading results를 줍니다.
 
-Mahalanobis distance accounts for the covariance structure of the data.
+Mahalanobis distance는 data의 covariance structure를 고려합니다.
 
-```
+```text
 d_M(x, y) = sqrt((x - y)^T * S^(-1) * (x - y))
 ```
 
-where S is the covariance matrix of the data.
+여기서 S는 data의 covariance matrix입니다.
 
-Intuitively: Mahalanobis distance first decorrelates and normalizes the data (whitening), then computes L2 distance in that transformed space. If S is the identity matrix (uncorrelated, unit variance features), Mahalanobis distance reduces to Euclidean distance.
+직관적으로 Mahalanobis distance는 먼저 data를 decorrelate하고 normalize(whitening)한 뒤 그 transformed space에서 L2 distance를 계산합니다. S가 identity matrix(uncorrelated, unit variance features)이면 Mahalanobis distance는 Euclidean distance로 줄어듭니다.
 
-```
+```text
 Example: height and weight are correlated.
 Someone 6'2" and 180 lbs is not unusual.
 Someone 5'0" and 180 lbs is unusual.
@@ -215,23 +215,23 @@ Mahalanobis distance correctly identifies the second as an outlier
 because it accounts for the height-weight correlation.
 ```
 
-When to use Mahalanobis distance:
-- Outlier detection (points with large Mahalanobis distance from the mean are outliers)
-- Classification when features have different scales and correlations
-- When you have enough data to estimate a reliable covariance matrix
-- Quality control in manufacturing (multivariate process monitoring)
+Mahalanobis distance를 사용할 때:
+- Outlier detection(mean에서 Mahalanobis distance가 큰 point는 outlier)
+- features의 scales와 correlations가 다른 classification
+- reliable covariance matrix를 추정할 충분한 data가 있을 때
+- 제조 quality control(multivariate process monitoring)
 
-### Jaccard Similarity (for sets)
+### Jaccard Similarity (sets용)
 
-Jaccard similarity measures overlap between two sets.
+Jaccard similarity는 두 set 사이의 overlap을 측정합니다.
 
-```
+```text
 J(A, B) = |A intersect B| / |A union B|
 ```
 
-It ranges from 0 (no overlap) to 1 (identical sets). Jaccard distance = 1 - Jaccard similarity.
+범위는 0(no overlap)부터 1(identical sets)까지입니다. Jaccard distance = 1 - Jaccard similarity입니다.
 
-```
+```text
 A = {cat, dog, fish}
 B = {cat, bird, fish, snake}
 
@@ -242,18 +242,18 @@ Jaccard similarity = 2/5 = 0.4
 Jaccard distance = 0.6
 ```
 
-When to use Jaccard:
-- Comparing sets of tags, categories, or features
-- Document similarity based on word presence (not frequency)
-- Near-duplicate detection (MinHash approximation of Jaccard)
-- Comparing binary feature vectors (presence/absence data)
-- Evaluating segmentation models (Intersection over Union = Jaccard)
+Jaccard를 사용할 때:
+- tags, categories, features의 set 비교
+- word presence 기반 document similarity(frequency가 아님)
+- Near-duplicate detection(MinHash approximation of Jaccard)
+- binary feature vectors(presence/absence data) 비교
+- segmentation models 평가(Intersection over Union = Jaccard)
 
-### Edit Distance (Levenshtein Distance)
+### Edit distance(Levenshtein distance) 설명
 
-Edit distance counts the minimum number of single-character operations needed to transform one string into another. The operations are: insert, delete, or substitute.
+Edit distance는 한 string을 다른 string으로 바꾸는 데 필요한 최소 single-character operations 수를 셉니다. operations는 insert, delete, substitute입니다.
 
-```
+```text
 "kitten" -> "sitting"
 
 kitten -> sitten  (substitute k -> s)
@@ -263,9 +263,9 @@ sittin -> sitting (insert g)
 Edit distance = 3
 ```
 
-Computed using dynamic programming. Fill a matrix where entry (i, j) is the edit distance between the first i characters of string A and the first j characters of string B.
+dynamic programming으로 계산합니다. entry (i, j)가 string A의 처음 i개 characters와 string B의 처음 j개 characters 사이의 edit distance인 matrix를 채웁니다.
 
-```
+```text
         ""  s  i  t  t  i  n  g
     ""   0  1  2  3  4  5  6  7
     k    1  1  2  3  4  5  6  7
@@ -276,57 +276,57 @@ Computed using dynamic programming. Fill a matrix where entry (i, j) is the edit
     n    6  6  5  4  3  3  2  3
 ```
 
-When to use edit distance:
+edit distance를 사용할 때:
 - Spell checking and correction
-- DNA sequence alignment (with weighted operations)
+- DNA sequence alignment(weighted operations 포함)
 - Fuzzy string matching
-- Deduplication of messy text data
+- 지저분한 text data의 deduplication
 
-### KL Divergence (not a distance, but used like one)
+### KL Divergence (distance는 아니지만 distance처럼 사용됨)
 
-KL divergence measures how one probability distribution differs from another. Covered in Lesson 09, but it belongs in this discussion because people use it as a "distance" despite it not being one.
+KL divergence는 한 probability distribution이 다른 distribution과 얼마나 다른지 측정합니다. Lesson 09에서 다뤘지만, 사람들이 이것을 "distance"처럼 사용하기 때문에 이 논의에 속합니다.
 
-```
+```text
 D_KL(P || Q) = sum(p(x) * log(p(x) / q(x)))
 ```
 
-Critical property: KL divergence is NOT symmetric.
+중요한 성질: KL divergence는 symmetric이 아닙니다.
 
-```
+```text
 D_KL(P || Q) != D_KL(Q || P)
 ```
 
-This means it fails the basic requirement of a distance metric. It also does not satisfy the triangle inequality. It is a divergence, not a distance.
+따라서 distance metric의 기본 요구사항을 만족하지 않습니다. triangle inequality도 만족하지 않습니다. distance가 아니라 divergence입니다.
 
-Forward KL (D_KL(P || Q)) is "mean-seeking": Q tries to cover all modes of P.
-Reverse KL (D_KL(Q || P)) is "mode-seeking": Q focuses on a single mode of P.
+Forward KL(D_KL(P || Q))은 "mean-seeking"입니다. Q는 P의 모든 mode를 덮으려 합니다.
+Reverse KL(D_KL(Q || P))은 "mode-seeking"입니다. Q는 P의 단일 mode에 집중합니다.
 
-When you see KL divergence:
-- VAEs (the KL term in the ELBO pushes the latent distribution toward a prior)
-- Knowledge distillation (student tries to match teacher's distribution)
-- RLHF (the KL penalty keeps the fine-tuned model close to the base model)
-- Policy gradient methods (constraining policy updates)
+KL divergence를 보는 곳:
+- VAEs(ELBO의 KL term이 latent distribution을 prior 쪽으로 밀어냄)
+- Knowledge distillation(student가 teacher distribution에 맞추려 함)
+- RLHF(KL penalty가 fine-tuned model을 base model에 가깝게 유지)
+- Policy gradient methods(policy updates 제한)
 
-### Wasserstein Distance (Earth Mover's Distance)
+### Wasserstein distance(Earth Mover's Distance) 설명
 
-Wasserstein distance measures the minimum "work" needed to transform one probability distribution into another. Think of it as: if one distribution is a pile of dirt and the other is a hole, how much dirt do you have to move and how far?
+Wasserstein distance는 한 probability distribution을 다른 distribution으로 바꾸는 데 필요한 최소 "work"를 측정합니다. 한 distribution이 흙더미이고 다른 distribution이 구멍이라면, 얼마나 많은 흙을 얼마나 멀리 옮겨야 하는지라고 생각하세요.
 
-```
+```text
 W(P, Q) = inf over all transport plans gamma of E[d(x, y)]
 ```
 
-For 1D distributions, it simplifies to the integral of the absolute difference of the cumulative distribution functions:
+1D distributions에서는 cumulative distribution functions의 absolute difference 적분으로 단순화됩니다.
 
-```
+```text
 W_1(P, Q) = integral |CDF_P(x) - CDF_Q(x)| dx
 ```
 
-Why Wasserstein matters:
-- It is a true metric (symmetric, satisfies triangle inequality)
-- It provides gradients even when distributions do not overlap (KL divergence goes to infinity)
-- This property made it central to Wasserstein GANs (WGANs), which solved the training instability of original GANs
+Wasserstein이 중요한 이유:
+- true metric입니다(symmetric, triangle inequality 만족)
+- distributions가 겹치지 않아도 gradients를 제공합니다(KL divergence는 infinity로 감)
+- 이 성질 덕분에 original GAN의 training instability를 해결한 Wasserstein GANs(WGANs)의 중심이 되었습니다
 
-```
+```text
 Distributions with no overlap:
 
 P: [1, 0, 0, 0, 0]    Q: [0, 0, 0, 0, 1]
@@ -337,13 +337,13 @@ Wasserstein: 4 (move all mass 4 bins)
 Wasserstein gives a meaningful gradient. KL does not.
 ```
 
-When to use Wasserstein:
-- GAN training (WGAN, WGAN-GP)
-- Comparing distributions that may not overlap
+Wasserstein을 사용할 때:
+- GAN training(WGAN, WGAN-GP)
+- 겹치지 않을 수 있는 distributions 비교
 - Optimal transport problems
-- Image retrieval (comparing color histograms)
+- Image retrieval(color histograms 비교)
 
-### Why Different Tasks Need Different Distances
+### 왜 task마다 다른 distance가 필요한가
 
 | Task | Best distance | Why |
 |------|--------------|-----|
@@ -360,11 +360,11 @@ When to use Wasserstein:
 | DNA sequences | Weighted edit distance | Substitution costs vary by nucleotide pair |
 | Manufacturing QC | L-infinity | Worst-case deviation in any dimension matters |
 
-### Connection to Loss Functions
+### Loss Functions와의 연결
 
-Loss functions are distance functions applied to predictions vs targets.
+Loss functions는 predictions vs targets에 적용된 distance functions입니다.
 
-```
+```text
 Loss function       Distance it uses       Behavior
 MSE                 L2 squared             Penalizes large errors heavily
 MAE                 L1                     Penalizes all errors equally
@@ -378,11 +378,11 @@ Contrastive loss    L2                     Similar pairs close, dissimilar
                                            pairs beyond margin
 ```
 
-### Connection to Regularization
+### Regularization과의 연결
 
-Regularization adds a norm penalty on the weights to the loss function.
+Regularization은 weights에 대한 norm penalty를 loss function에 더합니다.
 
-```
+```text
 L1 regularization (Lasso):   loss + lambda * ||w||_1
   -> Sparse weights. Some weights become exactly zero.
   -> Automatic feature selection.
@@ -398,17 +398,17 @@ Elastic Net:                  loss + lambda_1 * ||w||_1 + lambda_2 * ||w||_2^2
   -> Groups of correlated features are kept or dropped together.
 ```
 
-Why L1 produces sparsity but L2 does not: picture the constraint region in 2D weight space. L1 is a diamond, L2 is a circle. The loss function's contours (ellipses) are most likely to touch the diamond at a corner, where one weight is zero. They touch the circle at a smooth point, where both weights are nonzero.
+L1이 sparsity를 만들고 L2가 그렇지 않은 이유: 2D weight space에서 constraint region을 그려보세요. L1은 diamond이고 L2는 circle입니다. loss function의 contours(ellipses)는 한 weight가 0인 corner에서 diamond에 닿을 가능성이 큽니다. circle에는 smooth point에서 닿으므로 두 weights가 모두 nonzero입니다.
 
-### Nearest Neighbor Search
+### Nearest neighbor search 설명
 
-Every distance function implies a nearest neighbor search problem: given a query point, find the closest points in a dataset.
+모든 distance function은 nearest neighbor search problem을 암시합니다. query point가 주어졌을 때 dataset에서 가장 가까운 points를 찾는 문제입니다.
 
-Exact nearest neighbor search is O(n * d) per query in a dataset of n points with d dimensions. For large datasets, this is too slow.
+exact nearest neighbor search는 n points와 d dimensions를 가진 dataset에서 query당 O(n * d)입니다. 큰 dataset에서는 너무 느립니다.
 
-Approximate Nearest Neighbor (ANN) algorithms trade a small amount of accuracy for massive speed gains:
+Approximate Nearest Neighbor(ANN) algorithms는 작은 accuracy 손실을 massive speed gain과 교환합니다.
 
-```
+```text
 Algorithm         Approach                      Used by
 KD-trees          Axis-aligned space partition   scikit-learn (low-dim)
 Ball trees        Nested hyperspheres            scikit-learn (medium-dim)
@@ -421,29 +421,29 @@ Product quant.    Compress vectors, search       FAISS (memory-constrained)
                   in compressed space
 ```
 
-HNSW (Hierarchical Navigable Small World) is the dominant algorithm in modern vector databases. It builds a multi-layer graph where each node connects to its approximate nearest neighbors. Search starts at the top layer (sparse, long jumps) and descends to the bottom layer (dense, short jumps).
+HNSW(Hierarchical Navigable Small World)는 현대 vector databases에서 지배적인 algorithm입니다. 각 node가 approximate nearest neighbors와 연결되는 multi-layer graph를 만듭니다. Search는 top layer(sparse, long jumps)에서 시작해 bottom layer(dense, short jumps)로 내려갑니다.
 
 ```figure
 norm-unit-balls
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: All norm and distance functions
+### Step 1: 모든 norm과 distance functions
 
-See `code/distances.py` for the complete implementation. Every function is built from scratch using only basic Python math.
+complete implementation은 `code/distances.py`를 보세요. 모든 function은 basic Python math만 사용해 처음부터 만들어집니다.
 
-### Step 2: Same data, different distances, different neighbors
+### Step 2: 같은 data, 다른 distances, 다른 neighbors
 
-The demo in `distances.py` creates a dataset, picks a query point, and shows how the nearest neighbor changes depending on the distance metric. The point that is "closest" under L1 may not be closest under L2 or cosine.
+`distances.py`의 demo는 dataset을 만들고 query point를 선택한 뒤 distance metric에 따라 nearest neighbor가 어떻게 바뀌는지 보여줍니다. L1에서 "closest"인 point가 L2나 cosine에서는 closest가 아닐 수 있습니다.
 
-### Step 3: Embedding similarity search
+### Step 3: Embedding similarity search 구현
 
-The code includes a mock embedding similarity search that finds the most similar "documents" to a query using cosine similarity vs L2 distance, showing that the rankings can differ.
+코드에는 cosine similarity와 L2 distance를 사용해 query와 가장 비슷한 "documents"를 찾는 mock embedding similarity search가 포함되어 있으며 ranking이 달라질 수 있음을 보여줍니다.
 
-## Use It
+## 사용하기
 
-The most common practical use: finding similar items in a vector database.
+가장 흔한 실용적 사용: vector database에서 similar items 찾기.
 
 ```python
 import numpy as np
@@ -465,47 +465,47 @@ print(f"Top 5 most similar to item 0: {top_k}")
 print(f"Similarities: {similarities[top_k]}")
 ```
 
-When you call `model.encode(text)` and then search a vector database, this is what happens under the hood. The embedding model maps text to vectors. The vector database computes cosine similarity (or dot product) between your query vector and every stored vector, using ANN algorithms to avoid checking all of them.
+`model.encode(text)`를 호출한 뒤 vector database를 검색할 때 내부에서는 이런 일이 일어납니다. embedding model이 text를 vector로 mapping합니다. vector database는 query vector와 저장된 모든 vector 사이의 cosine similarity(또는 dot product)를 계산하고, 모든 vector를 확인하지 않기 위해 ANN algorithms를 사용합니다.
 
-## Exercises
+## 연습문제
 
-1. Compute L1, L2, and L-infinity distances between (1, 2, 3) and (4, 0, 6). Verify that L-inf <= L2 <= L1 always holds for any pair of points. Prove why this ordering is guaranteed.
+1. (1, 2, 3)과 (4, 0, 6) 사이의 L1, L2, L-infinity distances를 계산하세요. 어떤 point pair에 대해서도 L-inf <= L2 <= L1이 항상 성립함을 확인하세요. 이 ordering이 보장되는 이유를 증명하세요.
 
-2. Create two vectors where cosine similarity is high (> 0.9) but L2 distance is large (> 10). Explain geometrically what is happening. Then create two vectors where cosine similarity is low (< 0.3) but L2 distance is small (< 0.5).
+2. cosine similarity는 높지만(> 0.9) L2 distance는 큰(> 10) 두 vector를 만드세요. 기하학적으로 무슨 일이 일어나는지 설명하세요. 그런 다음 cosine similarity는 낮지만(< 0.3) L2 distance는 작은(< 0.5) 두 vector를 만드세요.
 
-3. Implement a function that takes a dataset and a query point and returns the nearest neighbor under L1, L2, cosine, and Mahalanobis distance. Find a dataset where all four disagree on which point is nearest.
+3. dataset과 query point를 받아 L1, L2, cosine, Mahalanobis distance 각각에서 nearest neighbor를 반환하는 함수를 구현하세요. 네 metric이 모두 어떤 point가 nearest인지 disagree하는 dataset을 찾으세요.
 
-4. Compute the Wasserstein distance between [0.5, 0.5, 0, 0] and [0, 0, 0.5, 0.5] by hand using the CDF method. Then compute it between [0.25, 0.25, 0.25, 0.25] and [0, 0, 0.5, 0.5]. Which is larger and why?
+4. CDF method를 사용해 [0.5, 0.5, 0, 0]과 [0, 0, 0.5, 0.5] 사이의 Wasserstein distance를 손으로 계산하세요. 그런 다음 [0.25, 0.25, 0.25, 0.25]와 [0, 0, 0.5, 0.5] 사이도 계산하세요. 어느 쪽이 더 크고 왜인가요?
 
-5. Implement MinHash for approximate Jaccard similarity. Generate 100 random sets, compute exact Jaccard for all pairs, and compare with MinHash approximation using 50, 100, and 200 hash functions. Plot the approximation error.
+5. approximate Jaccard similarity를 위한 MinHash를 구현하세요. random sets 100개를 생성하고 모든 pairs에 대해 exact Jaccard를 계산한 뒤, 50, 100, 200 hash functions를 사용한 MinHash approximation과 비교하세요. approximation error를 plot하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Norm | "Size of a vector" | A function that maps a vector to a non-negative scalar, satisfying triangle inequality, absolute homogeneity, and zero only for the zero vector |
-| L1 norm | "Manhattan distance" | Sum of absolute component values. Produces sparsity in optimization. Robust to outliers |
-| L2 norm | "Euclidean distance" | Square root of sum of squared components. The straight-line distance in Euclidean space |
-| Lp norm | "Generalized norm" | The p-th root of the sum of p-th powers of absolute components. L1 and L2 are special cases |
-| L-infinity norm | "Max norm" or "Chebyshev distance" | The maximum absolute component value. The limit of Lp as p approaches infinity |
-| Cosine similarity | "Angle between vectors" | Dot product normalized by both magnitudes. Ranges from -1 to +1. Ignores vector length |
-| Cosine distance | "1 minus cosine similarity" | Converts cosine similarity to a distance. Ranges from 0 to 2 |
-| Dot product | "Unnormalized cosine" | Sum of component-wise products. Equals cosine similarity times both magnitudes |
-| Mahalanobis distance | "Correlation-aware distance" | L2 distance in a space that has been whitened (decorrelated and normalized) using the data covariance matrix |
-| Jaccard similarity | "Set overlap" | Size of intersection divided by size of union. For sets, not vectors |
-| Edit distance | "Levenshtein distance" | Minimum insertions, deletions, and substitutions to transform one string into another |
-| KL divergence | "Distance between distributions" | Not a true distance (not symmetric). Measures extra bits from using Q to encode P |
-| Wasserstein distance | "Earth mover's distance" | Minimum work to transport mass from one distribution to another. A true metric |
-| Approximate nearest neighbor | "ANN search" | Algorithms (HNSW, LSH, IVF) that find approximately closest points much faster than exact search |
-| HNSW | "The vector DB algorithm" | Hierarchical Navigable Small World graph. Multi-layer graph for fast approximate nearest neighbor search |
-| L1 regularization | "Lasso" | Adding the L1 norm of weights to the loss. Drives weights to zero (sparsity) |
-| L2 regularization | "Ridge" or "weight decay" | Adding the squared L2 norm of weights to the loss. Shrinks weights toward zero without sparsity |
-| Elastic Net | "L1 + L2" | Combines L1 and L2 regularization. Handles correlated feature groups better than either alone |
+| Norm | "vector의 size" | vector를 non-negative scalar로 mapping하고 triangle inequality, absolute homogeneity, zero only for zero vector를 만족하는 function |
+| L1 norm | "Manhattan distance" | component absolute values의 합. optimization에서 sparsity를 만듭니다. outliers에 robust합니다 |
+| L2 norm | "Euclidean distance" | squared components 합의 square root. Euclidean space의 straight-line distance |
+| Lp norm | "Generalized norm" | absolute components의 p-th powers 합의 p-th root. L1과 L2는 special cases |
+| L-infinity norm | "Max norm" 또는 "Chebyshev distance" | 최대 absolute component value. p가 infinity로 갈 때 Lp의 limit |
+| Cosine similarity | "vectors 사이의 angle" | magnitudes로 normalized한 dot product. -1부터 +1까지. vector length를 무시 |
+| Cosine distance | "1 minus cosine similarity" | cosine similarity를 distance로 변환. 0부터 2까지 |
+| Dot product | "Unnormalized cosine" | component-wise products의 합. cosine similarity에 두 magnitude를 곱한 것과 같음 |
+| Mahalanobis distance | "Correlation-aware distance" | data covariance matrix로 whitened(decorrelated and normalized)된 space에서의 L2 distance |
+| Jaccard similarity | "Set overlap" | intersection size를 union size로 나눈 값. vectors가 아니라 sets용 |
+| Edit distance | "Levenshtein distance" | 한 string을 다른 string으로 바꾸는 최소 insertions, deletions, substitutions |
+| KL divergence | "distributions 사이의 distance" | true distance가 아님(not symmetric). Q로 P를 encode할 때 생기는 extra bits를 측정 |
+| Wasserstein distance | "Earth mover's distance" | 한 distribution에서 다른 distribution으로 mass를 운반하는 최소 work. true metric |
+| Approximate nearest neighbor | "ANN search" | exact search보다 훨씬 빠르게 approximate closest points를 찾는 algorithms(HNSW, LSH, IVF) |
+| HNSW | "vector DB algorithm" | Hierarchical Navigable Small World graph. fast approximate nearest neighbor search를 위한 multi-layer graph |
+| L1 regularization | "Lasso" | weights의 L1 norm을 loss에 더함. weights를 0으로 몰아 sparsity 생성 |
+| L2 regularization | "Ridge" 또는 "weight decay" | weights의 squared L2 norm을 loss에 더함. sparsity 없이 weights를 0 쪽으로 shrink |
+| Elastic Net | "L1 + L2" | L1과 L2 regularization 결합. correlated feature groups를 더 잘 처리 |
 
-## Further Reading
+## 더 읽을거리
 
-- [FAISS: A Library for Efficient Similarity Search](https://github.com/facebookresearch/faiss) - Meta's library for billion-scale ANN search
-- [Wasserstein GAN (Arjovsky et al., 2017)](https://arxiv.org/abs/1701.07875) - the paper that introduced Earth Mover's distance to GANs
+- [FAISS: A Library for Efficient Similarity Search](https://github.com/facebookresearch/faiss) - billion-scale ANN search를 위한 Meta library
+- [Wasserstein GAN (Arjovsky et al., 2017)](https://arxiv.org/abs/1701.07875) - Earth Mover's distance를 GAN에 도입한 paper
 - [Locality-Sensitive Hashing (Indyk & Motwani, 1998)](https://dl.acm.org/doi/10.1145/276698.276876) - foundational ANN algorithm
-- [Efficient Estimation of Word Representations (Mikolov et al., 2013)](https://arxiv.org/abs/1301.3781) - Word2Vec, where cosine similarity became the default for embeddings
-- [sklearn.neighbors documentation](https://scikit-learn.org/stable/modules/neighbors.html) - practical guide to distance metrics and neighbor algorithms in scikit-learn
+- [Efficient Estimation of Word Representations (Mikolov et al., 2013)](https://arxiv.org/abs/1301.3781) - embeddings에서 cosine similarity가 기본이 된 Word2Vec paper
+- [sklearn.neighbors documentation](https://scikit-learn.org/stable/modules/neighbors.html) - scikit-learn의 distance metrics와 neighbor algorithms 실무 가이드

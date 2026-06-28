@@ -1,5 +1,5 @@
-# Phase 11: LLM Engineering
+# Phase 11: LLM 엔지니어링
 
-> Put LLMs to work in production applications.
+> LLM을 프로덕션 애플리케이션에서 실제로 작동하게 만듭니다.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 학습 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

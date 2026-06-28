@@ -1,6 +1,6 @@
 ---
 name: skill-pipeline-budget-planner
-description: Given target latency and throughput, assign a time budget to every pipeline stage and flag which stage will miss its budget first
+description: target latency와 throughput이 주어지면 모든 pipeline stage에 time budget을 배정하고 어떤 stage가 먼저 budget을 놓칠지 표시합니다
 version: 1.0.0
 phase: 4
 lesson: 16
@@ -9,23 +9,23 @@ tags: [vision, pipeline, performance, deployment]
 
 # Pipeline Budget Planner
 
-Turn a latency/throughput target into a stage-by-stage budget so every team member knows what number they are engineering toward.
+latency/throughput target을 stage별 budget으로 바꿔 모든 team member가 어떤 숫자를 목표로 engineering하는지 알게 합니다.
 
-## When to use
+## 사용할 때
 
-- Before building a new vision service, to set expectations for each stage.
-- After a first benchmark, to see which stage is farthest from its budget.
-- When an SLA changes and budgets need to be renegotiated.
+- 새 vision service를 만들기 전에 각 stage의 expectation을 정할 때.
+- 첫 benchmark 후 어떤 stage가 budget에서 가장 먼지 볼 때.
+- SLA가 바뀌어 budget을 다시 협상해야 할 때.
 
-## Inputs
+## 입력
 
-- `p95_latency_target_ms`: per-request budget.
-- `target_qps`: throughput per replica.
-- `stages`: list of `{ name: str, current_ms: float }`.
+- `p95_latency_target_ms`: request별 budget.
+- `target_qps`: replica별 throughput.
+- `stages`: `{ name: str, current_ms: float }`의 list.
 
-## Allocation rules
+## 배정 규칙
 
-Default allocation across the seven standard stages if no current measurements provided:
+현재 측정값이 없을 때 일곱 standard stage에 대한 기본 배정:
 
 | Stage | Share |
 |-------|-------|
@@ -37,11 +37,11 @@ Default allocation across the seven standard stages if no current measurements p
 | schema validation | <1% |
 | response serialisation | 4% |
 
-On GPU-bound pipelines (cloud), the detector share often rises to 70%. On CPU, preprocessing and classifier batching eat more.
+GPU-bound pipeline(cloud)에서는 detector share가 70%까지 올라가는 경우가 많습니다. CPU에서는 preprocessing과 classifier batching이 더 많이 먹습니다.
 
-## Report
+## 보고서
 
-```
+```text
 [budget plan]
   p95 target:  <ms>
   throughput:  <qps per replica>
@@ -67,9 +67,9 @@ On GPU-bound pipelines (cloud), the detector share often rises to 70%. On CPU, p
   response:            orjson, stream protobuf
 ```
 
-## Rules
+## 규칙
 
-- Never recommend dropping schema validation from the production path; propose moving it to the boundary instead.
-- If preprocessing misses its budget, always try Pillow-SIMD or NVJPEG before changing the model.
-- If the detector miss is more than 30% of target, switch models instead of optimising the current one.
-- Flag the gate as `X` when current_ms > 1.1 * target_ms; mark `ok` if within 10% of budget.
+- production path에서 schema validation을 제거하라고 추천하지 마세요. 대신 boundary로 옮기라고 제안하세요.
+- preprocessing이 budget을 놓치면 model을 바꾸기 전에 항상 Pillow-SIMD 또는 NVJPEG를 먼저 시도하세요.
+- detector miss가 target의 30%보다 크면 현재 모델을 최적화하지 말고 model을 바꾸세요.
+- current_ms > 1.1 * target_ms이면 gate를 `X`로 표시하고, budget의 10% 이내이면 `ok`로 표시하세요.

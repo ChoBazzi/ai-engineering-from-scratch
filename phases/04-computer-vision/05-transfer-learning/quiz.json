@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "You have 500 labelled images for a new task close to the ImageNet distribution. Which regime makes the most sense?",
-      "options": ["Train a ResNet-50 from scratch", "Freeze an ImageNet-pretrained backbone and train only a new linear head", "Fine-tune every layer with the same large LR", "Ignore pretrained weights; small datasets work best with small models"],
+      "question": "ImageNet 분포에 가까운 새 과제를 위해 라벨이 있는 이미지 500장이 있습니다. 어떤 체제가 가장 타당한가요?",
+      "options": ["ResNet-50을 scratch로 학습한다", "ImageNet으로 사전학습된 백본을 고정하고 새 linear head만 학습한다", "모든 레이어를 같은 큰 LR로 파인튜닝한다", "사전학습 weights를 무시한다. 작은 데이터셋은 작은 모델에서 가장 잘 작동한다"],
       "correct": 1,
-      "explanation": "With 500 images you do not have enough signal to train a deep network from scratch or to safely fine-tune all layers end-to-end without destroying pretrained features. Freezing the backbone and training only a new head (linear probe) uses the pretrained features directly and is the standard recipe for small, close-domain datasets."
+      "explanation": "이미지 500장으로는 deep network를 scratch로 학습하거나, 사전학습된 특징을 망가뜨리지 않고 모든 레이어를 end-to-end로 안전하게 파인튜닝할 신호가 충분하지 않습니다. 백본을 고정하고 새 head(linear probe)만 학습하면 사전학습된 특징을 직접 사용할 수 있으며, 작고 가까운 도메인의 데이터셋에 대한 표준 레시피입니다."
     },
     {
       "stage": "pre",
-      "question": "Why do early conv layers of an ImageNet-pretrained network transfer well to medical images even though ImageNet contains no X-rays?",
-      "options": ["PyTorch re-initialises early layers automatically", "Early layers encode generic visual primitives — edges, orientations, contrast — that are shared across almost any visual domain; only late layers specialise to ImageNet categories", "ImageNet secretly contains medical data", "Transfer only works when domains match"],
+      "question": "ImageNet에는 X-ray가 없는데도 ImageNet으로 사전학습된 네트워크의 초기 conv layer가 의료 이미지에 잘 전이되는 이유는 무엇인가요?",
+      "options": ["PyTorch가 초기 레이어를 자동으로 다시 초기화하기 때문이다", "초기 레이어는 거의 모든 시각 도메인에서 공유되는 일반 시각 원시 요소, 즉 에지, 방향, 대비를 인코딩하고, 후기 레이어만 ImageNet 범주에 특화되기 때문이다", "ImageNet에는 사실 의료 데이터가 숨어 있기 때문이다", "전이는 도메인이 일치할 때만 작동하기 때문이다"],
       "correct": 1,
-      "explanation": "Gabor-like filters and simple texture detectors are the features early CNN layers learn on any natural-image corpus. They reflect the statistics of light, shadow, and edges that hold across photography, medical imaging, microscopy, and satellite data. Late layers progressively specialise, which is why fine-tuning focuses on the last few blocks."
+      "explanation": "Gabor 비슷한 필터와 단순 텍스처 detector는 초기 CNN 레이어가 어떤 자연 이미지 말뭉치에서도 학습하는 특징입니다. 그것들은 사진, 의료 영상, 현미경, 위성 데이터에 걸쳐 유지되는 빛, 그림자, 에지의 통계를 반영합니다. 후기 레이어는 점점 더 특화되므로 파인튜닝은 마지막 몇 블록에 집중합니다."
     },
     {
       "stage": "post",
-      "question": "When fine-tuning end-to-end with discriminative learning rates, why should early layers get a smaller LR than late layers?",
-      "options": ["Early layers have fewer parameters", "Early layers encode general features you want to preserve; late layers encode task-specific features that must move; a smaller LR on early layers prevents feature drift and catastrophic forgetting", "PyTorch requires layer-wise LR for correctness", "A smaller LR in the early layers speeds up training"],
+      "question": "판별적 학습률로 end-to-end 파인튜닝할 때 초기 레이어가 후기 레이어보다 작은 LR을 받아야 하는 이유는 무엇인가요?",
+      "options": ["초기 레이어는 parameter 수가 더 적기 때문이다", "초기 레이어는 보존하고 싶은 일반 특징을 인코딩하고, 후기 레이어는 움직여야 하는 과제별 특징을 인코딩한다. 초기 레이어의 작은 LR은 feature drift와 catastrophic forgetting을 막는다", "PyTorch가 정확성을 위해 layer-wise LR을 요구하기 때문이다", "초기 레이어의 작은 LR은 학습을 더 빠르게 만든다"],
       "correct": 1,
-      "explanation": "Early layers already encode the right visual primitives; you want tiny updates so those features are preserved. Late layers need to move toward the new task. One learning rate for the whole model forces a compromise that hurts both ends. Discriminative LRs let each stage move at its own pace, which is the empirical sweet spot for fine-tuning."
+      "explanation": "초기 레이어는 이미 적절한 시각 원시 요소를 인코딩합니다. 이 특징을 보존하려면 업데이트가 아주 작아야 합니다. 후기 레이어는 새 과제 쪽으로 움직여야 합니다. 모델 전체에 하나의 학습률을 쓰면 양쪽 모두에 해로운 절충이 강제됩니다. Discriminative LR은 각 stage가 자기 속도로 움직이게 하며, 이것이 파인튜닝의 경험적 sweet spot입니다."
     },
     {
       "stage": "post",
-      "question": "You fine-tune a ResNet on a 10-class medical dataset of 800 grayscale images (replicated to 3 channels). Accuracy is 10% (random chance for 10 classes). What is the most likely cause?",
-      "options": ["You used the wrong loss function", "BatchNorm running statistics are from ImageNet RGB photos and badly mismatch the grayscale-medical distribution, so the first few BN layers produce noise that propagates forward", "ResNet cannot handle grayscale input", "800 images is simply too few for any transfer learning"],
+      "question": "10개 클래스의 의료 데이터셋에서 800장의 grayscale image를 3채널로 복제해 ResNet을 파인튜닝했습니다. 정확도는 10%(10개 클래스의 random chance)입니다. 가장 가능성이 높은 원인은 무엇인가요?",
+      "options": ["잘못된 loss function을 사용했다", "BatchNorm running statistics가 ImageNet RGB 사진에서 온 값이라 grayscale-medical 분포와 크게 맞지 않고, 첫 몇 BN layer가 앞으로 전파되는 noise를 만든다", "ResNet은 grayscale input을 처리할 수 없다", "전이 학습을 하기에는 800장이 무조건 너무 적다"],
       "correct": 1,
-      "explanation": "BatchNorm keeps running_mean and running_var from ImageNet. On a small, distribution-shifted dataset those buffers never adapt fast enough during a short fine-tune, and BN normalises activations with the wrong stats. Fixes: freeze BN statistics, switch to GroupNorm, or pretrain BN stats with a BN-only warmup pass on the target dataset."
+      "explanation": "BatchNorm은 ImageNet의 running_mean과 running_var를 유지합니다. 작고 분포가 이동한 데이터셋에서는 짧은 파인튜닝 동안 이 버퍼가 충분히 빨리 적응하지 못하며, BN은 잘못된 통계로 activation을 정규화합니다. 해결책은 BN statistics 고정, GroupNorm 전환, 또는 target dataset에서 BN-only warmup pass로 BN statistics를 먼저 학습하는 것입니다."
     },
     {
       "stage": "post",
-      "question": "You compare two runs: (a) linear probe on frozen ImageNet backbone, 82% accuracy; (b) end-to-end fine-tune, 78% accuracy. What should you conclude?",
-      "options": ["Fine-tuning is not helpful; ship the linear probe", "A fine-tune that ends below the linear probe is almost always a training bug — LR too high, BN mishandled, or scheduler/optimizer misconfigured; diagnose before concluding anything about transfer", "The dataset is too large", "Pretrained weights are bad"],
+      "question": "두 실행을 비교했습니다. (a) frozen ImageNet backbone의 linear probe가 82% 정확도, (b) end-to-end fine-tune이 78% 정확도입니다. 무엇을 결론 내려야 하나요?",
+      "options": ["파인튜닝은 도움이 되지 않으니 linear probe를 배포한다", "linear probe보다 낮게 끝나는 fine-tune은 거의 항상 training bug다. LR이 너무 높거나, BN을 잘못 처리했거나, scheduler/optimizer 설정이 틀렸을 수 있으므로 전이에 대한 결론을 내리기 전에 진단해야 한다", "데이터셋이 너무 크다", "Pretrained weights가 나쁘다"],
       "correct": 1,
-      "explanation": "Fine-tuning should always beat or match the linear probe, since the linear probe is a special case of fine-tuning with backbone LR = 0. If fine-tune is worse, the pipeline is actively destroying pretrained features. The fix is to lower backbone LR, apply discriminative LRs, or freeze BN — not to abandon fine-tuning."
+      "explanation": "linear probe는 backbone LR = 0인 파인튜닝의 특수한 경우이므로, 파인튜닝은 항상 linear probe를 이기거나 맞춰야 합니다. fine-tune이 더 나쁘다면 pipeline이 사전학습된 특징을 적극적으로 망가뜨리고 있는 것입니다. 해결책은 backbone LR을 낮추고, discriminative LR을 적용하거나, BN을 고정하는 것이지 파인튜닝을 포기하는 것이 아닙니다."
     }
   ]
 }

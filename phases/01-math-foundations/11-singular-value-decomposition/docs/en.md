@@ -1,42 +1,42 @@
-# Singular Value Decomposition
+# 특이값 분해
 
-> SVD is the Swiss Army knife of linear algebra. Every matrix has one. Every data scientist needs one.
+> SVD는 선형대수의 Swiss Army knife입니다. 모든 행렬은 SVD를 가집니다. 모든 data scientist는 SVD가 필요합니다.
 
 **Type:** Build
 **Languages:** Python, Julia
 **Prerequisites:** Phase 1, Lessons 01 (Linear Algebra Intuition), 02 (Vectors & Matrices Operations), 03 (Matrix Transformations)
 **Time:** ~120 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement SVD via power iteration and explain the geometric meaning of U, Sigma, and V^T
-- Apply truncated SVD for image compression and measure the compression ratio vs reconstruction error
-- Compute the Moore-Penrose pseudoinverse via SVD to solve overdetermined least-squares systems
-- Connect SVD to PCA, recommendation systems (latent factors), and Latent Semantic Analysis in NLP
+- power iteration으로 SVD를 구현하고 U, Sigma, V^T의 기하학적 의미 설명하기
+- image compression에 truncated SVD를 적용하고 compression ratio와 reconstruction error 측정하기
+- SVD로 Moore-Penrose pseudoinverse를 계산해 overdetermined least-squares system 풀기
+- SVD를 PCA, recommendation systems(latent factors), NLP의 Latent Semantic Analysis와 연결하기
 
-## The Problem
+## 문제
 
-You have a 1000x2000 matrix. Maybe it is user-movie ratings. Maybe it is a document-term frequency table. Maybe it is the pixel values of an image. You need to compress it, denoise it, find hidden structure in it, or solve a least-squares system with it. Eigendecomposition only works on square matrices. Even then, it requires the matrix to have a full set of linearly independent eigenvectors.
+1000x2000 행렬이 있습니다. user-movie ratings일 수도 있습니다. document-term frequency table일 수도 있습니다. 이미지의 pixel values일 수도 있습니다. 이 행렬을 압축하거나, denoise하거나, 숨은 구조를 찾거나, least-squares system을 풀어야 합니다. Eigendecomposition은 정사각 행렬에서만 작동합니다. 그 경우에도 행렬이 선형 독립 eigenvectors의 완전한 집합을 가져야 합니다.
 
-SVD works on any matrix. Any shape. Any rank. No conditions. It decomposes the matrix into three factors that reveal the geometry of what the matrix does to space. It is the most general and most useful factorization in all of linear algebra.
+SVD는 어떤 행렬에도 작동합니다. 어떤 shape든 됩니다. 어떤 rank든 됩니다. 조건이 없습니다. SVD는 행렬을 세 인자로 분해하여 그 행렬이 공간에 무엇을 하는지의 기하를 드러냅니다. 선형대수 전체에서 가장 일반적이고 가장 유용한 factorization입니다.
 
-## The Concept
+## 개념
 
-### What SVD does geometrically
+### SVD가 기하학적으로 하는 일
 
-Every matrix, regardless of shape, performs three operations in sequence: rotate, scale, rotate. SVD makes this decomposition explicit.
+모든 행렬은 shape와 무관하게 세 연산을 순서대로 수행합니다: rotate, scale, rotate. SVD는 이 분해를 명시적으로 만듭니다.
 
-```
+```text
 A = U * Sigma * V^T
 
       m x n     m x m    m x n    n x n
      (any)    (rotate)  (scale)  (rotate)
 ```
 
-Given any matrix A, SVD factors it into:
-- V^T rotates vectors in the input space (n-dimensional)
-- Sigma scales along each axis (stretches or compresses)
-- U rotates the result into the output space (m-dimensional)
+어떤 행렬 A가 주어지든 SVD는 이를 다음으로 분해합니다.
+- V^T는 input space(n-dimensional)의 vector를 회전합니다
+- Sigma는 각 axis를 따라 scale합니다(stretch 또는 compress)
+- U는 결과를 output space(m-dimensional)로 회전합니다
 
 ```mermaid
 graph LR
@@ -44,13 +44,13 @@ graph LR
     B -->|"U\n(rotate)"| C["Output space (m-dim)\nRotated to output\norientation"]
 ```
 
-Think of it this way. You hand SVD a matrix. It tells you: "This matrix takes a sphere of inputs, first rotates it by V^T, then stretches it into an ellipsoid by Sigma, then rotates the ellipsoid by U." The singular values are the lengths of the ellipsoid's axes.
+이렇게 생각하세요. SVD에 행렬을 건네면 SVD는 이렇게 말합니다. "이 행렬은 입력의 sphere를 먼저 V^T로 회전하고, Sigma로 ellipsoid로 늘린 다음, U로 그 ellipsoid를 회전합니다." singular values는 ellipsoid axis의 길이입니다.
 
-### The full decomposition
+### 전체 분해
 
-For a matrix A with shape m x n:
+shape가 m x n인 행렬 A에 대해:
 
-```
+```text
 A = U * Sigma * V^T
 
 where:
@@ -62,43 +62,43 @@ The singular values sigma_1 >= sigma_2 >= ... >= sigma_r > 0
 where r = rank(A)
 ```
 
-The columns of U are called left singular vectors. The columns of V are called right singular vectors. The diagonal entries of Sigma are called singular values. They are always non-negative and conventionally sorted in decreasing order.
+U의 columns를 left singular vectors라고 합니다. V의 columns를 right singular vectors라고 합니다. Sigma의 diagonal entries를 singular values라고 합니다. singular values는 항상 non-negative이며 관례적으로 decreasing order로 정렬됩니다.
 
-### Left singular vectors, singular values, right singular vectors
+### 왼쪽 특이벡터, 특이값, 오른쪽 특이벡터
 
-Each component of the SVD has a distinct geometric meaning.
+SVD의 각 component는 서로 다른 기하학적 의미를 가집니다.
 
-**Right singular vectors (columns of V):** These form an orthonormal basis for the input space (R^n). They are the directions in input space that the matrix maps to orthogonal directions in output space. Think of them as the natural coordinate system for the domain.
+**Right singular vectors (columns of V):** input space(R^n)의 orthonormal basis를 이룹니다. 행렬이 output space의 orthogonal directions로 보내는 input space의 방향입니다. domain의 자연스러운 coordinate system이라고 생각하세요.
 
-**Singular values (diagonal of Sigma):** These are the scaling factors. The i-th singular value tells you how much the matrix stretches vectors along the i-th right singular vector. A singular value of zero means the matrix crushes that direction entirely.
+**Singular values (diagonal of Sigma):** scaling factors입니다. i-th singular value는 행렬이 i-th right singular vector 방향의 vector를 얼마나 늘리는지 알려줍니다. singular value가 0이면 행렬이 그 방향을 완전히 눌러 없앤다는 뜻입니다.
 
-**Left singular vectors (columns of U):** These form an orthonormal basis for the output space (R^m). The i-th left singular vector is the direction in output space where the i-th right singular vector lands (after scaling).
+**Left singular vectors (columns of U):** output space(R^m)의 orthonormal basis를 이룹니다. i-th left singular vector는 i-th right singular vector가 scaling 후 도착하는 output space의 방향입니다.
 
-The relationship between them:
+둘 사이의 관계:
 
-```
+```text
 A * v_i = sigma_i * u_i
 
 The matrix A takes the i-th right singular vector v_i,
 scales it by sigma_i, and maps it to the i-th left singular vector u_i.
 ```
 
-This gives you a coordinate-by-coordinate picture of what any matrix does.
+이 관계는 어떤 행렬이 무엇을 하는지 coordinate별 그림을 제공합니다.
 
-### Outer product form
+### 외적 형태
 
-The SVD can be written as a sum of rank-1 matrices:
+SVD는 rank-1 matrices의 합으로 쓸 수 있습니다.
 
-```
+```text
 A = sigma_1 * u_1 * v_1^T + sigma_2 * u_2 * v_2^T + ... + sigma_r * u_r * v_r^T
 
 Each term sigma_i * u_i * v_i^T is a rank-1 matrix (an outer product).
 The full matrix is the sum of r such matrices, where r is the rank.
 ```
 
-This form is the foundation of low-rank approximation. Each term adds one layer of structure. The first term captures the single most important pattern. The second captures the next most important. And so on. Truncating this sum gives you the best possible approximation at any given rank.
+이 형태는 low-rank approximation의 기초입니다. 각 항은 구조의 한 layer를 더합니다. 첫 항은 가장 중요한 단일 패턴을 포착합니다. 두 번째 항은 그다음으로 중요한 패턴을 포착합니다. 이런 식으로 이어집니다. 이 합을 자르면 주어진 rank에서 가능한 최선의 approximation을 얻습니다.
 
-```
+```text
 Rank-1 approx:    A_1 = sigma_1 * u_1 * v_1^T
                   (captures the dominant pattern)
 
@@ -109,11 +109,11 @@ Rank-k approx:    A_k = sum of top k terms
                   (optimal by the Eckart-Young theorem)
 ```
 
-### Relationship to eigendecomposition
+### eigendecomposition과의 관계
 
-SVD and eigendecomposition are deeply connected. The singular values and vectors of A come directly from the eigenvalues and eigenvectors of A^T A and A A^T.
+SVD와 eigendecomposition은 깊게 연결되어 있습니다. A의 singular values와 vectors는 A^T A와 A A^T의 eigenvalues와 eigenvectors에서 직접 나옵니다.
 
-```
+```text
 A^T A = V * Sigma^T * U^T * U * Sigma * V^T
       = V * Sigma^T * Sigma * V^T
       = V * D * V^T
@@ -133,16 +133,16 @@ So:
 - The eigenvalues of A A^T are also sigma_i^2
 ```
 
-This connection tells you three things:
-1. Singular values are always real and non-negative (they are square roots of eigenvalues of a positive semi-definite matrix).
-2. You could compute SVD via eigendecomposition of A^T A, but this squares the condition number and loses numerical precision. Dedicated SVD algorithms avoid this.
-3. When A is square and symmetric positive semi-definite, SVD and eigendecomposition are the same thing.
+이 연결은 세 가지를 알려줍니다.
+1. Singular values는 항상 real이고 non-negative입니다(positive semi-definite matrix의 eigenvalues의 square root이기 때문).
+2. A^T A의 eigendecomposition으로 SVD를 계산할 수도 있지만, 이는 condition number를 제곱하고 수치 정밀도를 잃습니다. 전용 SVD algorithm은 이를 피합니다.
+3. A가 square이고 symmetric positive semi-definite이면 SVD와 eigendecomposition은 같은 것입니다.
 
-### Truncated SVD: low-rank approximation
+### Truncated SVD: 저랭크 근사
 
-The Eckart-Young-Mirsky theorem states that the best rank-k approximation to A (in both Frobenius and spectral norm) is obtained by keeping only the top k singular values and their corresponding vectors:
+Eckart-Young-Mirsky theorem은 A에 대한 최선의 rank-k approximation(Frobenius norm과 spectral norm 모두)이 상위 k개 singular values와 해당 vectors만 유지해 얻어진다고 말합니다.
 
-```
+```text
 A_k = U_k * Sigma_k * V_k^T
 
 where:
@@ -154,7 +154,7 @@ Approximation error = sigma_{k+1}  (in spectral norm)
                     = sqrt(sigma_{k+1}^2 + ... + sigma_r^2)  (in Frobenius norm)
 ```
 
-This is not just "a good" approximation. It is provably the best possible approximation of rank k. No other rank-k matrix is closer to A.
+이것은 단지 "좋은" approximation이 아닙니다. rank k에서 증명 가능한 최선의 approximation입니다. 어떤 다른 rank-k matrix도 A에 더 가깝지 않습니다.
 
 | Component | Relative magnitude | Kept in rank-3 approx? |
 |-----------|-------------------|------------------------|
@@ -167,15 +167,15 @@ This is not just "a good" approximation. It is provably the best possible approx
 | sigma_7 | Very small | No (error) |
 | sigma_8 | Tiny | No (error) |
 
-Keep top 3: A_3 captures the three largest singular values. Error = remaining values (sigma_4 through sigma_8).
+상위 3개를 유지하면 A_3가 세 개의 가장 큰 singular values를 포착합니다. Error = 남은 값(sigma_4부터 sigma_8까지)입니다.
 
-If singular values decay fast, a small k captures most of the matrix. If they decay slowly, the matrix has no low-rank structure.
+singular values가 빠르게 감소하면 작은 k가 행렬 대부분을 포착합니다. 천천히 감소하면 행렬에는 low-rank structure가 없습니다.
 
-### Image compression with SVD
+### SVD를 이용한 image compression
 
-A grayscale image is a matrix of pixel intensities. An 800x600 image has 480,000 values. SVD lets you approximate it with far fewer.
+grayscale image는 pixel intensity의 matrix입니다. 800x600 이미지는 480,000개의 값을 가집니다. SVD를 사용하면 훨씬 적은 값으로 근사할 수 있습니다.
 
-```
+```text
 Original image: 800 x 600 = 480,000 values
 
 SVD with rank k:
@@ -192,13 +192,13 @@ SVD with rank k:
   but visual quality degrades.
 ```
 
-The key insight: natural images have rapidly decaying singular values. The first few singular values capture the broad structure (shapes, gradients). The later ones capture fine detail and noise. Truncating at rank 50 often produces an image that looks nearly identical to the original while using 85% less storage.
+핵심 통찰: 자연 이미지는 singular values가 빠르게 감소합니다. 처음 몇 개 singular values는 큰 구조(shapes, gradients)를 포착합니다. 뒤쪽 값들은 fine detail과 noise를 포착합니다. rank 50으로 자르면 저장 공간을 85% 줄이면서도 원본과 거의 동일해 보이는 이미지를 자주 얻습니다.
 
-### SVD for recommendation systems
+### recommendation systems에서의 SVD
 
-The Netflix Prize made this famous. You have a user-movie ratings matrix where most entries are missing.
+Netflix Prize가 이를 유명하게 만들었습니다. 대부분의 entries가 누락된 user-movie ratings matrix가 있습니다.
 
-```
+```text
              Movie1  Movie2  Movie3  Movie4  Movie5
   User1      [  5      ?       3       ?       1  ]
   User2      [  ?      4       ?       2       ?  ]
@@ -208,22 +208,22 @@ The Netflix Prize made this famous. You have a user-movie ratings matrix where m
   ? = unknown rating
 ```
 
-The idea: this ratings matrix has low rank. Users do not have completely independent tastes. There are a handful of latent factors (action vs. drama, old vs. new, cerebral vs. visceral) that explain most preferences.
+아이디어는 이 ratings matrix가 low rank라는 것입니다. 사용자의 취향은 완전히 독립적이지 않습니다. action vs. drama, old vs. new, cerebral vs. visceral 같은 소수의 latent factors가 대부분의 preference를 설명합니다.
 
-SVD on the (filled-in) ratings matrix decomposes it into:
-- U: user profiles in latent factor space
-- Sigma: importance of each latent factor
-- V^T: movie profiles in latent factor space
+(filled-in) ratings matrix에 SVD를 적용하면 다음으로 분해됩니다.
+- U: latent factor space의 user profiles
+- Sigma: 각 latent factor의 중요도
+- V^T: latent factor space의 movie profiles
 
-A user's predicted rating for a movie is the dot product of their user profile with the movie's profile (weighted by singular values). The low-rank approximation fills in the missing entries.
+사용자의 영화 예측 평점은 user profile과 movie profile의 dot product입니다(singular values로 weighted). low-rank approximation이 누락 entries를 채웁니다.
 
-In practice, you use variants like Simon Funk's incremental SVD or ALS (alternating least squares) that handle missing data directly. But the core idea is the same: latent factor decomposition via SVD.
+실무에서는 누락 데이터를 직접 처리하는 Simon Funk의 incremental SVD나 ALS(alternating least squares) 같은 변형을 사용합니다. 하지만 핵심 아이디어는 같습니다. SVD를 통한 latent factor decomposition입니다.
 
-### SVD in NLP: Latent Semantic Analysis
+### NLP의 SVD: Latent Semantic Analysis
 
-Latent Semantic Analysis (LSA), also called Latent Semantic Indexing (LSI), applies SVD to a term-document matrix.
+Latent Semantic Analysis(LSA), 또는 Latent Semantic Indexing(LSI)은 term-document matrix에 SVD를 적용합니다.
 
-```
+```text
              Doc1   Doc2   Doc3   Doc4
   "cat"      [  3      0      1      0  ]
   "dog"      [  2      0      0      1  ]
@@ -243,13 +243,13 @@ After SVD with rank k=2:
   Doc1 and Doc3 cluster if they share similar topics.
 ```
 
-LSA was one of the first successful methods for capturing semantic similarity from raw text. It works because synonymous terms tend to appear in similar documents, so SVD groups them into the same latent dimensions. Modern word embeddings (Word2Vec, GloVe) can be seen as descendants of this idea.
+LSA는 raw text에서 semantic similarity를 포착한 초기 성공 방법 중 하나였습니다. 동의어는 비슷한 문서에 함께 나타나는 경향이 있으므로 SVD가 이를 같은 latent dimensions로 묶습니다. 현대 word embeddings(Word2Vec, GloVe)는 이 아이디어의 후손으로 볼 수 있습니다.
 
-### SVD for noise reduction
+### noise reduction을 위한 SVD
 
-Noisy data has signal concentrated in the top singular values and noise spread across all singular values. Truncating removes the noise floor.
+Noisy data는 상위 singular values에 signal이 집중되고 noise는 모든 singular values에 퍼집니다. truncation은 noise floor를 제거합니다.
 
-**Clean signal singular values:**
+**깨끗한 signal의 특이값:**
 
 | Component | Magnitude | Type |
 |-----------|-----------|------|
@@ -259,7 +259,7 @@ Noisy data has signal concentrated in the top singular values and noise spread a
 | sigma_4 | Near zero | Negligible |
 | sigma_5 | Near zero | Negligible |
 
-**Noisy signal singular values (noise adds to all):**
+**Noisy signal의 특이값(noise가 모두에 더해짐):**
 
 | Component | Magnitude | Type |
 |-----------|-----------|------|
@@ -279,13 +279,13 @@ graph TD
     C --> E["Reconstruct with A_k to get denoised version"]
 ```
 
-This is used in signal processing, scientific measurement, and data cleaning. Any time you have a matrix corrupted by additive noise, truncated SVD is a principled way to separate signal from noise.
+이는 signal processing, scientific measurement, data cleaning에서 사용됩니다. additive noise로 오염된 matrix가 있을 때 truncated SVD는 signal과 noise를 분리하는 원칙적인 방법입니다.
 
-### Pseudoinverse via SVD
+### SVD를 통한 pseudoinverse
 
-The Moore-Penrose pseudoinverse A+ generalizes matrix inversion to non-square and singular matrices. SVD makes computing it trivial.
+Moore-Penrose pseudoinverse A+는 matrix inversion을 non-square 및 singular matrix로 일반화합니다. SVD를 쓰면 계산이 간단해집니다.
 
-```
+```text
 If A = U * Sigma * V^T, then:
 
 A+ = V * Sigma+ * U^T
@@ -299,9 +299,9 @@ For A (m x n):      A+ is (n x m)
 For Sigma (m x n):  Sigma+ is (n x m)
 ```
 
-The pseudoinverse solves least-squares problems. If Ax = b has no exact solution (overdetermined system), then x = A+ b is the least-squares solution (minimizes ||Ax - b||).
+pseudoinverse는 least-squares problem을 풉니다. Ax = b에 정확한 해가 없으면(overdetermined system), x = A+ b가 least-squares solution입니다(||Ax - b||를 최소화).
 
-```
+```text
 Overdetermined system (more equations than unknowns):
 
   [1  1]         [3]
@@ -315,11 +315,11 @@ Overdetermined system (more equations than unknowns):
   but numerically more stable.
 ```
 
-### Numerical stability advantages
+### 수치 안정성의 장점
 
-Computing eigendecomposition of A^T A squares the singular values (eigenvalues of A^T A are sigma_i^2). This squares the condition number, amplifying numerical errors.
+A^T A의 eigendecomposition을 계산하면 singular values가 제곱됩니다(A^T A의 eigenvalues는 sigma_i^2). 이는 condition number를 제곱해 numerical errors를 증폭합니다.
 
-```
+```text
 Example:
   A has singular values [1000, 1, 0.001]
   Condition number of A: 1000 / 0.001 = 10^6
@@ -332,13 +332,13 @@ Example:
                            (6 extra digits of precision lost)
 ```
 
-Modern SVD algorithms (Golub-Kahan bidiagonalization) work directly on A, never forming A^T A. This is why you should always prefer `np.linalg.svd(A)` over `np.linalg.eig(A.T @ A)`.
+현대 SVD algorithm(Golub-Kahan bidiagonalization)은 A^T A를 만들지 않고 A에서 직접 작동합니다. 그래서 항상 `np.linalg.eig(A.T @ A)`보다 `np.linalg.svd(A)`를 선호해야 합니다.
 
-### Connection to PCA
+### PCA와의 연결
 
-PCA IS SVD on centered data. This is not an analogy. It is literally the same computation.
+PCA는 centered data에 대한 SVD입니다. 비유가 아닙니다. 말 그대로 같은 계산입니다.
 
-```
+```text
 Given data matrix X (n_samples x n_features), centered (mean subtracted):
 
 Covariance matrix: C = (1/(n-1)) * X^T X
@@ -358,17 +358,17 @@ In sklearn, PCA is implemented using SVD, not eigendecomposition.
 It is faster and more numerically stable.
 ```
 
-This means everything you learned about dimensionality reduction in Lesson 10 is SVD under the hood. PCA is the most common application of SVD in machine learning.
+즉 Lesson 10에서 배운 dimensionality reduction의 내부에는 SVD가 있습니다. PCA는 machine learning에서 SVD의 가장 흔한 응용입니다.
 
 ```figure
 svd-rank-reconstruction
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: SVD from scratch using power iteration
+### Step 1: power iteration으로 처음부터 SVD
 
-The idea: to find the largest singular value and its vectors, use power iteration on A^T A (or A A^T). Then deflate the matrix and repeat for the next singular value.
+아이디어: 가장 큰 singular value와 그 vector를 찾기 위해 A^T A(또는 A A^T)에 power iteration을 사용합니다. 그런 다음 matrix를 deflate하고 다음 singular value에 대해 반복합니다.
 
 ```python
 import numpy as np
@@ -419,7 +419,7 @@ def svd_from_scratch(A, k=None):
     return U, S, V
 ```
 
-### Step 2: Test and compare with NumPy
+### Step 2: NumPy와 테스트하고 비교하기
 
 ```python
 np.random.seed(42)
@@ -435,7 +435,7 @@ A_reconstructed = U_ours @ np.diag(S_ours) @ V_ours.T
 print(f"Reconstruction error: {np.linalg.norm(A - A_reconstructed):.8f}")
 ```
 
-### Step 3: Image compression demo
+### Step 3: Image compression demo(이미지 압축 데모)
 
 ```python
 def compress_image_svd(image_matrix, k):
@@ -456,7 +456,7 @@ for k in [1, 5, 10, 20, 50]:
     print(f"k={k:>3d}  error={error:.4f}  storage={ratio:.1%}")
 ```
 
-### Step 4: Noise reduction
+### Step 4: Noise reduction(노이즈 제거)
 
 ```python
 np.random.seed(42)
@@ -473,7 +473,7 @@ print(f"Denoised error: {np.linalg.norm(denoised - clean):.4f}")
 print(f"Improvement:    {(1 - np.linalg.norm(denoised - clean) / np.linalg.norm(noisy - clean)):.1%}")
 ```
 
-### Step 5: Pseudoinverse
+### Step 5: Pseudoinverse(의사역행렬)
 
 ```python
 A = np.array([[1, 1], [2, 1], [3, 1]], dtype=float)
@@ -492,59 +492,29 @@ print(f"np.linalg.lstsq solution:   {x_lstsq}")
 print(f"np.linalg.pinv solution:    {x_pinv}")
 ```
 
-## Use It
+## 사용하기
 
-Full working demos are in `code/svd.py`. Run it to see SVD applied to image compression, recommendation systems, latent semantic analysis, and noise reduction.
+전체 working demos는 `code/svd.py`에 있습니다. 실행하면 image compression, recommendation systems, latent semantic analysis, noise reduction에 SVD가 적용되는 모습을 볼 수 있습니다.
 
 ```bash
 python svd.py
 ```
 
-The Julia version in `code/svd.jl` demonstrates the same concepts using Julia's native `svd()` function and `LinearAlgebra` package.
+`code/svd.jl`의 Julia version은 Julia의 native `svd()` function과 `LinearAlgebra` package를 사용해 같은 개념을 보여줍니다.
 
 ```bash
 julia svd.jl
 ```
 
-## Ship It
+## 산출물
 
-This lesson produces:
-- `outputs/skill-svd.md` - a skill for knowing when and how to apply SVD in real projects
+이 lesson은 다음을 만듭니다.
+- `outputs/skill-svd.md` - 실제 프로젝트에서 언제 어떻게 SVD를 적용할지 알려주는 skill
 
-## Exercises
+## 연습문제
 
-1. Implement the full SVD from scratch without using power iteration. Instead, compute the eigendecomposition of A^T A to get V and the singular values, then compute U = A V Sigma^{-1}. Compare numerical accuracy with your power iteration version and with NumPy.
+1. power iteration을 쓰지 않고 full SVD를 처음부터 구현하세요. 대신 A^T A의 eigendecomposition을 계산해 V와 singular values를 얻은 뒤 U = A V Sigma^{-1}를 계산하세요. power iteration version 및 NumPy와 numerical accuracy를 비교하세요.
 
-2. Load a real grayscale image (or convert one to grayscale). Compress it at ranks 1, 5, 10, 25, 50, 100. For each rank, compute the compression ratio and the relative error. Find the rank where the image becomes visually acceptable.
+2. 실제 grayscale image를 불러오거나 하나를 grayscale로 변환하세요. rank 1, 5, 10, 25, 50, 100에서 압축하세요. 각 rank에 대해 compression ratio와 relative error를 계산하세요. 이미지가 시각적으로 받아들일 만해지는 rank를 찾으세요.
 
-3. Build a tiny recommendation system. Create a 10x8 user-movie ratings matrix with some known entries. Fill missing entries with row means. Compute SVD and reconstruct a rank-3 approximation. Use the reconstructed matrix to predict the missing ratings. Verify that the predictions are reasonable.
-
-4. Create a 100x50 document-term matrix with 3 synthetic topics. Each topic has 5 associated terms. Add noise. Apply SVD and verify that the top 3 singular values are much larger than the rest. Project documents into the 3D latent space and check that documents from the same topic cluster together.
-
-5. Generate a clean low-rank matrix (rank 3, size 50x40) and add Gaussian noise at different levels (sigma = 0.1, 0.5, 1.0, 2.0). For each noise level, find the optimal truncation rank by sweeping k from 1 to 40 and measuring reconstruction error against the clean matrix. Plot how the optimal k changes with noise level.
-
-## Key Terms
-
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| SVD | "Factor any matrix" | Decompose A into U Sigma V^T where U and V are orthogonal and Sigma is diagonal with non-negative entries. Works for any matrix of any shape. |
-| Singular value | "How important this component is" | The i-th diagonal entry of Sigma. Measures how much the matrix stretches along the i-th principal direction. Always non-negative, sorted in decreasing order. |
-| Left singular vector | "Output direction" | A column of U. The direction in output space that the i-th right singular vector maps to (after scaling by sigma_i). |
-| Right singular vector | "Input direction" | A column of V. The direction in input space that the matrix maps to the i-th left singular vector (after scaling by sigma_i). |
-| Truncated SVD | "Low-rank approximation" | Keep only the top k singular values and their vectors. Produces the provably best rank-k approximation to the original matrix (Eckart-Young theorem). |
-| Rank | "True dimensionality" | The number of non-zero singular values. Tells you how many independent directions the matrix actually uses. |
-| Pseudoinverse | "Generalized inverse" | V Sigma+ U^T. Inverts non-zero singular values, leaves zeros as zeros. Solves least-squares problems for non-square or singular matrices. |
-| Condition number | "How sensitive to errors" | sigma_max / sigma_min. A large condition number means small input changes cause large output changes. SVD reveals this directly. |
-| Latent factor | "Hidden variable" | A dimension in the low-rank space discovered by SVD. In recommendations, a latent factor might correspond to genre preference. In NLP, it might correspond to a topic. |
-| Frobenius norm | "Total matrix size" | Square root of the sum of squared entries. Equals the square root of the sum of squared singular values. Used to measure approximation error. |
-| Eckart-Young theorem | "SVD gives the best compression" | For any target rank k, the truncated SVD minimizes the approximation error over all possible rank-k matrices. |
-| Power iteration | "Find the biggest eigenvector" | Repeatedly multiply a random vector by the matrix and normalize. Converges to the eigenvector with the largest eigenvalue. The building block of many SVD algorithms. |
-
-## Further Reading
-
-- [Gilbert Strang: Linear Algebra and Its Applications, Chapter 7](https://math.mit.edu/~gs/linearalgebra/) - thorough treatment of SVD with applications
-- [3Blue1Brown: But what is the SVD?](https://www.youtube.com/watch?v=vSczTbgc8Rc) - geometric intuition for SVD
-- [We Recommend a Singular Value Decomposition](https://www.ams.org/publicoutreach/feature-column/fcarc-svd) - accessible overview from the American Mathematical Society
-- [Netflix Prize and Matrix Factorization](https://sifter.org/~simon/journal/20061211.html) - Simon Funk's original blog post on SVD for recommendations
-- [Latent Semantic Analysis](https://en.wikipedia.org/wiki/Latent_semantic_analysis) - the original NLP application of SVD
-- [Numerical Linear Algebra by Trefethen and Bau](https://people.maths.ox.ac.uk/trefethen/text.html) - the gold standard for understanding SVD algorithms and their numerical properties
+3. 작은 recommendation system을 만드세요. 일부 known entries를 가진 10x8 user-movie ratings matrix를 만드세요. 누락 entries를 row means로 채우세요. SVD를 계산하고 rank-3 approximation을 재구성하세요. 재구성된 matrix로 누락 평점을 예측하세요. 예측이 합리적인지 검증하세요.

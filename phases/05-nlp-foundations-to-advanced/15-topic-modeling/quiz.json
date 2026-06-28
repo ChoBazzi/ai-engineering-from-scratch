@@ -1,102 +1,102 @@
 {
   "lesson": "15-topic-modeling",
-  "title": "Topic Modeling — LDA and BERTopic",
+  "title": "토픽 모델링 — LDA와 BERTopic",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does LDA assume about each document?",
+      "question": "LDA는 각 document에 대해 무엇을 가정하나요?",
       "options": [
-        "Each document belongs to exactly one topic",
-        "Documents are sentences",
-        "Each document is a mixture of topics; each topic is a distribution over words",
-        "Documents are independent of topics"
+        "각 document는 정확히 하나의 topic에 속한다",
+        "Documents는 sentences이다",
+        "각 document는 topics의 혼합이고, 각 topic은 words 위의 distribution이다",
+        "Documents는 topics와 독립이다"
       ],
       "correct": 2,
-      "explanation": "LDA's generative story is mixed-membership: each doc has a topic distribution, each topic a word distribution."
+      "explanation": "LDA의 generative story는 mixed-membership입니다. 각 doc은 topic distribution을 갖고, 각 topic은 word distribution을 갖습니다."
     },
     {
       "stage": "pre",
-      "question": "What does BERTopic use to form topic clusters?",
+      "question": "BERTopic은 topic clusters를 만들 때 무엇을 사용하나요?",
       "options": [
-        "Direct softmax over the vocabulary",
-        "Encode docs with a sentence transformer, reduce dimensionality with UMAP, then cluster with HDBSCAN",
-        "Run BM25 followed by k-means",
-        "Train an LSTM end-to-end"
+        "vocabulary 위의 직접 softmax",
+        "sentence transformer로 docs를 encode하고, UMAP으로 dimensionality를 줄인 뒤, HDBSCAN으로 cluster를 만든다",
+        "BM25를 실행한 뒤 k-means를 수행한다",
+        "LSTM을 end-to-end로 train한다"
       ],
       "correct": 1,
-      "explanation": "BERTopic = embeddings + UMAP + HDBSCAN, with class-based TF-IDF for topic words."
+      "explanation": "BERTopic = embeddings + UMAP + HDBSCAN이며, topic words에는 class-based TF-IDF를 사용합니다."
     },
     {
       "stage": "check",
-      "question": "Why does scikit-learn's LDA expect raw counts (CountVectorizer), not TF-IDF?",
+      "question": "scikit-learn의 LDA는 왜 TF-IDF가 아니라 raw counts(CountVectorizer)를 기대하나요?",
       "options": [
-        "TF-IDF is too slow",
-        "LDA's probabilistic model is defined over integer term counts; TF-IDF distorts the underlying distribution",
-        "LDA cannot handle floats",
-        "Memory limits"
+        "TF-IDF가 너무 느리기 때문에",
+        "LDA의 probabilistic model은 integer term counts 위에 정의되며, TF-IDF는 underlying distribution을 왜곡하기 때문에",
+        "LDA는 floats를 처리할 수 없기 때문에",
+        "Memory limits 때문에"
       ],
       "correct": 1,
-      "explanation": "LDA likelihood assumes counts; feeding TF-IDF values violates the model assumption."
+      "explanation": "LDA likelihood는 counts를 가정합니다. TF-IDF 값을 넣으면 model assumption을 위반합니다."
     },
     {
       "stage": "check",
-      "question": "What does HDBSCAN's -1 label mean in a BERTopic output?",
+      "question": "BERTopic output에서 HDBSCAN의 -1 label은 무엇을 뜻하나요?",
       "options": [
-        "A reserved category",
-        "An outlier cluster of documents the density-based algorithm could not confidently assign",
+        "예약된 category",
+        "density-based algorithm이 확신 있게 할당하지 못한 documents의 outlier cluster",
         "Stopword cluster",
         "Top topic"
       ],
       "correct": 1,
-      "explanation": "HDBSCAN marks unclustered points with -1; in BERTopic these are documents that did not fit any topic."
+      "explanation": "HDBSCAN은 cluster에 속하지 않는 points를 -1로 표시합니다. BERTopic에서는 어떤 topic에도 맞지 않은 documents입니다."
     },
     {
       "stage": "check",
-      "question": "Which coherence metric is the common default for topic-model evaluation?",
+      "question": "topic-model evaluation에서 흔한 default coherence metric은 무엇인가요?",
       "options": [
         "BLEU",
         "Accuracy",
         "Perplexity only",
-        "c_v coherence via NPMI over sliding windows of top topic words"
+        "top topic words의 sliding windows 위 NPMI를 통한 c_v coherence"
       ],
       "correct": 3,
-      "explanation": "c_v coherence (Roder et al., 2015) is the canonical automatic topic-coherence metric."
+      "explanation": "c_v coherence(Roder et al., 2015)는 canonical automatic topic-coherence metric입니다."
     },
     {
       "stage": "post",
-      "question": "When is LDA usually a better fit than BERTopic?",
+      "question": "언제 LDA가 보통 BERTopic보다 더 잘 맞나요?",
       "options": [
-        "On short tweets",
-        "Long documents where mixed-membership topic distributions are useful and embeddings would truncate input",
-        "When embeddings are noisy",
-        "When you need a single topic per document"
+        "짧은 tweets에서",
+        "mixed-membership topic distributions가 유용하고 embeddings가 input을 truncate할 긴 documents에서",
+        "embeddings가 noisy할 때",
+        "document당 topic 하나가 필요할 때"
       ],
       "correct": 1,
-      "explanation": "Long documents benefit from LDA's mixed-membership model; BERT encoders truncate inputs."
+      "explanation": "긴 documents는 LDA의 mixed-membership model에서 이점을 얻습니다. BERT encoders는 inputs를 truncate합니다."
     },
     {
       "stage": "post",
-      "question": "Why does BERTopic typically win on short text (tweets, headlines)?",
+      "question": "BERTopic은 왜 보통 short text(tweets, headlines)에서 더 강한가요?",
       "options": [
-        "Short text has fewer topics",
-        "It is faster",
-        "Semantic similarity in embedding space captures meaning where bag-of-words counts are too sparse",
-        "It supports more languages"
+        "Short text에는 topics가 더 적기 때문에",
+        "더 빠르기 때문에",
+        "bag-of-words counts가 너무 sparse한 곳에서 embedding space의 semantic similarity가 의미를 포착하기 때문에",
+        "더 많은 languages를 지원하기 때문에"
       ],
       "correct": 2,
-      "explanation": "BERT embeddings provide semantic similarity for short text where word-overlap statistics fail."
+      "explanation": "BERT embeddings는 word-overlap statistics가 실패하는 short text에서 semantic similarity를 제공합니다."
     },
     {
       "stage": "post",
-      "question": "What is a common LDA failure mode for which you should monitor topics?",
+      "question": "topics를 monitor할 때 주의해야 할 흔한 LDA failure mode는 무엇인가요?",
       "options": [
-        "Document mixtures that sum to 1",
-        "Topics that match labeled categories perfectly",
-        "Junk topics that absorb stopwords or extremely frequent terms",
-        "Topics with too few documents"
+        "합이 1이 되는 document mixtures",
+        "labeled categories와 완벽히 일치하는 topics",
+        "stopwords나 극도로 frequent한 terms를 흡수하는 junk topics",
+        "documents가 너무 적은 topics"
       ],
       "correct": 2,
-      "explanation": "LDA can create junk topics that absorb stopwords; tighter min_df/max_df and stopword filtering mitigate."
+      "explanation": "LDA는 stopwords를 흡수하는 junk topics를 만들 수 있습니다. 더 엄격한 `min_df`/`max_df`와 stopword filtering으로 완화할 수 있습니다."
     }
   ]
 }

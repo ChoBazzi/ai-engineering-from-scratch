@@ -1,37 +1,37 @@
 [
   {
-    "question": "What are the two phases of LLM inference?",
-    "options": ["Training and evaluation", "Prefill (processes the prompt in parallel, compute-bound) and decode (generates tokens one at a time, memory-bound)", "Encoding and decoding", "Forward and backward"],
+    "question": "LLM inference의 두 단계는 무엇인가요?",
+    "options": ["training과 evaluation", "prefill(prompt를 병렬로 처리하며 compute-bound)과 decode(token을 하나씩 생성하며 memory-bound)", "encoding과 decoding", "forward와 backward"],
     "correct": 1,
-    "explanation": "Prefill processes all prompt tokens in parallel (limited by compute). Decode generates tokens autoregressively one at a time (limited by memory bandwidth for loading model weights). Different optimizations target each phase.",
+    "explanation": "prefill은 모든 prompt token을 병렬로 처리합니다(compute에 의해 제한). decode는 token을 autoregressive하게 하나씩 생성합니다(model weight load를 위한 memory bandwidth에 의해 제한). 서로 다른 optimization이 각 단계를 겨냥합니다.",
     "stage": "pre"
   },
   {
-    "question": "What does KV-cache eliminate during autoregressive generation?",
-    "options": ["The need for attention masks", "Redundant recomputation of key and value vectors for all previous tokens at each generation step", "The embedding lookup", "The softmax computation"],
+    "question": "KV-cache는 autoregressive generation 중 무엇을 제거하나요?",
+    "options": ["attention mask의 필요성", "각 generation step에서 모든 이전 token의 key와 value vector를 중복 재계산하는 일", "embedding lookup", "softmax computation"],
     "correct": 1,
-    "explanation": "Without KV-cache, generating token N requires recomputing attention keys and values for all N-1 previous tokens. KV-cache stores these vectors, so each new token only computes its own K and V, saving O(N) computation per step.",
+    "explanation": "KV-cache가 없으면 token N을 생성할 때 이전 N-1개 token의 attention key와 value를 다시 계산해야 합니다. KV-cache는 이 vector들을 저장하므로 새 token은 자기 자신의 K와 V만 계산해 step마다 O(N) computation을 절약합니다.",
     "stage": "pre"
   },
   {
-    "question": "What is continuous batching and why does it improve throughput?",
-    "options": ["Processing all requests in one large batch", "Dynamically adding and removing requests from the running batch as they start and finish, instead of waiting for the entire batch to complete", "Using larger batch sizes", "Batching across multiple models"],
+    "question": "continuous batching이란 무엇이며 왜 throughput을 높이나요?",
+    "options": ["모든 request를 하나의 큰 batch로 처리하는 것", "전체 batch가 끝나기를 기다리는 대신 request가 시작되고 끝날 때 실행 중인 batch에 동적으로 추가/제거하는 것", "더 큰 batch size를 사용하는 것", "여러 model에 걸쳐 batching하는 것"],
     "correct": 1,
-    "explanation": "In static batching, a short request holds its batch slot until the longest request finishes. Continuous batching immediately fills completed slots with new requests, keeping the GPU busy and improving overall throughput.",
+    "explanation": "static batching에서는 짧은 request도 가장 긴 request가 끝날 때까지 batch slot을 차지합니다. continuous batching은 완료된 slot을 즉시 새 request로 채워 GPU를 바쁘게 유지하고 전체 throughput을 높입니다.",
     "stage": "post"
   },
   {
-    "question": "What problem does PagedAttention (used in vLLM) solve?",
-    "options": ["It speeds up the attention computation", "It manages KV-cache memory in fixed-size blocks like virtual memory, eliminating fragmentation from variable-length sequences", "It reduces model size", "It improves tokenization speed"],
+    "question": "vLLM에서 쓰는 PagedAttention은 어떤 문제를 해결하나요?",
+    "options": ["attention computation 속도를 높인다", "KV-cache memory를 virtual memory처럼 fixed-size block으로 관리해 variable-length sequence에서 생기는 fragmentation을 제거한다", "model size를 줄인다", "tokenization speed를 높인다"],
     "correct": 1,
-    "explanation": "KV-cache for variable-length sequences causes memory fragmentation (wasted gaps between allocations). PagedAttention allocates KV-cache in fixed blocks and maps them with a page table, like OS virtual memory.",
+    "explanation": "variable-length sequence의 KV-cache는 memory fragmentation(allocation 사이의 낭비 공간)을 일으킵니다. PagedAttention은 OS virtual memory처럼 KV-cache를 fixed block에 할당하고 page table로 mapping합니다.",
     "stage": "post"
   },
   {
-    "question": "What is speculative decoding?",
-    "options": ["Generating multiple responses and picking the best", "Using a small draft model to propose multiple tokens that the large model verifies in parallel, speeding up generation", "Predicting which tokens the user wants", "Caching frequently generated sequences"],
+    "question": "speculative decoding이란 무엇인가요?",
+    "options": ["여러 응답을 생성한 뒤 최고를 고르는 것", "작은 draft model이 여러 token을 제안하고 큰 model이 이를 병렬로 검증해 generation을 빠르게 하는 것", "사용자가 원하는 token을 예측하는 것", "자주 생성되는 sequence를 caching하는 것"],
     "correct": 1,
-    "explanation": "A small fast model generates N candidate tokens. The large model verifies all N in a single forward pass (parallel). If K tokens are accepted, you've generated K tokens in the time of roughly 1 large-model step.",
+    "explanation": "작고 빠른 model이 N개의 candidate token을 생성합니다. 큰 model은 단일 forward pass에서 N개를 모두 병렬로 검증합니다. K개 token이 accept되면 큰 model step 약 1번의 시간으로 K개 token을 생성한 셈입니다.",
     "stage": "post"
   }
 ]

@@ -1,146 +1,146 @@
 ---
 name: skill-cost-patterns
-description: Decision framework for LLM cost optimization -- caching strategies, rate limiting, model routing, and budget controls
+description: LLM 비용 최적화를 위한 의사결정 프레임워크 -- 캐싱 전략, 레이트 리미팅, 모델 라우팅, 예산 제어
 version: 1.0.0
 phase: 11
 lesson: 11
 tags: [caching, cost-optimization, rate-limiting, model-routing, budget, llm-ops]
 ---
 
-# LLM Cost Optimization Patterns
+# LLM 비용 최적화 패턴
 
-When building an LLM application that needs to control costs, apply this decision framework.
+비용을 통제해야 하는 LLM 애플리케이션을 만들 때는 이 의사결정 프레임워크를 적용한다.
 
-## When to optimize
+## 언제 최적화할 것인가
 
-**Optimize immediately when:**
-- Monthly LLM spend exceeds $500 or 10% of infrastructure budget
-- Cost per query is above $0.01 for a consumer product
-- Your system prompt is over 1,000 tokens and sent with every request
-- More than 30% of queries are duplicates or near-duplicates
-- You are scaling from 100 to 10,000+ daily users
+**다음 상황에서는 즉시 최적화한다:**
+- 월간 LLM 지출이 $500 또는 인프라 예산의 10%를 넘는다
+- 소비자 제품에서 쿼리당 비용이 $0.01보다 높다
+- 시스템 프롬프트가 1,000토큰을 넘고 모든 요청마다 전송된다
+- 쿼리의 30% 이상이 중복이거나 거의 중복이다
+- 일일 사용자 100명에서 10,000명 이상으로 확장 중이다
 
-**Do not optimize yet when:**
-- You have fewer than 100 DAU and are still validating product-market fit
-- Monthly spend is under $100 and growing slowly
-- You are still iterating on prompt design (caching locks you into a prompt)
+**다음 상황에서는 아직 최적화하지 않는다:**
+- DAU가 100명 미만이고 아직 제품-시장 적합성을 검증 중이다
+- 월간 지출이 $100 미만이고 천천히 증가한다
+- 아직 프롬프트 설계를 반복 개선 중이다(캐싱은 특정 프롬프트에 묶이게 만든다)
 
-## Caching strategy selection
+## 캐싱 전략 선택
 
-### Exact caching
+### 정확 일치 캐싱
 
-**Use when:** temperature=0, identical prompts repeat, deterministic outputs needed.
+**사용할 때:** temperature=0이고, 동일한 프롬프트가 반복되며, 결정적 출력이 필요할 때.
 
 ```python
 key = sha256(json.dumps({"model": m, "messages": msgs, "temp": 0}))
 ```
 
-- Implementation: 30 minutes
-- Hit rate: 10-25% for most apps, 40-60% for FAQ bots
-- Latency: <1ms (dict lookup)
-- Risk: stale responses if underlying data changes
+- 구현: 30분
+- 히트율: 대부분의 앱에서 10-25%, FAQ 봇에서 40-60%
+- 지연 시간: <1ms(dict 조회)
+- 위험: 기반 데이터가 바뀌면 응답이 오래될 수 있음
 
-**Skip when:** temperature > 0, every query is unique, real-time data needed.
+**건너뛸 때:** temperature > 0이거나, 모든 쿼리가 고유하거나, 실시간 데이터가 필요할 때.
 
-### Semantic caching
+### 시맨틱 캐싱
 
-**Use when:** users ask the same question in different words, FAQ-heavy products, customer support.
+**사용할 때:** 사용자가 같은 질문을 다른 표현으로 묻거나, FAQ 비중이 큰 제품이거나, 고객 지원일 때.
 
-- Implementation: 2-4 hours (embedding + similarity + storage)
-- Hit rate: 15-35% on top of exact cache
-- Latency: 10-50ms (embedding + ANN search)
-- Risk: false positives (returning wrong cached answer for a similar but different question)
+- 구현: 2-4시간(임베딩 + 유사도 + 저장소)
+- 히트율: 정확 일치 캐시 위에 추가로 15-35%
+- 지연 시간: 10-50ms(임베딩 + ANN 검색)
+- 위험: 거짓 양성(비슷하지만 다른 질문에 잘못된 캐시 응답 반환)
 
-**Threshold guidelines:**
-- 0.98+: very conservative, almost no false positives, lower hit rate
-- 0.95: good balance for factual Q&A
-- 0.90: aggressive, higher hit rate but risk of wrong answers
-- 0.85: only for low-stakes applications (suggestions, autocomplete)
+**임계값 가이드라인:**
+- 0.98+: 매우 보수적, 거짓 양성이 거의 없음, 히트율은 낮음
+- 0.95: 사실 기반 Q&A에 좋은 균형
+- 0.90: 공격적, 히트율은 높지만 오답 위험이 있음
+- 0.85: 위험도가 낮은 애플리케이션(추천, 자동완성)에만 사용
 
-**Skip when:** every query has unique context (code generation), responses must reflect latest data, query space is unbounded.
+**건너뛸 때:** 모든 쿼리에 고유한 컨텍스트가 있거나(코드 생성), 응답이 최신 데이터를 반영해야 하거나, 쿼리 공간이 제한되지 않을 때.
 
-### Provider prompt caching
+### 제공자 프롬프트 캐싱
 
-**Use when:** system prompt > 1,024 tokens (OpenAI) or model-specific minimum, same prefix sent repeatedly.
+**사용할 때:** 시스템 프롬프트가 1,024토큰(OpenAI) 또는 모델별 최소 길이를 넘고, 같은 접두사가 반복 전송될 때.
 
-| Provider | Action | Savings |
+| 제공자 | 조치 | 절감 |
 |----------|--------|---------|
-| Anthropic | Add `cache_control: {"type": "ephemeral"}` to system message | 90% on cached prefix (after 25% write premium) |
-| OpenAI | Nothing (automatic) | 50% on cached prefix |
-| Google | Use Context Caching API with explicit TTL | ~75% on cached context |
+| Anthropic | 시스템 메시지에 `cache_control: {"type": "ephemeral"}` 추가 | 캐시된 접두사에서 90%(25% 쓰기 프리미엄 이후) |
+| OpenAI | 없음(자동) | 캐시된 접두사에서 50% |
+| Google | 명시적 TTL과 함께 Context Caching API 사용 | 캐시된 컨텍스트에서 약 75% |
 
-**Skip when:** system prompt changes per request, prompt is under minimum length.
+**건너뛸 때:** 시스템 프롬프트가 요청마다 바뀌거나 프롬프트가 최소 길이보다 짧을 때.
 
-## Model routing rules
+## 모델 라우팅 규칙
 
-### Keyword-based (simple, fast)
+### 키워드 기반(단순하고 빠름)
 
-```
+```text
 simple:  <= 5 words OR matches FAQ keywords -> gpt-4o-mini ($0.15/$0.60)
 medium:  general queries, summaries        -> claude-sonnet ($3/$15)
 complex: "analyze", "compare", "debug"     -> gpt-4o ($2.50/$10)
 ```
 
-- Implementation: 1 hour
-- Accuracy: 70-80%
-- Savings: 40-60% of model costs
+- 구현: 1시간
+- 정확도: 70-80%
+- 절감: 모델 비용의 40-60%
 
-### Embedding-based (more accurate)
+### 임베딩 기반(더 정확함)
 
-Embed 50-100 labeled queries per category. Classify new queries by nearest neighbor.
+카테고리마다 레이블이 있는 쿼리 50-100개를 임베딩한다. 새 쿼리는 최근접 이웃으로 분류한다.
 
-- Implementation: 4-8 hours
-- Accuracy: 85-92%
-- Savings: 50-70% of model costs
-- Additional cost: ~$0.02/1M tokens for classification embeddings (negligible)
+- 구현: 4-8시간
+- 정확도: 85-92%
+- 절감: 모델 비용의 50-70%
+- 추가 비용: 분류 임베딩에 약 $0.02/1M 토큰(무시할 만함)
 
-### ML-based (production grade)
+### ML 기반(프로덕션 등급)
 
-Train a small classifier (logistic regression or small BERT) on historical query/model pairs.
+과거 쿼리/모델 쌍으로 작은 분류기(로지스틱 회귀 또는 작은 BERT)를 학습한다.
 
-- Implementation: 1-2 weeks
-- Accuracy: 90-95%
-- Savings: 60-75% of model costs
-- Requires: labeled training data from production traffic
+- 구현: 1-2주
+- 정확도: 90-95%
+- 절감: 모델 비용의 60-75%
+- 필요: 프로덕션 트래픽에서 얻은 레이블 학습 데이터
 
-## Rate limiting configuration
+## 레이트 리미팅 설정
 
-### Token bucket parameters by tier
+### 티어별 토큰 버킷 매개변수
 
-| Tier | Bucket Size | Refill Rate | Max RPM | Daily Cap |
+| 티어 | 버킷 크기 | 리필 속도 | 최대 RPM | 일일 한도 |
 |------|-------------|-------------|---------|-----------|
-| Free | 50K tokens | 500/sec | 10 | 50K |
-| Pro | 500K tokens | 5K/sec | 60 | 500K |
-| Enterprise | 5M tokens | 50K/sec | 300 | 5M |
+| 무료 | 50K 토큰 | 500/초 | 10 | 50K |
+| 프로 | 500K 토큰 | 5K/초 | 60 | 500K |
+| 엔터프라이즈 | 5M 토큰 | 50K/초 | 300 | 5M |
 
-### Implementation checklist
+### 구현 체크리스트
 
-1. Store buckets in Redis (not in-memory) for multi-instance apps
-2. Use atomic operations (MULTI/EXEC) to prevent race conditions
-3. Return `Retry-After` header with rejection responses
-4. Track rejected requests as a metric (>5% rejection = tier limits too tight)
-5. Implement graceful degradation: reject expensive model requests first, keep cheap model access
+1. 다중 인스턴스 앱에서는 버킷을 인메모리가 아니라 Redis에 저장한다
+2. 경쟁 상태를 막기 위해 원자적 연산(MULTI/EXEC)을 사용한다
+3. 거부 응답에는 `Retry-After` 헤더를 반환한다
+4. 거부된 요청을 지표로 추적한다(거부율 >5% = 티어 제한이 너무 빡빡함)
+5. 점진적 성능 저하를 구현한다: 비싼 모델 요청을 먼저 거부하고 저렴한 모델 접근은 유지한다
 
-## Budget controls
+## 예산 제어
 
-### Three-threshold circuit breaker
+### 세 임계값 서킷 브레이커
 
-| Threshold | Action | Reversible |
+| 임계값 | 조치 | 되돌릴 수 있음 |
 |-----------|--------|------------|
-| 70% of monthly budget | Log warning, alert team via Slack/PagerDuty | Yes (auto) |
-| 85% of monthly budget | Route all traffic to cheapest model | Yes (auto, next billing cycle) |
-| 95% of monthly budget | Serve cached responses only, reject new LLM calls | Yes (manual reset or next cycle) |
+| 월간 예산의 70% | 경고를 기록하고 Slack/PagerDuty로 팀에 알림 | 예(자동) |
+| 월간 예산의 85% | 모든 트래픽을 가장 저렴한 모델로 라우팅 | 예(자동, 다음 청구 주기) |
+| 월간 예산의 95% | 캐시된 응답만 제공하고 새 LLM 호출은 거부 | 예(수동 리셋 또는 다음 주기) |
 
-### Per-user cost tracking
+### 사용자별 비용 추적
 
-Track cumulative cost per user. Flag users exceeding 10x the median. Common causes:
-- Legitimate power user (upgrade their tier)
-- Prompt injection loop (bot sending automated requests)
-- Inefficient integration (client retrying on every error)
+사용자별 누적 비용을 추적한다. 중앙값의 10배를 넘는 사용자를 표시한다. 흔한 원인:
+- 정상적인 파워 유저(티어를 업그레이드)
+- 프롬프트 인젝션 루프(봇이 자동 요청을 전송)
+- 비효율적인 통합(클라이언트가 모든 오류마다 재시도)
 
-## Cost tracking fields
+## 비용 추적 필드
 
-Log every API call with these fields:
+모든 API 호출에 다음 필드를 기록한다:
 
 ```json
 {
@@ -159,36 +159,36 @@ Log every API call with these fields:
 }
 ```
 
-### Key metrics to dashboard
+### 대시보드에 올릴 핵심 지표
 
-- **Cost per query** (P50, P95, P99) -- by model, by feature, by user tier
-- **Cache hit rate** -- exact vs semantic, trend over time
-- **Model distribution** -- % of traffic per model, cost per model
-- **Budget burn rate** -- current spend vs projected monthly at current rate
-- **Rejection rate** -- % of requests rate-limited, by tier
+- **쿼리당 비용**(P50, P95, P99) -- 모델별, 기능별, 사용자 티어별
+- **캐시 히트율** -- 정확 일치 대 시맨틱, 시간에 따른 추세
+- **모델 분포** -- 모델별 트래픽 비율, 모델별 비용
+- **예산 소진 속도** -- 현재 지출 대 현재 속도 기준 월간 예상 지출
+- **거부율** -- 레이트 리밋된 요청 비율, 티어별
 
-## Common mistakes
+## 흔한 실수
 
-| Mistake | Why it hurts | Fix |
+| 실수 | 문제가 되는 이유 | 해결 |
 |---------|-------------|-----|
-| Caching with temperature > 0 | Non-deterministic outputs, stale cache gives wrong variety | Only cache temp=0 calls, or accept that cached responses lose randomness |
-| Semantic cache threshold too low | Returns wrong answers for superficially similar queries | Start at 0.95, lower only after measuring false positive rate |
-| No cache invalidation | Responses go stale when underlying data changes | Set TTL (1 hour for dynamic data, 24 hours for static), invalidate on data updates |
-| Routing all traffic to cheapest model | Quality drops, users notice | Route by complexity, measure quality per tier, set minimum quality thresholds |
-| No per-user limits | One abusive user burns entire budget | Always implement per-user quotas, even if generous |
-| Ignoring output tokens | Output costs 2-5x more than input per token | Set max_tokens appropriately, use stop sequences, compress outputs |
-| Caching before prompt is stable | Cache fills with responses from old prompts | Only enable caching after prompt is finalized, flush cache on prompt changes |
+| temperature > 0에서 캐싱 | 출력이 결정적이지 않아 오래된 캐시가 잘못된 다양성을 제공함 | temp=0 호출만 캐시하거나, 캐시된 응답이 무작위성을 잃는다는 점을 수용 |
+| 시맨틱 캐시 임계값이 너무 낮음 | 겉으로 비슷한 쿼리에 잘못된 답을 반환함 | 0.95에서 시작하고 거짓 양성률을 측정한 뒤에만 낮춤 |
+| 캐시 무효화 없음 | 기반 데이터가 바뀌면 응답이 오래됨 | TTL 설정(동적 데이터는 1시간, 정적 데이터는 24시간), 데이터 업데이트 시 무효화 |
+| 모든 트래픽을 가장 저렴한 모델로 라우팅 | 품질이 떨어지고 사용자가 알아차림 | 복잡도별로 라우팅하고, 티어별 품질을 측정하며, 최소 품질 임계값 설정 |
+| 사용자별 제한 없음 | 악의적 사용자 한 명이 전체 예산을 태움 | 넉넉하더라도 항상 사용자별 할당량 구현 |
+| 출력 토큰 무시 | 출력은 토큰당 입력보다 2-5배 비쌈 | max_tokens를 적절히 설정하고, stop sequence를 사용하며, 출력을 압축 |
+| 프롬프트가 안정되기 전에 캐싱 | 캐시가 예전 프롬프트의 응답으로 채워짐 | 프롬프트가 확정된 뒤에만 캐싱을 켜고, 프롬프트 변경 시 캐시 비우기 |
 
-## Pricing reference (as of April 2026)
+## 가격 참고(2026년 4월 기준)
 
-| Model | Input ($/1M) | Output ($/1M) | Cached Input ($/1M) | Best For |
+| 모델 | 입력($/1M) | 출력($/1M) | 캐시된 입력($/1M) | 가장 적합한 용도 |
 |-------|-------------|--------------|--------------------|---------| 
-| gpt-4.1-nano | $0.10 | $0.40 | $0.025 | High-volume simple tasks |
-| gpt-4o-mini | $0.15 | $0.60 | $0.075 | Simple routing, classification |
-| gemini-2.5-flash | $0.15 | $0.60 | $0.0375 | Budget multimodal |
-| claude-haiku-3.5 | $0.80 | $4.00 | $0.08 | Fast mid-tier tasks |
-| o4-mini | $1.10 | $4.40 | $0.275 | Reasoning on a budget |
-| gemini-2.5-pro | $1.25 | $10.00 | $0.3125 | Long context, multimodal |
-| gpt-4o | $2.50 | $10.00 | $1.25 | General purpose, function calling |
-| claude-sonnet-4 | $3.00 | $15.00 | $0.30 | Balanced quality/cost |
-| claude-opus-4 | $15.00 | $75.00 | $1.50 | Maximum quality, complex reasoning |
+| gpt-4.1-nano | $0.10 | $0.40 | $0.025 | 대량의 단순 작업 |
+| gpt-4o-mini | $0.15 | $0.60 | $0.075 | 단순 라우팅, 분류 |
+| gemini-2.5-flash | $0.15 | $0.60 | $0.0375 | 예산 중심 멀티모달 |
+| claude-haiku-3.5 | $0.80 | $4.00 | $0.08 | 빠른 중간 티어 작업 |
+| o4-mini | $1.10 | $4.40 | $0.275 | 예산 안에서의 추론 |
+| gemini-2.5-pro | $1.25 | $10.00 | $0.3125 | 긴 컨텍스트, 멀티모달 |
+| gpt-4o | $2.50 | $10.00 | $1.25 | 범용, 함수 호출 |
+| claude-sonnet-4 | $3.00 | $15.00 | $0.30 | 품질/비용 균형 |
+| claude-opus-4 | $15.00 | $75.00 | $1.50 | 최고 품질, 복잡한 추론 |

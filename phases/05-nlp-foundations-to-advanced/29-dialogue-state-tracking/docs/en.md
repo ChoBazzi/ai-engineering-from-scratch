@@ -1,60 +1,60 @@
 # Dialogue State Tracking
 
-> "I want a cheap restaurant in the north... actually make it moderate... and add Italian." Three turns, three state updates. DST keeps the slot-value dict in sync so the booking works.
+> "북쪽에 있는 저렴한 식당을 원해요... 아니, 보통 가격대로 바꾸고... 이탈리아 음식도 추가해 주세요." 세 턴, 세 번의 state update입니다. DST는 예약이 제대로 동작하도록 slot-value dict를 동기화합니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 5 · 17 (Chatbots), Phase 5 · 20 (Structured Outputs)
-**Time:** ~75 minutes
+**Time:** ~75분
 
-## The Problem
+## 문제
 
-In a task-oriented dialogue system, the user's goal is encoded as a set of slot-value pairs: `{cuisine: italian, area: north, price: moderate}`. Every user turn can add, change, or remove a slot. The system must read the whole conversation and output the current state correctly.
+task-oriented dialogue system에서 사용자의 목표는 `{cuisine: italian, area: north, price: moderate}` 같은 slot-value 쌍의 집합으로 인코딩됩니다. 사용자의 모든 턴은 slot을 추가하거나, 변경하거나, 제거할 수 있습니다. 시스템은 전체 대화를 읽고 현재 state를 정확하게 출력해야 합니다.
 
-Get a single slot wrong and the system books the wrong restaurant, schedules the wrong flight, or charges the wrong card. DST is the hinge between what the user said and what the backend executes.
+slot 하나만 틀려도 시스템은 잘못된 식당을 예약하고, 잘못된 항공편을 잡거나, 잘못된 카드에 청구합니다. DST는 사용자가 말한 내용과 backend가 실행하는 작업 사이의 핵심 연결부입니다.
 
-Why it still matters in 2026 despite LLMs:
+LLM이 있는 2026년에도 이것이 여전히 중요한 이유:
 
-- Compliance-sensitive domains (banking, healthcare, airline booking) require deterministic slot values, not free-form generation.
-- Tool-use agents still need slot resolution before calling APIs.
-- Multi-turn correction is harder than it looks: "actually no, make it Thursday."
+- 규정 준수가 중요한 도메인(은행, 의료, 항공권 예약)은 free-form generation이 아니라 deterministic slot value를 요구합니다.
+- tool-use agent도 API를 호출하기 전에 slot resolution이 필요합니다.
+- Multi-turn correction은 보기보다 어렵습니다. "아니, 목요일로 해 주세요."
 
-The modern pipeline: classical DST concepts + LLM extractors + structured-output guardrails.
+현대적 pipeline은 classical DST concepts + LLM extractors + structured-output guardrails입니다.
 
-## The Concept
+## 개념
 
 ![DST: dialog history → slot-value state](../assets/dst.svg)
 
-**Task structure.** A schema defines domains (restaurant, hotel, taxi) and their slots (cuisine, area, price, people). Each slot can be empty, filled with a value from a closed set (price: {cheap, moderate, expensive}), or a free-form value (name: "The Copper Kettle").
+**Task structure.** schema는 domain(restaurant, hotel, taxi)과 그 slot(cuisine, area, price, people)을 정의합니다. 각 slot은 비어 있거나, closed set의 값(price: {cheap, moderate, expensive})으로 채워지거나, free-form value(name: "The Copper Kettle")가 될 수 있습니다.
 
-**Two DST formulations.**
+**두 가지 DST formulation.**
 
-- **Classification.** For each (slot, candidate_value) pair, predict yes/no. Works for closed-vocab slots. Standard pre-2020.
-- **Generation.** Given the dialogue, generate slot values as free text. Works for open-vocab slots. The modern default.
+- **Classification.** 각 (slot, candidate_value) 쌍마다 yes/no를 예측합니다. closed-vocab slot에 적합합니다. 2020년 이전의 표준 방식입니다.
+- **Generation.** dialogue가 주어지면 slot value를 free text로 생성합니다. open-vocab slot에 적합합니다. 현대의 기본 방식입니다.
 
-**Metric.** Joint Goal Accuracy (JGA) — the fraction of turns where *every* slot is correct. All-or-nothing. MultiWOZ 2.4 leaderboard tops around 83% in 2026.
+**Metric.** Joint Goal Accuracy (JGA)는 *모든* slot이 맞은 턴의 비율입니다. All-or-nothing입니다. MultiWOZ 2.4 leaderboard의 최상위 성능은 2026년 기준 약 83%입니다.
 
 **Architectures.**
 
-1. **Rule-based (slot regex + keyword).** Strong baseline for narrow domains. Debuggable.
-2. **TripPy / BERT-DST.** Copy-based generation with BERT encoding. Pre-LLM standard.
-3. **LDST (LLaMA + LoRA).** Instruction-tuned LLM with domain-slot prompting. Reaches ChatGPT-level quality on MultiWOZ 2.4.
-4. **Ontology-free (2024–26).** Skip the schema; generate slot names and values directly. Handles open domains.
-5. **Prompt + structured output (2024–26).** LLM with Pydantic schema + constrained decoding. 5 lines of code, production-ready.
+1. **Rule-based (slot regex + keyword).** 좁은 도메인에서 강력한 baseline입니다. Debugging이 쉽습니다.
+2. **TripPy / BERT-DST.** BERT encoding을 사용한 copy-based generation입니다. LLM 이전의 표준입니다.
+3. **LDST (LLaMA + LoRA).** domain-slot prompting을 사용하는 instruction-tuned LLM입니다. MultiWOZ 2.4에서 ChatGPT 수준의 품질에 도달합니다.
+4. **Ontology-free (2024–26).** schema를 건너뛰고 slot name과 value를 직접 생성합니다. open domain을 처리합니다.
+5. **Prompt + structured output (2024–26).** Pydantic schema + constrained decoding을 사용하는 LLM입니다. 5줄의 코드로 production-ready입니다.
 
-### The classic failure modes
+### 고전적인 failure mode
 
-- **Co-reference across turns.** "Let's stay with the first option." Needs to resolve which option.
-- **Over-write vs append.** User says "add Italian." Do you replace cuisine or append?
-- **Implicit confirmations.** "OK cool" — did that accept the offered booking?
-- **Correction.** "Actually make it 7 pm." Must update time without clearing other slots.
-- **Coreference to previous system utterance.** "Yes, that one." Which "that"?
+- **Co-reference across turns.** "첫 번째 옵션으로 할게요." 어느 옵션인지 해소해야 합니다.
+- **Over-write vs append.** 사용자가 "이탈리아 음식도 추가해 주세요"라고 말합니다. cuisine을 바꿔야 할까요, 추가해야 할까요?
+- **Implicit confirmations.** "좋아요"는 제안된 예약을 수락한 것일까요?
+- **Correction.** "아니, 오후 7시로 해 주세요." 다른 slot을 지우지 않고 time을 update해야 합니다.
+- **Coreference to previous system utterance.** "네, 그걸로요." 여기서 "그것"은 무엇일까요?
 
-## Build It
+## 직접 만들기
 
-### Step 1: rule-based slot extractor
+### 1단계: rule-based slot extractor
 
-See `code/main.py`. Regex + synonym dictionaries cover 70% of canonical utterances in narrow domains:
+`code/main.py`를 보세요. Regex + synonym dictionary는 좁은 도메인의 canonical utterance 중 70%를 처리합니다.
 
 ```python
 CUISINE_SYNONYMS = {
@@ -70,9 +70,9 @@ def extract_cuisine(utterance):
     return None
 ```
 
-Brittle outside the canonical vocabulary. Works for deterministic slot confirmations.
+canonical vocabulary 밖에서는 취약합니다. deterministic slot confirmation에는 잘 동작합니다.
 
-### Step 2: state update loop
+### 2단계: state update loop
 
 ```python
 def update_state(state, utterance):
@@ -87,13 +87,13 @@ def update_state(state, utterance):
     return new_state
 ```
 
-Three invariants:
+세 가지 invariant:
 
-- Never reset a slot the user did not touch.
-- Explicit negation ("never mind the cuisine") must clear.
-- User correction ("actually...") must overwrite, not append.
+- 사용자가 건드리지 않은 slot은 절대 reset하지 않습니다.
+- 명시적 negation("cuisine은 신경 쓰지 마세요")은 반드시 clear해야 합니다.
+- 사용자 correction("actually...")은 append가 아니라 overwrite해야 합니다.
 
-### Step 3: LLM-driven DST with structured output
+### 3단계: structured output을 사용하는 LLM-driven DST
 
 ```python
 from pydantic import BaseModel
@@ -117,9 +117,9 @@ Update the state based on the latest user turn. Output only the JSON state."""
     return llm(prompt, response_model=RestaurantState)
 ```
 
-Instructor + Pydantic guarantees a valid state object. No regex, no schema mismatches, no hallucinated slots.
+Instructor + Pydantic은 유효한 state object를 보장합니다. Regex도, schema mismatch도, hallucinated slot도 없습니다.
 
-### Step 4: JGA evaluation
+### 4단계: JGA evaluation
 
 ```python
 def joint_goal_accuracy(predicted_states, gold_states):
@@ -127,9 +127,9 @@ def joint_goal_accuracy(predicted_states, gold_states):
     return correct / len(predicted_states)
 ```
 
-Calibrate: what fraction of turns does the system get ALL slots right? For MultiWOZ 2.4, top 2026 systems: 80-83%. Your in-domain system should exceed that on your narrow vocabulary or the LLM baseline beats you.
+calibrate할 질문은 이것입니다. 시스템이 전체 slot을 모두 맞히는 턴의 비율은 얼마인가요? MultiWOZ 2.4에서 2026년 최상위 시스템은 80-83%입니다. 좁은 vocabulary의 in-domain system은 이보다 높아야 합니다. 그렇지 않으면 LLM baseline이 이깁니다.
 
-### Step 5: handling correction
+### 5단계: correction 처리
 
 ```python
 CORRECTION_CUES = {"actually", "no wait", "on second thought", "change that to"}
@@ -139,76 +139,76 @@ def is_correction(utterance):
     return any(cue in utterance.lower() for cue in CORRECTION_CUES)
 ```
 
-On a detected correction, overwrite the last-updated slot rather than appending. Hard to get right without LLM help. The modern pattern: always let the LLM regenerate the whole state from history rather than incrementally updating — this naturally handles corrections.
+correction이 감지되면 append하지 말고 마지막으로 update된 slot을 overwrite합니다. LLM의 도움 없이 제대로 처리하기 어렵습니다. 현대적 패턴은 incremental update 대신 항상 LLM이 history에서 전체 state를 다시 생성하게 하는 것입니다. 그러면 correction이 자연스럽게 처리됩니다.
 
 ## Pitfalls
 
-- **Full-history regeneration cost.** Letting the LLM regenerate state each turn costs O(n²) total tokens. Cap history or summarize older turns.
-- **Schema drift.** Adding new slots post-hoc breaks old training data. Version your schema.
-- **Case sensitivity.** "Italian" vs "italian" vs "ITALIAN" — normalize everywhere.
-- **Implicit inheritance.** If the user has previously specified "for 4 people," a new request for a different time should not clear people. Always pass the full history.
-- **Free-form vs closed-set.** Names, times, and addresses need free-form slots; cuisines and areas are closed. Mix both in the schema.
+- **Full-history regeneration cost.** LLM이 매 턴 state를 다시 생성하게 하면 전체 token 비용이 O(n²)입니다. history를 제한하거나 오래된 턴을 summarize하세요.
+- **Schema drift.** 나중에 새 slot을 추가하면 오래된 training data가 깨집니다. schema를 version 관리하세요.
+- **Case sensitivity.** "Italian" vs "italian" vs "ITALIAN" — 모든 곳에서 normalize하세요.
+- **Implicit inheritance.** 사용자가 이전에 "4명"이라고 지정했다면, 다른 시간으로 새 요청을 해도 people을 clear하면 안 됩니다. 항상 full history를 전달하세요.
+- **Free-form vs closed-set.** 이름, 시간, 주소에는 free-form slot이 필요하고 cuisine과 area는 closed set입니다. schema 안에서 둘을 섞으세요.
 
-## Use It
+## 사용하기
 
-The 2026 stack:
+2026년 stack:
 
 | Situation | Approach |
 |-----------|----------|
-| Narrow domain (one or two intents) | Rule-based + regex |
-| Broad domain, labeled data available | LDST (LLaMA + LoRA on MultiWOZ-style data) |
-| Broad domain, no labels, prod-ready | LLM + Instructor + Pydantic schema |
+| 좁은 도메인(하나 또는 두 개의 intent) | Rule-based + regex |
+| 넓은 도메인, labeled data 있음 | LDST (MultiWOZ-style data에서 LLaMA + LoRA) |
+| 넓은 도메인, label 없음, prod-ready 필요 | LLM + Instructor + Pydantic schema |
 | Spoken / voice | ASR + normalizer + LLM-DST |
-| Multi-domain booking flow | Schema-guided LLM with per-domain Pydantic models |
-| Compliance-sensitive | Rule-based primary, LLM fallback with confirmation flow |
+| Multi-domain booking flow | domain별 Pydantic model을 사용하는 schema-guided LLM |
+| 규정 준수가 중요한 경우 | Rule-based primary, confirmation flow를 포함한 LLM fallback |
 
-## Ship It
+## 출시하기
 
-Save as `outputs/skill-dst-designer.md`:
+`outputs/skill-dst-designer.md`로 저장하세요.
 
 ```markdown
 ---
 name: dst-designer
-description: Design a dialogue state tracker — schema, extractor, update policy, evaluation.
+description: dialogue state tracker를 설계합니다 — schema, extractor, update policy, evaluation.
 version: 1.0.0
 phase: 5
 lesson: 29
 tags: [nlp, dialogue, task-oriented]
 ---
 
-Given a use case (domain, languages, vocab openness, compliance needs), output:
+use case(domain, languages, vocab openness, compliance needs)가 주어지면 다음을 출력하세요.
 
-1. Schema. Domain list, slots per domain, open vs closed vocabulary per slot.
-2. Extractor. Rule-based / seq2seq / LLM-with-Pydantic. Reason.
+1. Schema. domain list, domain별 slot, slot별 open vs closed vocabulary.
+2. Extractor. Rule-based / seq2seq / LLM-with-Pydantic. 이유.
 3. Update policy. Regenerate-whole-state / incremental; correction handling; negation handling.
-4. Evaluation. Joint Goal Accuracy on a held-out dialogue set, slot-level precision/recall, confusion on the hardest slot.
-5. Confirmation flow. When to explicitly ask the user to confirm (destructive actions, low-confidence extractions).
+4. Evaluation. held-out dialogue set에서 Joint Goal Accuracy, slot-level precision/recall, 가장 어려운 slot의 confusion.
+5. Confirmation flow. 언제 사용자에게 명시적으로 confirm을 요청할지(destructive actions, low-confidence extractions).
 
-Refuse LLM-only DST for compliance-sensitive slots without a rule-based secondary check. Refuse any DST that cannot roll back a slot on user correction. Flag schemas without version tags.
+rule-based secondary check가 없는 compliance-sensitive slot의 LLM-only DST는 거부하세요. user correction에서 slot을 roll back할 수 없는 DST는 거부하세요. version tag가 없는 schema를 flag하세요.
 ```
 
-## Exercises
+## 연습문제
 
-1. **Easy.** Build the rule-based state tracker in `code/main.py` for 3 slots (cuisine, area, price). Test on 10 hand-crafted dialogues. Measure JGA.
-2. **Medium.** Same dataset with Instructor + Pydantic + a small LLM. Compare JGA. Inspect the hardest turns.
-3. **Hard.** Implement both and route: rule-based primary, LLM fallback when rule-based emits <2 slots with confidence. Measure the combined JGA and inference cost per turn.
+1. **Easy.** `code/main.py`에서 3개 slot(cuisine, area, price)에 대한 rule-based state tracker를 만드세요. 손으로 만든 dialogue 10개에서 test하세요. JGA를 측정하세요.
+2. **Medium.** 같은 dataset을 Instructor + Pydantic + small LLM으로 실행하세요. JGA를 비교하세요. 가장 어려운 턴을 inspect하세요.
+3. **Hard.** 둘 다 구현하고 route하세요. rule-based를 primary로 사용하고, rule-based가 confidence와 함께 <2개 slot을 emit하면 LLM fallback을 사용하세요. combined JGA와 턴당 inference cost를 측정하세요.
 
-## Key Terms
+## 핵심 용어
 
 | Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| DST | Dialogue state tracking | Maintain the slot-value dict across dialogue turns. |
-| Slot | Unit of user intent | Named parameter the backend needs (cuisine, date). |
-| Domain | The task area | Restaurant, hotel, taxi — sets of slots. |
-| JGA | Joint Goal Accuracy | Fraction of turns where every slot is correct. All-or-nothing. |
-| MultiWOZ | The benchmark | Multi-domain WOZ dataset; standard DST evaluation. |
-| Ontology-free DST | No schema | Generate slot names and values directly, no fixed list. |
-| Correction | "Actually..." | Turn that overwrites a previously-filled slot. |
+| DST | Dialogue state tracking | dialogue turn 전체에서 slot-value dict를 유지합니다. |
+| Slot | 사용자 intent의 단위 | backend가 필요로 하는 named parameter(cuisine, date). |
+| Domain | task area | Restaurant, hotel, taxi — slot의 집합입니다. |
+| JGA | Joint Goal Accuracy | 모든 slot이 맞은 턴의 비율입니다. All-or-nothing입니다. |
+| MultiWOZ | benchmark | Multi-domain WOZ dataset이며, 표준 DST evaluation입니다. |
+| Ontology-free DST | schema 없음 | 고정 list 없이 slot name과 value를 직접 생성합니다. |
+| Correction | "Actually..." | 이전에 채워진 slot을 overwrite하는 turn입니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Budzianowski et al. (2018). MultiWOZ — A Large-Scale Multi-Domain Wizard-of-Oz](https://arxiv.org/abs/1810.00278) — the canonical benchmark.
-- [Feng et al. (2023). Towards LLM-driven Dialogue State Tracking (LDST)](https://arxiv.org/abs/2310.14970) — LLaMA + LoRA instruction tuning for DST.
-- [Heck et al. (2020). TripPy — A Triple Copy Strategy for Value Independent Neural Dialog State Tracking](https://arxiv.org/abs/2005.02877) — the copy-based DST workhorse.
-- [King, Flanigan (2024). Unsupervised End-to-End Task-Oriented Dialogue with LLMs](https://arxiv.org/abs/2404.10753) — EM-based unsupervised TOD.
-- [MultiWOZ leaderboard](https://github.com/budzianowski/multiwoz) — canonical DST results.
+- [Budzianowski et al. (2018). MultiWOZ — A Large-Scale Multi-Domain Wizard-of-Oz](https://arxiv.org/abs/1810.00278) — canonical benchmark입니다.
+- [Feng et al. (2023). Towards LLM-driven Dialogue State Tracking (LDST)](https://arxiv.org/abs/2310.14970) — DST를 위한 LLaMA + LoRA instruction tuning입니다.
+- [Heck et al. (2020). TripPy — A Triple Copy Strategy for Value Independent Neural Dialog State Tracking](https://arxiv.org/abs/2005.02877) — copy-based DST workhorse입니다.
+- [King, Flanigan (2024). Unsupervised End-to-End Task-Oriented Dialogue with LLMs](https://arxiv.org/abs/2404.10753) — EM 기반 unsupervised TOD입니다.
+- [MultiWOZ leaderboard](https://github.com/budzianowski/multiwoz) — canonical DST results입니다.

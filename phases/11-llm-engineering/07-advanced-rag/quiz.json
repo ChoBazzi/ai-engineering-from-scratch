@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the limitation of basic top-k semantic search in RAG?",
-    "options": ["It's too slow", "It retrieves chunks that are semantically similar to the query but may not contain the actual answer, especially for ambiguous or multi-hop questions", "It can't handle large documents", "It requires GPU"],
+    "question": "RAG에서 기본 top-k semantic search의 한계는 무엇인가요?",
+    "options": ["너무 느립니다", "질의와 의미적으로 비슷한 청크를 검색하지만, 특히 모호하거나 multi-hop 질문에서는 실제 답을 포함하지 않을 수 있습니다", "큰 문서를 처리할 수 없습니다", "GPU가 필요합니다"],
     "correct": 1,
-    "explanation": "Basic semantic search matches surface-level meaning. 'What was revenue last quarter?' retrieves chunks about 'revenue strategy' (semantically similar) instead of the chunk saying '$47.2M in Q3 2025' (which uses 'earnings').",
+    "explanation": "기본 semantic search는 표면적 의미를 맞춥니다. '지난 분기 매출은 얼마였나요?'라는 질문은 '$47.2M in Q3 2025'라고 말하는 청크('earnings'라는 단어 사용) 대신 '매출 전략'에 관한 청크(의미적으로 비슷함)를 검색할 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is hybrid search in the context of RAG?",
-    "options": ["Using two different LLMs", "Combining BM25 keyword matching with semantic vector search to capture both exact terms and meaning-based relevance", "Searching across multiple databases", "Using both CPU and GPU for search"],
+    "question": "RAG 맥락에서 hybrid search란 무엇인가요?",
+    "options": ["서로 다른 LLM 두 개를 사용하는 것", "정확한 용어와 의미 기반 관련성을 모두 포착하기 위해 BM25 keyword matching과 semantic vector search를 결합하는 것", "여러 데이터베이스를 검색하는 것", "검색에 CPU와 GPU를 모두 사용하는 것"],
     "correct": 1,
-    "explanation": "BM25 catches exact keyword matches (e.g., '$47.2M' or 'Q3'). Semantic search catches meaning matches. Combining them with a reranker gives the best of both worlds: precision on specific terms plus recall on semantic variants.",
+    "explanation": "BM25는 '$47.2M'이나 'Q3' 같은 정확한 키워드 매치를 잡습니다. Semantic search는 의미 매치를 잡습니다. 이를 reranker와 결합하면 특정 용어에 대한 precision과 의미 변형에 대한 recall을 모두 얻을 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "What does a cross-encoder reranker do in an advanced RAG pipeline?",
-    "options": ["It generates the final answer", "It takes (query, document) pairs and scores their relevance with higher accuracy than embedding similarity, reordering the initial retrieval results", "It encodes documents into vectors", "It splits documents into chunks"],
+    "question": "advanced RAG 파이프라인에서 cross-encoder reranker는 무엇을 하나요?",
+    "options": ["최종 답변을 생성합니다", "(query, document) 쌍을 받아 embedding similarity보다 더 높은 정확도로 관련성을 점수화하고 초기 검색 결과를 재정렬합니다", "문서를 벡터로 인코딩합니다", "문서를 청크로 나눕니다"],
     "correct": 1,
-    "explanation": "Bi-encoder similarity (used for initial retrieval) is fast but approximate. A cross-encoder processes the full query-document pair together with cross-attention, giving much more accurate relevance scores for reranking the top candidates.",
+    "explanation": "초기 검색에 사용되는 bi-encoder similarity는 빠르지만 근사적입니다. Cross-encoder는 전체 query-document 쌍을 cross-attention으로 함께 처리해 상위 후보를 reranking하기 위한 훨씬 정확한 관련성 점수를 제공합니다.",
     "stage": "post"
   },
   {
-    "question": "What is the HyDE (Hypothetical Document Embedding) query transformation technique?",
-    "options": ["Hiding the query from the model", "Using the LLM to generate a hypothetical answer, then embedding that answer as the search query instead of the original question", "Encrypting the query for privacy", "Expanding abbreviations in the query"],
+    "question": "HyDE(Hypothetical Document Embedding) query transformation 기법은 무엇인가요?",
+    "options": ["질의를 모델에게 숨기는 것", "LLM으로 가상의 답변을 생성한 뒤 원래 질문 대신 그 답변을 검색 질의로 임베딩하는 것", "프라이버시를 위해 질의를 암호화하는 것", "질의 안의 약어를 확장하는 것"],
     "correct": 1,
-    "explanation": "The original query 'What was Q3 revenue?' might not embed close to the answer chunk. HyDE asks the LLM to generate a hypothetical answer ('Q3 revenue was approximately...'), then uses that as the search query, which embeds closer to actual answer-containing chunks.",
+    "explanation": "원래 질의 'Q3 매출은 얼마였나요?'는 답변 청크와 가까이 임베딩되지 않을 수 있습니다. HyDE는 LLM에게 가상의 답변('Q3 revenue was approximately...')을 생성하게 한 뒤 이를 검색 질의로 사용해 실제 답을 포함한 청크에 더 가깝게 임베딩되도록 합니다.",
     "stage": "post"
   },
   {
-    "question": "Why does parent-child chunking improve RAG over flat chunking?",
-    "options": ["It's faster to index", "Small child chunks are used for precise retrieval, but the larger parent chunk is returned for context, preventing the 'lost context' problem", "It reduces the number of chunks", "It eliminates the need for embeddings"],
+    "question": "parent-child chunking이 flat chunking보다 RAG를 개선하는 이유는 무엇인가요?",
+    "options": ["색인이 더 빠릅니다", "작은 child chunk는 정밀한 검색에 사용하고 더 큰 parent chunk는 컨텍스트로 반환해 'lost context' 문제를 막습니다", "청크 수를 줄입니다", "임베딩이 필요 없어집니다"],
     "correct": 1,
-    "explanation": "Small chunks (200 tokens) embed precisely but lack context. Large chunks (2000 tokens) have context but embed imprecisely. Parent-child uses small chunks for search accuracy but returns the parent chunk for generation context.",
+    "explanation": "작은 청크(200 tokens)는 정밀하게 임베딩되지만 컨텍스트가 부족합니다. 큰 청크(2000 tokens)는 컨텍스트는 있지만 임베딩이 부정확합니다. Parent-child는 검색 정확도를 위해 작은 청크를 사용하지만 생성 컨텍스트로는 parent chunk를 반환합니다.",
     "stage": "post"
   }
 ]

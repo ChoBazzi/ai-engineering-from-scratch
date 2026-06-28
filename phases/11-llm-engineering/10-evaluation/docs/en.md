@@ -1,37 +1,37 @@
-# Evaluation & Testing LLM Applications
+# LLM 애플리케이션 평가와 테스트
 
-> You would never deploy a web app without tests. You would never ship a database migration without a rollback plan. But right now, most teams ship LLM applications by reading 10 outputs and saying "yeah, looks good." That is not evaluation. That is hope. Hope is not an engineering practice. Every prompt change, every model swap, every temperature tweak changes your output distribution in ways you cannot predict by reading a handful of examples. Evaluation is the only thing standing between your application and silent degradation.
+> 테스트 없이 웹 앱을 배포하지는 않을 것이다. 롤백 계획 없이 데이터베이스 마이그레이션을 출시하지도 않을 것이다. 그런데 지금 대부분의 팀은 LLM 애플리케이션을 출시할 때 출력 10개를 읽고 "그래, 괜찮아 보인다"라고 말한다. 그것은 평가가 아니다. 희망일 뿐이다. 희망은 엔지니어링 관행이 아니다. 프롬프트 변경, 모델 교체, temperature 조정 하나하나가 출력 분포를 바꾸며, 몇 개 예시를 읽는 것만으로는 그 변화를 예측할 수 없다. 애플리케이션과 조용한 품질 저하 사이에 서 있는 유일한 것이 평가다.
 
 **Type:** Build
 **Languages:** Python
-**Prerequisites:** Phase 11 Lesson 01 (Prompt Engineering), Lesson 09 (Function Calling)
+**Prerequisites:** Phase 11 Lesson 01 (프롬프트 엔지니어링), Lesson 09 (함수 호출)
 **Time:** ~45 minutes
-**Related:** Phase 5 · 27 (LLM Evaluation — RAGAS, DeepEval, G-Eval) covers the framework-level concepts (NLI-based faithfulness, judge calibration, the RAG four). Phase 5 · 28 (Long-Context Evaluation) covers NIAH / RULER / LongBench / MRCR for context-length regression. This lesson focuses on what is LLM-engineering-specific: CI/CD integration, cost-gated eval runs, regression dashboards.
+**Related:** Phase 5 · 27(LLM 평가 — RAGAS, DeepEval, G-Eval)은 프레임워크 수준 개념(NLI 기반 충실성, judge 보정, RAG 네 가지 지표)을 다룬다. Phase 5 · 28(긴 컨텍스트 평가)은 컨텍스트 길이 회귀를 위한 NIAH / RULER / LongBench / MRCR을 다룬다. 이 수업은 LLM 엔지니어링에 특화된 CI/CD 통합, 비용 제한 eval 실행, 회귀 대시보드에 초점을 맞춘다.
 
-## Learning Objectives
+## 학습 목표
 
-- Build an evaluation dataset with input-output pairs, rubrics, and edge cases specific to your LLM application
-- Implement automated scoring using LLM-as-judge, regex matching, and deterministic assertion checks
-- Set up regression testing that detects quality degradation when prompts, models, or parameters change
-- Design evaluation metrics that capture what matters for your use case (correctness, tone, format compliance, latency)
+- LLM 애플리케이션에 특화된 입출력 쌍, 루브릭, 엣지 케이스로 평가 데이터셋을 구축한다
+- LLM-as-judge, 정규식 매칭, 결정적 assertion 검사를 사용해 자동 채점을 구현한다
+- 프롬프트, 모델, 파라미터가 바뀔 때 품질 저하를 감지하는 회귀 테스트를 설정한다
+- 사용 사례에 중요한 요소(정확성, 어조, 형식 준수, 지연 시간)를 포착하는 평가 지표를 설계한다
 
-## The Problem
+## 문제
 
-You build a RAG chatbot for customer support. It works great in your demos. You ship it. Two weeks later, someone changes the system prompt to reduce hallucinations. The change works -- hallucination rate drops. But answer completeness also drops 34% because the model now refuses to answer anything it is not 100% certain about.
+고객 지원용 RAG 챗봇을 만들었다. 데모에서는 훌륭하게 작동했다. 그래서 출시했다. 2주 뒤 누군가 환각을 줄이려고 시스템 프롬프트를 바꿨다. 변경은 효과가 있었다. 환각률은 내려갔다. 하지만 모델이 100% 확신하지 못하는 모든 질문에 답하기를 거부하면서 답변 완전성도 34% 떨어졌다.
 
-Nobody noticed for 11 days. Revenue from the self-service channel fell. Support tickets spiked.
+11일 동안 아무도 알아차리지 못했다. 셀프서비스 채널 매출은 감소했고 지원 티켓은 급증했다.
 
-This is the default outcome when you evaluate by vibes. You check a few examples, they look fine, you merge. But LLM outputs are stochastic. A prompt that works on 5 test cases can fail on the 6th. A model that scores 92% on your benchmarks can score 71% on the edge cases your users actually hit.
+감으로 평가하면 이것이 기본 결과다. 몇 가지 예시를 확인하고, 괜찮아 보이면 병합한다. 하지만 LLM 출력은 확률적이다. 테스트 케이스 5개에서 잘 작동하는 프롬프트가 6번째에서 실패할 수 있다. 벤치마크에서 92%를 기록한 모델이 실제 사용자가 마주치는 엣지 케이스에서는 71%를 기록할 수 있다.
 
-The fix is not "be more careful." The fix is automated evaluation that runs on every change, scores outputs against rubrics, computes confidence intervals, and blocks deployment when quality regresses.
+해결책은 "더 조심하기"가 아니다. 해결책은 모든 변경마다 실행되고, 출력을 루브릭에 따라 채점하며, 신뢰 구간을 계산하고, 품질이 회귀하면 배포를 차단하는 자동 평가다.
 
-Evaluation is not a nice-to-have. It is table stakes. Shipping without evals is deploying blind.
+평가는 있으면 좋은 장식이 아니다. 기본 요건이다. eval 없이 출시하는 것은 눈을 감고 배포하는 것이다.
 
-## The Concept
+## 개념
 
-### The Eval Taxonomy
+### Eval 분류 체계
 
-There are three categories of LLM evaluation. Each has a role. None is sufficient alone.
+LLM 평가는 세 범주로 나뉜다. 각각 역할이 있다. 어느 하나만으로는 충분하지 않다.
 
 ```mermaid
 graph TD
@@ -57,59 +57,59 @@ graph TD
     style H fill:#e8e8e8,stroke:#333
 ```
 
-**Automated metrics** compare output text against reference answers using algorithms. BLEU measures n-gram overlap (originally for machine translation). ROUGE measures recall of reference n-grams (originally for summarization). BERTScore uses BERT embeddings to measure semantic similarity. These are fast and cheap -- you can score 10,000 outputs in seconds. But they miss nuance. Two answers can have zero word overlap and both be correct. One answer can have high ROUGE and be completely wrong in context.
+**자동 지표**는 알고리즘으로 출력 텍스트를 참조 답변과 비교한다. BLEU는 n-gram 겹침을 측정한다(원래 기계 번역용). ROUGE는 참조 n-gram의 재현율을 측정한다(원래 요약용). BERTScore는 BERT 임베딩으로 의미 유사도를 측정한다. 빠르고 저렴해서 몇 초 안에 출력 10,000개를 채점할 수 있다. 하지만 뉘앙스를 놓친다. 두 답변이 단어를 하나도 공유하지 않아도 둘 다 정답일 수 있다. 어떤 답변은 ROUGE가 높아도 맥락상 완전히 틀릴 수 있다.
 
-**LLM-as-judge** uses a strong model (GPT-5, Claude Opus 4.7, Gemini 3 Pro) to grade outputs against a rubric. This captures semantic quality -- relevance, correctness, helpfulness, safety -- that string metrics miss. It costs money (~$8 per 1,000 judge calls with GPT-5-mini, ~$25 with Claude Opus 4.7) but correlates 82-88% with human judgment on well-designed rubrics — see Phase 5 · 27 for the calibration recipe.
+**LLM-as-judge**는 강력한 모델(GPT-5, Claude Opus 4.7, Gemini 3 Pro)을 사용해 루브릭에 따라 출력을 평가한다. 문자열 지표가 놓치는 의미 품질, 즉 관련성, 정확성, 유용성, 안전성을 포착한다. 비용은 든다(GPT-5-mini 기준 judge 호출 1,000회당 약 $8, Claude Opus 4.7 기준 약 $25). 하지만 잘 설계된 루브릭에서는 인간 판단과 82-88% 상관된다. 보정 방법은 Phase 5 · 27을 참고하라.
 
-**Human evaluation** is the gold standard but the slowest and most expensive. Reserve it for calibrating your automated evals, not for running on every commit.
+**인간 평가**는 표준 기준이지만 가장 느리고 비싸다. 모든 커밋마다 실행하는 용도가 아니라 자동 eval을 보정하는 용도로 남겨 둔다.
 
-| Method | Speed | Cost per 1K evals | Correlation with humans | Best for |
+| 방법 | 속도 | eval 1천 개당 비용 | 인간과의 상관 | 적합한 용도 |
 |--------|-------|-------------------|------------------------|----------|
-| BLEU/ROUGE | <1 sec | $0 | 40-60% | Translation, summarization baselines |
-| BERTScore | ~30 sec | $0 | 55-70% | Semantic similarity screening |
-| LLM-as-judge (GPT-5-mini) | ~3 min | ~$8 | 82-86% | Default CI judge; cheap, fast, calibrated |
-| LLM-as-judge (Claude Opus 4.7) | ~5 min | ~$25 | 85-88% | High-stakes scoring, safety, refusals |
-| LLM-as-judge (Gemini 3 Flash) | ~2 min | ~$3 | 80-84% | Highest-throughput judge; for 1M+ eval pass |
-| RAGAS (NLI faithfulness + judge) | ~5 min | ~$12 | 85% | RAG-specific metrics (see Phase 5 · 27) |
-| DeepEval (G-Eval + Pytest) | ~4 min | depends on judge | 80-88% | CI-native, per-PR regression gates |
-| Human expert | ~2 hours | ~$500 | 100% (by definition) | Calibration, edge cases, policy |
+| BLEU/ROUGE | <1 sec | $0 | 40-60% | 번역, 요약 기준선 |
+| BERTScore | ~30 sec | $0 | 55-70% | 의미 유사도 선별 |
+| LLM-as-judge (GPT-5-mini) | ~3 min | ~$8 | 82-86% | 기본 CI judge; 저렴하고 빠르며 보정 가능 |
+| LLM-as-judge (Claude Opus 4.7) | ~5 min | ~$25 | 85-88% | 고위험 채점, 안전성, 거부 응답 |
+| LLM-as-judge (Gemini 3 Flash) | ~2 min | ~$3 | 80-84% | 처리량이 가장 높은 judge; 100만 개 이상 eval 통과용 |
+| RAGAS (NLI 충실성 + judge) | ~5 min | ~$12 | 85% | RAG 전용 지표(Phase 5 · 27 참고) |
+| DeepEval (G-Eval + Pytest) | ~4 min | judge에 따라 다름 | 80-88% | CI 친화적, PR별 회귀 게이트 |
+| 인간 전문가 | ~2 hours | ~$500 | 100% (정의상) | 보정, 엣지 케이스, 정책 |
 
-### LLM-as-Judge: The Workhorse
+### LLM-as-Judge: 주력 도구
 
-This is the evaluation method you will use 90% of the time. The pattern is simple: give a strong model the input, the output, an optional reference answer, and a rubric. Ask it to score.
+대부분의 경우 사용할 평가 방법이다. 패턴은 단순하다. 강력한 모델에 입력, 출력, 선택적 참조 답변, 루브릭을 주고 채점하게 한다.
 
-Four criteria cover most use cases:
+대부분의 사용 사례는 네 가지 기준으로 다룰 수 있다.
 
-**Relevance** (1-5): Does the output address what was asked? A score of 1 means completely off-topic. A score of 5 means directly and specifically answers the question.
+**관련성** (1-5): 출력이 질문받은 내용을 다루는가? 1점은 완전히 주제에서 벗어났다는 뜻이다. 5점은 질문에 직접적이고 구체적으로 답한다는 뜻이다.
 
-**Correctness** (1-5): Is the information factually accurate? A score of 1 means contains major factual errors. A score of 5 means all claims are verifiable and accurate.
+**정확성** (1-5): 정보가 사실적으로 정확한가? 1점은 중대한 사실 오류가 있다는 뜻이다. 5점은 모든 주장이 검증 가능하고 정확하다는 뜻이다.
 
-**Helpfulness** (1-5): Would a user find this useful? A score of 1 means the response provides no value. A score of 5 means the user can immediately act on the information.
+**유용성** (1-5): 사용자가 이 답변을 유용하다고 느낄까? 1점은 응답이 아무 가치도 제공하지 않는다는 뜻이다. 5점은 사용자가 정보를 즉시 행동으로 옮길 수 있다는 뜻이다.
 
-**Safety** (1-5): Is the output free from harmful content, bias, or policy violations? A score of 1 means contains harmful or dangerous content. A score of 5 means completely safe and appropriate.
+**안전성** (1-5): 출력에 유해 콘텐츠, 편향, 정책 위반이 없는가? 1점은 유해하거나 위험한 콘텐츠가 있다는 뜻이다. 5점은 완전히 안전하고 적절하다는 뜻이다.
 
-### Rubric Design
+### 루브릭 설계
 
-Bad rubrics produce noisy scores. Good rubrics anchor each score to specific, observable behaviors.
+나쁜 루브릭은 노이즈가 많은 점수를 만든다. 좋은 루브릭은 각 점수를 구체적이고 관찰 가능한 행동에 고정한다.
 
-Bad rubric: "Rate from 1-5 how good the answer is."
+나쁜 루브릭: "답변이 얼마나 좋은지 1-5점으로 평가하라."
 
-Good rubric:
-- **5**: The answer is factually correct, directly addresses the question, includes specific details or examples, and provides actionable information.
-- **4**: The answer is factually correct and addresses the question but lacks specific detail or is slightly verbose.
-- **3**: The answer is mostly correct but contains a minor inaccuracy or partially misses the question's intent.
-- **2**: The answer contains significant factual errors or only tangentially relates to the question.
-- **1**: The answer is factually wrong, off-topic, or harmful.
+좋은 루브릭:
+- **5**: 답변이 사실적으로 정확하고, 질문에 직접 답하며, 구체적인 세부 사항이나 예시를 포함하고, 실행 가능한 정보를 제공한다.
+- **4**: 답변이 사실적으로 정확하고 질문을 다루지만, 구체적인 세부 사항이 부족하거나 약간 장황하다.
+- **3**: 답변이 대체로 정확하지만 사소한 부정확성이 있거나 질문 의도를 일부 놓친다.
+- **2**: 답변에 중대한 사실 오류가 있거나 질문과 간접적으로만 관련된다.
+- **1**: 답변이 사실적으로 틀렸거나, 주제에서 벗어났거나, 유해하다.
 
-Anchored descriptions reduce judge variance by 30-40% compared to unanchored scales.
+고정된 설명은 고정되지 않은 척도에 비해 judge 분산을 30-40% 줄인다.
 
-**Pairwise comparison** is an alternative: show the judge two outputs and ask which is better. This eliminates scale calibration issues -- the judge does not need to decide if something is a "3" or a "4." It just picks the winner. Useful for comparing two prompt versions head-to-head.
+**쌍대 비교**는 대안이다. judge에게 두 출력을 보여 주고 어느 쪽이 더 나은지 묻는다. 이렇게 하면 척도 보정 문제가 사라진다. judge는 어떤 것이 "3점"인지 "4점"인지 결정할 필요가 없다. 승자를 고르기만 하면 된다. 두 프롬프트 버전을 정면으로 비교할 때 유용하다.
 
-**Best-of-N** generates N outputs for each input and has the judge pick the best one. This measures the ceiling of your system. If best-of-5 consistently beats best-of-1, you might benefit from sampling multiple responses and selecting.
+**Best-of-N**은 각 입력에 대해 N개의 출력을 생성하고 judge가 가장 좋은 것을 고르게 한다. 이는 시스템의 상한을 측정한다. best-of-5가 best-of-1을 지속적으로 이긴다면 여러 응답을 샘플링한 뒤 선택하는 방식이 도움이 될 수 있다.
 
-### The Eval Pipeline
+### Eval 파이프라인
 
-Every evaluation follows the same 6-step pipeline.
+모든 평가는 같은 6단계 파이프라인을 따른다.
 
 ```mermaid
 flowchart LR
@@ -127,102 +127,102 @@ flowchart LR
     D -->|ship or block| P
 ```
 
-**Prompt**: Define your test cases. Each case has an input (user query + context) and optionally a reference answer.
+**프롬프트**: 테스트 케이스를 정의한다. 각 케이스에는 입력(사용자 질의 + 컨텍스트)과 선택적 참조 답변이 있다.
 
-**Run**: Execute the prompt against the model. Collect outputs. Run each test case 1-3 times if you want to measure variance.
+**실행**: 모델에 대해 프롬프트를 실행한다. 출력을 수집한다. 분산을 측정하려면 각 테스트 케이스를 1-3번 실행한다.
 
-**Collect**: Store inputs, outputs, and metadata (model, temperature, timestamp, prompt version).
+**수집**: 입력, 출력, 메타데이터(모델, temperature, 타임스탬프, 프롬프트 버전)를 저장한다.
 
-**Score**: Apply your evaluation method -- automated metrics, LLM-as-judge, or both.
+**채점**: 평가 방법을 적용한다. 자동 지표, LLM-as-judge, 또는 둘 다 사용할 수 있다.
 
-**Compare**: Compare scores against a baseline. The baseline is your last known-good version. Compute confidence intervals on the difference.
+**비교**: 점수를 기준선과 비교한다. 기준선은 마지막으로 확인된 정상 버전이다. 차이에 대한 신뢰 구간을 계산한다.
 
-**Decide**: If the new version is statistically significantly better (or not worse), ship it. If it regresses, block.
+**결정**: 새 버전이 통계적으로 유의하게 더 좋거나 나쁘지 않으면 출시한다. 회귀하면 차단한다.
 
-### Eval Datasets: The Foundation
+### Eval 데이터셋: 기반
 
-Your eval dataset is only as good as the cases in it. Three types of test cases matter:
+eval 데이터셋의 품질은 그 안에 들어 있는 케이스의 품질을 넘지 못한다. 중요한 테스트 케이스는 세 종류다.
 
-**Golden test set** (50-100 cases): Curated input-output pairs that represent your core use cases. These are your regression tests. Every prompt change must pass these.
+**골든 테스트 세트** (50-100개): 핵심 사용 사례를 대표하는 선별된 입출력 쌍이다. 이것이 회귀 테스트다. 모든 프롬프트 변경은 이 세트를 통과해야 한다.
 
-**Adversarial examples** (20-50 cases): Inputs designed to break your system. Prompt injections, edge cases, ambiguous queries, questions about topics outside your domain, requests for harmful content.
+**적대적 예시** (20-50개): 시스템을 깨뜨리도록 설계된 입력이다. 프롬프트 인젝션, 엣지 케이스, 모호한 질의, 도메인 밖 주제에 대한 질문, 유해 콘텐츠 요청이 포함된다.
 
-**Distribution samples** (100-200 cases): Random samples from real production traffic. These catch problems that curated tests miss because they reflect what users actually ask.
+**분포 샘플** (100-200개): 실제 프로덕션 트래픽에서 무작위로 뽑은 샘플이다. 사용자가 실제로 묻는 내용을 반영하므로 선별 테스트가 놓치는 문제를 잡는다.
 
-### Sample Size and Confidence
+### 샘플 크기와 신뢰도
 
-50 test cases is not enough.
+테스트 케이스 50개로는 충분하지 않다.
 
-If your eval scores 90% on 50 cases, the 95% confidence interval is [78%, 97%]. That is a 19-point spread. You cannot distinguish a system scoring 80% from one scoring 96%.
+50개 케이스에서 eval 점수가 90%라면 95% 신뢰 구간은 [78%, 97%]다. 19포인트 범위다. 80%를 기록한 시스템과 96%를 기록한 시스템을 구분할 수 없다.
 
-At 200 cases with 90% accuracy, the confidence interval tightens to [85%, 94%]. Now you can make decisions.
+200개 케이스에서 정확도가 90%라면 신뢰 구간은 [85%, 94%]로 좁아진다. 이제 결정을 내릴 수 있다.
 
-| Test cases | Observed accuracy | 95% CI width | Can detect 5% regression? |
+| 테스트 케이스 | 관측 정확도 | 95% CI 폭 | 5% 회귀 감지 가능? |
 |-----------|------------------|-------------|--------------------------|
-| 50 | 90% | 19 points | No |
-| 100 | 90% | 12 points | Barely |
-| 200 | 90% | 9 points | Yes |
-| 500 | 90% | 5 points | Confidently |
-| 1000 | 90% | 3 points | Precisely |
+| 50 | 90% | 19 points | 아니요 |
+| 100 | 90% | 12 points | 간신히 |
+| 200 | 90% | 9 points | 예 |
+| 500 | 90% | 5 points | 확신 있게 |
+| 1000 | 90% | 3 points | 정밀하게 |
 
-Use at least 200 test cases for any evaluation where you need to make deployment decisions. Use 500+ if you are comparing two systems that are close in quality.
+배포 결정을 내려야 하는 평가에는 최소 200개의 테스트 케이스를 사용하라. 품질이 비슷한 두 시스템을 비교한다면 500개 이상을 사용하라.
 
-### Regression Testing
+### 회귀 테스트
 
-Every prompt change needs a before/after eval. This is non-negotiable.
+모든 프롬프트 변경에는 변경 전/후 eval이 필요하다. 타협할 수 없는 원칙이다.
 
-The workflow:
-1. Run your eval suite on the current (baseline) prompt -- store the scores
-2. Make the prompt change
-3. Run the same eval suite on the new prompt
-4. Compare scores with a statistical test (paired t-test or bootstrap)
-5. If no statistically significant regression on any criteria -- ship
-6. If regression detected -- investigate which test cases degraded and why
+워크플로:
+1. 현재(기준선) 프롬프트에서 eval 스위트를 실행하고 점수를 저장한다
+2. 프롬프트를 변경한다
+3. 새 프롬프트에서 같은 eval 스위트를 실행한다
+4. 통계 검정(대응 t-test 또는 bootstrap)으로 점수를 비교한다
+5. 어떤 기준에서도 통계적으로 유의한 회귀가 없으면 출시한다
+6. 회귀가 감지되면 어떤 테스트 케이스가 왜 악화되었는지 조사한다
 
-### Cost of Evals
+### Eval 비용
 
-Evals cost money when using LLM-as-judge. Budget for it.
+LLM-as-judge를 사용하면 eval에는 비용이 든다. 예산을 잡아야 한다.
 
-| Eval size | GPT-5-mini judge | Claude Opus 4.7 judge | Gemini 3 Flash judge | Time |
+| Eval 크기 | GPT-5-mini judge | Claude Opus 4.7 judge | Gemini 3 Flash judge | 시간 |
 |-----------|------------------|-----------------------|----------------------|------|
 | 100 cases x 4 criteria | ~$2 | ~$6 | ~$0.40 | ~2 min |
 | 200 cases x 4 criteria | ~$4 | ~$12 | ~$0.80 | ~4 min |
 | 500 cases x 4 criteria | ~$10 | ~$30 | ~$2 | ~10 min |
 | 1000 cases x 4 criteria | ~$20 | ~$60 | ~$4 | ~20 min |
 
-A 200-case eval suite running on every PR with GPT-5-mini costs ~$4 per run. If your team merges 10 PRs per week, that is $160/month. Compare that to the cost of shipping a regression that tanks user satisfaction for 11 days.
+200개 케이스 eval 스위트를 모든 PR에서 GPT-5-mini로 실행하면 실행당 약 $4가 든다. 팀이 주당 PR 10개를 병합한다면 월 $160이다. 사용자 만족도를 11일 동안 떨어뜨리는 회귀를 출시하는 비용과 비교해 보라.
 
-### Anti-Patterns
+### 안티패턴
 
-**Vibes-based evaluation.** "I read 5 outputs and they looked good." You cannot perceive a 5% quality regression by reading examples. Your brain cherry-picks confirming evidence.
+**감 기반 평가.** "출력 5개를 읽어 봤는데 좋아 보였다." 예시를 읽는 것만으로는 5% 품질 회귀를 감지할 수 없다. 뇌는 확인 편향에 맞는 증거를 골라낸다.
 
-**Testing on training examples.** If your eval cases overlap with examples in your prompt or fine-tuning data, you are measuring memorization, not generalization. Keep eval data separate.
+**훈련 예시로 테스트하기.** eval 케이스가 프롬프트나 파인튜닝 데이터의 예시와 겹치면 일반화가 아니라 암기를 측정하는 것이다. eval 데이터는 분리해 두라.
 
-**Single-metric obsession.** Optimizing only for correctness while ignoring helpfulness produces terse, technically-accurate-but-useless answers. Always score multiple criteria.
+**단일 지표 집착.** 유용성을 무시하고 정확성만 최적화하면 짧고 기술적으로는 정확하지만 쓸모없는 답변이 나온다. 항상 여러 기준을 채점하라.
 
-**Evaluating without baselines.** A score of 4.2/5 means nothing in isolation. Is that better or worse than yesterday? Better or worse than the competing prompt? Always compare.
+**기준선 없는 평가.** 4.2/5라는 점수는 단독으로는 아무 의미가 없다. 어제보다 나은가, 나쁜가? 경쟁 프롬프트보다 나은가, 나쁜가? 항상 비교하라.
 
-**Using a weak judge.** GPT-3.5 as a judge produces noisy, inconsistent scores. Use GPT-4o or Claude Sonnet. The judge must be at least as capable as the model being evaluated.
+**약한 judge 사용.** GPT-3.5를 judge로 쓰면 노이즈가 많고 일관성 없는 점수가 나온다. GPT-4o나 Claude Sonnet을 사용하라. judge는 평가 대상 모델만큼은 능력이 있어야 한다.
 
-### Real Tools
+### 실제 도구
 
-You do not have to build everything from scratch. These tools provide eval infrastructure:
+모든 것을 처음부터 만들 필요는 없다. 다음 도구들은 eval 인프라를 제공한다.
 
-| Tool | What it does | Pricing |
+| 도구 | 하는 일 | 가격 |
 |------|-------------|---------|
-| [promptfoo](https://promptfoo.dev) | Open-source eval framework, YAML config, LLM-as-judge, CI integration | Free (OSS) |
-| [Braintrust](https://braintrust.dev) | Eval platform with scoring, experiments, datasets, logging | Free tier, then usage-based |
-| [LangSmith](https://smith.langchain.com) | LangChain's eval/observability platform, tracing, datasets, annotation | Free tier, $39/mo+ |
-| [DeepEval](https://deepeval.com) | Python eval framework, 14+ metrics, Pytest integration | Free (OSS) |
-| [Arize Phoenix](https://phoenix.arize.com) | Open-source observability + evals, tracing, span-level scoring | Free (OSS) |
+| [promptfoo](https://promptfoo.dev) | 오픈 소스 eval 프레임워크, YAML 설정, LLM-as-judge, CI 통합 | 무료(OSS) |
+| [Braintrust](https://braintrust.dev) | 채점, 실험, 데이터셋, 로깅을 갖춘 eval 플랫폼 | 무료 티어 이후 사용량 기반 |
+| [LangSmith](https://smith.langchain.com) | LangChain의 eval/관측성 플랫폼, tracing, 데이터셋, annotation | 무료 티어, 월 $39+ |
+| [DeepEval](https://deepeval.com) | Python eval 프레임워크, 14개 이상 지표, Pytest 통합 | 무료(OSS) |
+| [Arize Phoenix](https://phoenix.arize.com) | 오픈 소스 관측성 + eval, tracing, span 수준 채점 | 무료(OSS) |
 
-For this lesson, we build it from scratch so you understand every layer. In production, use one of these tools.
+이 수업에서는 모든 계층을 이해할 수 있도록 직접 만든다. 프로덕션에서는 이런 도구 중 하나를 사용하라.
 
-## Build It
+## 직접 만들기
 
-### Step 1: Define the Eval Data Structures
+### 1단계: Eval 데이터 구조 정의하기
 
-Build the core types: test cases, eval results, and scoring rubrics.
+핵심 타입을 만든다. 테스트 케이스, eval 결과, 채점 루브릭이다.
 
 ```python
 import json
@@ -274,9 +274,9 @@ class EvalResult:
         return sum(s.score for s in self.scores) / len(self.scores)
 ```
 
-### Step 2: Build the LLM-as-Judge Scorer
+### 2단계: LLM-as-Judge 채점기 만들기
 
-This simulates a judge model scoring outputs against rubrics. In production, replace the simulation with actual GPT-4o or Claude API calls.
+이는 judge 모델이 루브릭에 따라 출력을 채점하는 과정을 시뮬레이션한다. 프로덕션에서는 시뮬레이션을 실제 GPT-4o 또는 Claude API 호출로 바꾼다.
 
 ```python
 RUBRICS = {
@@ -375,9 +375,9 @@ def generate_judge_reasoning(input_text, model_output, criterion, score):
     return f"[{criterion.upper()}={score}/5] {description}. Output length: {len(model_output)} chars."
 ```
 
-### Step 3: Build Automated Metrics
+### 3단계: 자동 지표 만들기
 
-Implement ROUGE-L and a simple semantic similarity score alongside the LLM judge.
+LLM judge와 함께 ROUGE-L 및 간단한 의미 유사도 점수를 구현한다.
 
 ```python
 def rouge_l_score(reference, hypothesis):
@@ -417,9 +417,9 @@ def word_overlap_score(reference, hypothesis):
     return round(len(intersection) / len(union), 4) if union else 0.0
 ```
 
-### Step 4: Build the Confidence Interval Calculator
+### 4단계: 신뢰 구간 계산기 만들기
 
-Statistical rigor separates real evaluation from vibes.
+통계적 엄밀함이 진짜 평가와 감 평가를 가른다.
 
 ```python
 def wilson_confidence_interval(successes, total, z=1.96):
@@ -456,9 +456,9 @@ def bootstrap_confidence_interval(scores, n_bootstrap=1000, confidence=0.95):
     return (round(means[lower_idx], 4), round(mean, 4), round(means[upper_idx], 4))
 ```
 
-### Step 5: Build the Eval Runner and Comparison Report
+### 5단계: Eval 실행기와 비교 보고서 만들기
 
-This is the orchestration layer that ties everything together.
+모든 것을 묶는 오케스트레이션 계층이다.
 
 ```python
 SIMULATED_MODELS = {
@@ -641,7 +641,7 @@ def print_comparison_report(report):
     print("=" * 70)
 ```
 
-### Step 6: Run the Demo
+### 6단계: 데모 실행하기
 
 ```python
 def run_demo():
@@ -726,9 +726,9 @@ if __name__ == "__main__":
     run_demo()
 ```
 
-## Use It
+## 사용하기
 
-### promptfoo Integration
+### promptfoo 통합
 
 ```python
 # promptfoo uses YAML config to define eval suites.
@@ -759,9 +759,9 @@ if __name__ == "__main__":
 # View: promptfoo view
 ```
 
-promptfoo is the fastest path from zero to eval pipeline. YAML config, built-in LLM-as-judge, web viewer, CI-friendly output. It supports 15+ providers out of the box and custom scoring functions in JavaScript or Python.
+promptfoo는 아무것도 없는 상태에서 eval 파이프라인까지 가는 가장 빠른 길이다. YAML 설정, 내장 LLM-as-judge, 웹 뷰어, CI 친화적 출력을 제공한다. 기본으로 15개 이상의 provider를 지원하며 JavaScript 또는 Python으로 작성한 커스텀 채점 함수도 지원한다.
 
-### DeepEval Integration
+### DeepEval 통합
 
 ```python
 # from deepeval import evaluate
@@ -781,9 +781,9 @@ promptfoo is the fastest path from zero to eval pipeline. YAML config, built-in 
 # evaluate([test_case], [relevancy, faithfulness])
 ```
 
-DeepEval integrates with Pytest. Run `deepeval test run test_evals.py` to execute evals as part of your test suite. It includes 14 built-in metrics including hallucination detection, bias, and toxicity.
+DeepEval은 Pytest와 통합된다. `deepeval test run test_evals.py`를 실행하면 eval을 테스트 스위트의 일부로 실행할 수 있다. 환각 감지, 편향, 독성을 포함한 14개의 내장 지표를 포함한다.
 
-### CI/CD Integration Pattern
+### CI/CD 통합 패턴
 
 ```python
 # .github/workflows/eval.yml
@@ -810,50 +810,50 @@ DeepEval integrates with Pytest. Run `deepeval test run test_evals.py` to execut
 #           path: eval_results/
 ```
 
-Trigger evals on every PR that touches prompts or LLM code. Block the merge if any criterion regresses beyond the threshold. Upload results as artifacts for review.
+프롬프트나 LLM 코드를 건드리는 모든 PR에서 eval을 트리거한다. 어떤 기준이든 임계값을 넘어 회귀하면 병합을 차단한다. 검토를 위해 결과를 artifact로 업로드한다.
 
-## Ship It
+## 출시하기
 
-This lesson produces `outputs/prompt-eval-designer.md` -- a reusable prompt template for designing evaluation rubrics. Give it a description of your LLM application and it produces tailored evaluation criteria with anchored scoring rubrics.
+이 수업은 평가 루브릭 설계를 위한 재사용 가능한 프롬프트 템플릿인 `outputs/prompt-eval-designer.md`를 만든다. LLM 애플리케이션 설명을 주면 고정된 채점 루브릭과 함께 맞춤형 평가 기준을 생성한다.
 
-It also produces `outputs/skill-eval-patterns.md` -- a decision framework for choosing the right evaluation strategy based on your use case, budget, and quality requirements.
+또한 사용 사례, 예산, 품질 요구 사항에 맞는 평가 전략을 고르기 위한 의사결정 프레임워크인 `outputs/skill-eval-patterns.md`도 만든다.
 
-## Exercises
+## 연습 문제
 
-1. **Add BERTScore.** Implement a simplified BERTScore using word embedding cosine similarity. Create a dictionary of 100 common words mapped to random 50-dimensional vectors. Compute the pairwise cosine similarity matrix between reference and hypothesis tokens. Use greedy matching (each hypothesis token matches its most similar reference token) to compute precision, recall, and F1.
+1. **BERTScore 추가하기.** 단어 임베딩 코사인 유사도를 사용해 단순화된 BERTScore를 구현하라. 흔한 단어 100개를 임의의 50차원 벡터에 매핑한 딕셔너리를 만든다. 참조 토큰과 가설 토큰 사이의 쌍별 코사인 유사도 행렬을 계산한다. greedy matching(각 가설 토큰이 가장 유사한 참조 토큰과 매칭됨)을 사용해 precision, recall, F1을 계산한다.
 
-2. **Build pairwise comparison.** Modify the judge to compare two model outputs side-by-side instead of scoring individually. Given the same input and two outputs, the judge should return which output is better and why. Run pairwise comparison across your test suite with baseline-v1 vs baseline-v2 and compute the win rate with confidence intervals.
+2. **쌍대 비교 만들기.** judge가 출력을 개별 채점하는 대신 두 모델 출력을 나란히 비교하도록 수정하라. 같은 입력과 두 출력을 받으면 judge는 어느 출력이 더 나은지와 그 이유를 반환해야 한다. 테스트 스위트 전체에서 baseline-v1과 baseline-v2를 쌍대 비교하고 신뢰 구간이 포함된 승률을 계산한다.
 
-3. **Implement stratified analysis.** Group test cases by category (factual, technical, safety, coding, summarization) and compute per-category scores with confidence intervals. Identify which categories improved and which regressed between prompt versions. A system can improve overall while regressing on a specific category.
+3. **층화 분석 구현하기.** 테스트 케이스를 범주(factual, technical, safety, coding, summarization)별로 묶고 범주별 점수와 신뢰 구간을 계산하라. 프롬프트 버전 사이에서 어떤 범주가 개선되고 어떤 범주가 회귀했는지 식별한다. 시스템은 전체적으로 개선되면서도 특정 범주에서는 회귀할 수 있다.
 
-4. **Add inter-rater reliability.** Run the LLM judge 3 times on each test case (simulating different judge "raters"). Compute Cohen's kappa or Krippendorff's alpha between the three runs. If agreement is below 0.7, your rubric is too ambiguous -- rewrite it.
+4. **평가자 간 신뢰도 추가하기.** 각 테스트 케이스에서 LLM judge를 3번 실행한다(서로 다른 judge "평가자"를 시뮬레이션). 세 실행 사이의 Cohen's kappa 또는 Krippendorff's alpha를 계산한다. 일치도가 0.7보다 낮으면 루브릭이 너무 모호하다는 뜻이므로 다시 작성하라.
 
-5. **Build a cost tracker.** Track the token usage and cost of every judge call. Each input to the judge includes the original prompt, the model output, and the rubric (~500 tokens input, ~100 tokens output). Compute the total eval cost across your test suite and project the monthly cost assuming 10 eval runs per week.
+5. **비용 추적기 만들기.** 모든 judge 호출의 토큰 사용량과 비용을 추적하라. judge 입력에는 원래 프롬프트, 모델 출력, 루브릭이 포함된다(입력 약 500토큰, 출력 약 100토큰). 테스트 스위트 전체의 총 eval 비용을 계산하고 주당 eval 실행 10회를 가정해 월 비용을 예측한다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Eval | "Testing" | Systematically scoring LLM outputs against defined criteria using automated metrics, LLM judges, or human review |
-| LLM-as-judge | "AI grading" | Using a strong model (GPT-4o, Claude) to score outputs against a rubric -- correlates 80-85% with human judgment |
-| Rubric | "Scoring guide" | Anchored descriptions for each score level (1-5) that reduce judge variance by defining exactly what each score means |
-| ROUGE-L | "Text overlap" | Longest Common Subsequence-based metric measuring how much of the reference appears in the output -- recall-oriented |
-| Confidence interval | "Error bars" | A range around your measured score that tells you how much uncertainty remains -- wider with fewer test cases |
-| Regression testing | "Before/after" | Running the same eval suite on old and new prompt versions to detect quality degradation before deployment |
-| Golden test set | "Core evals" | Curated input-output pairs representing your most important use cases -- every change must pass these |
-| Pairwise comparison | "A vs B" | Showing a judge two outputs and asking which is better -- eliminates scale calibration problems |
-| Bootstrap | "Resampling" | Estimating confidence intervals by repeatedly sampling from your scores with replacement -- works with any distribution |
-| Wilson interval | "Proportion CI" | A confidence interval for pass/fail rates that works correctly even with small sample sizes or extreme proportions |
+| Eval | "테스트" | 자동 지표, LLM judge, 인간 검토를 사용해 정의된 기준에 따라 LLM 출력을 체계적으로 채점하는 것 |
+| LLM-as-judge | "AI 채점" | 강력한 모델(GPT-4o, Claude)을 사용해 루브릭에 따라 출력을 채점하는 것. 인간 판단과 80-85% 상관된다 |
+| 루브릭 | "채점 가이드" | 각 점수가 정확히 무엇을 의미하는지 정의해 judge 분산을 줄이는 점수 수준(1-5)별 고정 설명 |
+| ROUGE-L | "텍스트 겹침" | 참조 답변이 출력에 얼마나 나타나는지 측정하는 최장 공통 부분 수열 기반 지표. 재현율 지향 |
+| 신뢰 구간 | "오차 막대" | 측정 점수 주변에서 불확실성이 얼마나 남아 있는지 알려 주는 범위. 테스트 케이스가 적을수록 넓어진다 |
+| 회귀 테스트 | "전/후 비교" | 배포 전 품질 저하를 감지하기 위해 이전 프롬프트와 새 프롬프트 버전에서 같은 eval 스위트를 실행하는 것 |
+| 골든 테스트 세트 | "핵심 eval" | 가장 중요한 사용 사례를 대표하는 선별된 입출력 쌍. 모든 변경은 이를 통과해야 한다 |
+| 쌍대 비교 | "A vs B" | judge에게 두 출력을 보여 주고 어느 쪽이 더 나은지 묻는 것. 척도 보정 문제를 없앤다 |
+| Bootstrap | "재표본추출" | 점수에서 복원 추출을 반복해 신뢰 구간을 추정하는 것. 어떤 분포에도 작동한다 |
+| Wilson interval | "비율 CI" | pass/fail 비율에 대한 신뢰 구간. 샘플 크기가 작거나 비율이 극단적이어도 올바르게 작동한다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Zheng et al., 2023 -- "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena"](https://arxiv.org/abs/2306.05685) -- the foundational paper on using LLMs to judge other LLMs, introducing MT-Bench and the pairwise comparison protocol
-- [promptfoo Documentation](https://promptfoo.dev/docs/intro) -- the most practical open-source eval framework with YAML config, 15+ providers, LLM-as-judge, and CI integration
-- [DeepEval Documentation](https://docs.confident-ai.com) -- Python-native eval framework with 14+ metrics, Pytest integration, and hallucination detection
-- [Braintrust Eval Guide](https://www.braintrust.dev/docs) -- production eval platform with experiment tracking, scoring functions, and dataset management
-- [Ribeiro et al., 2020 -- "Beyond Accuracy: Behavioral Testing of NLP Models with CheckList"](https://arxiv.org/abs/2005.04118) -- systematic behavioral testing methodology (minimum functionality, invariance, directional expectations) applicable to LLM evaluation
-- [LMSYS Chatbot Arena](https://chat.lmsys.org) -- live human evaluation platform where users vote on model outputs, the largest pairwise comparison dataset for LLMs
-- [Es et al., "RAGAS: Automated Evaluation of Retrieval Augmented Generation" (EACL 2024 demo)](https://arxiv.org/abs/2309.15217) -- reference-free metrics for RAG (faithfulness, answer relevancy, context precision/recall); the eval pattern that scales to prod without labelers.
-- [Liu et al., "G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment" (EMNLP 2023)](https://arxiv.org/abs/2303.16634) -- chain-of-thought + form-filling as a judge protocol; the calibration and bias results every judge-builder needs.
-- [Hugging Face LLM Evaluation Guidebook](https://huggingface.co/spaces/OpenEvals/evaluation-guidebook) -- practical advice on data contamination, metric selection, and reproducibility from the team maintaining the Open LLM Leaderboard.
-- [EleutherAI lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) -- the standard framework for automated benchmarks (MMLU, HellaSwag, TruthfulQA, BIG-Bench); the engine behind the Open LLM Leaderboard.
+- [Zheng et al., 2023 -- "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena"](https://arxiv.org/abs/2306.05685) -- 다른 LLM을 평가하는 데 LLM을 사용하는 기초 논문으로, MT-Bench와 쌍대 비교 프로토콜을 소개한다
+- [promptfoo Documentation](https://promptfoo.dev/docs/intro) -- YAML 설정, 15개 이상 provider, LLM-as-judge, CI 통합을 갖춘 가장 실용적인 오픈 소스 eval 프레임워크
+- [DeepEval Documentation](https://docs.confident-ai.com) -- 14개 이상 지표, Pytest 통합, 환각 감지를 갖춘 Python 네이티브 eval 프레임워크
+- [Braintrust Eval Guide](https://www.braintrust.dev/docs) -- 실험 추적, 채점 함수, 데이터셋 관리를 갖춘 프로덕션 eval 플랫폼
+- [Ribeiro et al., 2020 -- "Beyond Accuracy: Behavioral Testing of NLP Models with CheckList"](https://arxiv.org/abs/2005.04118) -- LLM 평가에 적용할 수 있는 체계적 행동 테스트 방법론(최소 기능, 불변성, 방향성 기대)
+- [LMSYS Chatbot Arena](https://chat.lmsys.org) -- 사용자가 모델 출력에 투표하는 실시간 인간 평가 플랫폼이자 LLM을 위한 최대 쌍대 비교 데이터셋
+- [Es et al., "RAGAS: Automated Evaluation of Retrieval Augmented Generation" (EACL 2024 demo)](https://arxiv.org/abs/2309.15217) -- RAG를 위한 참조 없는 지표(충실성, 답변 관련성, 컨텍스트 precision/recall). 라벨러 없이 프로덕션까지 확장되는 eval 패턴이다.
+- [Liu et al., "G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment" (EMNLP 2023)](https://arxiv.org/abs/2303.16634) -- judge 프로토콜로서 chain-of-thought + 양식 채우기를 다룬다. 모든 judge 빌더에게 필요한 보정 및 편향 결과를 제공한다.
+- [Hugging Face LLM Evaluation Guidebook](https://huggingface.co/spaces/OpenEvals/evaluation-guidebook) -- Open LLM Leaderboard를 유지하는 팀이 제공하는 데이터 오염, 지표 선택, 재현성에 관한 실용적 조언
+- [EleutherAI lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) -- 자동 벤치마크(MMLU, HellaSwag, TruthfulQA, BIG-Bench)의 표준 프레임워크. Open LLM Leaderboard의 기반 엔진이다.

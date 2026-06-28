@@ -2,63 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does cosine similarity measure between two vectors?",
+      "question": "cosine similarity는 두 벡터 사이에서 무엇을 측정하나요?",
       "options": [
-        "The Euclidean distance between them",
-        "The angle between them, ignoring their magnitudes",
-        "The sum of their element-wise products",
-        "The maximum difference in any single dimension"
+        "두 벡터 사이의 Euclidean distance",
+        "크기를 무시한 두 벡터 사이의 각도",
+        "원소별 곱의 합",
+        "어느 한 차원에서의 최대 차이"
       ],
       "correct": 1,
-      "explanation": "Cosine similarity measures the cosine of the angle between two vectors, normalized by their magnitudes. It ranges from -1 (opposite) to +1 (same direction) and ignores vector length, which is why it dominates in NLP where document length is noise."
+      "explanation": "Cosine similarity는 두 벡터 사이 각도의 코사인을 크기로 정규화해 측정합니다. 범위는 -1(반대 방향)부터 +1(같은 방향)까지이며 벡터 길이를 무시하므로, 문서 길이가 잡음인 NLP에서 널리 쓰입니다."
     },
     {
       "stage": "pre",
-      "question": "Why is L1 distance called 'Manhattan distance'?",
+      "question": "L1 distance가 'Manhattan distance'라고 불리는 이유는 무엇인가요?",
       "options": [
-        "It was invented in Manhattan",
-        "It measures distance along a grid, as if walking on city blocks",
-        "It only works in exactly two dimensions",
-        "It computes the maximum difference across all dimensions"
+        "맨해튼에서 발명되었기 때문이다",
+        "도시 블록을 걷는 것처럼 격자를 따라 거리를 측정하기 때문이다",
+        "정확히 2차원에서만 작동하기 때문이다",
+        "모든 차원에서 최대 차이를 계산하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "L1 distance sums the absolute differences along each axis, which corresponds to the shortest path on a grid where you can only move along axes (no diagonals) — like walking on a city street grid."
+      "explanation": "L1 distance는 각 축을 따른 절대 차이를 합산합니다. 이는 대각선 없이 축 방향으로만 움직일 수 있는 격자 위 최단 경로에 해당하며, 도시 거리 격자를 걷는 것과 같습니다."
     },
     {
       "stage": "post",
-      "question": "Why does L1 regularization (Lasso) produce sparse weights while L2 regularization (Ridge) does not?",
+      "question": "L1 regularization(Lasso)은 왜 sparse weights를 만들지만 L2 regularization(Ridge)은 그렇지 않나요?",
       "options": [
-        "L1 uses a larger penalty constant than L2",
-        "The L1 diamond constraint has corners on the axes where weights are zero; loss contours are likely to touch at corners",
-        "L2 regularization only applies to the bias terms",
-        "L1 regularization clips weights below a threshold to zero"
+        "L1이 L2보다 더 큰 penalty 상수를 사용하기 때문이다",
+        "L1의 다이아몬드 제약은 weight가 0인 축 위에 모서리가 있고, loss contour가 모서리에 닿을 가능성이 높기 때문이다",
+        "L2 regularization은 bias 항에만 적용되기 때문이다",
+        "L1 regularization은 임계값보다 작은 weight를 0으로 clip하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "The L1 constraint region is a diamond shape with corners aligned with the axes. The loss function's contour ellipses are most likely to first touch the diamond at a corner, where one or more weights are exactly zero. The L2 constraint is a circle with no corners, so the touch point has all weights nonzero."
+      "explanation": "L1 제약 영역은 축과 정렬된 모서리를 가진 다이아몬드 모양입니다. 손실 함수의 등고선 타원은 다이아몬드의 모서리에 먼저 닿을 가능성이 높고, 그 지점에서는 하나 이상의 weight가 정확히 0입니다. L2 제약은 모서리가 없는 원이므로 접점의 모든 weight가 0이 아닙니다."
     },
     {
       "stage": "post",
-      "question": "What advantage does Wasserstein distance have over KL divergence when comparing probability distributions?",
+      "question": "확률분포를 비교할 때 Wasserstein distance는 KL divergence보다 어떤 장점이 있나요?",
       "options": [
-        "Wasserstein is always smaller than KL divergence",
-        "Wasserstein provides meaningful gradients even when distributions do not overlap, while KL goes to infinity",
-        "Wasserstein is symmetric but KL is not",
-        "Both B and C are correct"
+        "Wasserstein은 항상 KL divergence보다 작다",
+        "Wasserstein은 분포가 겹치지 않아도 의미 있는 gradient를 제공하지만 KL은 infinity가 된다",
+        "Wasserstein은 대칭이지만 KL은 그렇지 않다",
+        "B와 C가 모두 맞다"
       ],
       "correct": 3,
-      "explanation": "Wasserstein distance is a true metric (symmetric, satisfies triangle inequality) and provides gradients even for non-overlapping distributions. KL divergence is asymmetric and goes to infinity when distributions don't overlap, which is why WGANs replaced KL-based GANs."
+      "explanation": "Wasserstein distance는 진짜 metric입니다(대칭이고 triangle inequality를 만족). 또한 겹치지 않는 분포에도 gradient를 제공합니다. KL divergence는 비대칭이고 분포가 겹치지 않으면 infinity가 되므로, WGAN은 KL 기반 GAN을 대체했습니다."
     },
     {
       "stage": "post",
-      "question": "When would you use Mahalanobis distance instead of Euclidean distance?",
+      "question": "언제 Euclidean distance 대신 Mahalanobis distance를 사용하나요?",
       "options": [
-        "When features are all binary (0 or 1)",
-        "When features have different scales and are correlated with each other",
-        "When you are comparing strings instead of vectors",
-        "When you need a faster computation than L2"
+        "feature가 모두 binary(0 또는 1)일 때",
+        "feature의 scale이 서로 다르고 서로 correlation이 있을 때",
+        "벡터가 아니라 문자열을 비교할 때",
+        "L2보다 더 빠른 계산이 필요할 때"
       ],
       "correct": 1,
-      "explanation": "Mahalanobis distance accounts for the covariance structure of the data, decorrelating and normalizing features before computing L2 distance. It correctly handles features at different scales and with correlations, whereas Euclidean distance treats all dimensions equally."
+      "explanation": "Mahalanobis distance는 데이터의 covariance 구조를 고려해 L2 distance를 계산하기 전에 feature를 decorrelation하고 정규화합니다. Euclidean distance가 모든 차원을 동일하게 취급하는 반면, Mahalanobis는 scale이 다르고 correlation이 있는 feature를 올바르게 처리합니다."
     }
   ]
 }

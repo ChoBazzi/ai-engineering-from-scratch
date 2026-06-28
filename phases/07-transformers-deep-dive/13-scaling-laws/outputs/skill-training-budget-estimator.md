@@ -1,18 +1,18 @@
 ---
 name: training-budget-estimator
-description: Estimate (N, D, hours, GPU count) for a new transformer training run given compute budget and deployment constraints.
+description: 계산 예산과 배포 제약이 주어졌을 때 새 트랜스포머 훈련 런의 (N, D, 시간, GPU 수)를 추정한다.
 version: 1.0.0
 phase: 7
 lesson: 13
 tags: [scaling-laws, training, chinchilla]
 ---
 
-Given a training objective (target loss / target MMLU / target downstream metric), compute budget (dollars or FLOPs), inference volume (tokens/month), and constraints (target device, memory, latency), output:
+훈련 목표(목표 손실 / 목표 MMLU / 목표 다운스트림 지표), 계산 예산(달러 또는 FLOPs), 추론량(토큰/월), 제약(대상 장치, 메모리, 지연 시간)이 주어지면 다음을 출력하라.
 
-1. Compute regime. Chinchilla-optimal, over-trained (inference-optimized), under-trained (prototype). One-sentence reason tied to inference volume.
-2. N and D. Concrete values. Print the `D/N` ratio. If over-trained, note the loss penalty vs Chinchilla-optimal.
-3. Training wall-clock. Hours × GPU-count given assumed training throughput (MFU ≈ 40% for dense, ~30% for MoE). Budget the precision (bf16 / fp8) and optimizer (AdamW / Muon).
-4. Data sources. Named corpora or synthetic budget. Flag if the required `D` exceeds available high-quality tokens.
-5. Risk note. One specific failure mode: data contamination, optimizer instability at scale, context-length tokenizer mismatch, evaluation suite saturation.
+1. 계산 구간. Chinchilla 최적, 과훈련(추론 최적화), 저훈련(프로토타입). 추론량과 연결된 한 문장 이유를 덧붙인다.
+2. N과 D. 구체적인 값. `D/N` 비율을 출력한다. 과훈련이라면 Chinchilla 최적 대비 손실 페널티를 적는다.
+3. 훈련 wall-clock. 가정한 훈련 처리량(dense는 MFU ≈ 40%, MoE는 약 30%)에 따른 시간 × GPU 수. 정밀도(bf16 / fp8)와 옵티마이저(AdamW / Muon)를 예산에 넣는다.
+4. 데이터 소스. 이름 있는 코퍼스 또는 합성 예산. 필요한 `D`가 사용 가능한 고품질 토큰을 초과하면 표시한다.
+5. 위험 메모. 데이터 오염, 스케일에서의 옵티마이저 불안정성, context-length tokenizer 불일치, 평가 스위트 포화 중 하나의 구체적인 실패 모드를 적는다.
 
-Refuse to train a dense model >8B under Chinchilla-optimal if it will serve high inference volume — the inference cost compounds. Refuse to set target loss without a held-out evaluation suite defined. Flag any plan spending >1% of budget on architecture search rather than data curation — returns are known to be small. Require a 1% of-budget run at scale to validate assumptions before committing the full budget.
+추론량이 큰 모델인데 Chinchilla 최적보다 낮게 dense 모델 >8B를 학습하겠다는 계획은 거절하라. 추론 비용이 복리처럼 커진다. 홀드아웃 평가 스위트가 정의되어 있지 않은 상태에서 목표 손실을 정하는 것도 거절하라. 예산의 1%를 초과해 데이터 선별이 아니라 아키텍처 탐색에 쓰는 계획은 표시하라. 수익이 작다고 알려져 있다. 전체 예산을 투입하기 전에 가정을 검증할 수 있도록 예산의 1% 규모 런을 요구하라.

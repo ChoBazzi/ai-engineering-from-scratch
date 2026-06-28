@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the difference between a probability mass function (PMF) and a probability density function (PDF)?",
-      "options": ["PMFs are used for continuous variables, PDFs for discrete variables", "PMFs give exact probabilities for discrete outcomes, while PDFs give densities for continuous variables that must be integrated over an interval to get probability", "There is no difference; they are the same concept with different names", "PMFs always sum to 0.5, PDFs integrate to 1"],
+      "question": "확률질량함수(PMF)와 확률밀도함수(PDF)의 차이는 무엇인가요?",
+      "options": ["PMF는 연속 변수에, PDF는 이산 변수에 사용된다", "PMF는 이산 결과의 정확한 확률을 주고, PDF는 연속 변수의 밀도를 주며 확률을 얻으려면 구간에 대해 적분해야 한다", "차이가 없다. 이름만 다른 같은 개념이다", "PMF는 항상 합이 0.5이고, PDF는 적분하면 1이다"],
       "correct": 1,
-      "explanation": "For discrete variables, the PMF gives P(X=k) directly. For continuous variables, the PDF f(x) is a density -- P(a<=X<=b) requires integrating f(x) from a to b. The density at a single point is not a probability."
+      "explanation": "이산 변수에서는 PMF가 P(X=k)를 직접 제공합니다. 연속 변수에서는 PDF f(x)가 밀도입니다. P(a<=X<=b)는 f(x)를 a부터 b까지 적분해야 합니다. 한 점에서의 밀도는 확률이 아닙니다."
     },
     {
       "stage": "pre",
-      "question": "What does the Central Limit Theorem state?",
-      "options": ["All data follows a normal distribution", "The mean of many independent random samples converges to a normal distribution regardless of the source distribution", "Large datasets always have low variance", "The probability of rare events decreases as sample size increases"],
+      "question": "중심극한정리는 무엇을 말하나요?",
+      "options": ["모든 데이터는 정규분포를 따른다", "많은 독립 무작위 sample의 평균은 원천 분포와 관계없이 정규분포로 수렴한다", "큰 dataset은 항상 분산이 낮다", "드문 사건의 확률은 sample size가 커질수록 감소한다"],
       "correct": 1,
-      "explanation": "The CLT says that the average of many independent random variables approaches a Gaussian, no matter what the original distribution looks like. This explains why the normal distribution appears everywhere."
+      "explanation": "CLT는 많은 독립 확률변수의 평균이 원래 분포가 어떻게 생겼든 Gaussian에 가까워진다고 말합니다. 이것이 normal distribution이 어디에나 나타나는 이유입니다."
     },
     {
       "stage": "post",
-      "question": "Why does softmax subtract the maximum logit before exponentiating (the 'softmax trick')?",
-      "options": ["To make all probabilities equal", "To prevent numerical overflow from exponentiating large numbers while producing mathematically identical results", "To normalize the logits to have mean zero", "To speed up the computation by reducing the number of exponentiations"],
+      "question": "softmax가 지수화하기 전에 최대 logit을 빼는 이유, 즉 'softmax trick'의 목적은 무엇인가요?",
+      "options": ["모든 확률을 같게 만들기 위해", "큰 수를 지수화할 때 생기는 수치 overflow를 막으면서 수학적으로 동일한 결과를 만들기 위해", "logits의 평균을 0으로 정규화하기 위해", "지수화 횟수를 줄여 계산을 빠르게 하기 위해"],
       "correct": 1,
-      "explanation": "exp(100) overflows to infinity. Subtracting max(logits) shifts all values so the largest is 0. exp(0)=1 is safe. The subtraction cancels out in the normalization, giving identical probabilities."
+      "explanation": "exp(100)은 infinity로 overflow됩니다. max(logits)를 빼면 모든 값이 이동해 가장 큰 값이 0이 됩니다. exp(0)=1은 안전합니다. 이 뺄셈은 정규화에서 상쇄되어 동일한 확률을 줍니다."
     },
     {
       "stage": "post",
-      "question": "Cross-entropy loss for classification simplifies to -log(q(true_class)). What does this mean intuitively?",
-      "options": ["Multiply the predicted probabilities by the true labels", "Penalize the model based on how low its predicted probability is for the correct class -- lower prediction means higher loss", "Average the log probabilities across all classes", "Compute the entropy of the true distribution"],
+      "question": "분류에서 cross-entropy loss는 -log(q(true_class))로 단순화됩니다. 직관적으로 이것은 무엇을 뜻하나요?",
+      "options": ["예측 확률에 true label을 곱한다", "정답 클래스에 대해 모델이 예측한 확률이 낮을수록 더 크게 벌점을 준다", "모든 클래스의 log probability를 평균낸다", "true distribution의 entropy를 계산한다"],
       "correct": 1,
-      "explanation": "If the model predicts 0.9 for the correct class, loss = -log(0.9) = 0.105 (low). If it predicts 0.01, loss = -log(0.01) = 4.6 (high). The loss punishes low confidence in the correct answer."
+      "explanation": "모델이 정답 클래스에 0.9를 예측하면 loss = -log(0.9) = 0.105로 낮습니다. 0.01을 예측하면 loss = -log(0.01) = 4.6으로 높습니다. 이 손실은 정답에 대한 낮은 confidence를 벌합니다."
     },
     {
       "stage": "post",
-      "question": "Why do language models work with log probabilities instead of raw probabilities?",
-      "options": ["Log probabilities are easier to interpret visually", "Multiplying many small probabilities causes numerical underflow to zero; log probabilities convert products to sums, avoiding this", "Log probabilities are required by the transformer architecture", "Raw probabilities cannot represent values less than 0.01"],
+      "question": "언어 모델은 왜 raw probability 대신 log probability로 작업하나요?",
+      "options": ["Log probability는 시각적으로 해석하기 쉽다", "작은 확률을 많이 곱하면 수치 underflow로 0이 되므로, log probability가 곱을 합으로 바꾸어 이를 피한다", "Log probability는 transformer architecture에서 필수다", "Raw probability는 0.01보다 작은 값을 표현할 수 없다"],
       "correct": 1,
-      "explanation": "P(sentence) = P(word1) * P(word2) * ... quickly underflows to 0.0 with float64. Log P(sentence) = log P(word1) + log P(word2) + ... stays in a finite range. Products become sums."
+      "explanation": "P(sentence) = P(word1) * P(word2) * ...는 float64에서도 빠르게 0.0으로 underflow됩니다. Log P(sentence) = log P(word1) + log P(word2) + ...는 유한한 범위에 머뭅니다. 곱이 합이 됩니다."
     }
   ]
 }

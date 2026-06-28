@@ -2,63 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is Promptable Concept Segmentation (PCS), introduced by SAM 3?",
+      "question": "SAM 3가 도입한 Promptable Concept Segmentation(PCS)은 무엇인가요?",
       "options": [
-        "Segmenting all instances of a concept described by a short noun phrase or image exemplar in a single forward pass, returning masks plus unique instance IDs",
-        "A visual prompt (point/box) segmentation like classic SAM",
-        "A multi-step chain of a detector followed by SAM",
-        "A tracking-only mode"
+        "짧은 noun phrase나 image exemplar로 설명된 concept의 모든 instance를 단일 forward pass에서 segment하고, masks와 unique instance IDs를 반환하는 것",
+        "고전적인 SAM처럼 visual prompt(point/box)를 쓰는 segmentation",
+        "detector 뒤에 SAM을 붙이는 multi-step chain",
+        "tracking-only mode"
       ],
       "correct": 0,
-      "explanation": "PCS is SAM 3's signature capability. You pass 'yellow school bus' or an image exemplar of a bus; SAM 3 returns every matching instance with its own mask and unique ID, plus a presence score. Classic SAM needed one prompt per instance; PCS produces all matches end-to-end."
+      "explanation": "PCS는 SAM 3의 대표 기능입니다. 'yellow school bus'나 bus의 image exemplar를 전달하면 SAM 3는 matching instance를 각각의 mask와 unique ID, presence score와 함께 반환합니다. 고전적인 SAM은 instance마다 prompt가 필요했지만, PCS는 모든 match를 end-to-end로 만듭니다."
     },
     {
       "stage": "pre",
-      "question": "Why keep a decoupled detector + SAM 2 pipeline (Grounded SAM 2) in 2026 if SAM 3 already does text-prompted segmentation?",
+      "question": "SAM 3가 이미 text-prompted segmentation을 수행한다면, 2026년에도 decoupled detector + SAM 2 pipeline(Grounded SAM 2)을 유지하는 이유는 무엇인가요?",
       "options": [
-        "Grounded SAM 2 is always more accurate",
-        "Modularity \u2014 you can swap in different open-vocabulary detectors (DINO-X, Florence-2, Grounding DINO 1.5) for different domains, license constraints, or threshold behaviour; SAM 3's architecture is monolithic",
-        "SAM 3 does not support video",
-        "SAM 3 is only available in the cloud"
+        "Grounded SAM 2가 항상 더 정확하기 때문에",
+        "모듈성 때문입니다. 서로 다른 도메인, 라이선스 제약, threshold behaviour를 위해 다른 open-vocabulary detectors(DINO-X, Florence-2, Grounding DINO 1.5)를 교체해 넣을 수 있습니다. SAM 3의 architecture는 monolithic입니다",
+        "SAM 3가 video를 지원하지 않기 때문에",
+        "SAM 3는 cloud에서만 사용할 수 있기 때문에"
       ],
       "correct": 1,
-      "explanation": "Grounded SAM 2 is a composition of a detector and SAM 2 with frozen weights. That modularity is sometimes exactly what you need \u2014 a medical-imaging detector, a license-friendly detector, or tight threshold control. SAM 3 is more accurate end-to-end for common use but harder to customise. Both have production roles in 2026."
+      "explanation": "Grounded SAM 2는 detector와 frozen weights의 SAM 2를 합성한 것입니다. 이 모듈성이 때로 정확히 필요한 것입니다. medical-imaging detector, license-friendly detector, 또는 촘촘한 threshold control이 그 예입니다. SAM 3는 일반적인 사용에서는 end-to-end 정확도가 더 높지만 customize하기 더 어렵습니다. 둘 다 2026년 프로덕션 역할이 있습니다."
     },
     {
       "stage": "post",
-      "question": "SAM 3's presence head produces what?",
+      "question": "SAM 3의 presence head는 무엇을 생성하나요?",
       "options": [
-        "The list of candidate bounding boxes",
-        "A tracking memory bank",
-        "A scalar probability that the queried concept exists in the image, decoupled from localisation; lets the model say 'not present' cleanly and reduces false positives on absent concepts",
-        "The final mask"
+        "candidate bounding boxes 목록",
+        "tracking memory bank",
+        "query한 concept이 이미지에 존재할 scalar probability이며, localisation과 분리되어 있습니다. 모델이 'not present'라고 깔끔하게 말하게 하고, 존재하지 않는 concept의 false positives를 줄입니다",
+        "최종 mask"
       ],
       "correct": 2,
-      "explanation": "The presence head separates the 'is this here?' decision from the 'where is it?' decision. A model that must produce boxes whenever asked tends to hallucinate matches for absent concepts. With a presence head, SAM 3 can return zero detections cleanly. This also improves discrimination between closely related prompts (e.g., 'a player in white' vs 'a player in red')."
+      "explanation": "presence head는 '여기에 있는가?' 결정과 '어디에 있는가?' 결정을 분리합니다. 요청이 들어올 때마다 boxes를 만들어야 하는 모델은 존재하지 않는 concept에도 match를 hallucinate하는 경향이 있습니다. presence head가 있으면 SAM 3는 zero detections를 깔끔하게 반환할 수 있습니다. 또한 서로 가까운 prompts(예: 'a player in white' vs 'a player in red') 사이의 구분도 좋아집니다."
     },
     {
       "stage": "post",
-      "question": "SAM 3.1 Object Multiplex (March 2026) introduced a shared-memory mechanism for tracking. What does it replace?",
+      "question": "SAM 3.1 Object Multiplex(2026년 3월)는 tracking을 위한 shared-memory mechanism을 도입했습니다. 이것은 무엇을 대체하나요?",
       "options": [
-        "SAM 2 altogether",
-        "Per-instance separate memory banks; Multiplex collapses them into one shared memory with per-instance queries so tracking N objects runs substantially faster while keeping accuracy",
-        "The whole presence head",
-        "The ViT backbone"
+        "SAM 2 전체",
+        "instance별 separate memory banks입니다. Multiplex는 이를 one shared memory와 per-instance queries로 접어, 정확도를 유지하면서 N objects tracking을 훨씬 빠르게 실행합니다",
+        "presence head 전체",
+        "ViT backbone"
       ],
       "correct": 1,
-      "explanation": "Prior SAM 2 / SAM 3 tracking maintained one memory bank per tracked instance, so cost grew linearly with object count. Object Multiplex introduces a single shared memory plus per-instance queries that fetch instance-specific features. Many-instance tracking is now efficient \u2014 essential for crowds and dense multi-object scenes."
+      "explanation": "이전 SAM 2 / SAM 3 tracking은 tracked instance마다 하나의 memory bank를 유지했으므로 비용이 object count에 선형으로 증가했습니다. Object Multiplex는 single shared memory와 instance-specific features를 가져오는 per-instance queries를 도입합니다. many-instance tracking이 이제 효율적입니다. 이는 crowd와 dense multi-object scenes에 필수입니다."
     },
     {
       "stage": "post",
-      "question": "You need real-time open-vocabulary DETECTION (boxes only, no masks) on an edge device. Which 2026 model family is the right choice?",
+      "question": "edge device에서 real-time open-vocabulary DETECTION(boxes only, no masks)이 필요합니다. 2026년에는 어떤 model family가 올바른 선택인가요?",
       "options": [
         "SAM 3",
-        "A custom CLIP + detector chain",
+        "custom CLIP + detector chain",
         "Grounded SAM 2",
-        "YOLO-World (and related real-time open-vocab detectors); SAM 3 produces masks and is heavier, while YOLO-World is designed specifically for boxes at high fps on edge hardware"
+        "YOLO-World(및 관련 real-time open-vocab detectors)입니다. SAM 3는 masks를 생성하고 더 무겁지만, YOLO-World는 edge hardware에서 높은 fps로 boxes를 만들도록 특별히 설계되었습니다"
       ],
       "correct": 3,
-      "explanation": "YOLO-World and similar models (OV-DINO, LLMDet) are real-time open-vocabulary detectors. They do not produce masks but they hit 30-60 fps at 640x640 on modest GPUs. SAM 3 is the right choice when masks and tracking matter. Always match tool weight to the task: detection-only is fine without mask overhead."
+      "explanation": "YOLO-World와 유사 모델(OV-DINO, LLMDet)은 real-time open-vocabulary detectors입니다. masks는 만들지 않지만 보통 수준의 GPU에서 640x640 기준 30-60 fps를 냅니다. masks와 tracking이 중요할 때는 SAM 3가 올바른 선택입니다. 항상 tool weight를 task에 맞추세요. detection-only라면 mask overhead 없이도 충분합니다."
     }
   ]
 }

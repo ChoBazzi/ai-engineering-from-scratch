@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is a Jupyter notebook?",
-      "options": ["A text editor for writing Python scripts", "An interactive document that mixes executable code cells with markdown text and inline outputs", "A version control system for data science projects", "A package manager for Python libraries"],
+      "question": "Jupyter notebook이란 무엇인가요?",
+      "options": ["Python script를 작성하기 위한 text editor", "실행 가능한 code cell, markdown text, inline output을 섞는 interactive document", "data science project를 위한 version control system", "Python library를 위한 package manager"],
       "correct": 1,
-      "explanation": "A Jupyter notebook (.ipynb) is an interactive environment where you can write and execute code in cells, see outputs inline, and mix code with formatted text explanations."
+      "explanation": "Jupyter notebook(.ipynb)은 cell 안에서 code를 작성하고 실행하며, output을 inline으로 보고, code와 format이 적용된 text 설명을 섞을 수 있는 interactive environment입니다."
     },
     {
       "stage": "pre",
-      "question": "What does the Jupyter kernel do?",
-      "options": ["Formats markdown cells into HTML", "Runs the code in cells and keeps variables in memory between executions", "Manages file storage for the notebook", "Connects the notebook to GitHub for version control"],
+      "question": "Jupyter kernel은 무엇을 하나요?",
+      "options": ["markdown cell을 HTML로 formatting합니다", "cell의 code를 실행하고 실행 사이에 variable을 memory에 유지합니다", "notebook의 file storage를 관리합니다", "version control을 위해 notebook을 GitHub에 연결합니다"],
       "correct": 1,
-      "explanation": "The kernel is a separate Python process that executes cell code and maintains state (variables, imports) in memory. All cells in a notebook share the same kernel."
+      "explanation": "kernel은 cell code를 실행하고 state(variable, import)를 memory에 유지하는 별도의 Python process입니다. notebook의 모든 cell은 같은 kernel을 공유합니다."
     },
     {
       "stage": "post",
-      "question": "What is the difference between %timeit and %%time magic commands?",
-      "options": ["%timeit measures wall time, %%time measures CPU time", "%timeit runs code many times and averages, %%time runs code once", "%timeit works on single lines, %%time works on the whole notebook", "There is no difference, they are aliases"],
+      "question": "%timeit과 %%time magic command의 차이는 무엇인가요?",
+      "options": ["%timeit은 wall time을 측정하고, %%time은 CPU time을 측정합니다", "%timeit은 code를 여러 번 실행해 평균을 내고, %%time은 code를 한 번 실행합니다", "%timeit은 한 줄에서 동작하고, %%time은 notebook 전체에서 동작합니다", "차이가 없으며 alias입니다"],
       "correct": 1,
-      "explanation": "%timeit runs the statement many times for a statistical average (good for microbenchmarks). %%time runs the cell once and reports wall time (good for training runs)."
+      "explanation": "%timeit은 통계적 평균을 위해 statement를 여러 번 실행합니다(microbenchmark에 적합). %%time은 cell을 한 번 실행하고 wall time을 보고합니다(training run에 적합)."
     },
     {
       "stage": "post",
-      "question": "What is the most common cause of a notebook working on your machine but failing when someone runs it top to bottom?",
-      "options": ["Using a different Python version", "Out-of-order cell execution creating hidden dependencies on execution order", "Missing the %matplotlib inline magic command", "Using too many markdown cells"],
+      "question": "내 machine에서는 notebook이 동작하지만 다른 사람이 위에서 아래로 실행하면 실패하는 가장 흔한 원인은 무엇인가요?",
+      "options": ["다른 Python version을 사용하기 때문", "순서가 뒤섞인 cell 실행이 실행 순서에 대한 hidden dependency를 만들기 때문", "%matplotlib inline magic command가 없기 때문", "markdown cell을 너무 많이 사용하기 때문"],
       "correct": 1,
-      "explanation": "Running cells out of order creates hidden state dependencies. A variable might exist because you ran cell 5 before cell 2. Kernel > Restart & Run All verifies linear execution."
+      "explanation": "cell을 순서와 다르게 실행하면 hidden state dependency가 생깁니다. cell 2보다 cell 5를 먼저 실행했기 때문에 variable이 존재할 수 있습니다. Kernel > Restart & Run All은 선형 실행을 검증합니다."
     },
     {
       "stage": "post",
-      "question": "When should you move code from a notebook into a .py script?",
-      "options": ["As soon as you write more than 10 lines of code", "When the code is a reusable utility, training pipeline, or production code", "Never -- notebooks are always better for AI work", "Only when you need to run on a GPU"],
+      "question": "언제 notebook의 code를 .py script로 옮겨야 하나요?",
+      "options": ["code를 10줄 넘게 작성하자마자", "code가 재사용 가능한 utility, training pipeline 또는 production code일 때", "절대 옮기지 않습니다 -- AI 작업에는 notebook이 항상 더 좋습니다", "GPU에서 실행해야 할 때만"],
       "correct": 1,
-      "explanation": "The rule is 'explore in notebooks, ship in scripts.' Reusable utilities, training pipelines, and anything running in production should be .py files. Notebooks are for exploration and prototyping."
+      "explanation": "규칙은 'notebook에서 탐색하고, script로 배포한다'입니다. 재사용 가능한 utility, training pipeline, production에서 실행되는 모든 것은 .py file이어야 합니다. notebook은 탐색과 prototyping을 위한 도구입니다."
     }
   ]
 }

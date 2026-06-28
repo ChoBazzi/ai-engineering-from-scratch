@@ -1,37 +1,37 @@
 [
   {
-    "question": "Why does a basic BPE tokenizer break on multilingual or code input?",
-    "options": ["BPE is inherently monolingual", "Without proper Unicode handling, byte fallback, and pre-tokenization regex, it produces incorrect or inefficient token sequences", "Multilingual text can't be tokenized", "BPE only works on ASCII"],
+    "question": "기본 BPE tokenizer가 다국어 또는 코드 입력에서 깨지는 이유는 무엇인가요?",
+    "options": ["BPE는 본질적으로 단일 언어 전용이다", "적절한 Unicode 처리, byte fallback, pre-tokenization regex가 없으면 부정확하거나 비효율적인 token 시퀀스를 만들기 때문이다", "다국어 텍스트는 tokenization할 수 없다", "BPE는 ASCII에서만 작동한다"],
     "correct": 1,
-    "explanation": "A naive BPE implementation may not handle multi-byte Unicode characters, may merge across word boundaries incorrectly, and may not have byte-level fallback for characters outside the trained vocabulary.",
+    "explanation": "순진한 BPE 구현은 multi-byte Unicode 문자를 처리하지 못하거나, 단어 경계를 가로질러 잘못 병합하거나, 학습된 vocabulary 밖 문자에 대한 byte-level fallback이 없을 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the role of pre-tokenization regex in a production tokenizer?",
-    "options": ["It removes punctuation", "It splits text at word boundaries before BPE merges, preventing merges across spaces and word boundaries", "It compresses whitespace", "It converts text to lowercase"],
+    "question": "production tokenizer에서 pre-tokenization regex의 역할은 무엇인가요?",
+    "options": ["구두점을 제거한다", "BPE 병합 전에 텍스트를 단어 경계에서 나누어 공백과 단어 경계를 가로지르는 병합을 막는다", "공백을 압축한다", "텍스트를 소문자로 변환한다"],
     "correct": 1,
-    "explanation": "Pre-tokenization regex splits text into chunks (typically at word boundaries, numbers, and punctuation) so BPE merges only happen within chunks. Without this, BPE could merge 'end' with the space before the next word.",
+    "explanation": "pre-tokenization regex는 텍스트를 chunk로 나누어(보통 단어 경계, 숫자, 구두점 기준) BPE 병합이 chunk 내부에서만 일어나게 합니다. 이것이 없으면 BPE가 'end'를 다음 단어 앞의 공백과 병합할 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "What is a special token and why are tokenizers designed to handle them?",
-    "options": ["Tokens that appear frequently", "Reserved tokens like <|endoftext|> or [PAD] that control model behavior and must be encoded as single, specific IDs", "Tokens with the highest embedding values", "Tokens used only during evaluation"],
+    "question": "special token이란 무엇이며 tokenizer가 이를 처리하도록 설계되는 이유는 무엇인가요?",
+    "options": ["자주 등장하는 token", "모델 동작을 제어하며 반드시 특정 단일 ID로 인코딩되어야 하는 <|endoftext|> 또는 [PAD] 같은 예약 token", "embedding 값이 가장 높은 token", "평가 중에만 쓰이는 token"],
     "correct": 1,
-    "explanation": "Special tokens serve structural purposes: marking document boundaries, padding sequences, indicating start/end of generation. They must be recognized and encoded as their exact IDs, not broken into subwords.",
+    "explanation": "special token은 문서 경계 표시, 시퀀스 padding, 생성 시작/끝 표시 같은 구조적 목적을 가집니다. subword로 쪼개지면 안 되며 정확한 ID로 인식되고 인코딩되어야 합니다.",
     "stage": "post"
   },
   {
-    "question": "How do you evaluate whether a custom tokenizer is good?",
-    "options": ["By checking if it can tokenize your name", "By measuring compression ratio (tokens per character) across diverse text and comparing to established tokenizers like tiktoken", "By counting the vocabulary size", "By measuring encoding speed only"],
+    "question": "custom tokenizer가 좋은지 어떻게 평가하나요?",
+    "options": ["자기 이름을 tokenization할 수 있는지 확인한다", "다양한 텍스트에서 compression ratio(문자당 token 수)를 측정하고 tiktoken 같은 검증된 tokenizer와 비교한다", "vocabulary 크기를 센다", "인코딩 속도만 측정한다"],
     "correct": 1,
-    "explanation": "Compression ratio (bytes per token or tokens per word) measures efficiency. A good tokenizer produces fewer tokens for the same text, which means more content fits in the context window. Compare across languages and domains.",
+    "explanation": "compression ratio(token당 byte 또는 단어당 token)는 효율을 측정합니다. 좋은 tokenizer는 같은 텍스트에 대해 더 적은 token을 만들며, 이는 context window에 더 많은 내용을 담을 수 있음을 뜻합니다. 언어와 domain 전반에서 비교하세요.",
     "stage": "post"
   },
   {
-    "question": "Why is byte-level BPE preferred over word-level tokenization for modern LLMs?",
-    "options": ["It's faster", "It can represent any input without unknown tokens while still learning efficient subword merges for common patterns", "It produces smaller vocabularies", "Word-level tokenization is more accurate"],
+    "question": "현대 LLM에서 word-level tokenization보다 byte-level BPE가 선호되는 이유는 무엇인가요?",
+    "options": ["더 빠르기 때문이다", "unknown token 없이 어떤 입력도 표현하면서도 흔한 패턴에 대해 효율적인 subword 병합을 학습할 수 있기 때문이다", "더 작은 vocabulary를 만들기 때문이다", "word-level tokenization이 더 정확하기 때문이다"],
     "correct": 1,
-    "explanation": "Word-level tokenizers can't handle unseen words (producing [UNK] tokens). Byte-level BPE starts from raw bytes (guaranteeing coverage of any input) and learns merges for common sequences, balancing coverage with efficiency.",
+    "explanation": "word-level tokenizer는 본 적 없는 단어를 처리할 수 없어 [UNK] token을 만듭니다. byte-level BPE는 raw byte에서 시작해(모든 입력의 coverage 보장) 흔한 시퀀스에 대한 병합을 학습하므로 coverage와 효율의 균형을 맞춥니다.",
     "stage": "post"
   }
 ]

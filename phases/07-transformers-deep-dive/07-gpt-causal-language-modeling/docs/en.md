@@ -1,111 +1,111 @@
 # GPT — Causal Language Modeling
 
-> BERT sees both sides. GPT sees only the past. The triangle mask is the most consequential single line of code in modern AI.
+> BERT는 양쪽을 본다. GPT는 과거만 본다. triangle mask는 현대 AI에서 가장 큰 결과를 낳은 코드 한 줄이다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 7 · 02 (Self-Attention), Phase 7 · 05 (Full Transformer), Phase 7 · 06 (BERT)
 **Time:** ~75 minutes
 
-## The Problem
+## 문제
 
-A language model answers one question: given the first `t-1` tokens, what is the probability distribution over token `t`? Train on that signal — next-token prediction — and you get a model that can generate arbitrary text one token at a time.
+language model은 한 가지 질문에 답한다. 처음 `t-1`개 token이 주어졌을 때 token `t`에 대한 probability distribution은 무엇인가? 이 signal, 즉 next-token prediction으로 학습하면 token을 하나씩 생성해 임의의 text를 만들 수 있는 model을 얻는다.
 
-To train it end-to-end on a whole sequence in parallel, you need each position's prediction to depend only on earlier positions. Otherwise the model trivially cheats by looking at the answer.
+전체 sequence를 parallel하게 end-to-end로 학습하려면 각 position의 prediction이 이전 position에만 의존해야 한다. 그렇지 않으면 model은 정답을 들여다보며 trivial하게 cheating한다.
 
-The causal mask does this. It is a single upper-triangular matrix of `-inf` values added to attention scores before softmax. After softmax, those positions become 0. Each position can attend only to itself and earlier positions. And because you apply it once to the whole sequence, you get N parallel next-token predictions in one forward pass.
+causal mask가 이것을 해낸다. softmax 전에 attention score에 더하는 `-inf` 값의 upper-triangular matrix 하나다. softmax 후에는 해당 position들이 0이 된다. 각 position은 자기 자신과 이전 position에만 attend할 수 있다. 그리고 전체 sequence에 한 번 적용하므로 forward pass 하나에서 N개의 parallel next-token prediction을 얻는다.
 
-GPT-1 (2018), GPT-2 (2019), GPT-3 (2020), GPT-4 (2023), GPT-5 (2024), Claude, Llama, Qwen, Mistral, DeepSeek, Kimi — they are all decoder-only causal transformers with the same core loop. Just bigger, better data, and better RLHF.
+GPT-1(2018), GPT-2(2019), GPT-3(2020), GPT-4(2023), GPT-5(2024), Claude, Llama, Qwen, Mistral, DeepSeek, Kimi는 모두 같은 core loop를 가진 decoder-only causal transformer다. 더 클 뿐이고, data가 더 좋고, RLHF가 더 좋아졌을 뿐이다.
 
-## The Concept
+## 개념
 
-![Causal mask creates a triangular attention matrix](../assets/causal-attention.svg)
+![Causal mask는 삼각형 attention matrix를 만든다](../assets/causal-attention.svg)
 
-### The mask
+### 마스크
 
-Given a sequence of length `N`, build an `N × N` matrix:
+길이 `N`의 sequence가 주어지면 `N × N` matrix를 만든다.
 
-```
+```text
 M[i, j] = 0       if j <= i
 M[i, j] = -inf    if j > i
 ```
 
-Add `M` to the raw attention scores before softmax. `exp(-inf) = 0`, so masked positions contribute zero weight. Each row of the attention matrix is a probability distribution over previous positions only.
+softmax 전에 raw attention score에 `M`을 더한다. `exp(-inf) = 0`이므로 masked position은 weight에 0만 기여한다. attention matrix의 각 row는 이전 position들에 대한 probability distribution만 된다.
 
-Implementation cost: one `torch.tril()` call. Time to compute: nanoseconds. Impact on the field: everything.
+구현 비용은 `torch.tril()` 호출 하나다. compute 시간은 nanosecond다. field에 미친 영향은 전부라고 해도 된다.
 
-### Parallel training, serial inference
+### 병렬 training, 직렬 inference
 
-Training: forward-pass the whole `(N, d_model)` sequence once, compute N cross-entropy losses (one per position), sum, backprop. Parallel along the sequence. This is why GPT training scales — you process 1M tokens in a batch in one GPU pass.
+training에서는 전체 `(N, d_model)` sequence를 한 번 forward-pass하고, N개의 cross-entropy loss(position마다 하나)를 계산해 더한 뒤 backprop한다. sequence 방향으로 parallel하다. 이것이 GPT training이 scale되는 이유다. GPU pass 한 번으로 batch 안의 1M token을 처리한다.
 
-Inference: you generate token by token. Feed `[t1, t2, t3]`, get `t4`. Feed `[t1, t2, t3, t4]`, get `t5`. Feed `[t1, t2, t3, t4, t5]`, get `t6`. The KV cache (Lesson 12) saves the hidden states of `t1…tn` so you don't recompute them each step. But serial depth at inference = output length. That is the autoregressive tax and why decoding is the latency bottleneck of every LLM.
+inference에서는 token을 하나씩 생성한다. `[t1, t2, t3]`를 넣어 `t4`를 얻는다. `[t1, t2, t3, t4]`를 넣어 `t5`를 얻는다. `[t1, t2, t3, t4, t5]`를 넣어 `t6`를 얻는다. KV cache(Lesson 12)는 `t1…tn`의 hidden state를 저장해 매 step마다 다시 계산하지 않게 한다. 하지만 inference의 serial depth는 output length와 같다. 이것이 autoregressive tax이며, 모든 LLM에서 decoding이 latency bottleneck인 이유다.
 
-### The loss — shift-by-one
+### 손실 — shift-by-one
 
-Given tokens `[t1, t2, t3, t4]`:
+token `[t1, t2, t3, t4]`가 주어졌을 때:
 
-- Input: `[t1, t2, t3]`
+- 입력: `[t1, t2, t3]`
 - Targets: `[t2, t3, t4]`
 
-For every position `i`, compute `-log P(target_i | inputs[:i+1])`. Sum. This is the cross-entropy for the whole sequence.
+각 position `i`마다 `-log P(target_i | inputs[:i+1])`를 계산한다. 모두 더한다. 이것이 전체 sequence의 cross-entropy다.
 
-Every transformer LM you've heard of trains on this loss. Pre-training, fine-tuning, SFT — same loss, different data.
+들어 본 모든 transformer LM은 이 loss로 학습한다. pre-training, fine-tuning, SFT 모두 같은 loss를 쓰고 data만 다르다.
 
-### Decoding strategies
+### Decoding 전략
 
-After training, sampling choices matter more than people think.
+학습 후에는 sampling 선택이 사람들이 생각하는 것보다 더 중요하다.
 
-| Method | What it does | When to use |
+| 방법 | 동작 | 사용 시점 |
 |--------|--------------|-------------|
-| Greedy | Argmax every step | Deterministic tasks, code completion |
-| Temperature | Divide logits by T, sample | Creative tasks, higher T = more diversity |
-| Top-k | Sample from top-k tokens only | Kills low-probability tails |
-| Top-p (nucleus) | Sample from smallest set with cumulative prob ≥ p | 2020+ default; adapts to distribution shape |
-| Min-p | Keep tokens with `p > min_p * max_p` | 2024+; better at rejecting long tails than top-p |
-| Speculative decoding | Draft model proposes N tokens, big model verifies | 2–3× latency reduction at same quality |
+| Greedy | 매 step argmax | Deterministic task, code completion |
+| Temperature | logit을 T로 나누고 sample | Creative task, T가 높을수록 diversity 증가 |
+| Top-k | top-k token에서만 sample | 낮은 probability tail 제거 |
+| Top-p (nucleus) | cumulative prob ≥ p가 되는 가장 작은 set에서 sample | 2020년 이후 기본값. distribution shape에 적응 |
+| Min-p | `p > min_p * max_p`인 token 유지 | 2024년 이후. 긴 tail을 거부하는 데 top-p보다 좋음 |
+| Speculative decoding | draft model이 N개 token을 제안하고 큰 model이 검증 | 같은 quality에서 2-3× latency 감소 |
 
-In 2026, min-p + temperature 0.7 is a reasonable default for open-weights models. Speculative decoding is table stakes for any production inference stack.
+2026년에는 open-weights model에 min-p + temperature 0.7이 합리적인 기본값이다. speculative decoding은 production inference stack의 기본 요건이다.
 
-### What made the "GPT recipe" work
+### "GPT recipe"가 통하게 만든 것
 
-1. **Decoder-only.** No encoder overhead. One pass of attention + FFN per layer.
-2. **Scaling.** 124M → 1.5B → 175B → trillions. Chinchilla scaling laws (Lesson 13) tell you how to spend compute.
-3. **In-context learning.** Emerged around 6B–13B. The model can follow few-shot examples without fine-tuning.
-4. **RLHF.** Post-training on human preferences converted raw pretrained text into chat assistants.
-5. **Pre-norm + RoPE + SwiGLU.** Stable training at scale.
+1. **Decoder-only.** encoder overhead가 없다. layer마다 attention + FFN을 한 번 통과한다.
+2. **Scaling.** 124M → 1.5B → 175B → trillions. Chinchilla scaling laws(Lesson 13)는 compute를 어떻게 쓸지 알려 준다.
+3. **In-context learning.** 6B-13B 무렵 emergence했다. model은 fine-tuning 없이 few-shot example을 따를 수 있다.
+4. **RLHF.** human preference에 대한 post-training이 raw pretrained text를 chat assistant로 바꿨다.
+5. **Pre-norm + RoPE + SwiGLU.** scale에서 안정적인 training.
 
-The core architecture hasn't changed much since GPT-2. Everything interesting has happened in data, scale, and post-training.
+core architecture는 GPT-2 이후 크게 바뀌지 않았다. 흥미로운 변화는 모두 data, scale, post-training에서 일어났다.
 
 ```figure
 causal-mask
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: the causal mask
+### 1단계: causal mask
 
-See `code/main.py`. A one-liner:
+`code/main.py`를 보라. 한 줄이면 된다.
 
 ```python
 def causal_mask(n):
     return [[0.0 if j <= i else float("-inf") for j in range(n)] for i in range(n)]
 ```
 
-Add it to attention scores before softmax. That's the entire mechanism.
+attention score에 softmax 전에 더한다. 이것이 전체 mechanism이다.
 
-### Step 2: a 2-layer GPT-ish model
+### 2단계: 2-layer GPT-ish model
 
-Stack two decoder blocks (masked self-attention + FFN, no cross-attention). Add a token embedding, a positional encoding, and an unembedding (tied to the token embedding matrix — a standard trick since GPT-2).
+decoder block 두 개를 쌓는다(masked self-attention + FFN, cross-attention 없음). token embedding, positional encoding, unembedding을 추가한다(unembedding은 token embedding matrix와 묶는다. GPT-2 이후 표준 trick이다).
 
-### Step 3: next-token prediction, end-to-end
+### 3단계: next-token prediction end-to-end
 
-On a 20-token toy vocab, produce logits at every position. Compute cross-entropy loss against the shift-by-one target. No gradient — this is a forward-pass sanity check.
+20-token toy vocab에서 모든 position의 logit을 만든다. shift-by-one target에 대해 cross-entropy loss를 계산한다. gradient는 쓰지 않는다. forward-pass sanity check다.
 
-### Step 4: sampling
+### 4단계: sampling
 
-Implement greedy, temperature, top-k, top-p, min-p. Run each on a fixed prompt and compare outputs. A sampling function is 10 lines.
+greedy, temperature, top-k, top-p, min-p를 구현한다. 고정 prompt에서 각각을 실행하고 output을 비교한다. sampling function은 10줄이면 된다.
 
-## Use It
+## 활용하기
 
 PyTorch, 2026 idiom:
 
@@ -126,38 +126,38 @@ out = model.generate(
 print(tok.decode(out[0]))
 ```
 
-Under the hood, `generate()` runs the forward pass, pulls the final-position logits, samples the next token, appends it, and repeats. Every production LLM inference stack (vLLM, TensorRT-LLM, llama.cpp, Ollama, MLX) implements the same loop with heavy optimization — batched prefill, continuous batching, KV cache paging, speculative decoding.
+내부에서 `generate()`는 forward pass를 실행하고 final-position logit을 뽑아 next token을 sample한 뒤 append하고 반복한다. 모든 production LLM inference stack(vLLM, TensorRT-LLM, llama.cpp, Ollama, MLX)은 같은 loop를 강하게 optimize해 구현한다. batched prefill, continuous batching, KV cache paging, speculative decoding이 그 예다.
 
-**GPT vs BERT, one line each:** GPT predicts `P(x_t | x_{<t})`. BERT predicts `P(x_masked | x_unmasked)`. The loss determines whether the model can generate.
+**GPT vs BERT, 한 줄씩:** GPT는 `P(x_t | x_{<t})`를 예측한다. BERT는 `P(x_masked | x_unmasked)`를 예측한다. loss가 model이 generate할 수 있는지를 결정한다.
 
-## Ship It
+## 실전 적용
 
-See `outputs/skill-sampling-tuner.md`. The skill picks sampling parameters for a new generation task and flags when deterministic decoding is required.
+`outputs/skill-sampling-tuner.md`를 보라. 이 skill은 새로운 generation task에 맞는 sampling parameter를 고르고, deterministic decoding이 필요한 경우를 표시한다.
 
-## Exercises
+## 연습문제
 
-1. **Easy.** Run `code/main.py` and verify the causal attention matrix is lower-triangular after softmax. Spot-check: row 3 should have weights only in columns 0–3.
-2. **Medium.** Implement beam search for width 4. Compare perplexity of beam-4 vs greedy on 10 short prompts. Does beam always win? (Hint: usually for translation, not for open-ended chat.)
-3. **Hard.** Implement speculative decoding: use a tiny 2-layer model as the draft and a 6-layer model as the verifier. Measure wall-clock speedup on 100 completions of length 64. Confirm outputs match greedy of the verifier.
+1. **쉬움.** `code/main.py`를 실행하고 softmax 이후 causal attention matrix가 lower-triangular인지 확인하라. spot-check: row 3은 column 0-3에만 weight가 있어야 한다.
+2. **보통.** width 4의 beam search를 구현하라. 10개의 짧은 prompt에서 beam-4와 greedy의 perplexity를 비교하라. beam이 항상 이기는가? (힌트: 보통 translation에서는 그렇지만 open-ended chat에서는 아니다.)
+3. **어려움.** speculative decoding을 구현하라. tiny 2-layer model을 draft로, 6-layer model을 verifier로 사용한다. 길이 64 completion 100개에서 wall-clock speedup을 측정하라. output이 verifier의 greedy와 일치하는지 확인하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|-----------------|-----------------------|
-| Causal mask | "The triangle" | Upper-triangular `-inf` matrix added to attention scores so position `i` only sees positions `≤ i`. |
-| Next-token prediction | "The loss" | Cross-entropy of the model's distribution against the true next token at every position. |
-| Autoregressive | "Generate one at a time" | Feed output back as input; parallelism only during training, not during generation. |
-| Logits | "Pre-softmax scores" | Raw output of the LM head before softmax; sampling happens on these. |
-| Temperature | "Creativity knob" | Divide logits by T; T→0 = greedy, T→∞ = uniform. |
-| Top-p | "Nucleus sampling" | Truncate distribution to smallest set summing to ≥p; sample from what remains. |
-| Min-p | "Better than top-p" | Keep tokens where `p ≥ min_p × max_p`; adapts cutoff to sharpness of distribution. |
-| Speculative decoding | "Draft + verify" | Cheap model proposes N tokens; big model verifies in parallel. |
-| Teacher forcing | "Training trick" | During training, feed the true previous token, not the model's prediction. Standard for every seq2seq LM. |
+| Causal mask | "Triangle" | position `i`가 `≤ i` position만 보도록 attention score에 더하는 upper-triangular `-inf` matrix. |
+| Next-token prediction | "Loss" | 모든 position에서 true next token에 대한 model distribution의 cross-entropy. |
+| Autoregressive | "하나씩 생성" | output을 다시 input으로 넣는다. parallelism은 training 중에만 있고 generation 중에는 없다. |
+| Logits | "Pre-softmax score" | softmax 전 LM head의 raw output. sampling은 여기서 일어난다. |
+| Temperature | "Creativity knob" | logit을 T로 나눈다. T→0 = greedy, T→∞ = uniform. |
+| Top-p | "Nucleus sampling" | 합이 ≥p가 되는 가장 작은 set으로 distribution을 잘라 남은 것에서 sample한다. |
+| Min-p | "Top-p보다 낫다" | `p ≥ min_p × max_p`인 token을 유지한다. distribution의 sharpness에 맞춰 cutoff를 조정한다. |
+| Speculative decoding | "Draft + verify" | 싼 model이 N개 token을 제안하고 큰 model이 parallel하게 검증한다. |
+| Teacher forcing | "Training trick" | training 중에는 model prediction이 아니라 true previous token을 넣는다. 모든 seq2seq LM의 표준이다. |
 
-## Further Reading
+## 더 읽을거리
 
 - [Radford et al. (2018). Improving Language Understanding by Generative Pre-Training](https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf) — GPT-1.
 - [Radford et al. (2019). Language Models are Unsupervised Multitask Learners](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) — GPT-2.
-- [Brown et al. (2020). Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165) — GPT-3 and in-context learning.
-- [Leviathan, Kalman, Matias (2023). Fast Inference from Transformers via Speculative Decoding](https://arxiv.org/abs/2211.17192) — spec decoding paper.
+- [Brown et al. (2020). Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165) — GPT-3와 in-context learning.
+- [Leviathan, Kalman, Matias (2023). Fast Inference from Transformers via Speculative Decoding](https://arxiv.org/abs/2211.17192) — speculative decoding 논문.
 - [HuggingFace `modeling_llama.py`](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py) — canonical causal-LM reference code.

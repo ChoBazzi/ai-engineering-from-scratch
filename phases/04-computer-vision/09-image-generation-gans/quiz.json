@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does GAN training use the non-saturating generator loss -log(D(G(z))) instead of log(1 - D(G(z)))?",
-      "options": ["They are mathematically different and produce better equilibria", "Early in training D(G(z)) is near zero, so log(1 - D(G(z))) has vanishing gradient; -log(D(G(z))) has large gradient there so G receives a useful signal", "It speeds up the discriminator", "It is required by PyTorch"],
+      "question": "GAN training은 왜 log(1 - D(G(z))) 대신 non-saturating generator loss -log(D(G(z)))를 사용할까요?",
+      "options": [
+        "두 loss는 수학적으로 다르며 더 나은 equilibrium을 만듭니다",
+        "훈련 초기에 D(G(z))가 0에 가까워서 log(1 - D(G(z)))의 gradient가 사라집니다. -log(D(G(z)))는 그 지점에서 gradient가 크므로 G가 유용한 signal을 받습니다",
+        "Discriminator를 더 빠르게 만듭니다",
+        "PyTorch가 요구하기 때문입니다"
+      ],
       "correct": 1,
-      "explanation": "The two losses share the same gradient direction but very different magnitudes when D(G(z)) is small. log(1 - D(G(z))) plateaus at zero gradient there. The non-saturating form stays informative across the whole range. Goodfellow noted this tweak in the original paper and every modern GAN uses it."
+      "explanation": "두 loss는 같은 gradient direction을 공유하지만 D(G(z))가 작을 때 magnitude가 매우 다릅니다. log(1 - D(G(z)))는 그 지점에서 zero gradient로 plateau가 됩니다. Non-saturating form은 전체 range에서 유용한 정보를 유지합니다. Goodfellow는 원 논문에서 이 tweak을 언급했고 모든 현대 GAN이 이것을 사용합니다."
     },
     {
       "stage": "pre",
-      "question": "DCGAN's rules say to use strided convolutions instead of pooling. Why?",
-      "options": ["Pooling is slower on GPUs", "Pooling is non-learnable and throws away information the generator might need; strided convs let the network learn its own downsampling, which empirically produces sharper generated images", "Pooling breaks gradient flow", "Pooling is incompatible with batch norm"],
+      "question": "DCGAN의 규칙은 pooling 대신 strided convolution을 사용하라고 말합니다. 왜일까요?",
+      "options": [
+        "Pooling이 GPU에서 더 느리기 때문에",
+        "Pooling은 learnable하지 않고 generator가 필요로 할 수 있는 정보를 버립니다. Strided conv는 network가 자체 downsampling을 학습하게 하며, 경험적으로 더 선명한 generated image를 만듭니다",
+        "Pooling이 gradient flow를 깨뜨리기 때문에",
+        "Pooling은 batch norm과 호환되지 않기 때문에"
+      ],
       "correct": 1,
-      "explanation": "Max-pool is a hand-picked downsampling that discards everything but the max. In a generative setting the model benefits from a learned downsampling that can preserve information across the stride. Strided convolutions in D and strided transposed convolutions in G were the architectural change that made DCGANs trainable."
+      "explanation": "Max-pool은 max를 제외한 모든 것을 버리는 hand-picked downsampling입니다. Generative setting에서는 stride 전체에 걸쳐 정보를 보존할 수 있는 learned downsampling이 model에 유리합니다. D의 strided convolution과 G의 strided transposed convolution은 DCGAN을 trainable하게 만든 architecture change였습니다."
     },
     {
       "stage": "post",
-      "question": "You train a GAN and notice G produces almost identical samples regardless of the input noise. Which failure is this?",
-      "options": ["Vanishing gradients", "Mode collapse — G has found a narrow region of the data distribution that consistently fools D and has no incentive to explore; fixes include spectral norm, minibatch discrimination, or a larger batch", "Oscillation", "The dataset is too small"],
+      "question": "GAN을 훈련했더니 input noise와 관계없이 G가 거의 동일한 sample을 생성합니다. 이것은 어떤 failure일까요?",
+      "options": [
+        "Vanishing gradients",
+        "Mode collapse — G가 data distribution의 좁은 region을 찾아 D를 지속적으로 속이고 있으며 explore할 incentive가 없습니다. fix에는 spectral norm, minibatch discrimination, 더 큰 batch가 포함됩니다",
+        "Oscillation",
+        "Dataset이 너무 작습니다"
+      ],
       "correct": 1,
-      "explanation": "Mode collapse is the characteristic GAN failure where samples lack diversity. The diagnostic is obvious: noise in, same image out. Fixes all target the discriminator's ability to punish lack of diversity, either by making D more expressive (spectral norm, minibatch discrimination) or by giving G less room to collapse (larger batch, conditional labels)."
+      "explanation": "Mode collapse는 sample diversity가 부족한 전형적인 GAN failure입니다. 진단은 명확합니다. noise가 들어가도 같은 image가 나옵니다. Fix는 모두 diversity 부족을 벌주는 discriminator의 능력을 겨냥합니다. D를 더 expressive하게 만들거나(spectral norm, minibatch discrimination), G가 collapse할 여지를 줄입니다(더 큰 batch, conditional labels)."
     },
     {
       "stage": "post",
-      "question": "Why do DCGAN training scripts use Adam with betas=(0.5, 0.999) instead of the default (0.9, 0.999)?",
-      "options": ["The default is broken", "A lower beta1 reduces momentum; in an adversarial game, heavy momentum keeps each optimizer in the wrong direction too long when the other network's behaviour changes, which causes instability", "Adam is only supported with beta1=0.5 on CUDA", "It is a typo propagated through tutorials"],
+      "question": "DCGAN training script는 왜 Adam의 기본값 (0.9, 0.999) 대신 betas=(0.5, 0.999)를 사용할까요?",
+      "options": [
+        "기본값이 망가져 있기 때문에",
+        "더 낮은 beta1은 momentum을 줄입니다. Adversarial game에서는 다른 network의 behaviour가 바뀔 때 heavy momentum이 각 optimizer를 잘못된 방향에 너무 오래 머물게 해서 instability를 일으킵니다",
+        "Adam은 CUDA에서 beta1=0.5일 때만 지원되기 때문에",
+        "Tutorial을 통해 퍼진 typo입니다"
+      ],
       "correct": 1,
-      "explanation": "Adam's default beta1=0.9 averages gradients over roughly 10 steps. In a stationary objective that is helpful. In an adversarial game where the loss landscape shifts every D and G update, that averaging delays the optimizer's response and causes oscillation. Radford et al. found beta1=0.5 much more stable, and it is now the GAN default."
+      "explanation": "Adam의 기본 beta1=0.9는 대략 10 step에 걸쳐 gradient를 평균냅니다. Stationary objective에서는 도움이 됩니다. 하지만 D와 G update마다 loss landscape가 바뀌는 adversarial game에서는 그 averaging이 optimizer의 반응을 늦추고 oscillation을 일으킵니다. Radford et al.은 beta1=0.5가 훨씬 안정적임을 발견했고, 이것은 이제 GAN 기본값입니다."
     },
     {
       "stage": "post",
-      "question": "A colleague reports a GAN with D loss near zero and G loss increasing over training. What is happening and how do you fix it?",
-      "options": ["Both nets are improving correctly", "The discriminator has become too strong and drives G's gradient to zero; fixes include a smaller D, spectral norm, label smoothing on real labels (0.9 instead of 1.0), or switching to WGAN-GP", "The generator is correctly overfitting", "Nothing — this is the equilibrium"],
+      "question": "동료가 D loss는 0에 가깝고 G loss는 training 동안 증가하는 GAN을 보고했습니다. 무슨 일이 일어나고 있으며 어떻게 고칠까요?",
+      "options": [
+        "두 net이 올바르게 개선되고 있습니다",
+        "Discriminator가 너무 강해져 G의 gradient를 0으로 몰고 있습니다. fix에는 더 작은 D, spectral norm, real label에 대한 label smoothing(1.0 대신 0.9), WGAN-GP로 전환이 포함됩니다",
+        "Generator가 올바르게 overfitting하고 있습니다",
+        "아무 일도 아닙니다. 이것이 equilibrium입니다"
+      ],
       "correct": 1,
-      "explanation": "D's loss near zero means D is perfect on both real and fake. At that point the BCE gradient to G vanishes: G sees a near-zero signal no matter what it outputs. The fix is to weaken D or use a loss that does not saturate. Spectral norm (limits D's Lipschitz constant) and WGAN-GP (uses Earth-Mover distance instead of BCE) are the two standard rescues."
+      "explanation": "D의 loss가 0에 가깝다는 것은 D가 real과 fake 모두에서 완벽하다는 뜻입니다. 그 지점에서 G로 가는 BCE gradient는 사라집니다. G는 무엇을 출력하든 거의 zero signal을 봅니다. Fix는 D를 약화하거나 saturate하지 않는 loss를 사용하는 것입니다. Spectral norm(D의 Lipschitz constant 제한)과 WGAN-GP(BCE 대신 Earth-Mover distance 사용)가 두 가지 표준 rescue입니다."
     }
   ]
 }

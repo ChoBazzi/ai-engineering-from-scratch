@@ -1,75 +1,75 @@
 ---
 name: skill-classification-baseline
-description: Establish a strong classification baseline before reaching for complex models
+description: complex models로 넘어가기 전에 강력한 classification baseline 세우기
 version: 1.0.0
 phase: 2
 lesson: 3
 tags: [classification, logistic-regression, baseline, preprocessing]
 ---
 
-# Classification Baseline Guide
+# Classification baseline 가이드
 
-Before trying complex models, establish a baseline with logistic regression. It trains in seconds, produces probabilities, and is fully interpretable. A surprising number of real-world problems never need anything fancier.
+complex models를 시도하기 전에 logistic regression으로 baseline을 세우세요. 몇 초 안에 train되고, probabilities를 만들며, 완전히 interpretable합니다. 실제 문제 중 놀랄 만큼 많은 수가 그보다 더 복잡한 것을 필요로 하지 않습니다.
 
-## Decision Checklist
+## 의사결정 체크리스트
 
-1. Is the decision boundary likely linear?
-   - Yes: logistic regression will probably be sufficient
-   - No: you still want it as a baseline to measure improvement
+1. decision boundary가 linear일 가능성이 높은가요?
+   - 예: logistic regression으로 충분할 가능성이 큼
+   - 아니요: 그래도 improvement를 측정할 baseline으로 필요함
 
-2. How many features do you have?
-   - Under 50: standard logistic regression works fine
-   - 50 to 10,000: add L2 regularization (Ridge)
-   - Over 10,000 (e.g., TF-IDF text features): use L1 regularization (Lasso) or LinearSVC
+2. features가 몇 개인가요?
+   - 50 미만: standard logistic regression이 잘 동작
+   - 50 to 10,000: L2 regularization (Ridge) 추가
+   - 10,000 초과 (예: TF-IDF text features): L1 regularization (Lasso) 또는 LinearSVC 사용
 
-3. Is the dataset imbalanced?
-   - Under 5:1 ratio: probably fine without adjustment
-   - 5:1 to 50:1: use `class_weight="balanced"` in sklearn
-   - Over 50:1: combine class weighting with appropriate metric (precision, recall, or F1)
+3. dataset이 imbalanced인가요?
+   - 5:1 ratio 미만: adjustment 없이도 대체로 괜찮음
+   - 5:1 to 50:1: sklearn에서 `class_weight="balanced"` 사용
+   - 50:1 초과: class weighting과 적절한 metric (precision, recall, 또는 F1)을 결합
 
-4. Are features on different scales?
-   - Always standardize before logistic regression. It uses gradient-based optimization, and unscaled features slow convergence or distort the decision boundary.
+4. features가 서로 다른 scales에 있나요?
+   - logistic regression 전에 항상 standardize하세요. gradient-based optimization을 사용하므로 unscaled features는 convergence를 늦추거나 decision boundary를 왜곡합니다.
 
-5. Are there missing values?
-   - Impute before fitting. Logistic regression cannot handle NaNs.
-   - Use median imputation for numeric columns, mode for categorical.
+5. missing values가 있나요?
+   - fitting 전에 impute하세요. Logistic regression은 NaNs를 처리할 수 없습니다.
+   - numeric columns에는 median imputation, categorical에는 mode를 사용하세요.
 
-## When logistic regression is good enough
+## logistic regression으로 충분할 때
 
-- Binary classification with mostly linear feature relationships
-- You need probability outputs (not just class labels)
-- Interpretability is required (coefficients indicate feature importance direction and relative magnitude after standardization)
-- Training data is small (hundreds to low thousands of samples)
-- You need a fast model for real-time serving (single dot product at inference)
-- Regulatory or compliance requirements demand explainability
+- mostly linear feature relationships를 가진 binary classification
+- probability outputs가 필요함 (class labels만이 아님)
+- interpretability가 필요함 (standardization 후 coefficients가 feature importance의 방향과 상대 크기를 나타냄)
+- training data가 작음 (수백에서 낮은 수천 samples)
+- real-time serving을 위한 빠른 model이 필요함 (inference에서 single dot product)
+- regulatory 또는 compliance requirements가 explainability를 요구함
 
-## When to upgrade
+## upgrade할 때
 
-- Accuracy plateaus well below the target and you have tried feature engineering
-- The relationship between features and target is clearly nonlinear (check residual plots)
-- You have large tabular data (10k+ rows): try gradient boosting (XGBoost or LightGBM)
-- Features have complex interactions that polynomial features cannot capture
-- You have image, text, or sequential data: logistic regression on raw inputs will not work
+- feature engineering을 시도했는데도 accuracy가 target보다 훨씬 낮게 plateau됨
+- features와 target 사이의 관계가 명확히 nonlinear임 (residual plots 확인)
+- large tabular data가 있음 (10k+ rows): gradient boosting (XGBoost 또는 LightGBM) 시도
+- polynomial features가 포착할 수 없는 complex interactions가 있음
+- image, text, 또는 sequential data가 있음: raw inputs에 대한 logistic regression은 작동하지 않음
 
-## Preprocessing steps for a classification baseline
+## classification baseline을 위한 preprocessing steps
 
-1. **Train/test split** first, before any preprocessing. This prevents data leakage.
-2. **Handle missing values**: median impute numeric, mode impute categorical.
-3. **Encode categoricals**: one-hot for low cardinality (under 10 values), target encoding for higher. Fit target encoding only on training folds (use out-of-fold encoding to prevent leakage).
-4. **Scale numerics**: StandardScaler (zero mean, unit variance). Fit on train, transform both.
-5. **Fit logistic regression** with `C=1.0` (default regularization).
-6. **Evaluate**: confusion matrix, precision, recall, F1. Not just accuracy.
-7. **Tune threshold**: default 0.5 is rarely optimal. Sweep 0.1 to 0.9 and pick the threshold that matches your precision/recall priority.
+1. preprocessing 전에 먼저 **Train/test split**. 이것이 data leakage를 방지합니다.
+2. **Handle missing values**: numeric은 median impute, categorical은 mode impute.
+3. **Encode categoricals**: low cardinality (10 values 미만)는 one-hot, 더 높으면 target encoding. target encoding은 training folds에만 fit하세요 (leakage 방지를 위해 out-of-fold encoding 사용).
+4. **Scale numerics**: StandardScaler (zero mean, unit variance). train에 fit하고 둘 다 transform.
+5. `C=1.0` (default regularization)으로 **Fit logistic regression**.
+6. **Evaluate**: confusion matrix, precision, recall, F1. accuracy만 보지 마세요.
+7. **Tune threshold**: default 0.5가 최적인 경우는 드뭅니다. 0.1에서 0.9까지 sweep하고 precision/recall 우선순위에 맞는 threshold를 고르세요.
 
-## Common mistakes
+## 흔한 실수
 
-- Evaluating only accuracy on imbalanced data (a model predicting the majority class scores high but is useless)
-- Forgetting to scale features (logistic regression with unscaled features trains slowly and converges to a worse solution)
-- Using the test set to tune the decision threshold (use validation or cross-validation)
-- Skipping the baseline and jumping straight to XGBoost (you lose interpretability and have no reference point)
-- Not checking for multicollinearity (highly correlated features inflate coefficient variance)
+- imbalanced data에서 accuracy만 evaluate하기 (majority class를 예측하는 model이 높은 점수를 받지만 쓸모없음)
+- features scaling을 잊기 (unscaled features를 쓰는 logistic regression은 느리게 train되고 더 나쁜 solution으로 converge함)
+- decision threshold를 tune하는 데 test set 사용하기 (validation 또는 cross-validation 사용)
+- baseline을 건너뛰고 곧바로 XGBoost로 넘어가기 (interpretability를 잃고 reference point도 없음)
+- multicollinearity를 확인하지 않기 (highly correlated features는 coefficient variance를 부풀림)
 
-## Quick reference
+## 빠른 참조
 
 | Scenario | Model | Regularization | Key setting |
 |----------|-------|---------------|-------------|

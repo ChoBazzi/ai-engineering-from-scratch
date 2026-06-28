@@ -1,199 +1,199 @@
-# Loss Functions
+# 손실 함수
 
-> Your network makes a prediction. The ground truth says otherwise. How wrong is it? That number is the loss. Pick the wrong loss function and your model optimizes for the wrong thing entirely.
+> 네트워크가 예측을 내놓습니다. 정답은 다르다고 말합니다. 얼마나 틀렸을까요? 그 숫자가 손실입니다. 손실 함수를 잘못 고르면 모델은 완전히 엉뚱한 목표를 최적화합니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.04 (Activation Functions)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement MSE, binary cross-entropy, categorical cross-entropy, and contrastive loss (InfoNCE) from scratch with their gradients
-- Explain why MSE fails for classification by demonstrating the "predict 0.5 for everything" failure mode
-- Apply label smoothing to cross-entropy and describe how it prevents overconfident predictions
-- Choose the correct loss function for regression, binary classification, multi-class classification, and embedding learning tasks
+- MSE, 이진 크로스 엔트로피, 범주형 크로스 엔트로피, 대조 손실(InfoNCE)을 그래디언트와 함께 처음부터 구현한다
+- "모든 것에 0.5를 예측하는" 실패 모드를 직접 보여 주며 MSE가 분류에서 실패하는 이유를 설명한다
+- 크로스 엔트로피에 레이블 스무딩을 적용하고, 그것이 과도하게 확신하는 예측을 어떻게 막는지 설명한다
+- 회귀, 이진 분류, 다중 클래스 분류, 임베딩 학습 과제에 맞는 올바른 손실 함수를 선택한다
 
-## The Problem
+## 문제
 
-A model minimizing MSE on a classification problem will confidently predict 0.5 for everything. It's minimizing loss. It's also useless.
+분류 문제에서 MSE를 최소화하는 모델은 모든 것에 0.5를 자신 있게 예측할 수 있습니다. 손실은 최소화하고 있습니다. 동시에 아무 쓸모도 없습니다.
 
-The loss function is the only thing your model actually optimizes. Not accuracy. Not F1 score. Not whatever metric you report to your manager. The optimizer takes the gradient of the loss function and adjusts weights to make that number smaller. If the loss function doesn't capture what you care about, the model will find the mathematically cheapest way to satisfy it, and that way is almost never what you wanted.
+손실 함수는 모델이 실제로 최적화하는 유일한 대상입니다. 정확도가 아닙니다. F1 점수도 아닙니다. 관리자에게 보고하는 어떤 지표도 아닙니다. 옵티마이저는 손실 함수의 그래디언트를 받아 그 숫자를 더 작게 만들도록 가중치를 조정합니다. 손실 함수가 당신이 신경 쓰는 것을 포착하지 못하면, 모델은 그것을 만족시키는 수학적으로 가장 저렴한 방법을 찾아냅니다. 그리고 그 방법은 거의 절대로 당신이 원하던 것이 아닙니다.
 
-Here is a concrete example. You have a binary classification task. Two classes, 50/50 split. You use MSE as your loss. The model predicts 0.5 for every single input. The average MSE is 0.25, which is the minimum possible without actually learning anything. The model has zero discriminative ability but it has technically minimized your loss function. Switch to cross-entropy and the same model is forced to push predictions toward 0 or 1, because -log(0.5) = 0.693 is a terrible loss, while -log(0.99) = 0.01 rewards confident correct predictions. The choice of loss function is the difference between a model that learns and a model that games the metric.
+구체적인 예를 봅시다. 이진 분류 과제가 있습니다. 두 클래스가 있고, 비율은 50/50입니다. 손실로 MSE를 사용합니다. 모델은 모든 입력에 0.5를 예측합니다. 평균 MSE는 0.25이고, 실제로 아무것도 배우지 않고 도달할 수 있는 최솟값입니다. 모델은 구분 능력이 0이지만 기술적으로는 손실 함수를 최소화했습니다. 크로스 엔트로피로 바꾸면 같은 모델은 예측을 0 또는 1 쪽으로 밀어야 합니다. -log(0.5) = 0.693은 나쁜 손실이고, -log(0.99) = 0.01은 확신 있는 정답 예측에 보상을 주기 때문입니다. 손실 함수의 선택은 학습하는 모델과 지표를 악용하는 모델을 가르는 차이입니다.
 
-It gets worse. In self-supervised learning, you don't even have labels. Contrastive loss defines the learning signal entirely: what counts as similar, what counts as different, and how hard the model should push them apart. Get contrastive loss wrong and your embeddings collapse to a single point -- every input maps to the same vector. Technically zero loss. Completely worthless.
+더 나빠질 수도 있습니다. 자기지도 학습에는 레이블조차 없습니다. 대조 손실은 무엇이 비슷한지, 무엇이 다른지, 모델이 그것들을 얼마나 강하게 떼어 놓아야 하는지까지 학습 신호 전체를 정의합니다. 대조 손실을 잘못 만들면 임베딩이 한 점으로 붕괴합니다. 모든 입력이 같은 벡터로 매핑됩니다. 기술적으로는 손실이 0입니다. 완전히 가치가 없습니다.
 
-## The Concept
+## 개념
 
-### Mean Squared Error (MSE)
+### 평균 제곱 오차(MSE)
 
-The default for regression. Compute the squared difference between prediction and target, average over all samples.
+회귀의 기본값입니다. 예측과 타깃의 차이를 제곱하고, 모든 샘플에 대해 평균을 냅니다.
 
-```
+```text
 MSE = (1/n) * sum((y_pred - y_true)^2)
 ```
 
-Why squaring matters: it penalizes large errors quadratically. An error of 2 costs 4x as much as an error of 1. An error of 10 costs 100x. This makes MSE sensitive to outliers -- a single wildly wrong prediction dominates the loss.
+제곱이 중요한 이유는 큰 오차를 이차적으로 벌하기 때문입니다. 오차가 2이면 오차 1보다 비용이 4배 큽니다. 오차가 10이면 비용은 100배입니다. 그래서 MSE는 이상치에 민감합니다. 크게 틀린 예측 하나가 손실을 지배합니다.
 
-Real numbers: if your model predicts housing prices and is off by $10,000 on most houses but off by $200,000 on one mansion, MSE will aggressively try to fix that one mansion, potentially hurting performance on the other 99 houses.
+실제 숫자로 보면, 모델이 주택 가격을 예측할 때 대부분의 집에서는 $10,000 정도 틀리지만 어떤 대저택 하나에서 $200,000 틀린다면, MSE는 그 대저택 하나를 고치려고 공격적으로 움직입니다. 그 과정에서 나머지 99채의 성능을 해칠 수 있습니다.
 
-The gradient of MSE with respect to a prediction is:
+예측에 대한 MSE의 그래디언트는 다음과 같습니다.
 
-```
+```text
 dMSE/dy_pred = (2/n) * (y_pred - y_true)
 ```
 
-Linear in the error. Bigger errors get bigger gradients. This is a feature for regression (large errors need large corrections) and a bug for classification (you want to penalize confident wrong answers exponentially, not linearly).
+오차에 선형입니다. 더 큰 오차는 더 큰 그래디언트를 만듭니다. 회귀에서는 장점입니다. 큰 오차에는 큰 수정이 필요합니다. 분류에서는 단점입니다. 확신 있게 틀린 답은 선형이 아니라 지수적으로 벌하고 싶기 때문입니다.
 
-### Cross-Entropy Loss
+### 크로스 엔트로피 손실
 
-The loss function for classification. Rooted in information theory -- it measures the divergence between the predicted probability distribution and the true distribution.
+분류를 위한 손실 함수입니다. 정보 이론에 뿌리를 두고 있으며, 예측 확률 분포와 참 분포 사이의 차이를 측정합니다.
 
-**Binary Cross-Entropy (BCE):**
+**이진 크로스 엔트로피(BCE):**
 
-```
+```text
 BCE = -(y * log(p) + (1 - y) * log(1 - p))
 ```
 
-Where y is the true label (0 or 1) and p is the predicted probability.
+여기서 y는 참 레이블(0 또는 1)이고 p는 예측 확률입니다.
 
-Why -log(p) works: when the true label is 1 and you predict p = 0.99, the loss is -log(0.99) = 0.01. When you predict p = 0.01, the loss is -log(0.01) = 4.6. That 460x difference is why cross-entropy works. It brutally punishes confident wrong predictions while barely penalizing confident correct ones.
+-log(p)가 작동하는 이유는 이렇습니다. 참 레이블이 1이고 p = 0.99를 예측하면 손실은 -log(0.99) = 0.01입니다. p = 0.01을 예측하면 손실은 -log(0.01) = 4.6입니다. 이 460배 차이 때문에 크로스 엔트로피가 작동합니다. 확신 있게 틀린 예측은 가혹하게 벌하고, 확신 있게 맞힌 예측은 거의 벌하지 않습니다.
 
-The gradient tells the same story:
+그래디언트도 같은 이야기를 합니다.
 
-```
+```text
 dBCE/dp = -(y/p) + (1-y)/(1-p)
 ```
 
-When y = 1 and p is near zero, the gradient is -1/p which approaches negative infinity. The model gets an enormous signal to fix its mistake. When p is near 1, the gradient is tiny. Already correct, nothing to fix.
+y = 1이고 p가 0에 가까우면 그래디언트는 -1/p이며 음의 무한대에 가까워집니다. 모델은 실수를 고치라는 거대한 신호를 받습니다. p가 1에 가까우면 그래디언트는 작습니다. 이미 맞았으니 고칠 것이 없습니다.
 
-**Categorical Cross-Entropy:**
+**범주형 크로스 엔트로피:**
 
-For multi-class classification with one-hot encoded targets.
+원-핫 인코딩 타깃을 쓰는 다중 클래스 분류에 사용합니다.
 
-```
+```text
 CCE = -sum(y_i * log(p_i))
 ```
 
-Only the true class contributes to the loss (because all other y_i are zero). If there are 10 classes and the correct class gets probability 0.1 (random guessing), the loss is -log(0.1) = 2.3. If the correct class gets probability 0.9, the loss is -log(0.9) = 0.105. The model learns to concentrate probability mass on the right answer.
+참 클래스만 손실에 기여합니다. 다른 모든 y_i는 0이기 때문입니다. 클래스가 10개이고 정답 클래스 확률이 0.1이면(무작위 추측) 손실은 -log(0.1) = 2.3입니다. 정답 클래스 확률이 0.9이면 손실은 -log(0.9) = 0.105입니다. 모델은 올바른 답에 확률 질량을 집중하도록 학습합니다.
 
-### Why MSE Fails for Classification
+### MSE가 분류에서 실패하는 이유
 
 ```mermaid
 graph TD
-    subgraph "MSE on Classification"
-        P1["Predict 0.5 for class 1<br/>MSE = 0.25"]
-        P2["Predict 0.9 for class 1<br/>MSE = 0.01"]
-        P3["Predict 0.1 for class 1<br/>MSE = 0.81"]
+    subgraph "분류에서 MSE"
+        P1["클래스 1에 0.5 예측<br/>MSE = 0.25"]
+        P2["클래스 1에 0.9 예측<br/>MSE = 0.01"]
+        P3["클래스 1에 0.1 예측<br/>MSE = 0.81"]
     end
-    subgraph "Cross-Entropy on Classification"
-        C1["Predict 0.5 for class 1<br/>CE = 0.693"]
-        C2["Predict 0.9 for class 1<br/>CE = 0.105"]
-        C3["Predict 0.1 for class 1<br/>CE = 2.303"]
+    subgraph "분류에서 크로스 엔트로피"
+        C1["클래스 1에 0.5 예측<br/>CE = 0.693"]
+        C2["클래스 1에 0.9 예측<br/>CE = 0.105"]
+        C3["클래스 1에 0.1 예측<br/>CE = 2.303"]
     end
-    P3 -->|"MSE gradient<br/>flattens near<br/>saturation"| Slow["Slow correction"]
-    C3 -->|"CE gradient<br/>explodes near<br/>wrong answer"| Fast["Fast correction"]
+    P3 -->|"MSE 그래디언트<br/>포화 근처에서<br/>평평해짐"| Slow["느린 수정"]
+    C3 -->|"CE 그래디언트<br/>틀린 답 근처에서<br/>폭발함"| Fast["빠른 수정"]
 ```
 
-MSE gradients flatten when predictions are near 0 or 1 (due to sigmoid saturation). Cross-entropy gradients compensate for this -- the -log cancels the sigmoid's flat regions, giving strong gradients exactly where they are needed most.
+예측이 0이나 1에 가까우면 MSE 그래디언트는 평평해집니다(시그모이드 포화 때문입니다). 크로스 엔트로피 그래디언트는 이를 보상합니다. -log가 시그모이드의 평평한 영역을 상쇄해서, 가장 필요한 곳에서 강한 그래디언트를 줍니다.
 
-### Label Smoothing
+### 레이블 스무딩
 
-Standard one-hot labels say "this is 100% class 3 and 0% everything else." That's a strong claim. Label smoothing softens it:
+표준 원-핫 레이블은 "이것은 100% 클래스 3이고 나머지는 0%"라고 말합니다. 아주 강한 주장입니다. 레이블 스무딩은 이를 부드럽게 만듭니다.
 
-```
+```text
 smooth_label = (1 - alpha) * one_hot + alpha / num_classes
 ```
 
-With alpha = 0.1 and 10 classes: instead of [0, 0, 1, 0, ...], the target becomes [0.01, 0.01, 0.91, 0.01, ...]. The model targets 0.91 instead of 1.0.
+alpha = 0.1이고 클래스가 10개라면 [0, 0, 1, 0, ...] 대신 타깃이 [0.01, 0.01, 0.91, 0.01, ...]가 됩니다. 모델은 1.0이 아니라 0.91을 목표로 합니다.
 
-Why this works: a model trying to output exactly 1.0 through a softmax needs to push logits to infinity. This causes overconfidence, hurts generalization, and makes the model brittle to distribution shift. Label smoothing caps the target at 0.9 (with alpha=0.1), keeping logits in a reasonable range. GPT and most modern models use label smoothing or its equivalent.
+이것이 작동하는 이유는, 소프트맥스를 통해 정확히 1.0을 출력하려는 모델은 로짓을 무한대로 밀어야 하기 때문입니다. 이는 과도한 확신을 만들고, 일반화를 해치며, 분포 변화에 취약한 모델을 만듭니다. 레이블 스무딩은 타깃을 0.9로 제한해서(alpha=0.1일 때) 로짓을 합리적인 범위에 유지합니다. GPT와 대부분의 현대 모델은 레이블 스무딩 또는 그에 해당하는 기법을 사용합니다.
 
-### Contrastive Loss
+### 대조 손실
 
-No labels. No classes. Just pairs of inputs and the question: are these similar or different?
+레이블이 없습니다. 클래스도 없습니다. 입력 쌍과 하나의 질문만 있습니다. 이것들은 비슷한가, 다른가?
 
-**SimCLR-style contrastive loss (NT-Xent / InfoNCE):**
+**SimCLR 스타일 대조 손실(NT-Xent / InfoNCE):**
 
-Take one image. Create two augmented views of it (crop, rotate, color jitter). These are the "positive pair" -- they should have similar embeddings. Every other image in the batch forms a "negative pair" -- they should have different embeddings.
+이미지 하나를 가져옵니다. 그 이미지의 증강 뷰 두 개를 만듭니다(자르기, 회전, 색상 흔들기). 이것들이 "양성 쌍"입니다. 임베딩이 비슷해야 합니다. 배치 안의 다른 모든 이미지는 "음성 쌍"을 이룹니다. 임베딩이 달라야 합니다.
 
-```
+```text
 L = -log(exp(sim(z_i, z_j) / tau) / sum(exp(sim(z_i, z_k) / tau)))
 ```
 
-Where sim() is cosine similarity, z_i and z_j are the positive pair, the sum is over all negatives, and tau (temperature) controls how sharp the distribution is. Lower temperature = harder negatives = more aggressive separation.
+여기서 sim()은 코사인 유사도이고, z_i와 z_j는 양성 쌍이며, 합은 모든 음성 샘플에 대해 계산합니다. tau(temperature)는 분포가 얼마나 날카로운지 제어합니다. 낮은 temperature = 더 어려운 음성 샘플 = 더 공격적인 분리입니다.
 
-Real numbers: batch size 256 means 255 negatives per positive pair. Temperature tau = 0.07 (SimCLR default). The loss looks like a softmax over similarities -- it wants the positive pair's similarity to be highest among all 256 options.
+실제 숫자로 보면, 배치 크기 256은 양성 쌍 하나마다 255개의 음성 샘플이 있다는 뜻입니다. Temperature tau = 0.07(SimCLR 기본값)입니다. 손실은 유사도에 대한 소프트맥스처럼 보입니다. 모든 256개 선택지 중 양성 쌍의 유사도가 가장 높아지기를 원합니다.
 
-**Triplet Loss:**
+**트리플릿 손실:**
 
-Takes three inputs: anchor, positive (same class), negative (different class).
+세 입력을 받습니다. 앵커, 양성(같은 클래스), 음성(다른 클래스)입니다.
 
-```
+```text
 L = max(0, d(anchor, positive) - d(anchor, negative) + margin)
 ```
 
-The margin (typically 0.2-1.0) enforces a minimum gap between positive and negative distances. If the negative is already far enough away, the loss is zero -- no gradient, no update. This makes training efficient but requires careful triplet mining (choosing hard negatives that are close to the anchor).
+마진(보통 0.2-1.0)은 양성 거리와 음성 거리 사이에 최소 간격을 강제합니다. 음성이 이미 충분히 멀리 있으면 손실은 0입니다. 그래디언트도 없고 업데이트도 없습니다. 그래서 학습은 효율적이지만, 신중한 트리플릿 마이닝(앵커에 가까운 어려운 음성 선택)이 필요합니다.
 
-### Focal Loss
+### 포컬 손실
 
-For imbalanced datasets. Standard cross-entropy treats all correctly classified examples equally. Focal loss down-weights easy examples:
+불균형 데이터셋을 위한 손실입니다. 표준 크로스 엔트로피는 올바르게 분류된 모든 예제를 똑같이 취급합니다. 포컬 손실은 쉬운 예제의 가중치를 낮춥니다.
 
-```
+```text
 FL = -alpha * (1 - p_t)^gamma * log(p_t)
 ```
 
-Where p_t is the predicted probability of the true class and gamma controls the focusing. With gamma = 0, this is standard cross-entropy. With gamma = 2 (the default):
+여기서 p_t는 참 클래스의 예측 확률이고 gamma는 집중 정도를 제어합니다. gamma = 0이면 표준 크로스 엔트로피입니다. gamma = 2(기본값)이면 다음과 같습니다.
 
-- Easy example (p_t = 0.9): weight = (0.1)^2 = 0.01. Effectively ignored.
-- Hard example (p_t = 0.1): weight = (0.9)^2 = 0.81. Full gradient signal.
+- 쉬운 예제(p_t = 0.9): weight = (0.1)^2 = 0.01. 사실상 무시됩니다.
+- 어려운 예제(p_t = 0.1): weight = (0.9)^2 = 0.81. 온전한 그래디언트 신호를 받습니다.
 
-Focal loss was introduced by Lin et al. for object detection, where 99% of candidate regions are background (easy negatives). Without focal loss, the model drowns in easy background examples and never learns to detect objects. With it, the model focuses its capacity on the hard, ambiguous cases that matter.
+포컬 손실은 Lin et al.이 객체 탐지를 위해 도입했습니다. 후보 영역의 99%가 배경(쉬운 음성)이기 때문입니다. 포컬 손실이 없으면 모델은 쉬운 배경 예제에 파묻혀 객체를 탐지하는 법을 배우지 못합니다. 포컬 손실을 쓰면 모델은 중요한 어렵고 모호한 사례에 용량을 집중합니다.
 
-### Loss Function Decision Tree
+### 손실 함수 결정 트리
 
 ```mermaid
 flowchart TD
-    Start["What is your task?"] --> Reg{"Regression?"}
-    Start --> Cls{"Classification?"}
-    Start --> Emb{"Learning embeddings?"}
+    Start["과제가 무엇인가?"] --> Reg{"회귀?"}
+    Start --> Cls{"분류?"}
+    Start --> Emb{"임베딩 학습?"}
 
-    Reg -->|"Yes"| Outliers{"Outlier sensitive?"}
-    Outliers -->|"Yes, penalize outliers"| MSE["Use MSE"]
-    Outliers -->|"No, robust to outliers"| MAE["Use MAE / Huber"]
+    Reg -->|"예"| Outliers{"이상치에 민감해야 하는가?"}
+    Outliers -->|"예, 이상치를 벌함"| MSE["MSE 사용"]
+    Outliers -->|"아니요, 이상치에 견고함"| MAE["MAE / Huber 사용"]
 
-    Cls -->|"Binary"| BCE["Use Binary CE"]
-    Cls -->|"Multi-class"| CCE["Use Categorical CE"]
-    Cls -->|"Imbalanced"| FL["Use Focal Loss"]
-    CCE -->|"Overconfident?"| LS["Add Label Smoothing"]
+    Cls -->|"이진"| BCE["Binary CE 사용"]
+    Cls -->|"다중 클래스"| CCE["Categorical CE 사용"]
+    Cls -->|"불균형"| FL["Focal Loss 사용"]
+    CCE -->|"과도하게 확신하는가?"| LS["Label Smoothing 추가"]
 
-    Emb -->|"Paired data"| CL["Use Contrastive Loss"]
-    Emb -->|"Triplets available"| TL["Use Triplet Loss"]
-    Emb -->|"Large batch self-supervised"| NCE["Use InfoNCE"]
+    Emb -->|"쌍 데이터"| CL["Contrastive Loss 사용"]
+    Emb -->|"트리플릿 사용 가능"| TL["Triplet Loss 사용"]
+    Emb -->|"대형 배치 자기지도"| NCE["InfoNCE 사용"]
 ```
 
-### Loss Landscape
+### 손실 지형
 
 ```mermaid
 graph LR
-    subgraph "Loss Surface Shape"
-        MSE_S["MSE<br/>Smooth parabola<br/>Single minimum<br/>Easy to optimize"]
-        CE_S["Cross-Entropy<br/>Steep near wrong answers<br/>Flat near correct answers<br/>Strong gradients where needed"]
-        CL_S["Contrastive<br/>Many local minima<br/>Depends on batch composition<br/>Temperature controls sharpness"]
+    subgraph "손실 표면의 모양"
+        MSE_S["MSE<br/>매끄러운 포물선<br/>단일 최솟값<br/>최적화하기 쉬움"]
+        CE_S["크로스 엔트로피<br/>틀린 답 근처에서 가파름<br/>맞은 답 근처에서 평평함<br/>필요한 곳에서 강한 그래디언트"]
+        CL_S["대조 손실<br/>많은 국소 최솟값<br/>배치 구성에 의존<br/>Temperature가 날카로움을 제어"]
     end
-    MSE_S -->|"Best for"| Reg2["Regression"]
-    CE_S -->|"Best for"| Cls2["Classification"]
-    CL_S -->|"Best for"| Emb2["Representation learning"]
+    MSE_S -->|"최적 대상"| Reg2["회귀"]
+    CE_S -->|"최적 대상"| Cls2["분류"]
+    CL_S -->|"최적 대상"| Emb2["표현 학습"]
 ```
 
 ```figure
 cross-entropy-loss
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: MSE and Its Gradient
+### 1단계: MSE와 그래디언트
 
 ```python
 def mse(predictions, targets):
@@ -211,9 +211,9 @@ def mse_gradient(predictions, targets):
     return grads
 ```
 
-### Step 2: Binary Cross-Entropy
+### 2단계: 이진 크로스 엔트로피
 
-The log(0) problem is real. If the model predicts exactly 0 for a positive example, log(0) = negative infinity. Clipping prevents this.
+log(0) 문제는 실제로 발생합니다. 모델이 양성 예제에 정확히 0을 예측하면 log(0) = 음의 무한대입니다. 클리핑은 이를 막습니다.
 
 ```python
 import math
@@ -234,9 +234,9 @@ def bce_gradient(predictions, targets, eps=1e-15):
     return grads
 ```
 
-### Step 3: Categorical Cross-Entropy with Softmax
+### 3단계: 소프트맥스를 포함한 범주형 크로스 엔트로피
 
-Softmax converts raw logits to probabilities. Then we compute the cross-entropy against one-hot targets.
+소프트맥스는 원시 로짓을 확률로 바꿉니다. 그런 다음 원-핫 타깃에 대해 크로스 엔트로피를 계산합니다.
 
 ```python
 def softmax(logits):
@@ -257,9 +257,9 @@ def cce_gradient(logits, target_index):
     return grads
 ```
 
-The gradient of softmax + cross-entropy simplifies beautifully: it's just (predicted probability - 1) for the true class, and (predicted probability) for all other classes. This elegant simplification is not a coincidence -- it's why softmax and cross-entropy are paired.
+소프트맥스 + 크로스 엔트로피의 그래디언트는 아름답게 단순해집니다. 참 클래스에는 (예측 확률 - 1)이고, 다른 모든 클래스에는 (예측 확률)입니다. 이 우아한 단순화는 우연이 아닙니다. 그래서 소프트맥스와 크로스 엔트로피가 짝을 이룹니다.
 
-### Step 4: Label Smoothing
+### 4단계: 레이블 스무딩
 
 ```python
 def label_smoothed_cce(logits, target_index, num_classes, alpha=0.1, eps=1e-15):
@@ -275,7 +275,7 @@ def label_smoothed_cce(logits, target_index, num_classes, alpha=0.1, eps=1e-15):
     return loss
 ```
 
-### Step 5: Contrastive Loss (Simplified InfoNCE)
+### 5단계: 대조 손실(단순화한 InfoNCE)
 
 ```python
 def cosine_similarity(a, b):
@@ -298,9 +298,9 @@ def contrastive_loss(anchor, positive, negatives, temperature=0.07):
     return -math.log(max(1e-15, exp_pos / total_exp))
 ```
 
-### Step 6: MSE vs Cross-Entropy on Classification
+### 6단계: 분류에서 MSE와 크로스 엔트로피 비교
 
-Train the same network from lesson 04 (circle dataset) with both loss functions. Watch cross-entropy converge faster.
+lesson 04의 같은 네트워크(circle dataset)를 두 손실 함수로 학습합니다. 크로스 엔트로피가 더 빠르게 수렴하는 모습을 확인하세요.
 
 ```python
 import random
@@ -392,9 +392,9 @@ class LossComparisonNetwork:
         return losses
 ```
 
-## Use It
+## 사용하기
 
-PyTorch provides all standard loss functions with numerical stability built in:
+PyTorch는 수치 안정성이 내장된 모든 표준 손실 함수를 제공합니다.
 
 ```python
 import torch
@@ -413,46 +413,46 @@ ce_loss = F.cross_entropy(logits, labels)
 ce_smooth = F.cross_entropy(logits, labels, label_smoothing=0.1)
 ```
 
-Use `F.cross_entropy` (not `F.nll_loss` plus manual softmax). It combines log-softmax and negative log-likelihood in one numerically stable operation. Applying softmax separately then taking the log is less stable -- you lose precision in the subtraction of large exponentials.
+`F.cross_entropy`를 사용하세요(`F.nll_loss`에 수동 softmax를 더하는 방식이 아닙니다). 이것은 log-softmax와 negative log-likelihood를 수치적으로 안정적인 하나의 연산으로 결합합니다. softmax를 따로 적용한 뒤 log를 취하면 안정성이 떨어집니다. 큰 지수값을 뺄 때 정밀도를 잃기 때문입니다.
 
-For contrastive learning, most teams use custom implementations or libraries like `lightly` or `pytorch-metric-learning`. The core loop is always the same: compute pairwise similarities, create the softmax over positives and negatives, backpropagate.
+대조 학습에서는 대부분의 팀이 직접 구현하거나 `lightly`, `pytorch-metric-learning` 같은 라이브러리를 사용합니다. 핵심 루프는 항상 같습니다. 쌍별 유사도를 계산하고, 양성과 음성에 대한 소프트맥스를 만들고, 역전파합니다.
 
-## Ship It
+## 결과물
 
-This lesson produces:
-- `outputs/prompt-loss-function-selector.md` -- a reusable prompt for choosing the right loss function
-- `outputs/prompt-loss-debugger.md` -- a diagnostic prompt for when your loss curve looks wrong
+이 lesson은 다음을 만듭니다.
+- `outputs/prompt-loss-function-selector.md` -- 올바른 손실 함수를 고르기 위한 재사용 가능한 프롬프트
+- `outputs/prompt-loss-debugger.md` -- 손실 곡선이 이상해 보일 때 쓰는 진단 프롬프트
 
-## Exercises
+## 연습 문제
 
-1. Implement Huber loss (smooth L1 loss), which is MSE for small errors and MAE for large errors. Train a regression network predicting y = sin(x) with MSE vs Huber when 5% of training targets have random noise added (outliers). Compare final test error.
+1. Huber loss(smooth L1 loss)를 구현하세요. 작은 오차에는 MSE이고 큰 오차에는 MAE입니다. 학습 타깃의 5%에 무작위 노이즈(이상치)를 추가했을 때, y = sin(x)를 예측하는 회귀 네트워크를 MSE와 Huber로 각각 학습하세요. 최종 테스트 오차를 비교하세요.
 
-2. Add focal loss to the binary classification training loop. Create an imbalanced dataset (90% class 0, 10% class 1). Compare standard BCE vs focal loss (gamma=2) on the minority class recall after 200 epochs.
+2. 이진 분류 학습 루프에 focal loss를 추가하세요. 불균형 데이터셋(90% class 0, 10% class 1)을 만드세요. 200 epochs 후 소수 클래스 recall에서 표준 BCE와 focal loss(gamma=2)를 비교하세요.
 
-3. Implement triplet loss with semi-hard negative mining. Generate 2D embedding data for 5 classes. For each anchor, find the hardest negative that is still farther than the positive (semi-hard). Compare convergence to random triplet selection.
+3. semi-hard negative mining을 포함한 triplet loss를 구현하세요. 5개 클래스에 대한 2D 임베딩 데이터를 생성하세요. 각 앵커에 대해 양성보다 멀지만 가장 어려운 음성(semi-hard)을 찾으세요. 무작위 triplet 선택과 수렴을 비교하세요.
 
-4. Run the MSE vs cross-entropy comparison but track gradient magnitudes at each layer during training. Plot the average gradient norm per epoch. Verify that cross-entropy produces larger gradients in early epochs when the model is most uncertain.
+4. MSE와 크로스 엔트로피 비교를 실행하되, 학습 중 각 층의 그래디언트 크기를 추적하세요. epoch별 평균 그래디언트 노름을 그리세요. 모델이 가장 불확실한 초기 epoch에서 크로스 엔트로피가 더 큰 그래디언트를 만든다는 것을 확인하세요.
 
-5. Implement KL divergence loss and verify that minimizing KL(true || predicted) gives the same gradients as cross-entropy when the true distribution is one-hot. Then try soft targets (like knowledge distillation) where the "true" distribution comes from a teacher model's softmax output.
+5. KL divergence loss를 구현하고, 참 분포가 원-핫일 때 KL(true || predicted)을 최소화하면 크로스 엔트로피와 같은 그래디언트를 얻는지 확인하세요. 그런 다음 "참" 분포가 teacher model의 softmax 출력에서 오는 soft targets(knowledge distillation 같은 경우)를 시도하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Loss function | "How wrong the model is" | A differentiable function mapping predictions and targets to a scalar that the optimizer minimizes |
-| MSE | "Average squared error" | Mean of squared differences between predictions and targets; penalizes large errors quadratically |
-| Cross-entropy | "The classification loss" | Measures divergence between predicted probability distribution and true distribution using -log(p) |
-| Binary cross-entropy | "BCE" | Cross-entropy for two classes: -(y*log(p) + (1-y)*log(1-p)) |
-| Label smoothing | "Softening the targets" | Replacing hard 0/1 targets with soft values (e.g., 0.1/0.9) to prevent overconfidence and improve generalization |
-| Contrastive loss | "Pull together, push apart" | A loss that learns representations by making similar pairs close and dissimilar pairs far in embedding space |
-| InfoNCE | "The CLIP/SimCLR loss" | Normalized temperature-scaled cross-entropy over similarity scores; treats contrastive learning as classification |
-| Focal loss | "The imbalanced data fix" | Cross-entropy weighted by (1-p_t)^gamma to down-weight easy examples and focus on hard ones |
-| Triplet loss | "Anchor-positive-negative" | Pushes anchor closer to positive than negative by at least a margin in embedding space |
-| Temperature | "Sharpness knob" | A scalar divisor on logits/similarities that controls how peaked the resulting distribution is; lower = sharper |
+| Loss function | "모델이 얼마나 틀렸는가" | 예측과 타깃을 옵티마이저가 최소화하는 스칼라로 매핑하는 미분 가능한 함수 |
+| MSE | "평균 제곱 오차" | 예측과 타깃 차이의 제곱 평균이며, 큰 오차를 이차적으로 벌한다 |
+| Cross-entropy | "분류 손실" | -log(p)를 사용해 예측 확률 분포와 참 분포 사이의 차이를 측정한다 |
+| Binary cross-entropy | "BCE" | 두 클래스용 크로스 엔트로피: -(y*log(p) + (1-y)*log(1-p)) |
+| Label smoothing | "타깃을 부드럽게 만들기" | 과도한 확신을 막고 일반화를 개선하기 위해 딱딱한 0/1 타깃을 부드러운 값(예: 0.1/0.9)으로 바꾼다 |
+| Contrastive loss | "가까이 당기고 멀리 밀기" | 비슷한 쌍은 가깝게, 다른 쌍은 임베딩 공간에서 멀게 만들어 표현을 학습하는 손실 |
+| InfoNCE | "CLIP/SimCLR 손실" | 유사도 점수에 대한 정규화된 temperature-scaled 크로스 엔트로피이며, 대조 학습을 분류로 취급한다 |
+| Focal loss | "불균형 데이터 해결책" | (1-p_t)^gamma로 가중한 크로스 엔트로피로 쉬운 예제의 가중치를 낮추고 어려운 예제에 집중한다 |
+| Triplet loss | "앵커-양성-음성" | 앵커가 음성보다 양성에 적어도 margin만큼 더 가깝도록 밀어 준다 |
+| Temperature | "날카로움 조절 노브" | 로짓/유사도를 나누는 스칼라로 결과 분포의 뾰족함을 제어한다. 낮을수록 더 날카롭다 |
 
-## Further Reading
+## 더 읽을거리
 
-- Lin et al., "Focal Loss for Dense Object Detection" (2017) -- introduced focal loss for handling extreme class imbalance in object detection (RetinaNet)
-- Chen et al., "A Simple Framework for Contrastive Learning of Visual Representations" (SimCLR, 2020) -- defined the modern contrastive learning pipeline with NT-Xent loss
-- Szegedy et al., "Rethinking the Inception Architecture" (2016) -- introduced label smoothing as a regularization technique, now standard in most large models
-- Hinton et al., "Distilling the Knowledge in a Neural Network" (2015) -- knowledge distillation using soft targets and KL divergence, foundational for model compression
+- Lin et al., "Focal Loss for Dense Object Detection" (2017) -- 객체 탐지(RetinaNet)의 극단적인 클래스 불균형을 다루기 위해 focal loss를 도입한 논문
+- Chen et al., "A Simple Framework for Contrastive Learning of Visual Representations" (SimCLR, 2020) -- NT-Xent loss를 포함한 현대적인 대조 학습 파이프라인을 정의한 논문
+- Szegedy et al., "Rethinking the Inception Architecture" (2016) -- 지금은 대부분의 대형 모델에서 표준이 된 정규화 기법으로 label smoothing을 도입한 논문
+- Hinton et al., "Distilling the Knowledge in a Neural Network" (2015) -- soft targets와 KL divergence를 사용하는 knowledge distillation으로, 모델 압축의 기초가 된 논문

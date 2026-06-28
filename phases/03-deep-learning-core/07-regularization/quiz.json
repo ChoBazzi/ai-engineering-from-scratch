@@ -1,37 +1,62 @@
 [
   {
-    "question": "What is overfitting in neural networks?",
-    "options": ["The model is too small to learn the data", "The model memorizes training data instead of learning generalizable patterns, showing a large gap between train and test accuracy", "The model trains too slowly", "The loss function is wrong"],
+    "question": "신경망에서 과적합이란 무엇인가요?",
+    "options": [
+      "모델이 데이터를 학습하기에 너무 작다",
+      "모델이 일반화 가능한 패턴을 배우는 대신 훈련 데이터를 외우며, 훈련 정확도와 테스트 정확도 사이에 큰 격차가 나타난다",
+      "모델 훈련이 너무 느리다",
+      "손실 함수가 잘못되었다"
+    ],
     "correct": 1,
-    "explanation": "Overfitting occurs when a model achieves high training accuracy but poor test accuracy. It has memorized the training data's noise rather than learning the underlying patterns.",
+    "explanation": "과적합은 모델이 높은 훈련 정확도를 얻지만 테스트 정확도는 낮을 때 발생합니다. 모델은 근본 패턴을 배우기보다 훈련 데이터의 잡음을 외운 것입니다.",
     "stage": "pre"
   },
   {
-    "question": "How does dropout regularize a neural network?",
-    "options": ["It removes the worst-performing neurons permanently", "It randomly zeroes neurons during training, forcing the network to learn redundant representations", "It reduces the learning rate", "It removes outliers from the training data"],
+    "question": "Dropout은 신경망을 어떻게 정규화하나요?",
+    "options": [
+      "성능이 가장 나쁜 뉴런을 영구적으로 제거한다",
+      "훈련 중 뉴런을 무작위로 0으로 만들어 네트워크가 중복 표현을 배우도록 강제한다",
+      "Learning rate를 낮춘다",
+      "훈련 데이터에서 outlier를 제거한다"
+    ],
     "correct": 1,
-    "explanation": "During each forward pass, dropout randomly sets neuron outputs to zero with probability p. This prevents co-adaptation (neurons relying on specific others) and is equivalent to training an ensemble of 2^N subnetworks.",
+    "explanation": "각 forward pass에서 dropout은 확률 p로 뉴런 출력을 무작위로 0으로 설정합니다. 이는 co-adaptation(뉴런이 특정 다른 뉴런에 의존하는 현상)을 막고, 2^N개의 subnetwork로 이루어진 ensemble을 훈련하는 것과 동등하게 해석됩니다.",
     "stage": "pre"
   },
   {
-    "question": "Why do transformers use LayerNorm instead of BatchNorm?",
-    "options": ["LayerNorm is faster to compute", "LayerNorm normalizes across features per sample (batch-independent), which works with variable sequence lengths and small batch sizes", "BatchNorm causes gradient explosion", "LayerNorm was invented more recently"],
+    "question": "Transformer는 왜 BatchNorm 대신 LayerNorm을 사용하나요?",
+    "options": [
+      "LayerNorm이 계산하기 더 빠르기 때문이다",
+      "LayerNorm은 sample별 feature 전체에서 정규화하므로(batch와 무관) 가변 sequence length와 작은 batch size에서 잘 작동하기 때문이다",
+      "BatchNorm은 gradient explosion을 일으키기 때문이다",
+      "LayerNorm이 더 최근에 발명되었기 때문이다"
+    ],
     "correct": 1,
-    "explanation": "BatchNorm depends on batch statistics, which are noisy with small batches and meaningless with batch size 1 (common during generation). LayerNorm normalizes across features within each sample, independent of batch size.",
+    "explanation": "BatchNorm은 batch statistics에 의존하는데, 작은 batch에서는 noisy하고 batch size 1(생성 중 흔함)에서는 의미가 없습니다. LayerNorm은 각 sample 내부의 feature 전체에서 정규화하므로 batch size와 무관합니다.",
     "stage": "post"
   },
   {
-    "question": "What is the key difference between RMSNorm and LayerNorm?",
-    "options": ["RMSNorm uses batch statistics", "RMSNorm skips the mean subtraction, only dividing by the root mean square, giving ~10% speedup with equal accuracy", "RMSNorm adds learnable parameters", "RMSNorm only works on CNNs"],
+    "question": "RMSNorm과 LayerNorm의 핵심 차이는 무엇인가요?",
+    "options": [
+      "RMSNorm은 batch statistics를 사용한다",
+      "RMSNorm은 평균 빼기를 생략하고 root mean square로만 나누며, 같은 정확도에서 약 10% 속도 향상을 준다",
+      "RMSNorm은 학습 가능한 파라미터를 추가한다",
+      "RMSNorm은 CNN에서만 작동한다"
+    ],
     "correct": 1,
-    "explanation": "RMSNorm removes the mean subtraction step from LayerNorm, which contributes little to accuracy but adds computation. LLaMA, Mistral, and most modern LLMs use RMSNorm for this efficiency gain.",
+    "explanation": "RMSNorm은 LayerNorm에서 평균 빼기 단계를 제거합니다. 이 단계는 정확도에는 거의 기여하지 않지만 계산을 추가합니다. LLaMA, Mistral, 그리고 대부분의 최신 LLM은 이 효율성 이득 때문에 RMSNorm을 사용합니다.",
     "stage": "post"
   },
   {
-    "question": "Why is it critical to call model.eval() before running inference in PyTorch?",
-    "options": ["It speeds up computation", "It disables dropout and switches BatchNorm to use running statistics instead of batch statistics, giving deterministic outputs", "It frees GPU memory", "It enables gradient computation"],
+    "question": "PyTorch에서 추론을 실행하기 전에 model.eval()을 호출하는 것이 왜 중요한가요?",
+    "options": [
+      "계산 속도를 높이기 때문이다",
+      "Dropout을 비활성화하고 BatchNorm이 batch statistics 대신 running statistics를 사용하도록 전환해 deterministic output을 만들기 때문이다",
+      "GPU memory를 해제하기 때문이다",
+      "Gradient computation을 활성화하기 때문이다"
+    ],
     "correct": 1,
-    "explanation": "Without model.eval(), dropout randomly zeroes neurons during inference (causing random output variation) and BatchNorm uses current-batch statistics instead of the stable running averages accumulated during training.",
+    "explanation": "model.eval()이 없으면 추론 중에도 dropout이 뉴런을 무작위로 0으로 만들어 출력 변동을 일으키고, BatchNorm은 훈련 중 누적한 안정적인 running average 대신 현재 batch statistics를 사용합니다.",
     "stage": "post"
   }
 ]

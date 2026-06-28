@@ -1,77 +1,77 @@
 ---
 name: skill-context-engineering
-description: Decision framework for designing context assembly pipelines based on task type, window size, and latency budget
+description: 작업 유형, 창 크기, 지연 시간 예산에 따라 컨텍스트 조립 파이프라인을 설계하기 위한 의사결정 프레임워크
 version: 1.0.0
 phase: 11
 lesson: 05
 tags: [context-engineering, context-window, rag, memory, tool-selection, lost-in-the-middle]
 ---
 
-# Context Engineering
+# 컨텍스트 엔지니어링
 
-When building an LLM application, apply this framework to design the context assembly pipeline.
+LLM 애플리케이션을 만들 때 이 프레임워크를 적용해 컨텍스트 조립 파이프라인을 설계하세요.
 
-## Core principles
+## 핵심 원칙
 
-1. **Context is scarce.** A 128K window sounds large but fills fast. Budget every component explicitly.
-2. **Attention is uneven.** Models attend more to the start and end. Put critical information there. The middle is the dead zone.
-3. **Dynamic beats static.** Different queries need different context. Assemble per query, not once at startup.
-4. **Less is more.** A curated 10K context outperforms a dumped 100K context. Signal-to-noise ratio matters more than total information.
-5. **Measure everything.** You cannot optimize what you do not measure. Count tokens per component on every request.
+1. **컨텍스트는 희소합니다.** 128K 창은 커 보이지만 빠르게 찹니다. 모든 컴포넌트의 예산을 명시적으로 잡으세요.
+2. **주의는 균등하지 않습니다.** 모델은 시작과 끝에 더 주의를 기울입니다. 중요한 정보는 그 위치에 두세요. 가운데는 사각지대입니다.
+3. **동적 방식이 정적 방식보다 낫습니다.** 질의마다 필요한 컨텍스트가 다릅니다. 시작 시 한 번이 아니라 질의마다 조립하세요.
+4. **적을수록 좋습니다.** 잘 선별한 10K 컨텍스트가 쏟아 넣은 100K 컨텍스트보다 성능이 좋습니다. 전체 정보량보다 신호 대 잡음비가 더 중요합니다.
+5. **모든 것을 측정하세요.** 측정하지 않는 것은 최적화할 수 없습니다. 모든 요청에서 컴포넌트별 토큰을 세세요.
 
-## Context budget guidelines
+## 컨텍스트 예산 가이드라인
 
-| Component | Typical Range | Priority | Compression Strategy |
+| 컴포넌트 | 일반 범위 | 우선순위 | 압축 전략 |
 |-----------|-------------|----------|---------------------|
-| System prompt | 200-1,000 tokens | Fixed, high | Write tight, remove redundancy |
-| Tool definitions | 500-3,000 tokens | Dynamic, medium | Prune by query intent |
-| Retrieved context | 1,000-5,000 tokens | Dynamic, high | Rerank + threshold + deduplicate |
-| Conversation history | 500-5,000 tokens | Dynamic, medium | Summarize old turns |
-| Few-shot examples | 500-2,000 tokens | Dynamic, high | Select by task similarity |
-| User query | 50-500 tokens | Fixed, highest | N/A |
-| Generation reserve | 2,000-8,000 tokens | Fixed | Adjust by expected output length |
+| 시스템 프롬프트 | 200-1,000 tokens | 고정, 높음 | 간결하게 쓰고 중복 제거 |
+| 도구 정의 | 500-3,000 tokens | 동적, 중간 | 질의 의도별 가지치기 |
+| 검색된 컨텍스트 | 1,000-5,000 tokens | 동적, 높음 | Rerank + 임계값 + 중복 제거 |
+| 대화 기록 | 500-5,000 tokens | 동적, 중간 | 오래된 턴 요약 |
+| Few-shot 예시 | 500-2,000 tokens | 동적, 높음 | 작업 유사도로 선택 |
+| 사용자 질의 | 50-500 tokens | 고정, 최상 | N/A |
+| 생성 예약분 | 2,000-8,000 tokens | 고정 | 예상 출력 길이에 따라 조정 |
 
-## When to use each memory type
+## 각 메모리 유형을 사용할 때
 
-**Short-term (conversation history):** The current session. Managed by summarization. Compress turns older than 5-10 exchanges. Keep the last 3-4 turns verbatim.
+**단기(대화 기록):** 현재 세션입니다. 요약으로 관리합니다. 5-10번의 교환보다 오래된 턴은 압축합니다. 마지막 3-4턴은 원문 그대로 유지합니다.
 
-**Long-term (facts database):** Preferences and project facts that persist across sessions. Retrieve on session start. Examples: "user prefers Python", "project uses PostgreSQL", "team follows trunk-based development". Store in CLAUDE.md, a database, or a structured memory system.
+**장기(사실 데이터베이스):** 세션을 넘어 지속되는 선호와 프로젝트 사실입니다. 세션 시작 시 검색합니다. 예: "사용자는 Python을 선호한다", "프로젝트는 PostgreSQL을 사용한다", "팀은 trunk-based development를 따른다". CLAUDE.md, 데이터베이스, 구조화된 메모리 시스템에 저장합니다.
 
-**Episodic (past interactions):** Specific past conversations relevant to the current task. Store as embeddings, retrieve by similarity. "Last week we debugged a similar auth issue" is episodic memory.
+**일화적(과거 상호작용):** 현재 작업과 관련 있는 특정 과거 대화입니다. 임베딩으로 저장하고 유사도로 검색합니다. "지난주에 비슷한 인증 문제를 디버그했다"가 일화적 메모리입니다.
 
-## Tool selection strategy
+## 도구 선택 전략
 
-Do not include all tools in every request. This wastes tokens and confuses the model.
+모든 요청에 모든 도구를 포함하지 마세요. 토큰을 낭비하고 모델을 혼란스럽게 합니다.
 
-1. Classify the query intent (code, email, calendar, research, data)
-2. Map intents to tool categories
-3. Include only matching tools
-4. If intent is ambiguous, include tools from the top 2 categories
-5. Always include a "general" tool (like web search) as fallback
+1. 질의 의도를 분류합니다(code, email, calendar, research, data)
+2. 의도를 도구 카테고리에 매핑합니다
+3. 일치하는 도구만 포함합니다
+4. 의도가 모호하면 상위 2개 카테고리의 도구를 포함합니다
+5. 대체 수단으로 항상 web search 같은 "general" 도구를 포함합니다
 
-Expected savings: 60-80% of tool definition tokens on queries with clear intent.
+예상 절감: 의도가 분명한 질의에서 도구 정의 토큰의 60-80%.
 
-## Retrieval best practices
+## 검색 모범 사례
 
-- **Rerank after retrieval.** Vector similarity is a rough filter. A reranker (cross-encoder or LLM-based) improves precision significantly.
-- **Set a relevance threshold.** Do not include chunks below 0.3 cosine similarity. They add noise.
-- **Deduplicate.** If two chunks share 80%+ content, keep only the higher-scored one.
-- **Apply lost-in-the-middle ordering.** Place the most relevant chunks first and last.
-- **Limit total retrieval tokens.** 3-5 highly relevant chunks beat 15 mediocre ones.
+- **검색 후 rerank하세요.** 벡터 유사도는 거친 필터입니다. reranker(cross-encoder 또는 LLM 기반)는 정밀도를 크게 높입니다.
+- **관련성 임계값을 설정하세요.** 코사인 유사도 0.3 미만 청크는 포함하지 마세요. 잡음만 추가합니다.
+- **중복을 제거하세요.** 두 청크가 80% 이상 내용을 공유하면 점수가 더 높은 것만 유지합니다.
+- **lost-in-the-middle 순서를 적용하세요.** 가장 관련 있는 청크를 처음과 끝에 배치합니다.
+- **전체 검색 토큰을 제한하세요.** 관련성 높은 청크 3-5개가 평범한 청크 15개보다 낫습니다.
 
-## History management
+## 기록 관리
 
-- Keep the last 3-4 turns verbatim (the model needs recent context)
-- Summarize older turns into a digest ("We discussed X, decided Y, and blocked on Z")
-- Drop system-generated turns that add no information (tool invocations with no user-facing content)
-- Trigger compression when history exceeds 30% of the available budget
+- 마지막 3-4턴은 원문 그대로 유지합니다. 모델에는 최근 컨텍스트가 필요합니다
+- 오래된 턴은 요약으로 압축합니다("X를 논의했고, Y를 결정했으며, Z에서 막혔습니다")
+- 정보를 추가하지 않는 시스템 생성 턴은 버립니다. 사용자에게 보이는 내용이 없는 도구 호출이 여기에 해당합니다
+- 기록이 사용 가능 예산의 30%를 넘으면 압축을 트리거합니다
 
-## Red flags
+## 위험 신호
 
-- System prompt exceeds 2,000 tokens: probably includes information that should be dynamic
-- All tools included on every request: implement intent-based selection
-- No relevance filtering on retrieval: you are dumping noise into the window
-- History grows unbounded: summarization is not implemented
-- No generation reserve: the model truncates its responses
-- Same information in 3 places (system prompt, retrieved doc, history): deduplicate
-- Context utilization over 60%: you are leaving too little room for the model to "think"
+- 시스템 프롬프트가 2,000토큰을 넘음: 동적으로 들어가야 할 정보가 들어 있을 가능성이 큽니다
+- 모든 요청에 모든 도구를 포함함: 의도 기반 선택을 구현하세요
+- 검색에 관련성 필터링이 없음: 창에 잡음을 쏟아 넣고 있는 것입니다
+- 기록이 무한히 증가함: 요약이 구현되지 않았습니다
+- 생성 예약분이 없음: 모델 응답이 잘립니다
+- 같은 정보가 3곳에 있음(시스템 프롬프트, 검색된 문서, 기록): 중복을 제거하세요
+- 컨텍스트 사용률이 60%를 넘음: 모델이 "생각"할 여지를 너무 적게 남기고 있습니다

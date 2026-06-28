@@ -1,102 +1,102 @@
 {
   "lesson": "14-information-retrieval-search",
-  "title": "Information Retrieval and Search",
+  "title": "정보 검색과 Search",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does BM25 score a document on?",
+      "question": "BM25는 document를 무엇으로 score하나요?",
       "options": [
-        "Edit distance to the query",
-        "Term frequency, IDF, and document-length-normalized presence of query terms",
-        "Embedding cosine to the query",
-        "PageRank over the corpus"
+        "Query와의 edit distance",
+        "Term frequency, IDF, 그리고 query term presence에 대한 document-length normalization",
+        "Query와의 embedding cosine",
+        "Corpus 위의 PageRank"
       ],
       "correct": 1,
-      "explanation": "BM25 weighs TF saturation, IDF, and length normalization to score lexical matches."
+      "explanation": "BM25는 TF saturation, IDF, length normalization을 가중해 lexical match를 score합니다."
     },
     {
       "stage": "pre",
-      "question": "What is the main weakness of dense-only retrieval that BM25 catches?",
+      "question": "BM25가 잡아 주는 dense-only retrieval의 주요 weakness는 무엇인가요?",
       "options": [
-        "Multilingual queries",
+        "Multilingual query",
         "Latency",
-        "Long documents",
-        "Exact keyword and identifier matches (product codes, error strings, named entities) that semantic embeddings can miss"
+        "Long document",
+        "Semantic embedding이 놓칠 수 있는 exact keyword와 identifier match(product code, error string, named entity)"
       ],
       "correct": 3,
-      "explanation": "Dense embeddings can blur identifiers and exact strings; BM25 nails them."
+      "explanation": "Dense embedding은 identifier와 exact string을 흐릴 수 있지만, BM25는 그것을 정확히 잡습니다."
     },
     {
       "stage": "check",
-      "question": "Why does Reciprocal Rank Fusion (RRF) ignore raw scores from each retriever?",
+      "question": "Reciprocal Rank Fusion (RRF)이 각 retriever의 raw score를 무시하는 이유는 무엇인가요?",
       "options": [
-        "RRF requires probabilities",
-        "Raw scores are illegal to use",
-        "Speeds up sorting",
-        "BM25 and dense scores live in different scales; using only rank positions makes the fusion robust to calibration"
+        "RRF는 probability를 요구하기 때문에",
+        "Raw score 사용은 불법이기 때문에",
+        "Sorting을 빠르게 하기 위해",
+        "BM25 score와 dense score는 서로 다른 scale에 있으므로 rank position만 쓰면 calibration에 robust하기 때문에"
       ],
       "correct": 3,
-      "explanation": "RRF uses 1/(k + rank), so the two scoring systems' scales do not have to match."
+      "explanation": "RRF는 1/(k + rank)를 사용하므로 두 scoring system의 scale이 맞을 필요가 없습니다."
     },
     {
       "stage": "check",
-      "question": "Why run a cross-encoder reranker only on the top-30 fused results?",
+      "question": "Cross-encoder reranker를 fused result top-30에만 실행하는 이유는 무엇인가요?",
       "options": [
-        "Rerankers reduce recall",
-        "Top-30 is required by FAISS",
-        "Cross-encoders are required at every step",
-        "Cross-encoders are slow per pair; amortizing them on a small candidate pool gives high accuracy with acceptable latency"
+        "Reranker는 recall을 낮추기 때문에",
+        "FAISS가 top-30을 요구하기 때문에",
+        "Cross-encoder는 모든 step에서 필요하기 때문에",
+        "Cross-encoder는 pair당 느리므로 작은 candidate pool에만 amortize하면 acceptable latency로 높은 accuracy를 얻기 때문에"
       ],
       "correct": 3,
-      "explanation": "Cross-encoders score query+doc jointly; running them only on the small fused candidate pool keeps latency manageable."
+      "explanation": "Cross-encoder는 query+doc을 jointly score합니다. 작은 fused candidate pool에만 실행해야 latency를 관리할 수 있습니다."
     },
     {
       "stage": "check",
-      "question": "Which metric is most important to optimize for RAG retrievers?",
+      "question": "RAG retriever에서 가장 중요하게 optimize해야 하는 metric은 무엇인가요?",
       "options": [
         "BLEU",
         "Throughput",
-        "Recall@k, since the reader cannot answer if the correct passage is missing from the top-k",
+        "Recall@k, correct passage가 top-k에서 빠지면 reader가 answer할 수 없기 때문",
         "Latency"
       ],
       "correct": 2,
-      "explanation": "If the right passage is not in the retrieved top-k, the reader is guaranteed to fail."
+      "explanation": "Right passage가 retrieved top-k에 없으면 reader는 반드시 실패합니다."
     },
     {
       "stage": "post",
-      "question": "Where do most production RAG failures originate, per 2026 industry experience?",
+      "question": "2026년 industry experience 기준 production RAG failure는 주로 어디에서 시작되나요?",
       "options": [
         "Reranker tuning",
-        "Ingestion and chunking, not the model; bad context defeats good readers",
+        "Model이 아니라 ingestion과 chunking; bad context는 good reader를 이깁니다",
         "Prompt verbosity",
-        "The LLM choice"
+        "LLM choice"
       ],
       "correct": 1,
-      "explanation": "Roughly 80% of RAG failures trace to chunking and ingestion quality, not the generative model."
+      "explanation": "RAG failure의 약 80%는 generative model이 아니라 chunking과 ingestion quality에서 옵니다."
     },
     {
       "stage": "post",
-      "question": "What is the 'parent-doc' retrieval pattern?",
+      "question": "'parent-doc' retrieval pattern이란 무엇인가요?",
       "options": [
-        "Pick the longest document",
-        "Retrieve small child chunks for precision, then expand to the parent block when multiple children from the same parent appear, preserving context",
-        "Embed only parent documents",
-        "Use parent doc embeddings only"
+        "가장 긴 document를 고르기",
+        "Precision을 위해 작은 child chunk를 retrieve한 뒤, 같은 parent에서 여러 child가 나타나면 context 보존을 위해 parent block으로 확장하기",
+        "Parent document만 embed하기",
+        "Parent doc embedding만 사용하기"
       ],
       "correct": 1,
-      "explanation": "Child-level retrieval is precise; expanding to the parent preserves the surrounding context the reader needs."
+      "explanation": "Child-level retrieval은 precise합니다. Parent로 확장하면 reader에 필요한 surrounding context를 보존합니다."
     },
     {
       "stage": "post",
-      "question": "When should you ship three-way retrieval (BM25 + dense + SPLADE)?",
+      "question": "Three-way retrieval(BM25 + dense + SPLADE)은 언제 ship해야 하나요?",
       "options": [
-        "Only on under 1000 documents",
-        "Only for English-only corpora",
-        "When infrastructure supports learned-sparse indexes and queries mix proper nouns with semantic intent",
-        "Always"
+        "Document가 1000개 미만일 때만",
+        "English-only corpus에서만",
+        "Infrastructure가 learned-sparse index를 support하고 query가 proper noun과 semantic intent를 섞을 때",
+        "항상"
       ],
       "correct": 2,
-      "explanation": "Three-way retrieval outperforms two-way in 2026 benchmarks for mixed lexical-semantic queries, given SPLADE infrastructure."
+      "explanation": "SPLADE infrastructure가 있다면, three-way retrieval은 mixed lexical-semantic query에서 2026 benchmark 기준 two-way보다 우수합니다."
     }
   ]
 }

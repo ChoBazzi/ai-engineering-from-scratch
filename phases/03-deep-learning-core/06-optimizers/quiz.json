@@ -1,37 +1,37 @@
 [
   {
-    "question": "What problem does momentum solve in gradient descent?",
-    "options": ["It reduces memory usage", "It dampens oscillation by accumulating past gradients, accelerating movement in consistent directions", "It eliminates the need for a learning rate", "It prevents overfitting"],
+    "question": "그래디언트 하강에서 momentum은 어떤 문제를 해결하나요?",
+    "options": ["메모리 사용량을 줄인다", "과거 그래디언트를 누적해 진동을 줄이고, 일관된 방향의 이동을 가속한다", "학습률의 필요성을 없앤다", "과적합을 막는다"],
     "correct": 1,
-    "explanation": "In narrow valleys, gradients oscillate across the valley while making slow progress along it. Momentum accumulates past gradients: consistent directions amplify while oscillating directions cancel, giving smoother, faster convergence.",
+    "explanation": "좁은 골짜기에서는 그래디언트가 골짜기를 가로질러 진동하면서 골짜기를 따라서는 느리게 전진합니다. Momentum은 과거 그래디언트를 누적합니다. 일관된 방향은 증폭되고 진동하는 방향은 상쇄되어 더 매끄럽고 빠른 수렴을 만듭니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the key difference between Adam and AdamW?",
-    "options": ["AdamW uses a higher learning rate", "AdamW applies weight decay directly to weights instead of through the gradient, giving proper regularization", "AdamW doesn't use momentum", "AdamW only works with transformers"],
+    "question": "Adam과 AdamW의 핵심 차이는 무엇인가요?",
+    "options": ["AdamW는 더 높은 학습률을 사용한다", "AdamW는 weight decay를 그래디언트를 통해서가 아니라 가중치에 직접 적용해 올바른 regularization을 제공한다", "AdamW는 momentum을 사용하지 않는다", "AdamW는 transformer에서만 작동한다"],
     "correct": 1,
-    "explanation": "In Adam + L2, the adaptive learning rate scales the regularization term differently per parameter. AdamW decouples weight decay from the gradient update, applying uniform shrinkage regardless of gradient statistics.",
+    "explanation": "Adam + L2에서는 adaptive learning rate가 regularization 항을 파라미터마다 다르게 스케일합니다. AdamW는 weight decay를 그래디언트 업데이트에서 분리해, 그래디언트 통계와 무관하게 균일한 shrinkage를 적용합니다.",
     "stage": "pre"
   },
   {
-    "question": "Why does Adam use bias correction in early training steps?",
-    "options": ["To prevent overfitting", "The moment estimates are initialized to zero, so early values are biased toward zero; correction compensates for this cold start", "To clip large gradients", "To speed up convergence"],
+    "question": "Adam은 학습 초기 step에서 왜 bias correction을 사용하나요?",
+    "options": ["과적합을 막기 위해", "moment 추정치가 0으로 초기화되어 초기 값이 0 쪽으로 치우치므로, 이 cold start를 보정하기 위해", "큰 그래디언트를 clipping하기 위해", "수렴을 빠르게 하기 위해"],
     "correct": 1,
-    "explanation": "At step 1 with beta1=0.9, m_1 = 0.1 * gradient (10x too small). Dividing by (1 - 0.9^1) = 0.1 corrects this to the actual gradient. The correction becomes negligible after ~50 steps.",
+    "explanation": "beta1=0.9인 step 1에서 m_1 = 0.1 * gradient입니다(10배 작음). (1 - 0.9^1) = 0.1로 나누면 실제 그래디언트로 보정됩니다. 이 보정은 약 50 step 이후에는 무시할 만큼 작아집니다.",
     "stage": "post"
   },
   {
-    "question": "What are the standard default hyperparameters for Adam?",
+    "question": "Adam의 표준 기본 하이퍼파라미터는 무엇인가요?",
     "options": ["lr=0.1, beta1=0.5, beta2=0.5", "lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8", "lr=0.01, beta1=0.99, beta2=0.99", "lr=0.0001, beta1=0.8, beta2=0.9"],
     "correct": 1,
-    "explanation": "The original Adam paper (Kingma & Ba, 2014) recommended lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8. These defaults work well for most problems.",
+    "explanation": "원래 Adam 논문(Kingma & Ba, 2014)은 lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8을 추천했습니다. 이 기본값은 대부분의 문제에서 잘 작동합니다.",
     "stage": "post"
   },
   {
-    "question": "Which optimizer is the modern default for training transformers and LLMs?",
+    "question": "transformer와 LLM 학습의 현대적 기본 옵티마이저는 무엇인가요?",
     "options": ["Vanilla SGD", "SGD with momentum", "RMSProp", "AdamW"],
     "correct": 3,
-    "explanation": "AdamW (Adam with decoupled weight decay) is used to train BERT, GPT, LLaMA, and virtually all modern transformers. It combines adaptive learning rates with proper weight decay regularization.",
+    "explanation": "AdamW(decoupled weight decay를 포함한 Adam)는 BERT, GPT, LLaMA 및 사실상 모든 현대 transformer 학습에 사용됩니다. adaptive learning rate와 올바른 weight decay regularization을 결합합니다.",
     "stage": "post"
   }
 ]

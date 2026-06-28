@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the '~' symbol represent in a Linux file path?",
-      "options": ["The root directory of the file system", "The current user's home directory", "The temporary files directory", "The directory where system programs are installed"],
+      "question": "Linux 파일 경로에서 '~' 기호는 무엇을 나타내나요?",
+      "options": ["파일 시스템의 루트 디렉터리", "현재 사용자의 홈 디렉터리", "임시 파일 디렉터리", "시스템 프로그램이 설치되는 디렉터리"],
       "correct": 1,
-      "explanation": "The tilde (~) is a shortcut for the current user's home directory, typically /home/username on Linux. 'cd ~' takes you home from anywhere."
+      "explanation": "틸드(~)는 현재 사용자의 홈 디렉터리를 가리키는 단축 표기이며, Linux에서는 보통 /home/username입니다. 'cd ~'는 어디에서든 홈으로 이동합니다."
     },
     {
       "stage": "pre",
-      "question": "What is the purpose of 'sudo' before a command?",
-      "options": ["It speeds up the command execution", "It runs the command with root (administrator) privileges", "It runs the command in a sandboxed environment", "It logs the command output to a system file"],
+      "question": "명령 앞에 'sudo'를 붙이는 목적은 무엇인가요?",
+      "options": ["명령 실행 속도를 높인다", "root(관리자) 권한으로 명령을 실행한다", "샌드박스 환경에서 명령을 실행한다", "명령 출력을 시스템 파일에 기록한다"],
       "correct": 1,
-      "explanation": "sudo (superuser do) temporarily elevates your privileges to root level for a single command. Required for system-level operations like installing packages with apt."
+      "explanation": "sudo(superuser do)는 단일 명령에 대해 권한을 일시적으로 root 수준으로 높입니다. apt로 패키지를 설치하는 것 같은 시스템 수준 작업에 필요합니다."
     },
     {
       "stage": "post",
-      "question": "You get 'Permission denied' when trying to run a shell script. What command fixes this?",
+      "question": "셸 스크립트를 실행하려고 할 때 'Permission denied'가 발생했습니다. 이를 고치는 명령은 무엇인가요?",
       "options": ["sudo rm script.sh", "chmod +x script.sh", "chown root script.sh", "mv script.sh /usr/bin/"],
       "correct": 1,
-      "explanation": "chmod +x adds execute permission to the file. Without the execute bit set, the shell refuses to run the script even if you own it."
+      "explanation": "chmod +x는 파일에 실행 권한을 추가합니다. 실행 비트가 설정되어 있지 않으면 파일 소유자라도 셸은 스크립트 실행을 거부합니다."
     },
     {
       "stage": "post",
-      "question": "On a remote GPU box, your training data fills the disk. Which command shows the largest directories consuming space?",
+      "question": "원격 GPU 박스에서 학습 데이터가 디스크를 가득 채웠습니다. 공간을 가장 많이 쓰는 큰 디렉터리를 보여 주는 명령은 무엇인가요?",
       "options": ["ls -la /", "du -h --max-depth=1 / | sort -hr | head -20", "cat /proc/meminfo", "free -h"],
       "correct": 1,
-      "explanation": "du -h shows disk usage per directory, --max-depth=1 limits to top-level directories, and sort -hr sorts by size in descending order. This reveals which directories are consuming the most space."
+      "explanation": "du -h는 디렉터리별 디스크 사용량을 보여 주고, --max-depth=1은 최상위 디렉터리로 제한하며, sort -hr은 크기 기준 내림차순으로 정렬합니다. 이를 통해 어떤 디렉터리가 가장 많은 공간을 사용하는지 볼 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "What is a key difference between the macOS and Linux versions of 'sed -i'?",
-      "options": ["Linux sed is faster than macOS sed", "macOS sed requires an empty string argument after -i ('sed -i \"\"'), while Linux does not", "Linux sed does not support regular expressions", "macOS sed cannot modify files in place"],
+      "question": "macOS와 Linux 버전의 'sed -i' 사이의 핵심 차이는 무엇인가요?",
+      "options": ["Linux sed가 macOS sed보다 빠르다", "macOS sed는 -i 뒤에 빈 문자열 인자('sed -i \"\"')가 필요하지만 Linux는 필요 없다", "Linux sed는 정규식을 지원하지 않는다", "macOS sed는 파일을 제자리에서 수정할 수 없다"],
       "correct": 1,
-      "explanation": "macOS uses BSD sed which requires 'sed -i \"\" pattern file', while Linux uses GNU sed which accepts 'sed -i pattern file'. This is a common gotcha when moving scripts between systems."
+      "explanation": "macOS는 'sed -i \"\" pattern file'을 요구하는 BSD sed를 사용하고, Linux는 'sed -i pattern file'을 허용하는 GNU sed를 사용합니다. 이는 시스템 사이에서 스크립트를 옮길 때 흔히 걸리는 함정입니다."
     }
   ]
 }

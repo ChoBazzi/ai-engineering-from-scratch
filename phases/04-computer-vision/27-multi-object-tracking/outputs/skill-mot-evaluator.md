@@ -1,6 +1,6 @@
 ---
 name: skill-mot-evaluator
-description: Write a complete evaluation harness for MOTA / IDF1 / HOTA against ground-truth tracks
+description: ground-truth track에 대해 MOTA / IDF1 / HOTA를 계산하는 완전한 evaluation harness를 작성한다
 version: 1.0.0
 phase: 4
 lesson: 27
@@ -9,26 +9,26 @@ tags: [mot, evaluation, tracking, metrics]
 
 # MOT Evaluator
 
-Wrap your tracker's output into the standard MOTA/IDF1/HOTA pipeline so you can compare fairly against the literature.
+문헌과 공정하게 비교할 수 있도록 tracker 출력을 표준 MOTA/IDF1/HOTA pipeline으로 감싼다.
 
-## When to use
+## 언제 사용하는가
 
-- Benchmarking a new tracker on MOT17 / MOT20 / DanceTrack / SportsMOT.
-- Comparing ByteTrack to BoT-SORT to SAM 2 on your own footage.
-- Producing a reproducible number for a paper or a PR description.
+- 새 tracker를 MOT17 / MOT20 / DanceTrack / SportsMOT에서 benchmark할 때.
+- 자체 footage에서 ByteTrack, BoT-SORT, SAM 2를 비교할 때.
+- 논문이나 PR description에 넣을 재현 가능한 숫자를 만들 때.
 
-## Inputs
+## 입력
 
-- `predictions`: list per frame of `(track_id, x, y, w, h, confidence)` tuples.
-- `ground_truth`: list per frame of `(gt_id, x, y, w, h)` tuples.
-- `iou_threshold`: 0.5 typical for MOTA; HOTA uses a sweep.
-- `evaluator`: `py-motmetrics` (MOTA, IDF1) or `TrackEval` (HOTA).
+- `predictions`: 프레임별 `(track_id, x, y, w, h, confidence)` tuple list.
+- `ground_truth`: 프레임별 `(gt_id, x, y, w, h)` tuple list.
+- `iou_threshold`: MOTA에서는 보통 0.5. HOTA는 sweep을 사용한다.
+- `evaluator`: `py-motmetrics`(MOTA, IDF1) 또는 `TrackEval`(HOTA).
 
-## Output format contract
+## 출력 형식 계약
 
-Both `py-motmetrics` and `TrackEval` expect a specific on-disk format:
+`py-motmetrics`와 `TrackEval`은 모두 특정 on-disk format을 기대한다.
 
-```
+```text
 # predictions.txt
 <frame>,<track_id>,<x>,<y>,<w>,<h>,<confidence>,-1,-1,-1
 
@@ -36,17 +36,17 @@ Both `py-motmetrics` and `TrackEval` expect a specific on-disk format:
 <frame>,<gt_id>,<x>,<y>,<w>,<h>,1,-1,-1,-1
 ```
 
-Frames are 1-indexed, boxes are (x, y, w, h), not (x1, y1, x2, y2). Conversion is where most integration bugs live.
+Frame은 1-indexed이고, box는 (x1, y1, x2, y2)가 아니라 (x, y, w, h)다. 대부분의 integration bug는 변환에서 나온다.
 
-## Steps
+## 단계
 
-1. Convert your tracker's output to MOT Challenge text format.
-2. Run `py-motmetrics.io.loadtxt` on both files.
-3. Compute MOTA + IDF1 with `mm.metrics.create().compute()`.
-4. For HOTA, invoke `TrackEval` with the same files and `Metrics: HOTA`.
-5. Save results as JSON for dashboards.
+1. Tracker 출력을 MOT Challenge text format으로 변환한다.
+2. 두 파일 모두에 `py-motmetrics.io.loadtxt`를 실행한다.
+3. `mm.metrics.create().compute()`로 MOTA + IDF1을 계산한다.
+4. HOTA는 같은 파일과 `Metrics: HOTA`로 `TrackEval`을 호출한다.
+5. Dashboard용으로 결과를 JSON으로 저장한다.
 
-## Implementation sketch
+## 구현 스케치
 
 ```python
 import motmetrics as mm
@@ -68,9 +68,9 @@ def write_mot_txt(predictions, path):
                 f.write(f"{frame_idx},{tid},{x:.2f},{y:.2f},{w:.2f},{h:.2f},{conf:.3f},-1,-1,-1\n")
 ```
 
-## Report
+## 보고서
 
-```
+```text
 [mot evaluation]
   frames:     <int>
   gt tracks:  <int>
@@ -85,10 +85,10 @@ def write_mot_txt(predictions, path):
   HOTA:       <float>  (from TrackEval)
 ```
 
-## Rules
+## 규칙
 
-- Always use 1-indexed frames in the output text file; MOT tooling expects this.
-- Convert (x1, y1, x2, y2) to (x, y, w, h) before writing.
-- Do not report MOTA alone for modern comparisons; include IDF1 and HOTA.
-- Watch for private vs public detections on MOT17 — they are evaluated separately and mixing them inflates scores.
-- Log per-sequence scores; aggregate hides failures on single difficult sequences.
+- 출력 text file에서는 항상 1-indexed frame을 사용한다. MOT tooling이 이를 기대한다.
+- 쓰기 전에 (x1, y1, x2, y2)를 (x, y, w, h)로 변환한다.
+- 현대적인 비교에서 MOTA만 단독으로 보고하지 않는다. IDF1과 HOTA를 포함한다.
+- MOT17의 private detection과 public detection에 주의한다. 이들은 별도로 평가되며 섞으면 score가 부풀려진다.
+- Sequence별 score를 log한다. Aggregate는 어려운 단일 sequence의 실패를 숨긴다.

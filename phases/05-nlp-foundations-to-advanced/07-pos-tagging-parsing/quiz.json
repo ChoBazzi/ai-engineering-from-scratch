@@ -1,22 +1,22 @@
 {
   "lesson": "07-pos-tagging-parsing",
-  "title": "POS Tagging and Syntactic Parsing",
+  "title": "POS 태깅과 구문 파싱",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the goal of POS tagging?",
+      "question": "POS tagging의 목표는 무엇인가요?",
       "options": [
-        "Detect sentiment",
-        "Translate the sentence",
-        "Extract named entities",
-        "Assign a grammatical category (noun, verb, etc.) to each token"
+        "Sentiment를 탐지한다",
+        "문장을 번역한다",
+        "Named entity를 추출한다",
+        "각 token에 문법 범주(noun, verb 등)를 할당한다"
       ],
       "correct": 3,
-      "explanation": "POS tagging labels each token with its part of speech."
+      "explanation": "POS tagging은 각 token에 part of speech를 label로 붙입니다."
     },
     {
       "stage": "pre",
-      "question": "Which tagset is the default for cross-lingual work?",
+      "question": "Cross-lingual work의 기본 tagset은 무엇인가요?",
       "options": [
         "Penn Treebank",
         "Stanford Dependencies",
@@ -24,79 +24,79 @@
         "CoNLL-2003"
       ],
       "correct": 2,
-      "explanation": "Universal Dependencies provides a coarser, language-agnostic 17-tag set."
+      "explanation": "Universal Dependencies는 더 거칠고 언어에 독립적인 17-tag set을 제공합니다."
     },
     {
       "stage": "check",
-      "question": "What does a bigram HMM POS tagger model?",
+      "question": "Bigram HMM POS tagger는 무엇을 model하나요?",
       "options": [
-        "P(tags) only",
-        "Dependency parses",
-        "Embedding similarities",
-        "P(tag | previous tag) transitions plus P(word | tag) emissions, decoded with Viterbi"
+        "P(tags)만",
+        "Dependency parse",
+        "Embedding similarity",
+        "P(tag | previous tag) transition과 P(word | tag) emission을 model하고 Viterbi로 decode한다"
       ],
       "correct": 3,
-      "explanation": "Bigram HMM uses tag transitions and word emissions; Viterbi finds the highest-probability sequence."
+      "explanation": "Bigram HMM은 tag transition과 word emission을 사용합니다. Viterbi는 가장 확률이 높은 sequence를 찾습니다."
     },
     {
       "stage": "check",
-      "question": "What does the Viterbi algorithm compute for an HMM tagger?",
+      "question": "HMM tagger에서 Viterbi algorithm은 무엇을 계산하나요?",
       "options": [
-        "The single highest-probability tag sequence via dynamic programming over the tag lattice",
-        "The transition matrix",
-        "The marginal probability of each tag",
-        "The forward probabilities only"
+        "Tag lattice 위의 dynamic programming으로 단 하나의 가장 확률 높은 tag sequence",
+        "Transition matrix",
+        "각 tag의 marginal probability",
+        "Forward probability만"
       ],
       "correct": 0,
-      "explanation": "Viterbi finds the argmax sequence with O(n * |T|^2) dynamic programming."
+      "explanation": "Viterbi는 O(n * |T|^2) dynamic programming으로 argmax sequence를 찾습니다."
     },
     {
       "stage": "check",
-      "question": "What does dependency parsing produce?",
+      "question": "Dependency parsing은 무엇을 생성하나요?",
       "options": [
-        "A tree where each word has one head word and a labeled grammatical relation",
-        "A flat BIO sequence",
-        "A constituency tree of NP/VP/PP labels",
-        "A coreference chain"
+        "각 단어가 하나의 head word와 labeled grammatical relation을 가지는 tree",
+        "Flat BIO sequence",
+        "NP/VP/PP label의 constituency tree",
+        "Coreference chain"
       ],
       "correct": 0,
-      "explanation": "Dependency parses give per-word (head, relation) edges; constituency parses give nested phrase structures."
+      "explanation": "Dependency parse는 단어별 (head, relation) edge를 제공합니다. Constituency parse는 중첩된 phrase structure를 제공합니다."
     },
     {
       "stage": "post",
-      "question": "Why is the accuracy ceiling on PTB POS tagging around 97-98%?",
+      "question": "PTB POS tagging의 accuracy ceiling이 약 97-98%인 이유는 무엇인가요?",
       "options": [
-        "Models cannot exceed 98% in any task",
-        "Universal Dependencies caps at 98%",
-        "Human annotators only agree about 97% of the time, so models above ~98% may be overfitting test data",
-        "Hardware limitations"
+        "Model은 어떤 task에서도 98%를 넘을 수 없다",
+        "Universal Dependencies가 98%로 제한한다",
+        "Human annotator가 약 97% 정도만 일치하므로, 약 98%를 넘는 model은 test data에 overfitting하고 있을 수 있다",
+        "Hardware limitation 때문이다"
       ],
       "correct": 2,
-      "explanation": "Annotator disagreement bounds the achievable accuracy; very high numbers often signal overfitting."
+      "explanation": "Annotator disagreement가 달성 가능한 accuracy를 제한합니다. 매우 높은 수치는 종종 overfitting의 신호입니다."
     },
     {
       "stage": "post",
-      "question": "Why does POS tagging still matter in 2026 LLM pipelines?",
+      "question": "2026년 LLM pipeline에서도 POS tagging이 여전히 중요한 이유는 무엇인가요?",
       "options": [
-        "LLMs cannot run without it",
-        "Lemmatization, aspect-based sentiment, query decomposition, structured-output validation, and cross-lingual transfer all still consume POS or dependency parses",
-        "Required for tokenization",
-        "Replaces transformers"
+        "LLM은 이것 없이는 실행될 수 없다",
+        "Lemmatization, aspect-based sentiment, query decomposition, structured-output validation, cross-lingual transfer가 모두 여전히 POS나 dependency parse를 소비한다",
+        "Tokenization에 필수다",
+        "Transformer를 대체한다"
       ],
       "correct": 1,
-      "explanation": "POS and dependency parses feed many structured downstream tasks even when LLMs generate the prose."
+      "explanation": "LLM이 prose를 생성하더라도 POS와 dependency parse는 많은 structured downstream task에 입력됩니다."
     },
     {
       "stage": "post",
-      "question": "Which library should you reach for in most production POS / parse tasks?",
+      "question": "대부분의 production POS / parse task에서는 어떤 library를 먼저 써야 하나요?",
       "options": [
         "scikit-learn",
         "NumPy",
-        "spaCy (or stanza/trankit for top accuracy or wider language coverage)",
-        "Roll your own parser"
+        "spaCy(또는 최고 accuracy나 더 넓은 language coverage가 필요하면 stanza/trankit)",
+        "직접 parser 만들기"
       ],
       "correct": 2,
-      "explanation": "spaCy ships fast production-grade POS + dependency parsers; stanza/trankit cover broader languages."
+      "explanation": "spaCy는 빠른 production-grade POS + dependency parser를 제공합니다. stanza/trankit은 더 넓은 언어를 다룹니다."
     }
   ]
 }

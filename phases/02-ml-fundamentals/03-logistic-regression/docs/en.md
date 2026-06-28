@@ -1,65 +1,65 @@
-# Logistic Regression
+# 로지스틱 회귀
 
-> Logistic regression bends a straight line into an S-curve to answer yes-or-no questions with probabilities.
+> 로지스틱 회귀는 직선을 S-곡선으로 휘어 yes-or-no 질문에 확률로 답합니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 2 Lesson 1-2 (What Is ML, Linear Regression)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement logistic regression from scratch using the sigmoid function and binary cross-entropy loss
-- Compute and interpret precision, recall, F1 score, and the confusion matrix for binary classification
-- Explain why MSE fails for classification and why binary cross-entropy produces a convex cost surface
-- Build a softmax regression model for multi-class classification and evaluate threshold tuning tradeoffs
+- sigmoid 함수와 binary cross-entropy loss를 사용해 로지스틱 회귀를 처음부터 구현한다
+- 이진 분류에서 precision, recall, F1 score, confusion matrix를 계산하고 해석한다
+- MSE가 분류에서 실패하는 이유와 binary cross-entropy가 볼록 비용 표면을 만드는 이유를 설명한다
+- 다중 클래스 분류용 softmax regression 모델을 만들고 threshold tuning의 절충을 평가한다
 
-## The Problem
+## 문제
 
-You want to predict whether a tumor is malignant or benign given its size. You try linear regression. It outputs numbers like 0.3 or 1.7 or -0.5. What do those mean? Is 1.7 "very malignant"? Is -0.5 "very benign"? Linear regression outputs unbounded numbers. Classification needs bounded probabilities between 0 and 1, and a clear decision: yes or no.
+종양의 크기가 주어졌을 때 악성인지 양성인지 예측하고 싶습니다. 선형 회귀를 시도합니다. 출력은 0.3, 1.7, -0.5 같은 숫자입니다. 이것들은 무엇을 의미할까요? 1.7은 "매우 악성"일까요? -0.5는 "매우 양성"일까요? 선형 회귀는 경계가 없는 숫자를 출력합니다. 분류에는 0과 1 사이로 제한된 확률과 명확한 결정, 즉 yes 또는 no가 필요합니다.
 
-Logistic regression solves this. It takes the same linear combination (wx + b) and passes it through the sigmoid function, which squashes any number into the range (0, 1). The output is a probability. You set a threshold (usually 0.5) and make a decision.
+로지스틱 회귀는 이 문제를 해결합니다. 같은 선형 결합(wx + b)을 가져와 sigmoid function에 통과시키고, sigmoid는 어떤 숫자든 (0, 1) 범위로 눌러 넣습니다. 출력은 확률입니다. threshold(보통 0.5)를 정하고 결정을 내립니다.
 
-This is one of the most widely used algorithms in practice. Despite its name, logistic regression is a classification algorithm, not a regression algorithm. The name comes from the logistic (sigmoid) function it uses.
+이는 실무에서 가장 널리 쓰이는 알고리즘 중 하나입니다. 이름과 달리 logistic regression은 회귀 알고리즘이 아니라 분류 알고리즘입니다. 이름은 이 알고리즘이 사용하는 logistic (sigmoid) function에서 왔습니다.
 
-## The Concept
+## 개념
 
-### Why Linear Regression Fails for Classification
+### 선형 회귀가 분류에서 실패하는 이유
 
-Imagine predicting pass/fail (1/0) based on study hours. Linear regression fits a line through the data:
+공부 시간으로 합격/불합격(1/0)을 예측한다고 상상해 봅시다. 선형 회귀는 데이터에 선을 맞춥니다.
 
-```
+```text
 hours:  1   2   3   4   5   6   7   8   9   10
 actual: 0   0   0   0   1   1   1   1   1   1
 ```
 
-A linear fit might produce predictions like -0.2 at hour 1 and 1.3 at hour 10. These values are not probabilities. They go below 0 and above 1. Worse, a single outlier (someone who studied 50 hours) would drag the entire line, changing predictions for everyone.
+선형 맞춤은 1시간에서 -0.2, 10시간에서 1.3 같은 예측을 만들 수 있습니다. 이 값들은 확률이 아닙니다. 0보다 작거나 1보다 큽니다. 더 나쁜 점은 단 하나의 이상치(50시간 공부한 사람)가 전체 선을 끌어당겨 모든 사람의 예측을 바꿀 수 있다는 것입니다.
 
-Classification needs a function that:
-- Outputs values between 0 and 1 (probabilities)
-- Creates a sharp transition (a decision boundary)
-- Is not distorted by outliers far from the boundary
+분류에는 다음을 만족하는 함수가 필요합니다.
+- 0과 1 사이의 값(확률)을 출력한다
+- 날카로운 전환(결정 경계)을 만든다
+- 경계에서 멀리 떨어진 이상치에 의해 왜곡되지 않는다
 
-### The Sigmoid Function
+### Sigmoid 함수
 
-The sigmoid function does exactly this:
+sigmoid function은 정확히 이 일을 합니다.
 
-```
+```text
 sigmoid(z) = 1 / (1 + e^(-z))
 ```
 
-Properties:
-- When z is large and positive, sigmoid(z) approaches 1
-- When z is large and negative, sigmoid(z) approaches 0
-- When z = 0, sigmoid(z) = 0.5
-- The output is always between 0 and 1
-- The function is smooth and differentiable everywhere
+성질:
+- z가 크고 양수이면 sigmoid(z)는 1에 가까워진다
+- z가 크고 음수이면 sigmoid(z)는 0에 가까워진다
+- z = 0이면 sigmoid(z) = 0.5이다
+- 출력은 항상 0과 1 사이이다
+- 함수는 모든 지점에서 매끄럽고 미분 가능하다
 
-The derivative has a convenient form: sigmoid'(z) = sigmoid(z) * (1 - sigmoid(z)). This makes gradient computation efficient.
+도함수는 편리한 형태를 가집니다. sigmoid'(z) = sigmoid(z) * (1 - sigmoid(z)). 그래서 기울기 계산이 효율적입니다.
 
 ### Logistic Regression = Linear Model + Sigmoid
 
-The model computes z = wx + b (same as linear regression), then applies sigmoid:
+모델은 z = wx + b(선형 회귀와 동일)를 계산한 다음 sigmoid를 적용합니다.
 
 ```mermaid
 flowchart LR
@@ -70,34 +70,34 @@ flowchart LR
     D -->|No| N[Predict 0]
 ```
 
-The output p is interpreted as P(y=1 | x), the probability that the input belongs to class 1. The decision boundary is where wx + b = 0, which makes sigmoid output exactly 0.5.
+출력 p는 P(y=1 | x), 즉 입력이 class 1에 속할 확률로 해석됩니다. 결정 경계는 wx + b = 0인 곳이며, 이때 sigmoid 출력은 정확히 0.5입니다.
 
-### Binary Cross-Entropy Loss
+### Binary cross-entropy loss
 
-You cannot use MSE for logistic regression. MSE with a sigmoid creates a non-convex cost surface with many local minima. Instead, use binary cross-entropy (log loss):
+로지스틱 회귀에는 MSE를 사용할 수 없습니다. sigmoid와 함께 쓰는 MSE는 많은 국소 최솟값을 가진 비볼록 비용 표면을 만듭니다. 대신 binary cross-entropy (log loss)를 사용합니다.
 
-```
+```text
 Loss = -(1/n) * sum(y * log(p) + (1-y) * log(1-p))
 ```
 
-Why this works:
-- When y=1 and p is close to 1: log(1) = 0, so loss is near 0 (correct, low cost)
-- When y=1 and p is close to 0: log(0) approaches negative infinity, so loss is huge (wrong, high cost)
-- When y=0 and p is close to 0: log(1) = 0, so loss is near 0 (correct, low cost)
-- When y=0 and p is close to 1: log(0) approaches negative infinity, so loss is huge (wrong, high cost)
+이것이 동작하는 이유:
+- y=1이고 p가 1에 가까우면: log(1) = 0이므로 loss는 0에 가깝다(정답, 낮은 비용)
+- y=1이고 p가 0에 가까우면: log(0)은 음의 무한대에 가까워지므로 loss가 매우 크다(오답, 높은 비용)
+- y=0이고 p가 0에 가까우면: log(1) = 0이므로 loss는 0에 가깝다(정답, 낮은 비용)
+- y=0이고 p가 1에 가까우면: log(0)은 음의 무한대에 가까워지므로 loss가 매우 크다(오답, 높은 비용)
 
-This loss function is convex for logistic regression, guaranteeing a single global minimum.
+이 loss function은 로지스틱 회귀에서 볼록하므로 하나의 전역 최솟값을 보장합니다.
 
-### Gradient Descent for Logistic Regression
+### 로지스틱 회귀의 Gradient Descent
 
-The gradients for binary cross-entropy with sigmoid have a clean form:
+sigmoid를 사용하는 binary cross-entropy의 기울기는 깔끔한 형태를 가집니다.
 
-```
+```text
 dL/dw = (1/n) * sum((p - y) * x)
 dL/db = (1/n) * sum(p - y)
 ```
 
-These look identical to the linear regression gradients. The difference is that p = sigmoid(wx + b) instead of p = wx + b. The sigmoid introduces the nonlinearity, but the gradient update rule stays the same.
+이 식은 선형 회귀의 기울기와 동일해 보입니다. 차이는 p = wx + b가 아니라 p = sigmoid(wx + b)라는 점입니다. sigmoid가 비선형성을 도입하지만, 기울기 업데이트 규칙은 그대로입니다.
 
 ```mermaid
 flowchart TD
@@ -110,37 +110,37 @@ flowchart TD
     F -->|Yes| G[Model trained]
 ```
 
-### The Decision Boundary
+### 결정 경계
 
-For a 2D input (two features), the decision boundary is the line where:
+2D 입력(두 특성)에서 결정 경계는 다음 선입니다.
 
-```
+```text
 w1*x1 + w2*x2 + b = 0
 ```
 
-Points on one side get classified as 1, points on the other side as 0. Logistic regression always produces a linear decision boundary. If you need a curved boundary, you either add polynomial features or use a nonlinear model.
+한쪽의 점들은 1로 분류되고, 다른 쪽의 점들은 0으로 분류됩니다. 로지스틱 회귀는 항상 선형 결정 경계를 만듭니다. 곡선 경계가 필요하면 다항 특성을 추가하거나 비선형 모델을 사용해야 합니다.
 
-### Multi-Class Classification with Softmax
+### Softmax를 사용한 다중 클래스 분류
 
-Binary logistic regression handles two classes. For k classes, use the softmax function:
+이진 로지스틱 회귀는 두 클래스를 다룹니다. k개 클래스에는 softmax function을 사용합니다.
 
-```
+```text
 softmax(z_i) = e^(z_i) / sum(e^(z_j) for all j)
 ```
 
-Each class has its own weight vector. The model computes a score z_i for each class, then softmax converts scores to probabilities that sum to 1. The predicted class is the one with the highest probability.
+각 클래스는 자체 가중치 벡터를 가집니다. 모델은 각 클래스에 대해 score z_i를 계산하고, softmax는 점수들을 합이 1인 확률로 변환합니다. 예측 클래스는 확률이 가장 높은 클래스입니다.
 
-The loss function becomes categorical cross-entropy:
+loss function은 categorical cross-entropy가 됩니다.
 
-```
+```text
 Loss = -(1/n) * sum(sum(y_k * log(p_k)))
 ```
 
-where y_k is 1 for the true class and 0 for all others (one-hot encoding).
+여기서 y_k는 실제 클래스에 대해 1이고 나머지는 모두 0입니다(one-hot encoding).
 
-### Evaluation Metrics
+### 평가 지표
 
-Accuracy alone is not enough. For a dataset with 95% negative and 5% positive, a model that always predicts negative gets 95% accuracy but is useless.
+Accuracy만으로는 충분하지 않습니다. negative가 95%, positive가 5%인 데이터셋에서 항상 negative를 예측하는 모델은 95% accuracy를 얻지만 쓸모가 없습니다.
 
 **Confusion Matrix**:
 
@@ -149,33 +149,33 @@ Accuracy alone is not enough. For a dataset with 95% negative and 5% positive, a
 | Actually Positive | True Positive (TP) | False Negative (FN) |
 | Actually Negative | False Positive (FP) | True Negative (TN) |
 
-**Precision**: Of all predicted positives, how many are actually positive?
-```
+**Precision**: positive로 예측한 것 중 실제 positive는 몇 개인가?
+```text
 Precision = TP / (TP + FP)
 ```
 
-**Recall** (Sensitivity): Of all actual positives, how many did we catch?
-```
+**Recall** (Sensitivity): 실제 positive 중 몇 개를 잡아냈는가?
+```text
 Recall = TP / (TP + FN)
 ```
 
-**F1 Score**: Harmonic mean of precision and recall. Balances both metrics.
-```
+**F1 Score**: precision과 recall의 조화 평균입니다. 두 지표의 균형을 맞춥니다.
+```text
 F1 = 2 * (Precision * Recall) / (Precision + Recall)
 ```
 
-When to prioritize:
-- **Precision**: when false positives are costly (spam filter, you do not want to block legitimate email)
-- **Recall**: when false negatives are costly (cancer screening, you do not want to miss a tumor)
-- **F1**: when you need a single balanced metric
+우선순위를 정하는 기준:
+- **Precision**: false positive의 비용이 클 때(스팸 필터, 정상 이메일을 차단하고 싶지 않음)
+- **Recall**: false negative의 비용이 클 때(암 검진, 종양을 놓치고 싶지 않음)
+- **F1**: 균형 잡힌 단일 지표가 필요할 때
 
 ```figure
 logistic-sigmoid
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Sigmoid function and data generation
+### Step 1: Sigmoid function과 데이터 생성
 
 ```python
 import random
@@ -212,7 +212,7 @@ for i in range(5):
     print(f"  Features: [{X[i][0]:.2f}, {X[i][1]:.2f}], Label: {y[i]}")
 ```
 
-### Step 2: Logistic regression from scratch
+### Step 2: 로지스틱 회귀를 처음부터 구현하기
 
 ```python
 class LogisticRegression:
@@ -278,7 +278,7 @@ print(f"Weights: [{model.weights[0]:.4f}, {model.weights[1]:.4f}]")
 print(f"Bias: {model.bias:.4f}")
 ```
 
-### Step 3: Confusion matrix and metrics from scratch
+### Step 3: Confusion matrix와 지표를 처음부터 구현하기
 
 ```python
 class ClassificationMetrics:
@@ -326,7 +326,7 @@ metrics = ClassificationMetrics(y_test, y_pred_test)
 metrics.print_report()
 ```
 
-### Step 4: Decision boundary analysis
+### Step 4: 결정 경계 분석
 
 ```python
 print("\n=== Decision Boundary ===")
@@ -350,7 +350,7 @@ for point in test_points:
     print(f"  [{point[0]}, {point[1]}] -> prob={prob:.4f}, class={pred}")
 ```
 
-### Step 5: Multi-class with softmax
+### Step 5: softmax를 사용한 다중 클래스
 
 ```python
 class SoftmaxRegression:
@@ -442,7 +442,7 @@ for i in range(5):
     print(f"  True: {y_test_3[i]}, Predicted: {pred}, Probs: [{', '.join(f'{p:.3f}' for p in probs)}]")
 ```
 
-### Step 6: Threshold tuning
+### Step 6: threshold tuning
 
 ```python
 print("\n=== Threshold Tuning ===")
@@ -458,9 +458,9 @@ for t in thresholds:
     print(f"{t:>10.1f} {m.accuracy():>10.4f} {m.precision():>10.4f} {m.recall():>10.4f} {m.f1():>10.4f}")
 ```
 
-## Use It
+## 사용하기
 
-Now the same thing with scikit-learn.
+이제 scikit-learn으로 같은 작업을 해 봅니다.
 
 ```python
 from sklearn.linear_model import LogisticRegression as SklearnLR
@@ -495,32 +495,32 @@ print(f"\nConfusion Matrix:\n{confusion_matrix(y_te, y_pred)}")
 print(f"\nClassification Report:\n{classification_report(y_te, y_pred)}")
 ```
 
-Your from-scratch implementation produces the same decision boundary and metrics. Scikit-learn adds solver options (liblinear, lbfgs, saga), automatic regularization, multi-class strategies (one-vs-rest, multinomial), and numerical stability optimizations.
+처음부터 구현한 버전은 같은 결정 경계와 지표를 만들어 냅니다. Scikit-learn은 solver 옵션(liblinear, lbfgs, saga), 자동 정규화, 다중 클래스 전략(one-vs-rest, multinomial), 수치 안정성 최적화를 추가로 제공합니다.
 
-## Ship It
+## 산출물로 만들기
 
-This lesson produces:
-- `code/logistic_regression.py` - logistic regression from scratch with metrics
+이 수업의 산출물:
+- `code/logistic_regression.py` - 지표를 포함한 처음부터 구현한 logistic regression
 
-## Exercises
+## 연습 문제
 
-1. Generate a dataset that is NOT linearly separable (e.g., two concentric circles). Train logistic regression and observe its failure. Then add polynomial features (x1^2, x2^2, x1*x2) and train again. Show that the accuracy improves.
-2. Implement a multi-class confusion matrix for the 3-class softmax model. Compute per-class precision and recall. Which class is hardest to classify?
-3. Build an ROC curve from scratch. For 100 threshold values from 0 to 1, compute the true positive rate and false positive rate. Calculate the AUC (area under the curve) using the trapezoidal rule.
+1. 선형 분리가 불가능한 데이터셋(예: 두 개의 동심원)을 생성하세요. logistic regression을 학습하고 실패를 관찰하세요. 그런 다음 다항 특성(x1^2, x2^2, x1*x2)을 추가해 다시 학습하세요. accuracy가 향상됨을 보이세요.
+2. 3-class softmax model을 위한 다중 클래스 confusion matrix를 구현하세요. 클래스별 precision과 recall을 계산하세요. 어떤 클래스가 가장 분류하기 어렵나요?
+3. ROC curve를 처음부터 만드세요. 0부터 1까지 100개의 threshold 값에 대해 true positive rate와 false positive rate를 계산하세요. 사다리꼴 공식으로 AUC(area under the curve)를 계산하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 흔히 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Logistic regression | "Regression for classification" | A linear model followed by a sigmoid function that outputs class probabilities |
-| Sigmoid function | "The S-curve" | The function 1/(1+e^(-z)) that maps any real number to the range (0, 1) |
-| Binary cross-entropy | "Log loss" | The loss function -[y*log(p) + (1-y)*log(1-p)] that penalizes confident wrong predictions severely |
-| Decision boundary | "The dividing line" | The surface where the model's output probability equals 0.5, separating predicted classes |
-| Softmax | "Multi-class sigmoid" | A function that converts a vector of scores into probabilities that sum to 1 |
-| Precision | "How many selected are relevant" | TP / (TP + FP), the fraction of positive predictions that are actually positive |
-| Recall | "How many relevant are selected" | TP / (TP + FN), the fraction of actual positives that the model correctly identifies |
-| F1 score | "Balanced accuracy" | The harmonic mean of precision and recall: 2*P*R / (P+R) |
-| Confusion matrix | "The error breakdown" | A table showing TP, TN, FP, FN counts for each class pair |
-| Threshold | "The cutoff" | The probability value above which the model predicts class 1 (default 0.5, tunable) |
-| One-hot encoding | "Binary columns for categories" | Representing class k as a vector of zeros with a 1 at position k |
-| Categorical cross-entropy | "Multi-class log loss" | The extension of binary cross-entropy to k classes using one-hot encoded labels |
+| Logistic regression | "분류를 위한 회귀" | class probabilities를 출력하는 sigmoid function 뒤에 선형 모델을 붙인 것 |
+| Sigmoid function | "S-curve" | 임의의 실수를 (0, 1) 범위로 매핑하는 함수 1/(1+e^(-z)) |
+| Binary cross-entropy | "Log loss" | 확신 있게 틀린 예측에 큰 페널티를 주는 loss function -[y*log(p) + (1-y)*log(1-p)] |
+| Decision boundary | "나누는 선" | 모델의 출력 확률이 0.5가 되어 예측 클래스를 분리하는 표면 |
+| Softmax | "Multi-class sigmoid" | 점수 벡터를 합이 1인 확률로 변환하는 함수 |
+| Precision | "선택한 것 중 관련 있는 비율" | TP / (TP + FP), positive 예측 중 실제 positive인 비율 |
+| Recall | "관련 있는 것 중 선택한 비율" | TP / (TP + FN), 실제 positive 중 모델이 올바르게 식별한 비율 |
+| F1 score | "균형 잡힌 accuracy" | precision과 recall의 조화 평균: 2*P*R / (P+R) |
+| Confusion matrix | "오류 분해표" | 각 클래스 쌍에 대해 TP, TN, FP, FN 개수를 보여 주는 표 |
+| Threshold | "cutoff" | 모델이 class 1로 예측하는 기준이 되는 확률값(default 0.5, 조정 가능) |
+| One-hot encoding | "범주용 이진 열" | class k를 k 위치에 1이 있고 나머지는 0인 벡터로 표현하는 것 |
+| Categorical cross-entropy | "Multi-class log loss" | one-hot encoded labels를 사용해 binary cross-entropy를 k개 클래스로 확장한 것 |

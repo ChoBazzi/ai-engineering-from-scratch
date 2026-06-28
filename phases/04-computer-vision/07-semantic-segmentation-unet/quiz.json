@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does U-Net need skip connections between the encoder and decoder?",
-      "options": ["To speed up training", "The encoder compresses spatial detail to gain context; the decoder cannot reconstruct sharp boundaries without access to the encoder's high-resolution feature maps, and skips supply exactly that", "Because transposed convolutions require extra inputs", "To match PyTorch shape conventions"],
+      "question": "U-Net은 왜 인코더와 디코더 사이에 스킵 연결이 필요할까요?",
+      "options": [
+        "훈련 속도를 높이기 위해",
+        "인코더는 문맥을 얻기 위해 공간 세부 정보를 압축합니다. 디코더는 인코더의 고해상도 특징 맵에 접근하지 않으면 선명한 경계를 복원할 수 없고, 스킵 연결이 바로 그것을 제공합니다",
+        "전치 합성곱에는 추가 입력이 필요하기 때문에",
+        "PyTorch shape 관례를 맞추기 위해"
+      ],
       "correct": 1,
-      "explanation": "Without skips, a U-Net's decoder is producing H x W predictions from a very low-resolution bottleneck, which cannot resolve crisp edges. Skip connections splice the encoder's high-resolution, low-semantic features into the decoder's low-resolution, high-semantic features so both context and detail are available at every output stage."
+      "explanation": "스킵이 없으면 U-Net의 디코더는 매우 낮은 해상도의 병목에서 H x W 예측을 만들어야 하므로 또렷한 에지를 해상할 수 없습니다. 스킵 연결은 인코더의 고해상도, 낮은 semantic 특징을 디코더의 저해상도, 높은 semantic 특징에 이어 붙여 모든 출력 단계에서 문맥과 세부 정보를 모두 쓸 수 있게 합니다."
     },
     {
       "stage": "pre",
-      "question": "A segmentation task has 99% background pixels and 1% tumour pixels. You train with plain cross-entropy and reach 99% pixel accuracy. What happened?",
-      "options": ["The model converged", "The model learned to predict background for every pixel; pixel accuracy is dominated by the majority class and ignores the class you actually care about", "The loss function was implemented incorrectly", "The optimizer failed"],
+      "question": "한 세그멘테이션 작업에 99% 배경 픽셀과 1% 종양 픽셀이 있습니다. plain cross-entropy로 훈련해 99% pixel accuracy에 도달했습니다. 무슨 일이 일어난 걸까요?",
+      "options": [
+        "모델이 수렴했습니다",
+        "모델이 모든 픽셀을 배경으로 예측하는 법을 배웠습니다. pixel accuracy는 다수 클래스에 지배되고 실제로 관심 있는 클래스를 무시합니다",
+        "손실 함수가 잘못 구현되었습니다",
+        "옵티마이저가 실패했습니다"
+      ],
       "correct": 1,
-      "explanation": "Pixel accuracy on an imbalanced dataset is a useless metric. The network collects the easy 99% by always predicting background and produces empty tumour masks. The fix: combine cross-entropy with Dice loss (overlap-based, scale-free) and report IoU/Dice per foreground class."
+      "explanation": "불균형 데이터셋에서 pixel accuracy는 쓸모없는 지표입니다. 네트워크는 항상 배경을 예측해 쉬운 99%를 얻고 빈 종양 마스크를 만들어 냅니다. 해결책은 cross-entropy와 Dice loss(겹침 기반, scale-free)를 결합하고 foreground 클래스별 IoU/Dice를 보고하는 것입니다."
     },
     {
       "stage": "post",
-      "question": "Which task type separates individual cars of the same class from each other?",
-      "options": ["Semantic segmentation", "Instance segmentation", "Both produce the same output", "Neither — that requires a detection model instead"],
+      "question": "같은 클래스에 속한 개별 자동차들을 서로 분리하는 작업 유형은 무엇인가요?",
+      "options": [
+        "Semantic segmentation",
+        "Instance segmentation",
+        "둘 다 같은 출력을 만듭니다",
+        "둘 다 아닙니다. 대신 detection model이 필요합니다"
+      ],
       "correct": 1,
-      "explanation": "Semantic segmentation labels every pixel with a class but merges touching instances of the same class into one blob. Instance segmentation keeps instance IDs, so each car, each person, each apple is a separate predicted mask. Panoptic segmentation unifies both: semantic labels for stuff, instance IDs for things."
+      "explanation": "Semantic segmentation은 모든 픽셀에 클래스를 붙이지만 같은 클래스의 맞닿은 인스턴스를 하나의 덩어리로 합칩니다. Instance segmentation은 instance ID를 유지하므로 각 자동차, 각 사람, 각 사과가 별도의 예측 마스크가 됩니다. Panoptic segmentation은 둘을 통합합니다. stuff에는 semantic label을, things에는 instance ID를 붙입니다."
     },
     {
       "stage": "post",
-      "question": "You swap U-Net's bilinear upsample + 3x3 conv for a ConvTranspose2d with kernel_size=2, stride=2 and see checkerboard artifacts in the output. Why?",
-      "options": ["Transposed conv is broken in PyTorch", "When kernel_size is not evenly divisible by stride, output pixels receive unequal contributions from input pixels, producing a periodic pattern in the output that looks like a checkerboard", "The learning rate was too low", "Batch norm has to be added before transposed conv"],
+      "question": "U-Net의 bilinear upsample + 3x3 conv를 kernel_size=2, stride=2인 ConvTranspose2d로 바꿨더니 출력에 checkerboard artifact가 보입니다. 왜 그럴까요?",
+      "options": [
+        "PyTorch에서 transposed conv가 고장 났기 때문에",
+        "kernel_size가 stride로 고르게 나누어지지 않으면 출력 픽셀이 입력 픽셀에서 불균등한 기여를 받아 출력에 체커보드처럼 보이는 주기적 패턴이 생기기 때문에",
+        "learning rate가 너무 낮았기 때문에",
+        "transposed conv 앞에 batch norm을 추가해야 하기 때문에"
+      ],
       "correct": 1,
-      "explanation": "Checkerboard artifacts come from uneven overlap of the transposed convolution's receptive field across output positions. Using kernel_size = stride * n (e.g. kernel 4, stride 2) or replacing transposed conv with bilinear upsample + conv eliminates the artifacts. The modern default is bilinear + conv for this reason."
+      "explanation": "Checkerboard artifact는 transposed convolution의 receptive field가 출력 위치 전반에서 불균등하게 겹치며 생깁니다. kernel_size = stride * n(예: kernel 4, stride 2)을 쓰거나 transposed conv를 bilinear upsample + conv로 바꾸면 artifact가 사라집니다. 이 이유로 현대적 기본값은 bilinear + conv입니다."
     },
     {
       "stage": "post",
-      "question": "You report mIoU = 0.78 on a 10-class segmentation task. Why should you also publish per-class IoU?",
-      "options": ["Per-class IoU is required by PyTorch", "Mean IoU hides individual class failures; a mIoU of 0.78 is consistent with eight classes at 0.9 and two at 0.3, which is a very different deployment story than all classes near 0.78", "Per-class IoU is always higher than mIoU", "It is only needed for medical imaging"],
+      "question": "10클래스 세그멘테이션 작업에서 mIoU = 0.78을 보고했습니다. 왜 클래스별 IoU도 함께 공개해야 할까요?",
+      "options": [
+        "PyTorch가 클래스별 IoU를 요구하기 때문에",
+        "Mean IoU는 개별 클래스 실패를 숨깁니다. mIoU 0.78은 여덟 클래스가 0.9이고 두 클래스가 0.3인 경우와도 일치하며, 이는 모든 클래스가 0.78 근처인 경우와 배포 관점에서 완전히 다른 이야기입니다",
+        "클래스별 IoU는 항상 mIoU보다 높기 때문에",
+        "의료 영상에서만 필요하기 때문에"
+      ],
       "correct": 1,
-      "explanation": "An aggregate mean compresses the distribution of per-class scores, which is exactly what the reader needs to decide whether the model is ready to ship. Two weak classes in an otherwise strong model may make the system unusable for the intended task; a flat profile means the model needs a uniform data upgrade. Always publish per-class metrics alongside the mean."
+      "explanation": "집계 평균은 클래스별 점수 분포를 압축해 버리는데, 그 분포야말로 모델을 출시할 준비가 되었는지 판단하는 데 필요합니다. 나머지는 강하지만 두 클래스가 약한 모델은 의도한 작업에 사용할 수 없을 수 있습니다. 반대로 평평한 프로필은 모델에 전반적인 데이터 업그레이드가 필요하다는 뜻입니다. 평균과 함께 항상 클래스별 지표를 공개하세요."
     }
   ]
 }

@@ -1,223 +1,223 @@
-# Handling Imbalanced Data
+# 불균형 데이터 다루기
 
-> When 99% of your data is "normal," accuracy is a lie.
+> 데이터의 99%가 "정상"이라면, 정확도는 거짓말입니다.
 
 **Type:** Build
-**Language:** Python
-**Prerequisites:** Phase 2, Lessons 01-09 (especially evaluation metrics)
+**Languages:** Python
+**Prerequisites:** Phase 2, Lessons 01-09(특히 평가 지표)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement SMOTE from scratch and explain how synthetic oversampling differs from random duplication
-- Evaluate imbalanced classifiers using F1, AUPRC, and Matthews Correlation Coefficient instead of accuracy
-- Compare class weighting, threshold tuning, and resampling strategies and select the right approach for a given imbalance ratio
-- Build a complete imbalanced data pipeline that combines SMOTE, class weights, and threshold optimization
+- SMOTE를 처음부터 구현하고, 합성 오버샘플링이 무작위 복제와 어떻게 다른지 설명한다
+- 불균형 분류기를 정확도 대신 F1, AUPRC, Matthews Correlation Coefficient로 평가한다
+- 클래스 가중치, 임계값 튜닝, 재샘플링 전략을 비교하고 주어진 불균형 비율에 맞는 접근법을 선택한다
+- SMOTE, 클래스 가중치, 임계값 최적화를 결합한 완전한 불균형 데이터 파이프라인을 만든다
 
-## The Problem
+## 문제
 
-You build a fraud detection model. It gets 99.9% accuracy. You celebrate. Then you realize it predicts "not fraud" for every single transaction.
+사기 탐지 모델을 만들었습니다. 정확도가 99.9%입니다. 기뻐합니다. 그러다 모델이 모든 거래를 "사기 아님"으로 예측한다는 사실을 깨닫습니다.
 
-This is not a bug. It is the rational thing to do when only 0.1% of transactions are fraudulent. The model learns that always guessing the majority class minimizes overall error. It is technically correct and completely useless.
+이것은 버그가 아닙니다. 거래의 0.1%만 사기일 때 모델이 취할 수 있는 합리적인 행동입니다. 모델은 항상 다수 클래스를 찍는 것이 전체 오류를 최소화한다는 것을 배웁니다. 기술적으로는 맞지만 완전히 쓸모없습니다.
 
-This happens everywhere real classification matters. Disease diagnosis: 1% positive rate. Network intrusion: 0.01% attacks. Manufacturing defects: 0.5% defective. Spam filtering: 20% spam. Churn prediction: 5% churners. The more consequential the minority class, the rarer it tends to be.
+실제 분류가 중요한 곳에서는 이런 일이 어디서나 일어납니다. 질병 진단: 양성률 1%. 네트워크 침입: 공격 0.01%. 제조 결함: 불량 0.5%. 스팸 필터링: 스팸 20%. 이탈 예측: 이탈자 5%. 소수 클래스가 중요할수록 더 드문 경우가 많습니다.
 
-Accuracy fails because it treats all correct predictions equally. Correctly labeling a legitimate transaction and correctly catching fraud both count as one point of accuracy. But catching fraud is the entire reason the model exists. We need metrics, techniques, and training strategies that force the model to pay attention to the rare but important class.
+정확도는 모든 올바른 예측을 똑같이 취급하기 때문에 실패합니다. 정상 거래를 올바르게 표시하는 것과 사기를 올바르게 잡는 것은 둘 다 정확도 1점으로 계산됩니다. 하지만 사기를 잡는 것이 모델이 존재하는 전체 이유입니다. 드물지만 중요한 클래스에 모델이 주의를 기울이도록 강제하는 지표, 기법, 훈련 전략이 필요합니다.
 
-## The Concept
+## 개념
 
-### Why Accuracy Fails
+### 정확도가 실패하는 이유
 
-Consider a dataset with 1000 samples: 990 negative, 10 positive. A model that always predicts negative:
+1000개 샘플이 있는 데이터셋을 생각해 봅시다. 음성 990개, 양성 10개입니다. 항상 음성으로 예측하는 모델은 다음과 같습니다.
 
-|  | Predicted Positive | Predicted Negative |
+|  | 예측 양성 | 예측 음성 |
 |--|---|---|
-| Actually Positive | 0 (TP) | 10 (FN) |
-| Actually Negative | 0 (FP) | 990 (TN) |
+| 실제 양성 | 0 (TP) | 10 (FN) |
+| 실제 음성 | 0 (FP) | 990 (TN) |
 
-Accuracy = (0 + 990) / 1000 = 99.0%
+정확도 = (0 + 990) / 1000 = 99.0%
 
-The model catches zero fraud. Zero disease. Zero defects. But accuracy says 99%. This is why accuracy is dangerous for imbalanced problems.
+모델은 사기를 하나도 잡지 못합니다. 질병도 0개. 결함도 0개. 하지만 정확도는 99%라고 말합니다. 이것이 불균형 문제에서 정확도가 위험한 이유입니다.
 
-### Better Metrics
+### 더 나은 지표
 
-**Precision** = TP / (TP + FP). Of everything flagged as positive, how many actually are? High precision means few false alarms.
+**Precision** = TP / (TP + FP). 양성으로 표시한 것 중 실제 양성은 얼마나 되는가? 높은 정밀도는 거짓 경보가 적다는 뜻입니다.
 
-**Recall** = TP / (TP + FN). Of everything actually positive, how many did we catch? High recall means few missed positives.
+**Recall** = TP / (TP + FN). 실제 양성 중 얼마나 많이 잡았는가? 높은 재현율은 놓친 양성이 적다는 뜻입니다.
 
-**F1 Score** = 2 * precision * recall / (precision + recall). The harmonic mean. Penalizes extreme imbalance between precision and recall more than the arithmetic mean would.
+**F1 Score** = 2 * precision * recall / (precision + recall). 조화 평균입니다. 산술 평균보다 정밀도와 재현율 사이의 극단적인 불균형을 더 강하게 벌합니다.
 
-**F-beta Score** = (1 + beta^2) * precision * recall / (beta^2 * precision + recall). When beta > 1, recall matters more. When beta < 1, precision matters more. F2 is common in fraud detection (missing fraud is worse than a false alarm).
+**F-beta Score** = (1 + beta^2) * precision * recall / (beta^2 * precision + recall). beta > 1이면 재현율이 더 중요합니다. beta < 1이면 정밀도가 더 중요합니다. F2는 사기 탐지에서 흔합니다(사기를 놓치는 것이 거짓 경보보다 더 나쁩니다).
 
-**AUPRC** (Area Under Precision-Recall Curve). Like AUC-ROC but more informative for imbalanced data. A random classifier has AUPRC equal to the positive class rate (not 0.5 like ROC). This makes improvements easier to see.
+**AUPRC**(정밀도-재현율 곡선 아래 면적). AUC-ROC와 비슷하지만 불균형 데이터에서는 더 유익합니다. 무작위 분류기의 AUPRC는 양성 클래스 비율과 같습니다(ROC처럼 0.5가 아닙니다). 그래서 개선이 더 잘 보입니다.
 
-**Matthews Correlation Coefficient** = (TP * TN - FP * FN) / sqrt((TP+FP)(TP+FN)(TN+FP)(TN+FN)). Ranges from -1 to +1. Only gives a high score when the model does well on both classes. Balanced even when classes are very different sizes.
+**Matthews Correlation Coefficient** = (TP * TN - FP * FN) / sqrt((TP+FP)(TP+FN)(TN+FP)(TN+FN)). 범위는 -1부터 +1까지입니다. 모델이 두 클래스 모두에서 잘할 때만 높은 점수를 줍니다. 클래스 크기가 매우 달라도 균형 잡혀 있습니다.
 
-For the "always predict negative" model above: precision = 0/0 (undefined, often set to 0), recall = 0/10 = 0, F1 = 0, MCC = 0. These metrics correctly identify the model as worthless.
+위의 "항상 음성 예측" 모델에서는 precision = 0/0(정의되지 않으며 보통 0으로 설정), recall = 0/10 = 0, F1 = 0, MCC = 0입니다. 이 지표들은 모델이 쓸모없다는 것을 올바르게 식별합니다.
 
-### The Imbalanced Data Pipeline
+### 불균형 데이터 파이프라인
 
 ```mermaid
 flowchart TD
-    A[Imbalanced Dataset] --> B{Imbalance Ratio?}
-    B -->|Mild: 80/20| C[Class Weights]
-    B -->|Moderate: 95/5| D[SMOTE + Threshold Tuning]
-    B -->|Severe: 99/1| E[SMOTE + Class Weights + Threshold]
-    C --> F[Train Model]
+    A[불균형 데이터셋] --> B{불균형 비율?}
+    B -->|약함: 80/20| C[클래스 가중치]
+    B -->|보통: 95/5| D[SMOTE + 임계값 튜닝]
+    B -->|심함: 99/1| E[SMOTE + 클래스 가중치 + 임계값]
+    C --> F[모델 훈련]
     D --> F
     E --> F
-    F --> G[Evaluate with F1 / AUPRC / MCC]
-    G --> H{Good Enough?}
-    H -->|No| I[Try Different Strategy]
-    H -->|Yes| J[Deploy with Monitoring]
+    F --> G[F1 / AUPRC / MCC로 평가]
+    G --> H{충분히 좋은가?}
+    H -->|아니오| I[다른 전략 시도]
+    H -->|예| J[모니터링과 함께 배포]
     I --> B
 ```
 
-### SMOTE: Synthetic Minority Oversampling Technique
+### SMOTE: 합성 소수 클래스 오버샘플링 기법
 
-Random oversampling duplicates existing minority samples. This works but risks overfitting because the model sees identical points repeatedly.
+무작위 오버샘플링은 기존 소수 클래스 샘플을 복제합니다. 동작은 하지만 모델이 같은 점을 반복해서 보기 때문에 과적합 위험이 있습니다.
 
-SMOTE creates new synthetic minority samples that are plausible but not copies. The algorithm:
+SMOTE는 그럴듯하지만 복사본은 아닌 새로운 합성 소수 클래스 샘플을 만듭니다. 알고리즘은 다음과 같습니다.
 
-1. For each minority sample x, find its k nearest neighbors among other minority samples
-2. Pick one neighbor at random
-3. Create a new sample on the line segment between x and that neighbor
+1. 각 소수 클래스 샘플 x에 대해 다른 소수 클래스 샘플 중 k개 최근접 이웃을 찾는다
+2. 이웃 하나를 무작위로 고른다
+3. x와 그 이웃 사이의 선분 위에 새 샘플을 만든다
 
-The formula: `new_sample = x + random(0, 1) * (neighbor - x)`
+공식: `new_sample = x + random(0, 1) * (neighbor - x)`
 
-This interpolates between real minority points, creating samples in the same region of feature space without just copying existing data.
+이 방식은 실제 소수 클래스 점 사이를 보간하여, 기존 데이터를 그냥 복사하지 않고 같은 특성 공간 영역에 샘플을 만듭니다.
 
 ```mermaid
 flowchart LR
-    subgraph Original["Original Minority Points"]
+    subgraph Original["원본 소수 클래스 점"]
         P1["x1 (1.0, 2.0)"]
         P2["x2 (1.5, 2.5)"]
         P3["x3 (2.0, 1.5)"]
     end
-    subgraph SMOTE["SMOTE Generation"]
+    subgraph SMOTE["SMOTE 생성"]
         direction TB
-        S1["Pick x1, neighbor x2"]
+        S1["x1 선택, 이웃 x2"]
         S2["random t = 0.4"]
         S3["new = x1 + 0.4*(x2-x1)"]
         S4["new = (1.2, 2.2)"]
         S1 --> S2 --> S3 --> S4
     end
     Original --> SMOTE
-    subgraph Result["Augmented Set"]
+    subgraph Result["증강된 집합"]
         R1["x1 (1.0, 2.0)"]
         R2["x2 (1.5, 2.5)"]
         R3["x3 (2.0, 1.5)"]
-        R4["synthetic (1.2, 2.2)"]
+        R4["합성 (1.2, 2.2)"]
     end
     SMOTE --> Result
 ```
 
-### Sampling Strategies Compared
+### 샘플링 전략 비교
 
-**Random Oversampling**: duplicate minority samples to match majority count.
-- Pros: simple, no information loss
-- Cons: exact duplicates cause overfitting, increases training time
+**Random Oversampling**: 소수 클래스 샘플을 다수 클래스 수에 맞게 복제합니다.
+- 장점: 단순함, 정보 손실 없음
+- 단점: 정확한 중복이 과적합을 유발하고 훈련 시간을 늘림
 
-**Random Undersampling**: remove majority samples to match minority count.
-- Pros: fast training, simple
-- Cons: throws away potentially useful majority data, higher variance
+**Random Undersampling**: 다수 클래스 샘플을 소수 클래스 수에 맞게 제거합니다.
+- 장점: 빠른 훈련, 단순함
+- 단점: 유용할 수 있는 다수 클래스 데이터를 버리고 분산이 커짐
 
-**SMOTE**: create synthetic minority samples via interpolation.
-- Pros: generates new data points, reduces overfitting compared to random oversampling
-- Cons: can create noisy samples near the decision boundary, does not account for majority class distribution
+**SMOTE**: 보간으로 합성 소수 클래스 샘플을 만듭니다.
+- 장점: 새 데이터 점을 생성하고 무작위 오버샘플링보다 과적합을 줄임
+- 단점: 결정 경계 근처에 노이즈 많은 샘플을 만들 수 있고 다수 클래스 분포를 고려하지 않음
 
-| Strategy | Data Changed | Risk | When to Use |
+| 전략 | 바뀌는 데이터 | 위험 | 사용할 때 |
 |----------|-------------|------|-------------|
-| Oversample | Minority duplicated | Overfitting | Small datasets, moderate imbalance |
-| Undersample | Majority removed | Information loss | Large datasets, want fast training |
-| SMOTE | Synthetic minority added | Boundary noise | Moderate imbalance, enough minority samples for k-NN |
+| 오버샘플링 | 소수 클래스 복제 | 과적합 | 작은 데이터셋, 보통 불균형 |
+| 언더샘플링 | 다수 클래스 제거 | 정보 손실 | 큰 데이터셋, 빠른 훈련이 필요할 때 |
+| SMOTE | 합성 소수 클래스 추가 | 경계 노이즈 | 보통 불균형, k-NN에 충분한 소수 샘플 |
 
-### Class Weights
+### 클래스 가중치
 
-Instead of changing the data, change how the model treats errors. Assign higher weight to misclassifying the minority class.
+데이터를 바꾸는 대신 모델이 오류를 다루는 방식을 바꿉니다. 소수 클래스를 잘못 분류할 때 더 높은 가중치를 부여합니다.
 
-For a binary problem with 950 negative and 50 positive samples:
-- Weight for negative class = n_samples / (2 * n_negative) = 1000 / (2 * 950) = 0.526
-- Weight for positive class = n_samples / (2 * n_positive) = 1000 / (2 * 50) = 10.0
+음성 샘플 950개와 양성 샘플 50개가 있는 이진 문제라면:
+- 음성 클래스 가중치 = n_samples / (2 * n_negative) = 1000 / (2 * 950) = 0.526
+- 양성 클래스 가중치 = n_samples / (2 * n_positive) = 1000 / (2 * 50) = 10.0
 
-The positive class gets 19x the weight. Misclassifying one positive sample costs as much as misclassifying 19 negative samples. The model is forced to pay attention to the minority class.
+양성 클래스는 19배의 가중치를 받습니다. 양성 샘플 하나를 잘못 분류하는 비용은 음성 샘플 19개를 잘못 분류하는 비용과 같습니다. 모델은 소수 클래스에 주의를 기울이도록 강제됩니다.
 
-In logistic regression, this modifies the loss function:
+로지스틱 회귀에서는 손실 함수가 이렇게 수정됩니다.
 
-```
+```text
 weighted_loss = -sum(w_i * [y_i * log(p_i) + (1-y_i) * log(1-p_i)])
 ```
 
-where w_i depends on the class of sample i.
+여기서 w_i는 샘플 i의 클래스에 따라 달라집니다.
 
-Class weights are mathematically equivalent to oversampling in expectation, but without creating new data points. This makes them faster and avoids the overfitting risk of duplicated samples.
+클래스 가중치는 기대값 관점에서 오버샘플링과 수학적으로 동등하지만 새 데이터 점을 만들지 않습니다. 그래서 더 빠르고 중복 샘플로 인한 과적합 위험을 피합니다.
 
-### Threshold Tuning
+### 임계값 튜닝
 
-Most classifiers output a probability. The default threshold is 0.5: if P(positive) >= 0.5, predict positive. But 0.5 is arbitrary. When classes are imbalanced, the optimal threshold is usually much lower.
+대부분의 분류기는 확률을 출력합니다. 기본 임계값은 0.5입니다. P(positive) >= 0.5이면 양성으로 예측합니다. 하지만 0.5는 임의적입니다. 클래스가 불균형할 때 최적 임계값은 보통 훨씬 낮습니다.
 
-The process:
-1. Train a model
-2. Get predicted probabilities on the validation set
-3. Sweep thresholds from 0.0 to 1.0
-4. Compute F1 (or your chosen metric) at each threshold
-5. Pick the threshold that maximizes your metric
+절차:
+1. 모델을 훈련한다
+2. 검증 세트에서 예측 확률을 얻는다
+3. 임계값을 0.0부터 1.0까지 훑는다
+4. 각 임계값에서 F1(또는 선택한 지표)을 계산한다
+5. 지표를 최대화하는 임계값을 고른다
 
 ```mermaid
 flowchart LR
-    A[Model] --> B[Predict Probabilities]
-    B --> C[Sweep Thresholds 0.0 to 1.0]
-    C --> D[Compute F1 at Each]
-    D --> E[Pick Best Threshold]
-    E --> F[Use in Production]
+    A[모델] --> B[확률 예측]
+    B --> C[임계값 0.0부터 1.0까지 훑기]
+    C --> D[각 임계값에서 F1 계산]
+    D --> E[최적 임계값 선택]
+    E --> F[프로덕션에서 사용]
 ```
 
-A model might output P(fraud) = 0.15 for a fraudulent transaction. At threshold 0.5, this is classified as not fraud. At threshold 0.10, it is correctly caught. The probability calibration matters less than the ranking -- as long as fraud gets higher probabilities than non-fraud, there exists a threshold that separates them.
+모델이 사기 거래에 대해 P(fraud) = 0.15를 출력할 수 있습니다. 임계값 0.5에서는 사기 아님으로 분류됩니다. 임계값 0.10에서는 올바르게 잡힙니다. 확률 보정은 순위보다 덜 중요합니다 -- 사기가 비사기보다 더 높은 확률을 받기만 한다면, 둘을 분리하는 임계값이 존재합니다.
 
-### Cost-Sensitive Learning
+### 비용 민감 학습
 
-Generalization of class weights. Instead of uniform costs, assign specific misclassification costs:
+클래스 가중치의 일반화입니다. 균일한 비용 대신 구체적인 오분류 비용을 부여합니다.
 
-| | Predict Positive | Predict Negative |
+| | 양성 예측 | 음성 예측 |
 |--|---|---|
-| Actually Positive | 0 (correct) | C_FN = 100 |
-| Actually Negative | C_FP = 1 | 0 (correct) |
+| 실제 양성 | 0 (정답) | C_FN = 100 |
+| 실제 음성 | C_FP = 1 | 0 (정답) |
 
-Missing a fraudulent transaction (FN) costs 100x more than a false alarm (FP). The model optimizes for total cost, not total error count.
+사기 거래를 놓치는 것(FN)은 거짓 경보(FP)보다 100배 더 큰 비용입니다. 모델은 전체 오류 수가 아니라 총비용을 최적화합니다.
 
-This is the most principled approach when you can estimate real-world costs. A missed cancer diagnosis has a very different cost than a false alarm that leads to an extra biopsy. Making these costs explicit forces the right tradeoffs.
+실제 비용을 추정할 수 있다면 이것이 가장 원칙적인 접근법입니다. 놓친 암 진단의 비용은 추가 생검으로 이어지는 거짓 경보와 매우 다릅니다. 이런 비용을 명시하면 올바른 트레이드오프가 강제됩니다.
 
-### Decision Flowchart
+### 의사결정 흐름도
 
 ```mermaid
 flowchart TD
-    A[Start: Imbalanced Dataset] --> B{How imbalanced?}
-    B -->|"< 70/30"| C["Mild: try class weights first"]
-    B -->|"70/30 to 95/5"| D["Moderate: SMOTE + class weights"]
-    B -->|"> 95/5"| E["Severe: combine multiple strategies"]
-    C --> F{Enough data?}
+    A[시작: 불균형 데이터셋] --> B{얼마나 불균형한가?}
+    B -->|"< 70/30"| C["약함: 클래스 가중치 먼저 시도"]
+    B -->|"70/30부터 95/5까지"| D["보통: SMOTE + 클래스 가중치"]
+    B -->|"> 95/5"| E["심함: 여러 전략 결합"]
+    C --> F{데이터가 충분한가?}
     D --> F
     E --> F
-    F -->|"< 1000 samples"| G["Oversample or SMOTE, avoid undersampling"]
-    F -->|"1000-10000"| H["SMOTE + threshold tuning"]
-    F -->|"> 10000"| I["Undersampling OK, or class weights"]
-    G --> J[Train + Evaluate with F1/AUPRC]
+    F -->|"< 1000 샘플"| G["오버샘플링 또는 SMOTE, 언더샘플링 피하기"]
+    F -->|"1000-10000"| H["SMOTE + 임계값 튜닝"]
+    F -->|"> 10000"| I["언더샘플링 가능, 또는 클래스 가중치"]
+    G --> J[F1/AUPRC로 훈련 + 평가]
     H --> J
     I --> J
-    J --> K{Recall high enough?}
-    K -->|No| L[Lower threshold]
-    K -->|Yes| M{Precision acceptable?}
-    M -->|No| N[Raise threshold or add features]
-    M -->|Yes| O[Ship it]
+    J --> K{재현율이 충분히 높은가?}
+    K -->|아니오| L[임계값 낮추기]
+    K -->|예| M{정밀도가 허용 가능한가?}
+    M -->|아니오| N[임계값 높이기 또는 특성 추가]
+    M -->|예| O[출시]
 ```
 
 ```figure
 class-imbalance
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Generate an imbalanced dataset
+### 1단계: 불균형 데이터셋 생성하기
 
 ```python
 import numpy as np
@@ -236,7 +236,7 @@ def make_imbalanced_data(n_majority=950, n_minority=50, seed=42):
     return X[shuffle_idx], y[shuffle_idx]
 ```
 
-### Step 2: SMOTE from scratch
+### 2단계: SMOTE를 처음부터 구현하기
 
 ```python
 def euclidean_distance(a, b):
@@ -271,7 +271,7 @@ def smote(X_minority, k=5, n_synthetic=100, seed=42):
     return np.array(synthetic)
 ```
 
-### Step 3: Random oversampling and undersampling
+### 3단계: 무작위 오버샘플링과 언더샘플링
 
 ```python
 def random_oversample(X, y, seed=42):
@@ -316,7 +316,7 @@ def random_undersample(X, y, seed=42):
     return X_out[shuffle], y_out[shuffle]
 ```
 
-### Step 4: Logistic regression with class weights
+### 4단계: 클래스 가중치를 적용한 로지스틱 회귀
 
 ```python
 def sigmoid(z):
@@ -353,7 +353,7 @@ def compute_class_weights(y):
     return np.array([weight_map[yi] for yi in y])
 ```
 
-### Step 5: Threshold tuning
+### 5단계: 임계값 튜닝
 
 ```python
 def find_optimal_threshold(y_true, y_probs, metric="f1"):
@@ -382,7 +382,7 @@ def find_optimal_threshold(y_true, y_probs, metric="f1"):
     return best_threshold, best_score
 ```
 
-### Step 6: Evaluation functions
+### 6단계: 평가 함수
 
 ```python
 def confusion_matrix_values(y_true, y_pred):
@@ -412,7 +412,7 @@ def compute_metrics(y_true, y_pred):
     }
 ```
 
-### Step 7: Compare all approaches
+### 7단계: 모든 접근법 비교하기
 
 ```python
 X, y = make_imbalanced_data(950, 50, seed=42)
@@ -459,11 +459,11 @@ best_thresh, best_f1 = find_optimal_threshold(y_val, probs_val, metric="f1")
 preds_thresh = (probs_cw >= best_thresh).astype(int)
 ```
 
-The code file runs all of this in a single script and prints results.
+코드 파일은 이 모든 것을 하나의 스크립트로 실행하고 결과를 출력합니다.
 
-## Use It
+## 사용하기
 
-With scikit-learn and imbalanced-learn, these techniques are one-liners:
+scikit-learn과 imbalanced-learn을 사용하면 이 기법들은 한 줄짜리입니다.
 
 ```python
 from sklearn.linear_model import LogisticRegression
@@ -493,42 +493,42 @@ pipeline.fit(X_train, y_train)
 print(classification_report(y_test, pipeline.predict(X_test)))
 ```
 
-The from-scratch implementations show exactly what each technique does. SMOTE is just k-NN interpolation on the minority class. Class weights multiply the loss. Threshold tuning is a for-loop over cutoffs. No magic.
+처음부터 구현한 버전은 각 기법이 정확히 무엇을 하는지 보여 줍니다. SMOTE는 소수 클래스에 대한 k-NN 보간일 뿐입니다. 클래스 가중치는 손실을 곱합니다. 임계값 튜닝은 컷오프를 훑는 for-loop입니다. 마법은 없습니다.
 
-## Ship It
+## 출시하기
 
-This lesson produces:
-- `outputs/skill-imbalanced-data.md` -- a decision checklist for handling imbalanced classification problems
+이 수업의 산출물:
+- `outputs/skill-imbalanced-data.md` -- 불균형 분류 문제를 다루기 위한 의사결정 체크리스트
 
-## Exercises
+## 연습 문제
 
-1. **Borderline-SMOTE**: modify the SMOTE implementation to only generate synthetic samples for minority points that are near the decision boundary (those whose k-nearest neighbors include majority class samples). Compare results with standard SMOTE on a dataset where classes overlap.
+1. **Borderline-SMOTE**: SMOTE 구현을 수정하여 결정 경계 근처에 있는 소수 클래스 점(그 k-최근접 이웃에 다수 클래스 샘플이 포함된 점)에 대해서만 합성 샘플을 생성하게 하세요. 클래스가 겹치는 데이터셋에서 표준 SMOTE와 결과를 비교하세요.
 
-2. **Cost matrix optimization**: implement cost-sensitive learning where the cost matrix is a parameter. Create a function that takes a cost matrix and returns optimal predictions that minimize expected cost. Test with different cost ratios (1:10, 1:100, 1:1000) and plot how the precision-recall tradeoff changes.
+2. **비용 행렬 최적화**: 비용 행렬을 매개변수로 받는 비용 민감 학습을 구현하세요. 비용 행렬을 받아 기대 비용을 최소화하는 최적 예측을 반환하는 함수를 만드세요. 서로 다른 비용 비율(1:10, 1:100, 1:1000)로 테스트하고 정밀도-재현율 트레이드오프가 어떻게 바뀌는지 플롯하세요.
 
-3. **Threshold calibration**: implement Platt scaling (fit a logistic regression on the model's raw outputs to produce calibrated probabilities). Compare the precision-recall curve before and after calibration. Show that calibration does not change the ranking (AUC stays the same) but makes the probabilities more meaningful.
+3. **임계값 보정**: Platt scaling을 구현하세요(모델의 원시 출력에 로지스틱 회귀를 적합하여 보정된 확률 생성). 보정 전후의 정밀도-재현율 곡선을 비교하세요. 보정은 순위(AUC는 그대로)를 바꾸지 않지만 확률을 더 의미 있게 만든다는 것을 보이세요.
 
-4. **Ensemble with balanced bagging**: train multiple models, each on a balanced bootstrap sample (all minority + random subset of majority). Average their predictions. Compare this approach against a single model with SMOTE. Measure both performance and variance across runs.
+4. **균형 배깅 앙상블**: 여러 모델을 훈련하되, 각 모델은 균형 잡힌 부트스트랩 샘플(전체 소수 클래스 + 다수 클래스의 무작위 부분집합)에서 훈련하세요. 예측을 평균 내세요. 이 접근법을 SMOTE를 사용한 단일 모델과 비교하세요. 성능과 실행 간 분산을 모두 측정하세요.
 
-5. **Imbalance ratio experiment**: take a balanced dataset and progressively increase the imbalance ratio (50/50, 70/30, 90/10, 95/5, 99/1). For each ratio, train with and without SMOTE. Plot F1 vs imbalance ratio for both approaches. At what ratio does SMOTE start making a meaningful difference?
+5. **불균형 비율 실험**: 균형 데이터셋을 가져와 불균형 비율을 점진적으로 높이세요(50/50, 70/30, 90/10, 95/5, 99/1). 각 비율에서 SMOTE를 사용한 경우와 사용하지 않은 경우를 훈련하세요. 두 접근법에 대해 F1 vs 불균형 비율을 플롯하세요. 어떤 비율부터 SMOTE가 의미 있는 차이를 만들기 시작하나요?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Class imbalance | "One class has way more samples" | The distribution of classes in the dataset is significantly skewed, causing models to favor the majority class |
-| SMOTE | "Synthetic oversampling" | Creates new minority samples by interpolating between existing minority samples and their k-nearest minority neighbors |
-| Class weights | "Making errors on rare classes more expensive" | Multiplying the loss function by class-specific weights so the model penalizes minority misclassification more heavily |
-| Threshold tuning | "Moving the decision boundary" | Changing the probability cutoff for classification from the default 0.5 to a value that optimizes the desired metric |
-| Precision-recall tradeoff | "You cannot have both" | Lowering the threshold catches more positives (higher recall) but also flags more false positives (lower precision), and vice versa |
-| AUPRC | "Area under the PR curve" | Summarizes the precision-recall curve into a single number; more informative than AUC-ROC when classes are heavily imbalanced |
-| Matthews Correlation Coefficient | "The balanced metric" | A correlation between predicted and actual labels that produces a high score only when the model performs well on both classes |
-| Cost-sensitive learning | "Different mistakes cost different amounts" | Incorporating real-world misclassification costs into the training objective so the model optimizes for total cost, not error count |
-| Random oversampling | "Duplicate the minority" | Repeating minority class samples to balance class counts; simple but risks overfitting to duplicated points |
+| 클래스 불균형 | "한 클래스에 샘플이 훨씬 많다" | 데이터셋의 클래스 분포가 크게 치우쳐 모델이 다수 클래스를 선호하게 되는 상태 |
+| SMOTE | "합성 오버샘플링" | 기존 소수 클래스 샘플과 그 k개 최근접 소수 클래스 이웃 사이를 보간하여 새 소수 클래스 샘플을 만든다 |
+| 클래스 가중치 | "희귀 클래스의 오류를 더 비싸게 만들기" | 클래스별 가중치로 손실 함수를 곱해 모델이 소수 클래스 오분류를 더 무겁게 벌하게 한다 |
+| 임계값 튜닝 | "결정 경계 옮기기" | 분류 확률 컷오프를 기본값 0.5에서 원하는 지표를 최적화하는 값으로 바꾸는 것 |
+| 정밀도-재현율 트레이드오프 | "둘 다 가질 수는 없다" | 임계값을 낮추면 더 많은 양성을 잡지만(재현율 증가) 더 많은 거짓 양성도 표시한다(정밀도 감소). 반대도 마찬가지다 |
+| AUPRC | "PR 곡선 아래 면적" | 정밀도-재현율 곡선을 하나의 숫자로 요약한다. 클래스가 심하게 불균형할 때 AUC-ROC보다 더 유익하다 |
+| Matthews Correlation Coefficient | "균형 잡힌 지표" | 예측 레이블과 실제 레이블 사이의 상관으로, 모델이 두 클래스 모두에서 잘할 때만 높은 점수를 낸다 |
+| 비용 민감 학습 | "실수마다 비용이 다르다" | 실제 오분류 비용을 훈련 목표에 포함해 모델이 오류 수가 아니라 총비용을 최적화하게 한다 |
+| 무작위 오버샘플링 | "소수 클래스 복제" | 클래스 수를 맞추기 위해 소수 클래스 샘플을 반복한다. 단순하지만 중복 점에 과적합할 위험이 있다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [SMOTE: Synthetic Minority Over-sampling Technique (Chawla et al., 2002)](https://arxiv.org/abs/1106.1813) -- the original SMOTE paper, still the most cited work on imbalanced learning
-- [Learning from Imbalanced Data (He & Garcia, 2009)](https://ieeexplore.ieee.org/document/5128907) -- comprehensive survey covering sampling, cost-sensitive, and algorithmic approaches
-- [imbalanced-learn documentation](https://imbalanced-learn.org/stable/) -- Python library with SMOTE variants, undersampling strategies, and pipeline integration
-- [The Precision-Recall Plot Is More Informative than the ROC Plot (Saito & Rehmsmeier, 2015)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432) -- when and why to prefer PR curves over ROC curves for imbalanced problems
+- [SMOTE: Synthetic Minority Over-sampling Technique (Chawla et al., 2002)](https://arxiv.org/abs/1106.1813) -- 원 논문으로, 불균형 학습에서 여전히 가장 많이 인용되는 SMOTE 연구
+- [Learning from Imbalanced Data (He & Garcia, 2009)](https://ieeexplore.ieee.org/document/5128907) -- 샘플링, 비용 민감, 알고리즘 접근법을 다루는 종합 서베이
+- [imbalanced-learn documentation](https://imbalanced-learn.org/stable/) -- SMOTE 변형, 언더샘플링 전략, 파이프라인 통합을 제공하는 Python 라이브러리
+- [The Precision-Recall Plot Is More Informative than the ROC Plot (Saito & Rehmsmeier, 2015)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0118432) -- 불균형 문제에서 언제 그리고 왜 ROC 곡선보다 PR 곡선을 선호해야 하는지 설명

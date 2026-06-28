@@ -1,32 +1,32 @@
-# Feature Engineering & Selection
+# 피처 엔지니어링과 피처 선택
 
-> A good feature is worth a thousand data points.
+> 좋은 feature 하나는 데이터 포인트 천 개의 가치가 있습니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 1 (Statistics for ML, Linear Algebra), Phase 2 Lessons 1-7
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement numerical transforms (standardization, min-max scaling, log transform, binning) and explain when each is appropriate
-- Build one-hot, label, and target encoding for categorical features and identify the data leakage risk in target encoding
-- Construct a TF-IDF vectorizer from scratch and explain why it outperforms raw word counts for text classification
-- Apply filter-based feature selection (variance threshold, correlation, mutual information) to reduce dimensionality
+- numerical transform(standardization, min-max scaling, log transform, binning)을 구현하고 각각이 언제 적절한지 설명합니다
+- categorical feature를 위한 one-hot, label, target encoding을 만들고 target encoding의 data leakage 위험을 식별합니다
+- TF-IDF vectorizer를 처음부터 구성하고 text classification에서 raw word count보다 나은 이유를 설명합니다
+- filter 기반 feature selection(variance threshold, correlation, mutual information)을 적용해 차원을 줄입니다
 
-## The Problem
+## 문제
 
-You have a dataset. You pick an algorithm. You train it. The results are mediocre. You try a fancier algorithm. Still mediocre. You spend a week tuning hyperparameters. Marginal improvement.
+데이터셋이 있습니다. 알고리즘을 고릅니다. 학습합니다. 결과는 그저 그렇습니다. 더 화려한 알고리즘을 시도합니다. 여전히 그저 그렇습니다. hyperparameter tuning에 일주일을 씁니다. 조금 나아질 뿐입니다.
 
-Then someone transforms the raw data into better features and a simple logistic regression beats your tuned gradient-boosted ensemble.
+그런데 누군가 raw data를 더 좋은 feature로 변환하자, 단순한 logistic regression이 tuning한 gradient-boosted ensemble을 이깁니다.
 
-This happens constantly. In classical ML, the representation of the data matters more than the choice of algorithm. A house price model with "square footage" and "number of bedrooms" will beat a model with "address as a raw string" no matter how sophisticated the learner is. The algorithm can only work with what you give it.
+이런 일은 계속 일어납니다. classical ML에서는 알고리즘 선택보다 데이터 표현이 더 중요합니다. "square footage"와 "number of bedrooms"를 가진 주택 가격 모델은, 학습기가 아무리 정교하더라도 "address as a raw string"만 가진 모델을 이깁니다. 알고리즘은 우리가 건네준 것만 다룰 수 있습니다.
 
-Feature engineering is the process of transforming raw data into representations that make patterns easier for models to find. Feature selection is the process of throwing away features that add noise without adding signal. Together, they are the highest-leverage activity in classical ML.
+Feature engineering은 raw data를 모델이 패턴을 더 쉽게 찾을 수 있는 표현으로 변환하는 과정입니다. Feature selection은 signal을 더하지 않고 noise만 더하는 feature를 버리는 과정입니다. 둘을 합치면 classical ML에서 가장 leverage가 큰 작업이 됩니다.
 
-## The Concept
+## 개념
 
-### The Feature Pipeline
+### Feature pipeline
 
 ```mermaid
 flowchart LR
@@ -41,76 +41,76 @@ flowchart LR
     G --> H[Model-Ready Data]
 ```
 
-### Numerical Features
+### 수치형 feature
 
-Raw numbers are rarely model-ready. Common transforms:
+raw number가 곧바로 model-ready인 경우는 드뭅니다. 흔한 transform은 다음과 같습니다.
 
-**Scaling:** Put features on the same range so distance-based algorithms (K-Means, KNN, SVM) treat all features equally. Min-max scaling maps to [0, 1]. Standardization (z-score) maps to mean=0, std=1.
+**Scaling:** distance 기반 알고리즘(K-Means, KNN, SVM)이 모든 feature를 동등하게 다루도록 feature를 같은 range에 둡니다. Min-max scaling은 [0, 1]로 매핑합니다. Standardization(z-score)은 mean=0, std=1로 매핑합니다.
 
-**Log transform:** Compresses right-skewed distributions (income, population, word counts). Turns multiplicative relationships into additive ones.
+**Log transform:** right-skewed distribution(income, population, word counts)을 압축합니다. multiplicative relationship을 additive relationship으로 바꿉니다.
 
-**Binning:** Converts continuous values into categories. Useful when the relationship between feature and target is non-linear but step-wise (e.g., age groups).
+**Binning:** continuous value를 category로 변환합니다. feature와 target의 관계가 non-linear이지만 step-wise일 때 유용합니다(예: age group).
 
-**Polynomial features:** Creates x^2, x^3, x1*x2 terms. Lets linear models capture non-linear relationships at the cost of more features.
+**Polynomial features:** x^2, x^3, x1*x2 항을 만듭니다. feature 수가 늘어나는 대가로 linear model이 non-linear relationship을 포착할 수 있게 합니다.
 
-### Categorical Features
+### 범주형 feature
 
-Models need numbers. Categories need encoding.
+모델에는 숫자가 필요합니다. category에는 encoding이 필요합니다.
 
-**One-hot encoding:** Creates a binary column for each category. "color = red/blue/green" becomes three columns: is_red, is_blue, is_green. Works well for low-cardinality features but explodes with many categories.
+**One-hot encoding:** category마다 binary column을 만듭니다. "color = red/blue/green"은 is_red, is_blue, is_green 세 column이 됩니다. low-cardinality feature에는 잘 작동하지만 category가 많으면 폭발적으로 커집니다.
 
-**Label encoding:** Maps each category to an integer: red=0, blue=1, green=2. Introduces false ordering (the model might think green > blue > red). Only appropriate for tree-based models that split on individual values.
+**Label encoding:** 각 category를 integer에 매핑합니다: red=0, blue=1, green=2. 잘못된 ordering을 도입합니다(모델이 green > blue > red라고 생각할 수 있습니다). 개별 값으로 split하는 tree-based model에만 적절합니다.
 
-**Target encoding:** Replaces each category with the mean of the target variable for that category. Powerful but dangerous: high risk of data leakage. Must be computed only on training data and applied to test data.
+**Target encoding:** 각 category를 그 category의 target variable 평균으로 대체합니다. 강력하지만 위험합니다. data leakage 위험이 큽니다. 반드시 training data에서만 계산하고 test data에 적용해야 합니다.
 
-### Text Features
+### 텍스트 feature
 
-**Count vectorizer:** Counts how many times each word appears in a document. "the cat sat on the mat" becomes {the: 2, cat: 1, sat: 1, on: 1, mat: 1}.
+**Count vectorizer:** 각 단어가 문서에 몇 번 등장하는지 셉니다. "the cat sat on the mat"은 {the: 2, cat: 1, sat: 1, on: 1, mat: 1}이 됩니다.
 
-**TF-IDF:** Term Frequency-Inverse Document Frequency. Weighs words by how unique they are across documents. Common words like "the" get low weight. Rare, distinctive words get high weight.
+**TF-IDF:** Term Frequency-Inverse Document Frequency입니다. 단어가 문서 전체에서 얼마나 고유한지에 따라 가중치를 줍니다. "the" 같은 흔한 단어는 낮은 가중치를 받습니다. 드물고 구별력 있는 단어는 높은 가중치를 받습니다.
 
-```
+```text
 TF(word, doc) = count(word in doc) / total words in doc
 IDF(word) = log(total docs / docs containing word)
 TF-IDF = TF * IDF
 ```
 
-### Missing Values
+### 결측값
 
-Real data has holes. Strategies:
+실제 데이터에는 빈 곳이 있습니다. 전략은 다음과 같습니다.
 
-- **Drop rows:** Only when missing data is rare and random
-- **Mean/median imputation:** Simple, preserves distribution shape (median is more robust to outliers)
-- **Mode imputation:** For categorical features
-- **Indicator column:** Add a binary column "was_this_missing" before imputing. The fact that data is missing can itself be informative
-- **Forward/backward fill:** For time series data
+- **Drop rows:** missing data가 드물고 random일 때만 사용합니다
+- **Mean/median imputation:** 단순하며 distribution shape을 보존합니다(median은 outlier에 더 robust합니다)
+- **Mode imputation:** categorical feature에 사용합니다
+- **Indicator column:** imputation 전에 "was_this_missing" binary column을 추가합니다. 데이터가 missing이라는 사실 자체가 정보가 될 수 있습니다
+- **Forward/backward fill:** time series data에 사용합니다
 
-### Feature Interaction
+### Feature interaction
 
-Sometimes the relationship is in the combination. "Height" and "weight" alone are less predictive than "BMI = weight / height^2". Feature interactions multiply the feature space, so use domain knowledge to pick the right ones.
+때로는 관계가 조합 안에 있습니다. "Height"와 "weight"만 따로 쓰는 것보다 "BMI = weight / height^2"가 더 예측력이 높습니다. Feature interaction은 feature space를 곱하듯 늘리므로 domain knowledge를 사용해 올바른 조합을 고르세요.
 
-### Feature Selection
+### Feature selection
 
-More features is not always better. Irrelevant features add noise, increase training time, and can cause overfitting.
+feature가 많다고 항상 좋은 것은 아닙니다. 관련 없는 feature는 noise를 더하고, training time을 늘리며, overfitting을 일으킬 수 있습니다.
 
 **Filter methods (pre-model):**
-- Correlation: remove features highly correlated with each other (redundant)
-- Mutual information: measures how much knowing a feature reduces uncertainty about the target
-- Variance threshold: remove features that barely vary
+- Correlation: 서로 강하게 correlated된 feature를 제거합니다(redundant)
+- Mutual information: 어떤 feature를 아는 것이 target에 대한 uncertainty를 얼마나 줄이는지 측정합니다
+- Variance threshold: 거의 변하지 않는 feature를 제거합니다
 
 **Wrapper methods (model-based):**
-- L1 regularization (Lasso): drives irrelevant feature weights to exactly zero
-- Recursive feature elimination: train, remove least important feature, repeat
+- L1 regularization (Lasso): 관련 없는 feature weight를 정확히 0으로 몰아갑니다
+- Recursive feature elimination: 학습하고, 가장 덜 중요한 feature를 제거하고, 반복합니다
 
-**Why selection matters:** A model with 10 good features will usually outperform a model with 10 good features and 90 noisy ones. The noisy features give the model opportunities to overfit on training data patterns that do not generalize.
+**Why selection matters:** 좋은 feature 10개를 가진 모델은 보통 좋은 feature 10개와 noisy feature 90개를 가진 모델보다 성능이 좋습니다. noisy feature는 모델이 generalize되지 않는 training data pattern에 overfit할 기회를 줍니다.
 
 ```figure
 feature-scaling
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Numerical transforms from scratch
+### Step 1: 처음부터 numerical transform 구현하기
 
 ```python
 import math
@@ -162,7 +162,7 @@ def polynomial_features(row, degree=2):
     return result
 ```
 
-### Step 2: Categorical encoding from scratch
+### Step 2: 처음부터 categorical encoding 구현하기
 
 ```python
 def one_hot_encode(values):
@@ -204,7 +204,7 @@ def target_encode(feature_values, target_values, smoothing=10):
     return [encoding[v] for v in feature_values], encoding
 ```
 
-### Step 3: Text features from scratch
+### Step 3: 처음부터 text feature 구현하기
 
 ```python
 def count_vectorize(documents):
@@ -263,7 +263,7 @@ def tfidf(documents):
     return vectors, vocab
 ```
 
-### Step 4: Missing value imputation from scratch
+### Step 4: 처음부터 missing value imputation 구현하기
 
 ```python
 def impute_mean(values):
@@ -301,7 +301,7 @@ def add_missing_indicator(values):
     return [0 if v is not None else 1 for v in values]
 ```
 
-### Step 5: Feature selection from scratch
+### Step 5: 처음부터 feature selection 구현하기
 
 ```python
 def correlation(x, y):
@@ -384,7 +384,7 @@ def remove_correlated(features, threshold=0.9):
     return [i for i in range(n_features) if i not in to_remove]
 ```
 
-### Step 6: Full pipeline and demo
+### Step 6: 전체 pipeline과 demo
 
 ```python
 import random
@@ -523,9 +523,9 @@ if __name__ == "__main__":
         print(f"    {feature_names[j]}: r={corr:.4f}")
 ```
 
-## Use It
+## 사용하기
 
-With scikit-learn, these transforms are composable pipelines:
+scikit-learn에서는 이런 transform을 composable pipeline으로 만들 수 있습니다.
 
 ```python
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
@@ -550,35 +550,35 @@ preprocessor = ColumnTransformer([
 ])
 ```
 
-The from-scratch versions show exactly what happens inside each transform. The library versions add edge-case handling, sparse matrix support, and pipeline composition, but the math is the same.
+처음부터 구현한 버전은 각 transform 내부에서 정확히 무슨 일이 일어나는지 보여줍니다. library 버전은 edge-case handling, sparse matrix 지원, pipeline composition을 더하지만 수학은 같습니다.
 
-## Ship It
+## 결과물
 
-This lesson produces:
-- `outputs/prompt-feature-engineer.md` - a prompt for systematically engineering features from raw data
+이 lesson은 다음을 만듭니다.
+- `outputs/prompt-feature-engineer.md` - raw data에서 feature를 체계적으로 engineering하기 위한 prompt
 
-## Exercises
+## 연습 문제
 
-1. Add robust scaling (using median and interquartile range instead of mean and standard deviation) to the numerical transforms. Compare it to standard scaling on data with extreme outliers.
-2. Implement leave-one-out target encoding: for each row, compute the target mean excluding that row's own target value. Show how this reduces overfitting compared to naive target encoding.
-3. Build an automated feature selection pipeline that combines variance threshold, correlation filtering, and mutual information ranking. Apply it to the housing dataset and compare model performance (use a simple linear regression) with all features vs selected features.
+1. numerical transform에 robust scaling(mean과 standard deviation 대신 median과 interquartile range 사용)을 추가하세요. extreme outlier가 있는 데이터에서 standard scaling과 비교하세요.
+2. leave-one-out target encoding을 구현하세요. 각 row마다 그 row 자신의 target value를 제외하고 target mean을 계산합니다. 이것이 naive target encoding과 비교해 overfitting을 어떻게 줄이는지 보이세요.
+3. variance threshold, correlation filtering, mutual information ranking을 결합한 automated feature selection pipeline을 만드세요. housing dataset에 적용하고 모든 feature를 사용한 경우와 selected feature를 사용한 경우의 model performance를 비교하세요(simple linear regression 사용).
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Feature engineering | "Making new columns" | Transforming raw data into representations that expose patterns to the model |
-| Standardization | "Making it normal" | Subtracting the mean and dividing by standard deviation so the feature has mean=0 and std=1 |
-| One-hot encoding | "Making dummy variables" | Creating one binary column per category, where exactly one column is 1 for each row |
-| Target encoding | "Using the answer to encode" | Replacing each category with the average target value for that category, with smoothing to prevent overfitting |
-| TF-IDF | "Fancy word counts" | Term Frequency times Inverse Document Frequency: words weighted by how distinctive they are across the corpus |
-| Imputation | "Filling in blanks" | Replacing missing values with estimated values (mean, median, mode, or model-predicted) |
-| Feature selection | "Throwing out bad columns" | Removing features that add noise or redundancy, keeping only those with signal about the target |
-| Mutual information | "How much one thing tells you about another" | A measure of the reduction in uncertainty about variable Y gained by observing variable X |
-| Data leakage | "Accidentally cheating" | Using information during training that would not be available at prediction time, giving falsely optimistic results |
+| Feature engineering | "새 column 만들기" | raw data를 모델에 패턴을 드러내는 표현으로 변환하는 것 |
+| Standardization | "normal하게 만들기" | feature가 mean=0, std=1을 갖도록 mean을 빼고 standard deviation으로 나누는 것 |
+| One-hot encoding | "dummy variable 만들기" | category마다 하나의 binary column을 만들고, 각 row에서 정확히 하나의 column만 1이 되게 하는 것 |
+| Target encoding | "정답을 사용해 encode하기" | overfitting을 막기 위한 smoothing과 함께 각 category를 해당 category의 average target value로 대체하는 것 |
+| TF-IDF | "화려한 word count" | Term Frequency 곱하기 Inverse Document Frequency: corpus 전체에서 얼마나 구별력 있는지에 따라 단어에 가중치를 주는 것 |
+| Imputation | "빈칸 채우기" | missing value를 추정값(mean, median, mode 또는 model-predicted)으로 대체하는 것 |
+| Feature selection | "나쁜 column 버리기" | noise나 redundancy를 더하는 feature를 제거하고 target에 대한 signal을 가진 feature만 남기는 것 |
+| Mutual information | "한 가지가 다른 것에 대해 얼마나 알려주는지" | variable X를 관찰함으로써 variable Y에 대한 uncertainty가 얼마나 줄어드는지 측정하는 값 |
+| Data leakage | "실수로 cheating하기" | prediction time에는 사용할 수 없는 정보를 training 중 사용해 지나치게 낙관적인 결과를 얻는 것 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Feature Engineering and Selection (Max Kuhn & Kjell Johnson)](http://www.feat.engineering/) - free online book covering the full landscape of feature engineering
-- [scikit-learn Preprocessing Guide](https://scikit-learn.org/stable/modules/preprocessing.html) - practical reference for all standard transforms
-- [Target Encoding Done Right (Micci-Barreca, 2001)](https://dl.acm.org/doi/10.1145/507533.507538) - the original paper on target encoding with smoothing
+- [Feature Engineering and Selection (Max Kuhn & Kjell Johnson)](http://www.feat.engineering/) - feature engineering 전체 지형을 다루는 무료 online book
+- [scikit-learn Preprocessing Guide](https://scikit-learn.org/stable/modules/preprocessing.html) - 모든 standard transform에 대한 실용 reference
+- [Target Encoding Done Right (Micci-Barreca, 2001)](https://dl.acm.org/doi/10.1145/507533.507538) - smoothing을 포함한 target encoding의 원 논문

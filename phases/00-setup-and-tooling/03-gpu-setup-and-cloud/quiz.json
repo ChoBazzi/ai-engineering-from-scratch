@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why is a GPU faster than a CPU for training neural networks?",
-      "options": ["GPUs have higher clock speeds than CPUs", "GPUs can perform thousands of parallel matrix operations simultaneously", "GPUs have more RAM than CPUs", "GPUs use a more efficient programming language"],
+      "question": "neural network training에서 GPU가 CPU보다 빠른 이유는 무엇인가요?",
+      "options": ["GPU는 CPU보다 clock speed가 더 높다", "GPU는 수천 개의 parallel matrix operation을 동시에 수행할 수 있다", "GPU는 CPU보다 RAM이 더 많다", "GPU는 더 효율적인 programming language를 사용한다"],
       "correct": 1,
-      "explanation": "GPUs have thousands of cores optimized for parallel computation, making them ideal for the matrix multiplications that dominate neural network training."
+      "explanation": "GPU에는 parallel computation에 최적화된 수천 개의 core가 있어 neural network training의 대부분을 차지하는 matrix multiplication에 이상적이다."
     },
     {
       "stage": "pre",
-      "question": "What does VRAM refer to?",
-      "options": ["Virtual RAM used by the operating system for swap space", "Video RAM on the GPU, separate from system RAM", "The total RAM available across all devices", "A type of CPU cache memory"],
+      "question": "VRAM은 무엇을 의미하나요?",
+      "options": ["operating system이 swap space로 사용하는 Virtual RAM", "system RAM과 분리된 GPU의 Video RAM", "모든 device에서 사용할 수 있는 전체 RAM", "CPU cache memory의 한 종류"],
       "correct": 1,
-      "explanation": "VRAM (Video RAM) is the dedicated memory on a GPU. It limits the size of models and batch sizes you can use during training, separate from your system's main RAM."
+      "explanation": "VRAM(Video RAM)은 GPU의 dedicated memory다. system의 main RAM과 별도로, training 중 사용할 수 있는 model size와 batch size를 제한한다."
     },
     {
       "stage": "post",
-      "question": "What command verifies that your NVIDIA GPU is detected and shows its current status?",
+      "question": "NVIDIA GPU가 감지되었는지 확인하고 현재 status를 보여 주는 command는 무엇인가요?",
       "options": ["gpu --status", "nvidia-smi", "torch.cuda.list_devices()", "lspci | grep gpu"],
       "correct": 1,
-      "explanation": "nvidia-smi (NVIDIA System Management Interface) displays GPU utilization, memory usage, temperature, and running processes. It is the standard tool for verifying GPU availability."
+      "explanation": "nvidia-smi(NVIDIA System Management Interface)는 GPU utilization, memory usage, temperature, running process를 표시한다. GPU availability를 확인하는 표준 도구다."
     },
     {
       "stage": "post",
-      "question": "When benchmarking GPU vs CPU matrix multiplication, why must you call torch.cuda.synchronize() before measuring GPU time?",
-      "options": ["To transfer data from CPU to GPU memory", "To ensure all GPU operations have completed before stopping the timer", "To reset the GPU clock speed to its base frequency", "To free unused GPU memory"],
+      "question": "GPU vs CPU matrix multiplication을 benchmark할 때 GPU 시간을 측정하기 전에 torch.cuda.synchronize()를 호출해야 하는 이유는 무엇인가요?",
+      "options": ["CPU에서 GPU memory로 data를 transfer하기 위해", "timer를 멈추기 전에 모든 GPU operation이 완료되었는지 보장하기 위해", "GPU clock speed를 base frequency로 reset하기 위해", "사용하지 않는 GPU memory를 해제하기 위해"],
       "correct": 1,
-      "explanation": "GPU operations are asynchronous -- Python returns immediately while the GPU is still computing. synchronize() blocks until all GPU operations finish, giving accurate timing."
+      "explanation": "GPU operation은 asynchronous하다. GPU가 아직 계산 중이어도 Python은 즉시 반환한다. synchronize()는 모든 GPU operation이 끝날 때까지 block하므로 정확한 timing을 얻을 수 있다."
     },
     {
       "stage": "post",
-      "question": "Using the fp16 rule of thumb, approximately how many parameters can fit in 24 GB of VRAM?",
-      "options": ["24 billion parameters", "12 billion parameters", "6 billion parameters", "48 billion parameters"],
+      "question": "fp16 rule of thumb을 사용하면 24 GB VRAM에는 대략 몇 개의 parameter가 들어갈 수 있나요?",
+      "options": ["240억 parameters", "120억 parameters", "60억 parameters", "480억 parameters"],
       "correct": 1,
-      "explanation": "In fp16, each parameter uses 2 bytes. 24 GB / 2 bytes = 12 billion parameters. This is a rough estimate; actual usage includes activations, gradients, and optimizer states."
+      "explanation": "fp16에서는 각 parameter가 2 bytes를 사용한다. 24 GB / 2 bytes = 120억 parameters다. 이는 대략적인 추정치이며 실제 사용량에는 activation, gradient, optimizer state가 포함된다."
     }
   ]
 }

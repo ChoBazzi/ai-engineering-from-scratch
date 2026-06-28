@@ -1,22 +1,22 @@
 {
   "lesson": "10-skill-libraries-voyager",
-  "title": "Skill Libraries and Lifelong Learning (Voyager)",
+  "title": "Skill Library와 Lifelong Learning (Voyager)",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does Voyager treat as the action space?",
+      "question": "Voyager는 무엇을 action space로 취급하나요?",
       "options": [
-        "Primitive Minecraft commands",
-        "Executable code (JavaScript functions) stored, retrieved, and composed",
-        "Text prompts only",
-        "Reinforcement learning Q-values"
+        "Primitive Minecraft command",
+        "저장, retrieval, composition되는 executable code(JavaScript function)",
+        "Text prompt만",
+        "Reinforcement learning Q-value"
       ],
       "correct": 1,
-      "explanation": "Voyager's contribution is making code the action: skills are programs, not raw commands."
+      "explanation": "Voyager의 기여는 code를 action으로 만드는 것입니다. Skill은 raw command가 아니라 program입니다."
     },
     {
       "stage": "pre",
-      "question": "What three components define a Voyager agent?",
+      "question": "Voyager agent를 정의하는 세 component는 무엇인가요?",
       "options": [
         "Encoder, decoder, value head",
         "Automatic curriculum, skill library, iterative prompting",
@@ -24,67 +24,67 @@
         "Retriever, generator, ranker"
       ],
       "correct": 1,
-      "explanation": "Voyager structures the agent around curriculum, skill library, and iterative prompting."
+      "explanation": "Voyager는 agent를 curriculum, skill library, iterative prompting 중심으로 구조화합니다."
     },
     {
       "stage": "check",
-      "question": "What three signals can return from a skill execution attempt?",
+      "question": "Skill execution attempt에서 반환될 수 있는 세 signal은 무엇인가요?",
       "options": [
         "Pass, fail, retry",
-        "Success, error (with stack trace), self-verification failure",
+        "Success, error(stack trace 포함), self-verification failure",
         "Green, yellow, red",
         "Heartbeat, ack, nack"
       ],
       "correct": 1,
-      "explanation": "Voyager's iterative prompting mechanism is driven by these three signals folded back into the next version."
+      "explanation": "Voyager의 iterative prompting mechanism은 이 세 signal을 다음 version으로 접어 넣으며 작동합니다."
     },
     {
       "stage": "check",
-      "question": "How does the automatic curriculum pick the next task?",
+      "question": "Automatic curriculum은 다음 task를 어떻게 고르나요?",
       "options": [
-        "Random uniform over the action space",
-        "Just above current capability, based on environment state and skill inventory (the exploration sweet spot)",
-        "Always the hardest available task",
-        "User-supplied list only"
+        "Action space에서 random uniform으로",
+        "Environment state와 skill inventory를 바탕으로 현재 capability보다 약간 높은 task를 고릅니다(exploration sweet spot)",
+        "항상 가능한 가장 어려운 task",
+        "사용자가 제공한 list만"
       ],
       "correct": 1,
-      "explanation": "The proposer aims for tasks just above current capability so progress is steady."
+      "explanation": "Proposer는 progress가 안정적으로 이어지도록 현재 capability보다 약간 높은 task를 목표로 합니다."
     },
     {
       "stage": "check",
-      "question": "Which 2026 product is the lesson's clearest match for the Voyager skill?",
+      "question": "Voyager skill과 가장 명확히 대응되는 2026년 product는 무엇인가요?",
       "options": [
         "OpenAI fine-tuning",
-        "Claude Agent SDK skills: named, retrievable code plus instructions loaded on demand",
-        "Pinecone indices",
-        "AWS Lambda layers"
+        "Claude Agent SDK skills: 필요할 때 load되는 named, retrievable code plus instructions",
+        "Pinecone index",
+        "AWS Lambda layer"
       ],
       "correct": 1,
-      "explanation": "Agent SDK skills match Voyager's named-retrievable-composable code pattern."
+      "explanation": "Agent SDK skills는 Voyager의 named-retrievable-composable code pattern과 맞습니다."
     },
     {
       "stage": "post",
-      "question": "Why does the lesson recommend dedup on write for the skill library?",
+      "question": "이 lesson이 skill library에 write 시 dedup을 권장하는 이유는 무엇인가요?",
       "options": [
-        "Disk is expensive",
-        "Without dedup, the same skill gets added many times with slightly different descriptions; retrieval should return one canonical version",
-        "Providers reject duplicates",
-        "Git blocks duplicates"
+        "Disk가 비싸기 때문에",
+        "Dedup이 없으면 같은 skill이 약간 다른 description으로 여러 번 추가됩니다. Retrieval은 하나의 canonical version을 반환해야 합니다",
+        "Provider가 duplicate를 거부하기 때문에",
+        "Git이 duplicate를 막기 때문에"
       ],
       "correct": 1,
-      "explanation": "Near-duplicate descriptions collapse to a single canonical skill so retrieval stays clean."
+      "explanation": "거의 중복인 description을 하나의 canonical skill로 합쳐 retrieval을 깨끗하게 유지합니다."
     },
     {
       "stage": "post",
-      "question": "What problem does composed-skill drift describe?",
+      "question": "Composed-skill drift는 어떤 문제를 설명하나요?",
       "options": [
-        "A skill stops compiling after a Python upgrade",
-        "A parent skill silently picks up a refined child version it was never tested against; fix by pinning skill versions",
-        "Skills get encrypted in storage",
-        "Retrieval returns nothing"
+        "Python upgrade 후 skill이 compile되지 않음",
+        "Parent skill이 test하지 않은 refined child version을 조용히 가져오는 것. Skill version pinning으로 고칩니다",
+        "Skill이 storage에서 encrypted됨",
+        "Retrieval이 아무것도 반환하지 않음"
       ],
       "correct": 1,
-      "explanation": "Without version pinning, a refinement to a child silently changes the parent's behavior."
+      "explanation": "Version pinning이 없으면 child refinement가 parent의 behavior를 조용히 바꿉니다."
     }
   ]
 }

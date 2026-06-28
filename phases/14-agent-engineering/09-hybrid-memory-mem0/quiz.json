@@ -4,19 +4,19 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Which query class does a KV store handle best?",
+      "question": "KV store가 가장 잘 처리하는 query class는 무엇인가요?",
       "options": [
-        "Semantic similarity over long conversations",
-        "Direct fact lookup keyed by (user, type, entity)",
-        "Reachability across customers sharing a billing entity",
-        "Temporal queries valid-at-time"
+        "긴 conversation에 대한 semantic similarity",
+        "(user, type, entity)로 keying된 direct fact lookup",
+        "같은 billing entity를 공유하는 customer 간 reachability",
+        "Valid-at-time temporal query"
       ],
       "correct": 1,
-      "explanation": "KV is O(1) on exact keys; vector is for similarity, graph is for relationships."
+      "explanation": "KV는 exact key에서 O(1)입니다. Vector는 similarity용이고 graph는 relationship용입니다."
     },
     {
       "stage": "pre",
-      "question": "What are the three stores Mem0 writes in parallel on each add()?",
+      "question": "Mem0가 각 add()에서 병렬로 write하는 세 store는 무엇인가요?",
       "options": [
         "Vector, KV, graph",
         "Cache, queue, log",
@@ -24,11 +24,11 @@
         "Embedding, attention, FFN"
       ],
       "correct": 0,
-      "explanation": "Mem0 fans every write out to vector, KV, and graph stores."
+      "explanation": "Mem0는 모든 write를 vector, KV, graph store로 fan out합니다."
     },
     {
       "stage": "check",
-      "question": "What three dimensions feed Mem0's fusion score?",
+      "question": "Mem0의 fusion score에 들어가는 세 dimension은 무엇인가요?",
       "options": [
         "Relevance, importance, recency",
         "Precision, recall, F1",
@@ -36,35 +36,35 @@
         "Confidence, perplexity, BLEU"
       ],
       "correct": 0,
-      "explanation": "Score is a weighted sum of relevance, importance, and recency; weights tune per product."
+      "explanation": "Score는 relevance, importance, recency의 weighted sum이며 weight는 product별로 tune합니다."
     },
     {
       "stage": "check",
-      "question": "What does Mem0g do when an incoming fact contradicts an existing edge?",
+      "question": "Incoming fact가 existing edge와 모순될 때 Mem0g는 무엇을 하나요?",
       "options": [
-        "Deletes the edge",
-        "Marks the existing edge invalid but does not delete it, so temporal queries can still traverse",
-        "Raises an exception",
-        "Rewrites the user_id"
+        "Edge를 delete합니다",
+        "기존 edge를 invalid로 표시하지만 delete하지 않아 temporal query가 여전히 traverse할 수 있게 합니다",
+        "Exception을 raise합니다",
+        "user_id를 다시 씁니다"
       ],
       "correct": 1,
-      "explanation": "Soft invalidation preserves history for temporal (valid-at-time) queries."
+      "explanation": "Soft invalidation은 temporal(valid-at-time) query를 위해 history를 보존합니다."
     },
     {
       "stage": "check",
-      "question": "Why does the lesson recommend tuning fusion weights per product?",
+      "question": "이 lesson은 왜 product별 fusion weight tuning을 권장하나요?",
       "options": [
-        "Providers require it",
-        "Recency dominates for chat agents while importance dominates for compliance agents and relevance dominates for retrieval agents",
-        "Vector libraries reject equal weights",
-        "It is required by Apache 2.0"
+        "Provider가 요구하기 때문에",
+        "Chat agent에서는 recency가, compliance agent에서는 importance가, retrieval agent에서는 relevance가 지배적이기 때문에",
+        "Vector library가 equal weight를 거부하기 때문에",
+        "Apache 2.0이 요구하기 때문에"
       ],
       "correct": 1,
-      "explanation": "Different products want different bias on relevance/importance/recency; one set of weights does not fit all."
+      "explanation": "Product마다 relevance/importance/recency에 대한 bias가 다릅니다. 하나의 weight set이 모두에 맞지는 않습니다."
     },
     {
       "stage": "post",
-      "question": "What is the scope taxonomy Mem0 uses?",
+      "question": "Mem0가 사용하는 scope taxonomy는 무엇인가요?",
       "options": [
         "Public, private, secret",
         "User, session, agent",
@@ -72,19 +72,19 @@
         "Read, write, admin"
       ],
       "correct": 1,
-      "explanation": "Scopes are user (cross-session), session (one thread), agent (per-instance state)."
+      "explanation": "Scope는 user(cross-session), session(one thread), agent(per-instance state)입니다."
     },
     {
       "stage": "post",
-      "question": "What is embedding drift in this pattern, and how does the lesson recommend mitigating it?",
+      "question": "이 패턴에서 embedding drift란 무엇이며, lesson은 이를 어떻게 완화하라고 권하나요?",
       "options": [
-        "Vectors get encrypted; rotate keys",
-        "Vector retrieval quality degrades as the corpus grows; periodically re-embed the top-N most used records",
-        "Embeddings overflow integers; switch to float64",
-        "The embedding API changes URL; pin a domain"
+        "Vector가 encrypted됩니다. key를 rotate합니다",
+        "Corpus가 커질수록 vector retrieval quality가 저하됩니다. 가장 많이 사용된 top-N record를 주기적으로 re-embed합니다",
+        "Embedding이 integer overflow를 일으킵니다. float64로 전환합니다",
+        "Embedding API의 URL이 바뀝니다. domain을 pin합니다"
       ],
       "correct": 1,
-      "explanation": "Periodic re-embedding of hot records keeps retrieval quality steady as the corpus grows."
+      "explanation": "Hot record를 주기적으로 re-embedding하면 corpus가 커져도 retrieval quality를 안정적으로 유지할 수 있습니다."
     }
   ]
 }

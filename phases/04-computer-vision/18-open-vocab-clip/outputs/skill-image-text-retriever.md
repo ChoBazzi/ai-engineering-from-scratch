@@ -1,6 +1,6 @@
 ---
 name: skill-image-text-retriever
-description: Build an image embedding index with any CLIP checkpoint; support query-by-text and query-by-image
+description: 임의의 CLIP checkpoint로 이미지 임베딩 index를 만들고 query-by-text와 query-by-image 지원
 version: 1.0.0
 phase: 4
 lesson: 18
@@ -9,31 +9,31 @@ tags: [clip, retrieval, faiss, zero-shot]
 
 # Image-Text Retriever
 
-Turn a folder of images into a searchable index using CLIP embeddings.
+CLIP embedding을 사용해 이미지 폴더를 검색 가능한 index로 바꿉니다.
 
-## When to use
+## 사용 시점
 
-- Building a zero-shot image search on an internal catalog.
-- Deduplicating near-identical images by embedding distance.
-- Building a quick "find similar" component without a labelled dataset.
+- 내부 catalog에 zero-shot image search를 구축할 때.
+- embedding distance로 거의 동일한 이미지를 deduplicate할 때.
+- 라벨 데이터셋 없이 빠른 "find similar" component를 만들 때.
 
-## Inputs
+## 입력
 
-- `image_folder`: directory of image files.
-- `clip_model`: HuggingFace id like `openai/clip-vit-base-patch32` or `google/siglip-base-patch16-224`.
+- `image_folder`: 이미지 파일 디렉터리.
+- `clip_model`: `openai/clip-vit-base-patch32` 또는 `google/siglip-base-patch16-224` 같은 HuggingFace id.
 - `index_type`: flat | IVF | HNSW.
-- `embedding_dim`: inferred from the model.
+- `embedding_dim`: 모델에서 추론합니다.
 
-## Steps
+## 단계
 
-1. Load the CLIP model and preprocessor.
-2. Batch-encode every image in the folder. Save embeddings as (N, D) float32 + filename list.
-3. Build a FAISS index over the embeddings. Use inner-product on L2-normalised vectors for cosine similarity.
-4. Expose two query interfaces:
-   - `search_by_text(text, k)` — embed the text, search.
-   - `search_by_image(image_path, k)` — embed the image, search.
+1. CLIP 모델과 preprocessor를 로드합니다.
+2. 폴더의 모든 이미지를 batch encode합니다. embedding을 (N, D) float32 + filename list로 저장합니다.
+3. embedding 위에 FAISS index를 만듭니다. cosine similarity를 위해 L2-normalised vector에 inner-product를 사용합니다.
+4. 두 query interface를 노출합니다:
+   - `search_by_text(text, k)` — 텍스트를 임베딩하고 검색합니다.
+   - `search_by_image(image_path, k)` — 이미지를 임베딩하고 검색합니다.
 
-## Output template
+## 출력 템플릿
 
 ```python
 import os
@@ -100,9 +100,9 @@ class ImageTextRetriever:
         return [(self.filenames[i], float(d)) for d, i in zip(dist[0], idx[0])]
 ```
 
-## Report
+## 보고
 
-```
+```text
 [retriever]
   model:          <name>
   num_images:     <int>
@@ -111,10 +111,10 @@ class ImageTextRetriever:
   index_size_mb:  <float>
 ```
 
-## Rules
+## 규칙
 
-- Always L2-normalise embeddings before indexing; FAISS's inner product on normalised vectors equals cosine similarity.
-- For < 100k images, `IndexFlatIP` (exact) is simplest and fastest.
-- For 100k-10M, `IndexIVFFlat` is the standard trade-off.
-- For > 10M, use HNSW or a product-quantised variant.
-- Never rebuild the index on every query; embed once, search many times.
+- Indexing 전에 embedding을 항상 L2-normalise하세요. Normalised vector에 대한 FAISS inner product는 cosine similarity와 같습니다.
+- 이미지가 < 100k이면 `IndexFlatIP`(exact)가 가장 단순하고 빠릅니다.
+- 100k-10M에는 `IndexIVFFlat`이 표준 trade-off입니다.
+- > 10M에는 HNSW 또는 product-quantised variant를 사용하세요.
+- query마다 index를 다시 만들지 마세요. 한 번 embedding하고 여러 번 검색하세요.

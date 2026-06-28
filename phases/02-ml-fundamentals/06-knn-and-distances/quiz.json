@@ -2,46 +2,46 @@
   {
     "id": "knn-pre-1",
     "stage": "pre",
-    "question": "KNN is called a 'lazy learner.' What does that mean?",
+    "question": "KNN을 '지연 학습자(lazy learner)'라고 부릅니다. 이것은 무슨 뜻인가요?",
     "options": [
-      "It converges slowly during training",
-      "It does no computation at training time and computes everything at prediction time",
-      "It uses a simplified version of the loss function",
-      "It only works on small datasets"
+      "훈련 중 천천히 수렴한다",
+      "훈련 시점에는 계산하지 않고 예측 시점에 모든 것을 계산한다",
+      "손실 함수의 단순화된 버전을 사용한다",
+      "작은 데이터셋에서만 작동한다"
     ],
     "correct": 1,
-    "explanation": "Lazy learning means KNN stores the training data and does no work during 'training.' All computation (distance calculations, voting) happens when a prediction is requested."
+    "explanation": "지연 학습은 KNN이 훈련 데이터를 저장하고 '훈련' 중에는 작업하지 않는다는 뜻입니다. 모든 계산(거리 계산, 투표)은 예측이 요청될 때 일어납니다."
   },
   {
     "id": "knn-pre-2",
     "stage": "pre",
-    "question": "Why is feature scaling critical for KNN?",
+    "question": "KNN에서 특징 스케일링이 중요한 이유는 무엇인가요?",
     "options": [
-      "KNN cannot handle negative numbers without scaling",
-      "Distance calculations are dominated by features with larger ranges, making scaling necessary for fair comparisons",
-      "Feature scaling reduces the number of neighbors needed",
-      "KNN uses gradient descent which requires normalized inputs"
+      "KNN은 스케일링 없이는 음수를 처리할 수 없다",
+      "거리 계산이 범위가 더 큰 특징에 지배되므로 공정한 비교를 위해 스케일링이 필요하다",
+      "특징 스케일링은 필요한 이웃 수를 줄인다",
+      "KNN은 정규화된 입력이 필요한 경사 하강법을 사용한다"
     ],
     "correct": 1,
-    "explanation": "KNN relies on distances. A feature ranging 0-1000 will dominate a feature ranging 0-1 in distance calculations. Scaling puts all features on comparable ranges."
+    "explanation": "KNN은 거리에 의존합니다. 0-1000 범위의 특징은 거리 계산에서 0-1 범위의 특징을 압도합니다. 스케일링은 모든 특징을 비교 가능한 범위에 놓습니다."
   },
   {
     "id": "knn-post-1",
     "stage": "post",
-    "question": "In 100 dimensions with uniform random points, what happens to the ratio of max distance to min distance?",
+    "question": "균일 무작위 포인트가 있는 100차원에서 최대 거리와 최소 거리의 비율은 어떻게 되나요?",
     "options": [
-      "It increases dramatically, making neighbors more distinct",
-      "It approaches 1, making all points nearly equidistant from each other",
-      "It stays the same as in 2 dimensions",
-      "It becomes negative due to numerical overflow"
+      "극적으로 증가하여 이웃이 더 뚜렷해진다",
+      "1에 가까워져 모든 포인트가 서로 거의 같은 거리에 있게 된다",
+      "2차원에서와 동일하게 유지된다",
+      "수치 오버플로 때문에 음수가 된다"
     ],
     "correct": 1,
-    "explanation": "This is the curse of dimensionality. In high dimensions, distances converge: max_dist / min_dist approaches 1. When all points are equidistant, 'nearest' becomes meaningless."
+    "explanation": "이것이 차원의 저주입니다. 고차원에서는 거리가 수렴합니다. max_dist / min_dist가 1에 가까워집니다. 모든 포인트가 같은 거리에 있으면 '최근접'이라는 개념은 의미를 잃습니다."
   },
   {
     "id": "knn-post-2",
     "stage": "post",
-    "question": "Which distance metric is most appropriate for comparing text documents represented as TF-IDF vectors?",
+    "question": "TF-IDF 벡터로 표현된 텍스트 문서를 비교하는 데 가장 적합한 거리 측도는 무엇인가요?",
     "options": [
       "L2 (Euclidean) distance",
       "L1 (Manhattan) distance",
@@ -49,19 +49,19 @@
       "Chebyshev distance"
     ],
     "correct": 2,
-    "explanation": "Cosine distance measures the angle between vectors, ignoring magnitude. For text, document length (magnitude) is noise -- direction captures meaning. Cosine consistently outperforms L1/L2 for text."
+    "explanation": "코사인 거리는 벡터 사이의 각도를 측정하고 크기는 무시합니다. 텍스트에서는 문서 길이(크기)가 노이즈이고 방향이 의미를 포착합니다. 코사인은 텍스트에서 일관되게 L1/L2보다 좋은 성능을 냅니다."
   },
   {
     "id": "knn-post-3",
     "stage": "post",
-    "question": "What happens to the KNN decision boundary as K increases from 1 to N (the full dataset size)?",
+    "question": "K가 1에서 N(전체 데이터셋 크기)으로 증가하면 KNN 결정 경계에는 무슨 일이 일어나나요?",
     "options": [
-      "The boundary becomes more complex and detailed",
-      "The boundary stays the same regardless of K",
-      "The boundary smooths out, eventually predicting the majority class for every point",
-      "The boundary becomes circular"
+      "경계가 더 복잡하고 세밀해진다",
+      "K와 관계없이 경계가 동일하게 유지된다",
+      "경계가 매끄러워지고 결국 모든 포인트에 대해 다수 클래스를 예측한다",
+      "경계가 원형이 된다"
     ],
     "correct": 2,
-    "explanation": "K=1 produces jagged boundaries that follow every point (overfitting). As K increases, boundaries smooth out. K=N means every query considers all points, always predicting the majority class (maximum bias)."
+    "explanation": "K=1은 모든 포인트를 따라가는 들쭉날쭉한 경계(과적합)를 만듭니다. K가 증가하면 경계가 매끄러워집니다. K=N은 모든 쿼리가 모든 포인트를 고려하므로 항상 다수 클래스(최대 편향)를 예측한다는 뜻입니다."
   }
 ]

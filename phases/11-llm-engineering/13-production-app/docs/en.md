@@ -1,42 +1,42 @@
-# Building a Production LLM Application
+# 프로덕션 LLM 애플리케이션 구축
 
-> You have built prompts, embeddings, RAG pipelines, function calling, caching layers, and guardrails. Separately. In isolation. Like practicing guitar scales without ever playing a song. This lesson is the song. You will wire every component from Lessons 01-12 into a single production-ready service. Not a toy. Not a demo. A system that handles real traffic, fails gracefully, streams tokens, tracks costs, and survives its first 10,000 users.
+> 지금까지 프롬프트, 임베딩, RAG 파이프라인, 함수 호출, 캐싱 계층, 가드레일을 만들었다. 각각 따로, 고립된 상태로 만들었다. 노래는 한 번도 연주하지 않고 기타 음계만 연습한 셈이다. 이 레슨이 바로 그 노래다. 레슨 01-12의 모든 구성요소를 하나의 프로덕션 준비 서비스로 연결한다. 장난감도, 데모도 아니다. 실제 트래픽을 처리하고, 우아하게 실패하며, 토큰을 스트리밍하고, 비용을 추적하고, 첫 10,000명의 사용자를 견디는 시스템이다.
 
 **Type:** Build (Capstone)
 **Languages:** Python
 **Prerequisites:** Phase 11 Lessons 01-15
 **Time:** ~120 minutes
-**Related:** Phase 11 · 14 (MCP) for replacing bespoke tool schemas with a shared protocol; Phase 11 · 15 (Prompt Caching) for 50-90% cost reduction on stable prefixes. Both are expected in every serious 2026 production stack.
+**Related:** 맞춤형 도구 스키마를 공유 프로토콜로 대체하는 Phase 11 · 14 (MCP), 안정적인 prefix에서 비용을 50-90% 줄이는 Phase 11 · 15 (Prompt Caching). 둘 다 2026년의 진지한 프로덕션 스택이라면 당연히 포함되어야 한다.
 
-## Learning Objectives
+## 학습 목표
 
-- Wire all Phase 11 components (prompts, RAG, function calling, caching, guardrails) into a single production-ready service
-- Implement streaming token delivery, graceful error handling, and request timeout management
-- Build observability into the application: request logging, cost tracking, latency percentiles, and error rate dashboards
-- Deploy the application with health checks, rate limiting, and a fallback strategy for provider outages
+- 모든 Phase 11 구성요소(프롬프트, RAG, 함수 호출, 캐싱, 가드레일)를 하나의 프로덕션 준비 서비스로 연결한다
+- 스트리밍 토큰 전달, 우아한 오류 처리, 요청 타임아웃 관리를 구현한다
+- 요청 로깅, 비용 추적, 지연 시간 백분위, 오류율 대시보드 같은 관측 가능성을 애플리케이션에 내장한다
+- 헬스 체크, rate limit, 제공자 장애 대비 fallback 전략을 갖춘 애플리케이션을 배포한다
 
-## The Problem
+## 문제
 
-Building an LLM feature takes an afternoon. Shipping an LLM product takes months.
+LLM 기능 하나를 만드는 데는 오후 한나절이면 충분하다. LLM 제품을 출시하는 데는 몇 달이 걸린다.
 
-The gap is not intelligence. It is infrastructure. Your prototype calls OpenAI, gets a response, prints it. Works on your laptop. Then reality arrives:
+그 차이는 지능이 아니다. 인프라다. 프로토타입은 OpenAI를 호출하고, 응답을 받고, 출력한다. 내 노트북에서는 잘 된다. 그러고 나서 현실이 온다.
 
-- A user sends a 50,000-token document. Your context window overflows.
-- Two users ask the same question 4 seconds apart. You pay for both.
-- The API returns a 500 error at 2am. Your service crashes.
-- A user asks the model to generate SQL. The model outputs `DROP TABLE users`.
-- Your monthly bill hits $12,000 and you have no idea which feature caused it.
-- Response time averages 8 seconds. Users leave after 3.
+- 사용자가 50,000토큰 문서를 보낸다. 컨텍스트 창이 넘친다.
+- 두 사용자가 4초 간격으로 같은 질문을 한다. 비용은 두 번 낸다.
+- 새벽 2시에 API가 500 오류를 반환한다. 서비스가 죽는다.
+- 사용자가 모델에게 SQL을 생성해 달라고 한다. 모델은 `DROP TABLE users`를 출력한다.
+- 월 청구액이 $12,000에 도달했는데 어떤 기능이 원인인지 모른다.
+- 평균 응답 시간이 8초다. 사용자는 3초 후 떠난다.
 
-Every LLM application in production today -- Perplexity, Cursor, ChatGPT, Notion AI -- solved these problems. Not by being smarter about prompts. By being rigorous about engineering.
+오늘날 프로덕션에서 돌아가는 모든 LLM 애플리케이션, 예를 들어 Perplexity, Cursor, ChatGPT, Notion AI는 이 문제들을 해결했다. 프롬프트를 더 영리하게 써서가 아니다. 엔지니어링을 엄격하게 했기 때문이다.
 
-This is the capstone. You will build a complete production LLM service that integrates prompt management (L01-02), embeddings and vector search (L04-07), function calling (L09), evaluation (L10), caching (L11), guardrails (L12), streaming, error handling, observability, and cost tracking. One service. Every component wired together.
+이것이 캡스톤이다. 프롬프트 관리(L01-02), 임베딩과 벡터 검색(L04-07), 함수 호출(L09), 평가(L10), 캐싱(L11), 가드레일(L12), 스트리밍, 오류 처리, 관측 가능성, 비용 추적을 통합한 완전한 프로덕션 LLM 서비스를 만든다. 하나의 서비스. 모든 구성요소가 연결된다.
 
-## The Concept
+## 개념
 
-### Production Architecture
+### 프로덕션 아키텍처
 
-Every serious LLM application follows the same flow. The details vary. The structure does not.
+진지한 LLM 애플리케이션은 모두 같은 흐름을 따른다. 세부사항은 달라진다. 구조는 달라지지 않는다.
 
 ```mermaid
 graph LR
@@ -60,28 +60,28 @@ graph LR
     Eval --> Cost --> Resp
 ```
 
-The request enters through an API gateway that handles authentication and rate limiting. Input guardrails check for prompt injection and banned content before the prompt router selects the right template. A semantic cache checks if a similar question was answered recently. On a cache miss, the LLM is called with streaming enabled. Output guardrails validate the response. The eval logger records quality metrics. The cost tracker accounts for every token. The response streams back to the client.
+요청은 인증과 rate limit을 처리하는 API 게이트웨이를 통해 들어온다. 프롬프트 라우터가 올바른 템플릿을 선택하기 전에 입력 가드레일이 프롬프트 인젝션과 금지된 콘텐츠를 검사한다. 의미 기반 캐시는 최근에 비슷한 질문에 답한 적이 있는지 확인한다. 캐시 미스가 나면 스트리밍을 켠 상태로 LLM을 호출한다. 출력 가드레일은 응답을 검증한다. 평가 로거는 품질 지표를 기록한다. 비용 추적기는 모든 토큰을 계산한다. 응답은 클라이언트로 스트리밍된다.
 
-Seven components. Each one is a lesson you already completed. The engineering is in the wiring.
+일곱 개의 구성요소. 각각은 이미 완료한 레슨이다. 엔지니어링은 이들을 연결하는 데 있다.
 
-### The Stack
+### 스택
 
-| Component | Lesson | Technology | Purpose |
+| 구성요소 | 레슨 | 기술 | 목적 |
 |-----------|--------|------------|---------|
-| API Server | -- | FastAPI + Uvicorn | HTTP endpoints, SSE streaming, health checks |
-| Prompt Templates | L01-02 | Jinja2 / string templates | Versioned prompt management with variable injection |
-| Embeddings | L04 | text-embedding-3-small | Semantic similarity for cache and RAG |
-| Vector Store | L06-07 | In-memory (prod: Pinecone/Qdrant) | Nearest neighbor search for context retrieval |
-| Function Calling | L09 | Tool registry + JSON Schema | External data access, structured actions |
-| Evaluation | L10 | Custom metrics + logging | Response quality, latency, accuracy tracking |
-| Caching | L11 | Semantic cache (embedding-based) | Avoid redundant LLM calls, reduce cost and latency |
-| Guardrails | L12 | Regex + classifier rules | Block prompt injection, PII, unsafe content |
-| Cost Tracker | L11 | Token counter + pricing table | Per-request and aggregate cost accounting |
-| Streaming | -- | Server-Sent Events (SSE) | Token-by-token delivery, sub-second first token |
+| API 서버 | -- | FastAPI + Uvicorn | HTTP 엔드포인트, SSE 스트리밍, 헬스 체크 |
+| 프롬프트 템플릿 | L01-02 | Jinja2 / 문자열 템플릿 | 변수 주입이 가능한 버전 관리 프롬프트 관리 |
+| 임베딩 | L04 | text-embedding-3-small | 캐시와 RAG를 위한 의미 유사도 |
+| 벡터 저장소 | L06-07 | 인메모리(prod: Pinecone/Qdrant) | 컨텍스트 검색을 위한 최근접 이웃 검색 |
+| 함수 호출 | L09 | 도구 레지스트리 + JSON Schema | 외부 데이터 접근, 구조화된 액션 |
+| 평가 | L10 | 커스텀 지표 + 로깅 | 응답 품질, 지연 시간, 정확도 추적 |
+| 캐싱 | L11 | 의미 기반 캐시(임베딩 기반) | 중복 LLM 호출 방지, 비용과 지연 시간 감소 |
+| 가드레일 | L12 | Regex + 분류기 규칙 | 프롬프트 인젝션, PII, 안전하지 않은 콘텐츠 차단 |
+| 비용 추적기 | L11 | 토큰 카운터 + 가격표 | 요청별 및 집계 비용 계산 |
+| 스트리밍 | -- | Server-Sent Events (SSE) | 토큰 단위 전달, 1초 미만 첫 토큰 |
 
-### Streaming: Why It Matters
+### 스트리밍이 중요한 이유
 
-A GPT-5 response with 500 output tokens takes 3-8 seconds to fully generate. Without streaming, the user stares at a spinner for the entire duration. With streaming, the first token arrives in 200-500ms. The total time is the same. The perceived latency drops by 90%.
+출력 토큰 500개의 GPT-5 응답을 완전히 생성하는 데는 3-8초가 걸린다. 스트리밍이 없으면 사용자는 그 시간 내내 스피너만 바라본다. 스트리밍이 있으면 첫 토큰이 200-500ms 안에 도착한다. 총 시간은 같다. 체감 지연 시간은 90% 줄어든다.
 
 ```mermaid
 sequenceDiagram
@@ -102,23 +102,23 @@ sequenceDiagram
     S-->>C: SSE: data: [DONE]
 ```
 
-Three protocols for streaming:
+스트리밍을 위한 세 가지 프로토콜:
 
-| Protocol | Latency | Complexity | When to Use |
+| 프로토콜 | 지연 시간 | 복잡도 | 사용할 때 |
 |----------|---------|------------|-------------|
-| Server-Sent Events (SSE) | Low | Low | Most LLM apps. Unidirectional, HTTP-based, works everywhere |
-| WebSockets | Low | Medium | Bidirectional needs: voice, real-time collaboration |
-| Long Polling | High | Low | Legacy clients that cannot handle SSE or WebSockets |
+| Server-Sent Events (SSE) | 낮음 | 낮음 | 대부분의 LLM 앱. 단방향, HTTP 기반, 어디서나 동작 |
+| WebSockets | 낮음 | 중간 | 음성, 실시간 협업처럼 양방향이 필요한 경우 |
+| Long Polling | 높음 | 낮음 | SSE나 WebSockets를 처리할 수 없는 레거시 클라이언트 |
 
-SSE is the default choice. OpenAI, Anthropic, and Google all stream via SSE. Your server receives chunks from the LLM API and forwards them to the client as SSE events. The client uses `EventSource` (browser) or `httpx` (Python) to consume the stream.
+SSE가 기본 선택지다. OpenAI, Anthropic, Google은 모두 SSE로 스트리밍한다. 서버는 LLM API에서 청크를 받아 SSE 이벤트로 클라이언트에 전달한다. 클라이언트는 `EventSource`(브라우저) 또는 `httpx`(Python)로 스트림을 소비한다.
 
-### Error Handling: The Three Layers
+### 오류 처리: 세 계층
 
-Production LLM apps fail in three distinct ways. Each requires a different recovery strategy.
+프로덕션 LLM 앱은 세 가지 뚜렷한 방식으로 실패한다. 각각에는 다른 복구 전략이 필요하다.
 
-**Layer 1: API failures.** The LLM provider returns 429 (rate limit), 500 (server error), or times out. Solution: exponential backoff with jitter. Start at 1 second, double each retry, add random jitter to prevent thundering herd. Maximum 3 retries.
+**계층 1: API 실패.** LLM 제공자가 429(rate limit), 500(서버 오류)을 반환하거나 타임아웃된다. 해결책은 jitter가 있는 exponential backoff다. 1초에서 시작해 재시도마다 두 배로 늘리고, thundering herd를 막기 위해 무작위 jitter를 추가한다. 최대 3회 재시도한다.
 
-```
+```text
 Attempt 1: immediate
 Attempt 2: 1s + random(0, 0.5s)
 Attempt 3: 2s + random(0, 1.0s)
@@ -126,53 +126,53 @@ Attempt 4: 4s + random(0, 2.0s)
 Give up: return fallback response
 ```
 
-**Layer 2: Model failures.** The model returns malformed JSON, hallucinates a function name, or produces an output that fails validation. Solution: retry with a corrected prompt. Include the error in the retry message so the model can self-correct.
+**계층 2: 모델 실패.** 모델이 잘못된 JSON을 반환하거나, 함수 이름을 환각하거나, 검증에 실패하는 출력을 만든다. 해결책은 수정된 프롬프트로 다시 시도하는 것이다. 모델이 스스로 고칠 수 있도록 재시도 메시지에 오류를 포함한다.
 
-**Layer 3: Application failures.** A downstream service is unreachable, the vector store is slow, a guardrail throws an exception. Solution: graceful degradation. If RAG context is unavailable, proceed without it. If the cache is down, bypass it. Never let a secondary system crash the primary flow.
+**계층 3: 애플리케이션 실패.** 다운스트림 서비스에 접근할 수 없거나, 벡터 저장소가 느리거나, 가드레일이 예외를 던진다. 해결책은 graceful degradation이다. RAG 컨텍스트를 사용할 수 없으면 없이 진행한다. 캐시가 내려가면 우회한다. 보조 시스템이 주 흐름을 죽이게 두지 않는다.
 
-| Failure | Retry? | Fallback | User Impact |
+| 실패 | 재시도? | fallback | 사용자 영향 |
 |---------|--------|----------|-------------|
-| API 429 (rate limit) | Yes, with backoff | Queue the request | "Processing, please wait..." |
-| API 500 (server error) | Yes, 3 attempts | Switch to fallback model | Transparent to user |
-| API timeout (>30s) | Yes, 1 attempt | Shorter prompt, smaller model | Slightly lower quality |
-| Malformed output | Yes, with error context | Return raw text | Minor formatting issues |
-| Guardrail block | No | Explain why request was blocked | Clear error message |
-| Vector store down | No retry on vector store | Skip RAG context | Lower quality, still functional |
-| Cache down | No retry on cache | Direct LLM call | Higher latency, higher cost |
+| API 429 (rate limit) | 예, backoff 사용 | 요청을 큐에 넣음 | "Processing, please wait..." |
+| API 500 (서버 오류) | 예, 3회 시도 | fallback 모델로 전환 | 사용자에게 투명함 |
+| API 타임아웃(>30s) | 예, 1회 시도 | 더 짧은 프롬프트, 더 작은 모델 | 품질이 약간 낮아짐 |
+| 잘못된 출력 | 예, 오류 컨텍스트 포함 | 원시 텍스트 반환 | 사소한 포맷 문제 |
+| 가드레일 차단 | 아니요 | 요청이 차단된 이유 설명 | 명확한 오류 메시지 |
+| 벡터 저장소 다운 | 벡터 저장소에는 재시도 없음 | RAG 컨텍스트 건너뜀 | 품질은 낮아지지만 계속 동작 |
+| 캐시 다운 | 캐시에는 재시도 없음 | 직접 LLM 호출 | 지연 시간과 비용 증가 |
 
-**Fallback model chain.** When your primary model is unavailable, fall through a chain:
+**Fallback 모델 체인.** 주 모델을 사용할 수 없으면 체인을 따라 내려간다.
 
-```
+```text
 claude-sonnet-4-20250514 -> gpt-4o -> gpt-4o-mini -> cached response -> "Service temporarily unavailable"
 ```
 
-Each step trades quality for availability. The user always gets something.
+각 단계는 품질을 가용성과 맞바꾼다. 사용자는 항상 무언가를 받는다.
 
-### Observability: What to Measure
+### 관측 가능성: 무엇을 측정할 것인가
 
-You cannot improve what you cannot see. Every production LLM app needs three pillars of observability.
+볼 수 없는 것은 개선할 수 없다. 모든 프로덕션 LLM 앱에는 관측 가능성의 세 기둥이 필요하다.
 
-**Structured logging.** Every request produces a JSON log entry with: request ID, user ID, prompt template name, model used, input tokens, output tokens, latency (ms), cache hit/miss, guardrail pass/fail, cost (USD), and any errors.
+**구조화 로깅.** 모든 요청은 request ID, user ID, 프롬프트 템플릿 이름, 사용 모델, 입력 토큰, 출력 토큰, 지연 시간(ms), 캐시 hit/miss, 가드레일 pass/fail, 비용(USD), 오류를 담은 JSON 로그 항목을 만든다.
 
-**Tracing.** A single user request touches 5-8 components. OpenTelemetry traces let you see the full journey: how long did embedding take? Was it a cache hit? How long was the LLM call? Did the guardrail add latency? Without tracing, debugging production issues is guesswork.
+**트레이싱.** 하나의 사용자 요청은 5-8개 구성요소를 지난다. OpenTelemetry trace는 전체 여정을 보여준다. 임베딩은 얼마나 걸렸나? 캐시 hit였나? LLM 호출은 얼마나 걸렸나? 가드레일이 지연 시간을 추가했나? 트레이싱이 없으면 프로덕션 문제 디버깅은 추측에 의존한다.
 
-**Metrics dashboard.** The five numbers every LLM team watches:
+**메트릭 대시보드.** 모든 LLM 팀이 보는 다섯 가지 숫자:
 
-| Metric | Target | Why |
+| 지표 | 목표 | 이유 |
 |--------|--------|-----|
-| P50 latency | < 2s | Median user experience |
-| P99 latency | < 10s | Tail latency drives churn |
-| Cache hit rate | > 30% | Direct cost savings |
-| Guardrail block rate | < 5% | Too high = false positives annoying users |
-| Cost per request | < $0.01 | Unit economics viability |
+| P50 지연 시간 | < 2s | 중앙값 사용자 경험 |
+| P99 지연 시간 | < 10s | tail latency가 이탈을 만든다 |
+| 캐시 hit rate | > 30% | 직접적인 비용 절감 |
+| 가드레일 차단율 | < 5% | 너무 높으면 false positive가 사용자를 짜증나게 한다 |
+| 요청당 비용 | < $0.01 | unit economics 성립 여부 |
 
-### A/B Testing Prompts in Production
+### 프로덕션에서 프롬프트 A/B 테스트하기
 
-Your prompt is not finished when it works. It is finished when you have data proving it outperforms the alternative.
+프롬프트는 동작할 때 끝난 것이 아니다. 대안보다 성능이 낫다는 데이터가 있을 때 끝난다.
 
-**Shadow mode.** Run a new prompt on 100% of traffic but only log the results -- do not show them to users. Compare quality metrics against the current prompt. No user risk, full data.
+**Shadow mode.** 새 프롬프트를 트래픽 100%에서 실행하되 결과는 로그만 남긴다. 사용자에게 보여주지 않는다. 현재 프롬프트와 품질 지표를 비교한다. 사용자 위험 없이 전체 데이터를 얻는다.
 
-**Percentage rollout.** Route 10% of traffic to the new prompt. Monitor metrics. If quality holds, increase to 25%, then 50%, then 100%. If quality drops, instant rollback.
+**Percentage rollout.** 트래픽 10%를 새 프롬프트로 보낸다. 지표를 모니터링한다. 품질이 유지되면 25%, 50%, 100%로 늘린다. 품질이 떨어지면 즉시 rollback한다.
 
 ```mermaid
 graph TD
@@ -189,94 +189,94 @@ graph TD
     B --> L
 ```
 
-Use a deterministic hash of the user ID, not random selection. This ensures each user gets a consistent experience across requests within the same experiment.
+무작위 선택이 아니라 사용자 ID의 deterministic hash를 사용한다. 이렇게 하면 같은 실험 안에서 각 사용자가 요청마다 일관된 경험을 받는다.
 
-### Real Architecture Examples
+### 실제 아키텍처 예시
 
-**Perplexity.** User query enters. A search engine retrieves 10-20 web pages. Pages are chunked, embedded, and reranked. Top 5 chunks become RAG context. The LLM generates an answer with citations, streamed back in real-time. Two models: a fast one for search query reformulation, a strong one for answer synthesis. Estimated 50M+ queries/day.
+**Perplexity.** 사용자 쿼리가 들어온다. 검색 엔진이 웹 페이지 10-20개를 가져온다. 페이지는 청크로 나뉘고, 임베딩되고, rerank된다. 상위 5개 청크가 RAG 컨텍스트가 된다. LLM은 인용이 포함된 답을 생성하고 실시간으로 스트리밍한다. 모델은 둘이다. 검색 쿼리 재구성을 위한 빠른 모델, 답변 합성을 위한 강한 모델. 하루 5천만 개 이상 쿼리로 추정된다.
 
-**Cursor.** The open file, surrounding files, recent edits, and terminal output form the context. A prompt router decides: small model for autocomplete (Cursor-small, ~20ms), large model for chat (Claude Sonnet 4.6 / GPT-5, ~3s). Context is aggressively compressed -- only relevant code sections, not entire files. Codebase embeddings provide long-range context. Speculative edits stream diffs, not full files. MCP integration lets third-party tools plug in without per-tool code changes.
+**Cursor.** 열려 있는 파일, 주변 파일, 최근 편집, 터미널 출력이 컨텍스트를 이룬다. 프롬프트 라우터가 결정한다. 자동완성에는 작은 모델(Cursor-small, ~20ms), 채팅에는 큰 모델(Claude Sonnet 4.6 / GPT-5, ~3s)을 쓴다. 컨텍스트는 공격적으로 압축된다. 전체 파일이 아니라 관련 코드 섹션만 포함한다. 코드베이스 임베딩은 장거리 컨텍스트를 제공한다. Speculative edits는 전체 파일이 아니라 diff를 스트리밍한다. MCP 통합은 도구별 코드 변경 없이 서드파티 도구가 연결되게 한다.
 
-**ChatGPT.** Plugins, function calling, and MCP servers let the model access the web, run code, generate images, and query databases. A routing layer decides which capabilities to invoke. Memory persists user preferences across sessions. The system prompt is 1,500+ tokens of behavioral rules, cached via prompt caching. Multiple models serve different features: GPT-5 for chat, GPT-Image for images, Whisper for voice, o4-mini for deep reasoning.
+**ChatGPT.** 플러그인, 함수 호출, MCP 서버는 모델이 웹에 접근하고, 코드를 실행하고, 이미지를 생성하고, 데이터베이스를 질의하게 해준다. 라우팅 계층은 어떤 기능을 호출할지 결정한다. Memory는 세션을 넘어 사용자 선호를 유지한다. 시스템 프롬프트는 1,500토큰 이상의 행동 규칙이며 prompt caching으로 캐시된다. 여러 모델이 서로 다른 기능을 맡는다. 채팅에는 GPT-5, 이미지에는 GPT-Image, 음성에는 Whisper, 깊은 추론에는 o4-mini를 쓴다.
 
-### Scaling
+### 스케일링
 
-| Scale | Architecture | Infra |
+| 규모 | 아키텍처 | 인프라 |
 |-------|-------------|-------|
-| 0-1K DAU | Single FastAPI server, sync calls | 1 VM, $50/month |
-| 1K-10K DAU | Async FastAPI, semantic cache, queue | 2-4 VMs + Redis, $500/month |
-| 10K-100K DAU | Horizontal scaling, load balancer, async workers | Kubernetes, $5K/month |
-| 100K+ DAU | Multi-region, model routing, dedicated inference | Custom infra, $50K+/month |
+| 0-1K DAU | 단일 FastAPI 서버, 동기 호출 | VM 1대, $50/month |
+| 1K-10K DAU | Async FastAPI, 의미 기반 캐시, 큐 | VM 2-4대 + Redis, $500/month |
+| 10K-100K DAU | 수평 확장, 로드 밸런서, async worker | Kubernetes, $5K/month |
+| 100K+ DAU | 멀티 리전, 모델 라우팅, 전용 inference | 커스텀 인프라, $50K+/month |
 
-Key scaling patterns:
+핵심 스케일링 패턴:
 
-- **Async everywhere.** Never block a web server thread on an LLM call. Use `asyncio` and `httpx.AsyncClient`.
-- **Queue-based processing.** For non-real-time tasks (summarization, analysis), push to a queue (Redis, SQS) and process with workers. Return a job ID, let the client poll.
-- **Connection pooling.** Reuse HTTP connections to LLM providers. Creating a new TLS connection per request adds 100-200ms.
-- **Horizontal scaling.** LLM apps are I/O bound, not CPU bound. A single async server handles 100+ concurrent requests. Scale servers, not cores.
+- **모든 곳에서 async.** LLM 호출 때문에 웹 서버 스레드를 막지 않는다. `asyncio`와 `httpx.AsyncClient`를 사용한다.
+- **큐 기반 처리.** 요약, 분석처럼 실시간이 아닌 작업은 큐(Redis, SQS)에 넣고 worker로 처리한다. job ID를 반환하고 클라이언트가 polling하게 한다.
+- **Connection pooling.** LLM 제공자에 대한 HTTP 연결을 재사용한다. 요청마다 새 TLS 연결을 만들면 100-200ms가 추가된다.
+- **수평 확장.** LLM 앱은 CPU bound가 아니라 I/O bound다. 단일 async 서버가 100개 이상의 동시 요청을 처리한다. 코어가 아니라 서버를 확장한다.
 
-### Cost Projection
+### 비용 예측
 
-Before you ship, estimate your monthly cost. This spreadsheet decides if your business model works.
+출시 전에 월 비용을 추정하라. 이 스프레드시트가 비즈니스 모델이 작동하는지 결정한다.
 
-| Variable | Value | Source |
+| 변수 | 값 | 출처 |
 |----------|-------|--------|
-| Daily Active Users (DAU) | 10,000 | Analytics |
-| Queries per user per day | 5 | Product analytics |
-| Avg input tokens per query | 1,500 | Measured (system + context + user) |
-| Avg output tokens per query | 400 | Measured |
-| Input price per 1M tokens | $5.00 | OpenAI GPT-5 pricing |
-| Output price per 1M tokens | $15.00 | OpenAI GPT-5 pricing |
-| Cache hit rate | 35% | Measured from cache metrics |
-| Effective daily queries | 32,500 | 50,000 * (1 - 0.35) |
+| 일간 활성 사용자(DAU) | 10,000 | Analytics |
+| 사용자당 일일 쿼리 수 | 5 | Product analytics |
+| 쿼리당 평균 입력 토큰 | 1,500 | 측정값(system + context + user) |
+| 쿼리당 평균 출력 토큰 | 400 | 측정값 |
+| 1M 입력 토큰당 가격 | $5.00 | OpenAI GPT-5 pricing |
+| 1M 출력 토큰당 가격 | $15.00 | OpenAI GPT-5 pricing |
+| 캐시 hit rate | 35% | 캐시 지표에서 측정 |
+| 유효 일일 쿼리 | 32,500 | 50,000 * (1 - 0.35) |
 
-**Monthly LLM cost:**
-- Input: 32,500 queries/day x 1,500 tokens x 30 days / 1M x $2.50 = **$3,656**
-- Output: 32,500 queries/day x 400 tokens x 30 days / 1M x $10.00 = **$3,900**
-- **Total: $7,556/month** (with caching saving ~$4,070/month)
+**월 LLM 비용:**
+- 입력: 32,500 queries/day x 1,500 tokens x 30 days / 1M x $2.50 = **$3,656**
+- 출력: 32,500 queries/day x 400 tokens x 30 days / 1M x $10.00 = **$3,900**
+- **합계: $7,556/month** (캐싱으로 약 $4,070/month 절감)
 
-Without caching, the same traffic costs $11,625/month. A 35% cache hit rate saves 35% on LLM costs. This is why Lesson 11 exists.
+캐싱이 없으면 같은 트래픽은 $11,625/month가 든다. 35% cache hit rate는 LLM 비용을 35% 절감한다. 이것이 레슨 11이 존재하는 이유다.
 
-### The Deployment Checklist
+### 배포 체크리스트
 
-15 items. Ship nothing until every box is checked.
+15개 항목. 모든 상자가 체크될 때까지 아무것도 출시하지 않는다.
 
-| # | Item | Category |
+| # | 항목 | 범주 |
 |---|------|----------|
-| 1 | API keys stored in environment variables, not code | Security |
-| 2 | Rate limiting per user (10-50 req/min default) | Protection |
-| 3 | Input guardrails active (prompt injection, PII) | Safety |
-| 4 | Output guardrails active (content filtering, format validation) | Safety |
-| 5 | Semantic cache configured and tested | Cost |
-| 6 | Streaming enabled for all chat endpoints | UX |
-| 7 | Exponential backoff on all LLM API calls | Reliability |
-| 8 | Fallback model chain configured | Reliability |
-| 9 | Structured logging with request IDs | Observability |
-| 10 | Cost tracking per request and per user | Business |
-| 11 | Health check endpoint returning dependency status | Ops |
-| 12 | Max token limits on input and output | Cost/Safety |
-| 13 | Timeout on all external calls (30s default) | Reliability |
-| 14 | CORS configured for production domains only | Security |
-| 15 | Load test with 100 concurrent users passing | Performance |
+| 1 | API key를 코드가 아니라 환경 변수에 저장 | Security |
+| 2 | 사용자별 rate limiting(기본 10-50 req/min) | Protection |
+| 3 | 입력 가드레일 활성화(prompt injection, PII) | Safety |
+| 4 | 출력 가드레일 활성화(content filtering, format validation) | Safety |
+| 5 | 의미 기반 캐시 구성 및 테스트 완료 | Cost |
+| 6 | 모든 채팅 엔드포인트에서 스트리밍 활성화 | UX |
+| 7 | 모든 LLM API 호출에 exponential backoff 적용 | Reliability |
+| 8 | Fallback 모델 체인 구성 | Reliability |
+| 9 | request ID가 포함된 구조화 로깅 | Observability |
+| 10 | 요청별 및 사용자별 비용 추적 | Business |
+| 11 | dependency 상태를 반환하는 헬스 체크 엔드포인트 | Ops |
+| 12 | 입력과 출력의 최대 토큰 제한 | Cost/Safety |
+| 13 | 모든 외부 호출에 타임아웃(기본 30s) | Reliability |
+| 14 | 프로덕션 도메인에만 CORS 구성 | Security |
+| 15 | 동시 사용자 100명 load test 통과 | 성능 |
 
-## Build It
+## 직접 만들기
 
-This is the capstone. One file. Every component wired together.
+이것이 캡스톤이다. 파일 하나. 모든 구성요소가 함께 연결된다.
 
-The code builds a complete production LLM service with:
-- FastAPI server with health checks and CORS
-- Prompt template management with versioning and A/B testing
-- Semantic caching using cosine similarity on embeddings
-- Input and output guardrails (prompt injection, PII, content safety)
-- Simulated LLM calls with streaming (SSE)
-- Exponential backoff with jitter and fallback model chain
-- Cost tracking per request and aggregate
-- Structured logging with request IDs
-- Evaluation logging for quality tracking
+이 코드는 다음을 갖춘 완전한 프로덕션 LLM 서비스를 만든다.
+- 헬스 체크와 CORS를 갖춘 FastAPI 서버
+- 버전 관리와 A/B 테스트를 지원하는 프롬프트 템플릿 관리
+- 임베딩의 cosine similarity를 사용하는 의미 기반 캐싱
+- 입력과 출력 가드레일(prompt injection, PII, content safety)
+- 스트리밍(SSE)을 지원하는 시뮬레이션 LLM 호출
+- jitter가 있는 exponential backoff와 fallback 모델 체인
+- 요청별 및 집계 비용 추적
+- request ID가 포함된 구조화 로깅
+- 품질 추적을 위한 평가 로깅
 
-### Step 1: Core Infrastructure
+### 단계 1: 핵심 인프라
 
-The foundation. Configuration, logging, and the data structures every component depends on.
+기초다. 설정, 로깅, 그리고 모든 구성요소가 의존하는 데이터 구조다.
 
 ```python
 import asyncio
@@ -363,9 +363,9 @@ class CostTracker:
         }
 ```
 
-### Step 2: Prompt Management
+### 단계 2: 프롬프트 관리
 
-Versioned prompt templates with A/B testing support. Each template has a name, version, and the template string. The router selects based on request context and experiment assignment.
+버전 관리되는 프롬프트 템플릿과 A/B 테스트 지원이다. 각 템플릿에는 이름, 버전, 템플릿 문자열이 있다. 라우터는 요청 컨텍스트와 실험 할당에 따라 선택한다.
 
 ```python
 @dataclass
@@ -456,9 +456,9 @@ def select_prompt(template_name, user_id, variables):
     return template, rendered
 ```
 
-### Step 3: Semantic Cache
+### 단계 3: 의미 기반 캐시
 
-Embedding-based cache that matches semantically similar queries. Two questions phrased differently but meaning the same thing will hit the cache.
+의미적으로 비슷한 쿼리를 매칭하는 임베딩 기반 캐시다. 표현은 다르지만 같은 의미를 가진 두 질문은 캐시에 hit된다.
 
 ```python
 def simple_embedding(text, dim=64):
@@ -539,9 +539,9 @@ class SemanticCache:
         }
 ```
 
-### Step 4: Guardrails
+### 단계 4: 가드레일
 
-Input validation catches prompt injection and PII before the LLM sees it. Output validation catches unsafe content before the user sees it. Two walls. Nothing passes unchecked.
+입력 검증은 LLM이 보기 전에 프롬프트 인젝션과 PII를 잡아낸다. 출력 검증은 사용자가 보기 전에 안전하지 않은 콘텐츠를 잡아낸다. 두 개의 벽이다. 검사 없이 통과하는 것은 없다.
 
 ```python
 INJECTION_PATTERNS = [
@@ -614,9 +614,9 @@ def check_output_guardrails(text):
     return GuardrailResult(passed=True)
 ```
 
-### Step 5: LLM Caller with Retry and Streaming
+### 단계 5: 재시도와 스트리밍을 지원하는 LLM 호출기
 
-The core LLM interface. Exponential backoff with jitter on failures. Fallback through the model chain. Streaming support for token-by-token delivery.
+핵심 LLM 인터페이스다. 실패 시 jitter가 있는 exponential backoff를 적용한다. 모델 체인을 따라 fallback한다. 토큰 단위 전달을 위한 스트리밍을 지원한다.
 
 ```python
 def estimate_tokens(text):
@@ -716,9 +716,9 @@ async def stream_response(text):
         await asyncio.sleep(random.uniform(0.02, 0.08))
 ```
 
-### Step 6: The Request Pipeline
+### 단계 6: 요청 파이프라인
 
-The orchestrator. Takes a raw user request, runs it through every component, and returns a structured result.
+오케스트레이터다. 원시 사용자 요청을 받아 모든 구성요소를 통과시킨 뒤 구조화된 결과를 반환한다.
 
 ```python
 class ProductionLLMService:
@@ -883,7 +883,7 @@ class ProductionLLMService:
         }
 ```
 
-### Step 7: Run the Full Demo
+### 단계 7: 전체 데모 실행
 
 ```python
 async def run_production_demo():
@@ -998,11 +998,11 @@ if __name__ == "__main__":
     main()
 ```
 
-## Use It
+## 사용하기
 
-### FastAPI Server (Production Deployment)
+### FastAPI 서버(프로덕션 배포)
 
-The demo above runs as a script. For production, wrap it in FastAPI with proper endpoints.
+위 데모는 스크립트로 실행된다. 프로덕션에서는 적절한 엔드포인트를 갖춘 FastAPI로 감싼다.
 
 ```python
 # from fastapi import FastAPI, HTTPException
@@ -1054,11 +1054,11 @@ The demo above runs as a script. For production, wrap it in FastAPI with proper 
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-To run this as a real server, uncomment and install dependencies: `pip install fastapi uvicorn`. Hit `http://localhost:8000/docs` for auto-generated API docs.
+실제 서버로 실행하려면 주석을 해제하고 dependency를 설치한다. `pip install fastapi uvicorn`. 자동 생성 API 문서는 `http://localhost:8000/docs`에서 확인한다.
 
-### Real API Integration
+### 실제 API 통합
 
-Replace the simulated LLM calls with actual provider SDKs.
+시뮬레이션 LLM 호출을 실제 provider SDK로 바꾼다.
 
 ```python
 # import openai
@@ -1089,7 +1089,7 @@ Replace the simulated LLM calls with actual provider SDKs.
 #             yield text
 ```
 
-### Docker Deployment
+### Docker 배포
 
 ```dockerfile
 # FROM python:3.12-slim
@@ -1101,51 +1101,51 @@ Replace the simulated LLM calls with actual provider SDKs.
 # CMD ["uvicorn", "production_app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
 ```
 
-Four workers. Each handles async I/O. A single box with 4 workers serves 400+ concurrent LLM requests because they are all waiting on network I/O, not CPU.
+worker 네 개다. 각각 async I/O를 처리한다. worker 4개가 있는 단일 장비가 동시 LLM 요청 400개 이상을 처리할 수 있다. 이 요청들은 CPU가 아니라 네트워크 I/O를 기다리기 때문이다.
 
-## Ship It
+## 출시하기
 
-This lesson produces `outputs/prompt-architecture-reviewer.md` -- a reusable prompt that reviews the architecture of any LLM application against the production checklist. Give it a description of your system and it returns a gap analysis.
+이 레슨은 `outputs/prompt-architecture-reviewer.md`를 만든다. 프로덕션 체크리스트를 기준으로 어떤 LLM 애플리케이션 아키텍처든 검토하는 재사용 가능한 프롬프트다. 시스템 설명을 주면 격차 분석을 반환한다.
 
-It also produces `outputs/skill-production-checklist.md` -- a decision framework for shipping LLM applications to production, covering every component from this lesson with specific thresholds and pass/fail criteria.
+또한 `outputs/skill-production-checklist.md`도 만든다. LLM 애플리케이션을 프로덕션에 출시하기 위한 의사결정 프레임워크이며, 이 레슨의 모든 구성요소를 구체적인 임계값과 통과/실패 기준으로 다룬다.
 
-## Exercises
+## 연습 문제
 
-1. **Add RAG integration.** Build a simple in-memory vector store with 20 documents. When the template is `rag_answer`, embed the query, find the 3 most similar documents, and inject them as context. Measure how response quality changes with and without RAG context. Track retrieval latency separately from LLM latency.
+1. **RAG 통합 추가.** 문서 20개가 들어 있는 간단한 인메모리 벡터 저장소를 만든다. 템플릿이 `rag_answer`이면 쿼리를 임베딩하고, 가장 비슷한 문서 3개를 찾아 컨텍스트로 주입한다. RAG 컨텍스트가 있을 때와 없을 때 응답 품질이 어떻게 달라지는지 측정한다. 검색 지연 시간을 LLM 지연 시간과 별도로 추적한다.
 
-2. **Implement real function calling.** Add a tool registry (from Lesson 09) to the service. When a user asks a question that requires external data (weather, calculation, search), the pipeline should detect this, execute the tool, and include the result in the prompt. Add a `tools_used` field to the response.
+2. **실제 함수 호출 구현.** 서비스에 레슨 09의 도구 레지스트리를 추가한다. 사용자가 외부 데이터(날씨, 계산, 검색)가 필요한 질문을 하면 파이프라인이 이를 감지하고 도구를 실행한 뒤 결과를 프롬프트에 포함해야 한다. 응답에 `tools_used` 필드를 추가한다.
 
-3. **Build a cost alerting system.** Track cost per user per day. When a user exceeds $0.50/day, switch them to `gpt-4o-mini`. When total daily cost exceeds $100, activate emergency mode: cache-only responses for repeated queries, `gpt-4o-mini` for everything else, reject requests over 2,000 input tokens. Test with a simulated traffic spike.
+3. **비용 알림 시스템 구축.** 사용자별 일일 비용을 추적한다. 사용자가 $0.50/day를 넘으면 `gpt-4o-mini`로 전환한다. 전체 일일 비용이 $100를 넘으면 emergency mode를 활성화한다. 반복 쿼리에는 캐시 응답만 사용하고, 나머지는 모두 `gpt-4o-mini`를 쓰며, 입력 토큰 2,000개를 넘는 요청은 거부한다. 시뮬레이션 트래픽 급증으로 테스트한다.
 
-4. **Implement prompt versioning with rollback.** Store all prompt versions with timestamps. Add an endpoint that shows quality metrics (latency, user ratings, error rate) per prompt version. Implement automatic rollback: if a new prompt version has 2x the error rate of the previous version over 100 requests, automatically revert.
+4. **Rollback을 지원하는 프롬프트 버전 관리 구현.** 모든 프롬프트 버전을 timestamp와 함께 저장한다. 프롬프트 버전별 품질 지표(지연 시간, 사용자 평점, 오류율)를 보여주는 엔드포인트를 추가한다. 자동 rollback을 구현한다. 새 프롬프트 버전이 100개 요청에서 이전 버전보다 오류율이 2배 높으면 자동으로 되돌린다.
 
-5. **Add OpenTelemetry tracing.** Instrument every component (cache lookup, guardrail check, LLM call, cost calculation) as a separate span. Each span records its duration. Export traces to the console. Show the full trace for a single request, with each component's contribution to total latency visible.
+5. **OpenTelemetry tracing 추가.** 모든 구성요소(cache lookup, guardrail check, LLM call, cost calculation)를 별도 span으로 계측한다. 각 span은 duration을 기록한다. trace를 콘솔로 export한다. 단일 요청의 전체 trace를 보여주고, 각 구성요소가 전체 지연 시간에 얼마나 기여했는지 보이게 한다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| API Gateway | "The frontend" | The entry point that handles authentication, rate limiting, CORS, and request routing before any LLM logic runs |
-| Prompt Router | "Template selector" | Logic that picks the right prompt template based on request type, A/B experiment assignment, and user context |
-| Semantic Cache | "Smart cache" | A cache keyed by embedding similarity rather than exact string match -- two differently-phrased identical questions return the same cached response |
-| SSE (Server-Sent Events) | "Streaming" | A unidirectional HTTP protocol where the server pushes events to the client -- used by OpenAI, Anthropic, and Google for token-by-token delivery |
-| Exponential Backoff | "Retry logic" | Waiting 1s, 2s, 4s, 8s between retries (doubling each time) with random jitter to prevent all clients retrying simultaneously |
-| Fallback Chain | "Model cascade" | An ordered list of models tried in sequence -- when the primary fails, fall through to cheaper or more available alternatives |
-| Graceful Degradation | "Partial failure handling" | When a secondary component fails (cache, RAG, guardrails), the system continues with reduced functionality rather than crashing |
-| Cost Per Request | "Unit economics" | The total LLM spend (input tokens + output tokens at model pricing) for a single user request -- the number that determines if your business model works |
-| Shadow Mode | "Dark launch" | Running a new prompt or model on real traffic but only logging results, not showing them to users -- risk-free A/B testing |
-| Health Check | "Readiness probe" | An endpoint that returns the status of all dependencies (cache, LLM availability, guardrails) -- used by load balancers and Kubernetes to route traffic |
+| API Gateway | "프론트엔드" | LLM 로직이 실행되기 전에 인증, rate limiting, CORS, 요청 라우팅을 처리하는 진입점 |
+| Prompt Router | "템플릿 선택기" | 요청 유형, A/B 실험 할당, 사용자 컨텍스트를 기준으로 올바른 프롬프트 템플릿을 고르는 로직 |
+| Semantic Cache | "스마트 캐시" | 정확한 문자열 일치가 아니라 임베딩 유사도를 key로 삼는 캐시. 다르게 표현된 같은 질문 두 개가 같은 캐시 응답을 반환한다 |
+| SSE (Server-Sent Events) | "스트리밍" | 서버가 클라이언트로 이벤트를 push하는 단방향 HTTP 프로토콜. OpenAI, Anthropic, Google이 토큰 단위 전달에 사용한다 |
+| Exponential Backoff | "재시도 로직" | 모든 클라이언트가 동시에 재시도하는 일을 막기 위해 무작위 jitter와 함께 재시도 사이에 1s, 2s, 4s, 8s처럼 두 배씩 기다리는 방식 |
+| Fallback Chain | "모델 cascade" | 순서대로 시도하는 모델 목록. 주 모델이 실패하면 더 저렴하거나 더 가용성이 높은 대안으로 내려간다 |
+| Graceful Degradation | "부분 실패 처리" | 보조 구성요소(cache, RAG, guardrails)가 실패해도 시스템이 죽지 않고 기능을 줄인 상태로 계속 동작하는 방식 |
+| Cost Per Request | "Unit economics" | 단일 사용자 요청에 드는 총 LLM 지출(모델 가격 기준 입력 토큰 + 출력 토큰). 비즈니스 모델이 작동하는지 결정하는 숫자 |
+| Shadow Mode | "Dark launch" | 새 프롬프트나 모델을 실제 트래픽에서 실행하되 결과는 로그만 남기고 사용자에게 보여주지 않는 방식. 위험 없는 A/B 테스트다 |
+| Health Check | "Readiness probe" | 모든 dependency(cache, LLM availability, guardrails)의 상태를 반환하는 엔드포인트. 로드 밸런서와 Kubernetes가 트래픽 라우팅에 사용한다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [FastAPI Documentation](https://fastapi.tiangolo.com/) -- the async Python framework used in this lesson, with native SSE streaming and automatic OpenAPI docs
-- [OpenAI Production Best Practices](https://platform.openai.com/docs/guides/production-best-practices) -- rate limits, error handling, and scaling guidance from the largest LLM API provider
-- [Anthropic API Reference](https://docs.anthropic.com/en/api/messages-streaming) -- streaming implementation details for Claude, including server-sent events and tool use during streaming
-- [OpenTelemetry Python SDK](https://opentelemetry.io/docs/languages/python/) -- the standard for distributed tracing, used to instrument every component of an LLM pipeline
-- [Semantic Caching with GPTCache](https://github.com/zilliztech/GPTCache) -- production semantic caching library that implements the concepts from this lesson at scale
-- [Hamel Husain, "Your AI Product Needs Evals"](https://hamel.dev/blog/posts/evals/) -- the definitive guide on evaluation-driven development for LLM applications, complementing the eval component in this capstone
-- [Eugene Yan, "Patterns for Building LLM-based Systems"](https://eugeneyan.com/writing/llm-patterns/) -- architectural patterns (guardrails, RAG, caching, routing) seen across production LLM deployments at major tech companies
-- [vLLM documentation](https://docs.vllm.ai/) -- PagedAttention-based serving: the default self-hosted inference layer used under the FastAPI capstone in this lesson.
-- [Hugging Face TGI](https://huggingface.co/docs/text-generation-inference/index) -- Text Generation Inference: Rust server with continuous batching, Flash Attention, and Medusa speculative decoding; the HF-native alternative to vLLM.
-- [NVIDIA TensorRT-LLM documentation](https://nvidia.github.io/TensorRT-LLM/) -- the highest-throughput path on NVIDIA hardware; quantization, in-flight batching, and FP8 kernels for enterprise deployments.
-- [Hamel Husain -- Optimizing Latency: TGI vs vLLM vs CTranslate2 vs mlc](https://hamel.dev/notes/llm/inference/03_inference.html) -- measured comparison of throughput and latency across the main serving frameworks.
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) -- 이 레슨에서 사용하는 async Python 프레임워크. 네이티브 SSE 스트리밍과 자동 OpenAPI 문서를 제공한다
+- [OpenAI Production Best Practices](https://platform.openai.com/docs/guides/production-best-practices) -- 가장 큰 LLM API 제공자가 제공하는 rate limit, 오류 처리, 스케일링 가이드
+- [Anthropic API Reference](https://docs.anthropic.com/en/api/messages-streaming) -- server-sent events와 스트리밍 중 도구 사용을 포함한 Claude 스트리밍 구현 세부사항
+- [OpenTelemetry Python SDK](https://opentelemetry.io/docs/languages/python/) -- 분산 트레이싱 표준. LLM 파이프라인의 모든 구성요소를 계측하는 데 사용한다
+- [Semantic Caching with GPTCache](https://github.com/zilliztech/GPTCache) -- 이 레슨의 개념을 규모 있게 구현한 프로덕션 의미 기반 캐싱 라이브러리
+- [Hamel Husain, "Your AI Product Needs Evals"](https://hamel.dev/blog/posts/evals/) -- LLM 애플리케이션을 위한 evaluation-driven development의 결정판 가이드. 이 캡스톤의 eval 구성요소를 보완한다
+- [Eugene Yan, "Patterns for Building LLM-based Systems"](https://eugeneyan.com/writing/llm-patterns/) -- 주요 기술 회사의 프로덕션 LLM 배포에서 보이는 아키텍처 패턴(guardrails, RAG, caching, routing)
+- [vLLM documentation](https://docs.vllm.ai/) -- PagedAttention 기반 serving. 이 레슨의 FastAPI 캡스톤 아래에서 사용하는 기본 self-hosted inference 계층이다.
+- [Hugging Face TGI](https://huggingface.co/docs/text-generation-inference/index) -- Text Generation Inference. continuous batching, Flash Attention, Medusa speculative decoding을 갖춘 Rust 서버이며, vLLM에 대한 HF-native 대안이다.
+- [NVIDIA TensorRT-LLM documentation](https://nvidia.github.io/TensorRT-LLM/) -- NVIDIA 하드웨어에서 가장 높은 처리량을 내는 경로. 엔터프라이즈 배포를 위한 quantization, in-flight batching, FP8 kernel을 다룬다.
+- [Hamel Husain -- Optimizing Latency: TGI vs vLLM vs CTranslate2 vs mlc](https://hamel.dev/notes/llm/inference/03_inference.html) -- 주요 serving framework의 throughput과 latency를 측정 비교한 글.

@@ -1,103 +1,103 @@
 # Multi-Token Prediction (MTP)
 
-> Every autoregressive LLM from GPT-2 to Llama 3 trains on one loss per position: predict the next token. DeepSeek-V3 added a second loss per position: predict the token after that. The extra 14B of parameters (on a 671B model) got distilled back into the main model through gradient flow, and the trained MTP heads were repurposed at inference as speculative-decoding drafters with 80%+ acceptance. 1.8× generation throughput came for free. This lesson builds the sequential MTP module from the DeepSeek technical report, computes the loss and the shared-head parameter layout, and explains why MTP keeps the causal chain while Gloeckle et al.'s original parallel MTP broke it.
+> GPT-2부터 Llama 3까지 모든 autoregressive LLM은 position당 하나의 loss로 훈련합니다. Next token을 예측하는 것입니다. DeepSeek-V3는 position당 두 번째 loss를 추가했습니다. 그다음 token까지 예측합니다. 추가된 14B parameters(671B model 기준)는 gradient flow를 통해 main model로 distilled되었고, 훈련된 MTP heads는 inference에서 speculative-decoding drafter로 재사용되어 80%+ acceptance를 보였습니다. 1.8× generation throughput이 공짜로 따라왔습니다. 이 lesson은 DeepSeek technical report의 sequential MTP module을 만들고, loss와 shared-head parameter layout을 계산하며, MTP가 causal chain을 유지하는 반면 Gloeckle et al.의 original parallel MTP가 그것을 깨뜨린 이유를 설명합니다.
 
 **Type:** Build
 **Languages:** Python (stdlib)
 **Prerequisites:** Phase 10 · 04 (pre-training a mini GPT), Phase 10 · 15 (speculative decoding)
 **Time:** ~60 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- State the MTP training objective and derive the joint loss across prediction depths.
-- Explain the difference between Gloeckle et al.'s parallel MTP heads (2024) and DeepSeek-V3's sequential MTP modules and why the sequential design preserves the causal chain.
-- Compute the parameter and memory overhead of adding MTP modules to a pre-training run.
-- Implement one MTP module from scratch: the shared embedding, the per-depth transformer block, the projection, and the shared output head.
+- MTP training objective를 말하고 prediction depth 전반의 joint loss 유도하기.
+- Gloeckle et al.의 parallel MTP heads(2024)와 DeepSeek-V3의 sequential MTP modules의 차이를 설명하고 sequential design이 causal chain을 보존하는 이유 설명하기.
+- Pre-training run에 MTP module을 추가할 때의 parameter 및 memory overhead 계산하기.
+- Shared embedding, per-depth transformer block, projection, shared output head를 포함한 MTP module 하나를 처음부터 구현하기.
 
-## The Problem
+## 문제
 
-Next-token prediction is the standard LLM training objective. Every hidden state is supervised to predict exactly one thing: the immediately following token. That is a surprisingly weak signal. Most of the information in a sequence extends beyond one token — structure, coherence, factuality, arithmetic flow. The model has to learn those by accumulating many one-token signals over trillions of tokens.
+Next-token prediction은 표준 LLM training objective입니다. 모든 hidden state는 정확히 하나, 즉 바로 다음 token을 예측하도록 supervise됩니다. 이는 놀라울 만큼 약한 signal입니다. Sequence의 정보 대부분은 한 token 너머로 이어집니다. Structure, coherence, factuality, arithmetic flow가 그렇습니다. Model은 trillion token에 걸쳐 많은 one-token signal을 누적하며 이를 배워야 합니다.
 
-MTP asks: what if every hidden state were supervised to predict multiple future tokens at once? Gloeckle et al. (Meta, 2024) showed this helps. Their implementation put several independent output heads on top of the backbone, each predicting a different offset. Parallel, simple, but the heads saw the same hidden state without any hierarchical refinement — and the predictions did not chain causally, so they could not be used for speculative decoding.
+MTP는 묻습니다. 모든 hidden state가 여러 future token을 동시에 예측하도록 supervise된다면 어떨까요? Gloeckle et al.(Meta, 2024)은 이것이 도움이 됨을 보였습니다. 그들의 구현은 backbone 위에 여러 independent output head를 두고 각 head가 다른 offset을 예측하게 했습니다. Parallel하고 단순했지만, head들은 hierarchical refinement 없이 같은 hidden state를 보았습니다. Prediction이 causally chain되지 않았기 때문에 speculative decoding에 사용할 수도 없었습니다.
 
-DeepSeek-V3 (December 2024) re-designed MTP as sequential modules that keep the causal chain at each prediction depth. The model predicts `t+1` from `h_i^(0)`, then predicts `t+2` from a new hidden state `h_i^(1)` that combined `h_i^(0)` with the `E(t+1)` embedding, and so on. Each depth is its own small transformer block. The shared embedding and shared output head keep parameter overhead modest. At DeepSeek-V3's scale, 14B extra parameters across MTP modules on top of 671B main-model weights. That 2% overhead bought denser training signals AND a ready-made speculative-decoding draft at inference.
+DeepSeek-V3(2024년 12월)는 MTP를 각 prediction depth에서 causal chain을 유지하는 sequential module로 재설계했습니다. Model은 `h_i^(0)`에서 `t+1`을 예측한 뒤, `h_i^(0)`과 `E(t+1)` embedding을 결합한 새 hidden state `h_i^(1)`에서 `t+2`를 예측합니다. 각 depth는 자체 small transformer block입니다. Shared embedding과 shared output head는 parameter overhead를 적당하게 유지합니다. DeepSeek-V3 scale에서는 671B main-model weights 위에 MTP module 전체로 14B extra parameters가 붙습니다. 이 2% overhead는 더 dense한 training signal과 inference에서 바로 쓸 수 있는 speculative-decoding draft를 함께 샀습니다.
 
-This lesson builds a single MTP module and the D-depth loss from scratch. The math is tidy. The implementation is 150 lines.
+이 lesson은 single MTP module과 D-depth loss를 처음부터 만듭니다. 수학은 단정합니다. 구현은 150줄입니다.
 
-## The Concept
+## 개념
 
-### The sequential MTP recipe
+### Sequential MTP recipe
 
-DeepSeek-V3 adds `D` MTP modules on top of the main model. Each module `k` (for `k = 1..D`) predicts the token at depth `k` — that is, `t_{i+k}` given a prefix through position `i`.
+DeepSeek-V3는 main model 위에 `D`개의 MTP module을 추가합니다. 각 module `k`(`k = 1..D`)는 depth `k`의 token, 즉 position `i`까지의 prefix가 주어졌을 때 `t_{i+k}`를 예측합니다.
 
-Module `k` consists of:
+Module `k`는 다음으로 구성됩니다.
 
-- A transformer block `T_k` with its own attention and MLP.
-- A projection matrix `M_k` that combines the previous-depth hidden state with the embedding of the next-depth ground-truth token.
-- The shared embedding `E` (same as the main model).
-- The shared output head `Out` (same as the main model).
+- 자체 attention과 MLP를 가진 transformer block `T_k`.
+- Previous-depth hidden state와 next-depth ground-truth token embedding을 결합하는 projection matrix `M_k`.
+- Shared embedding `E`(main model과 동일).
+- Shared output head `Out`(main model과 동일).
 
-At training, for a prefix through position `i`, the per-depth hidden state is:
+Training에서 position `i`까지의 prefix에 대해 per-depth hidden state는 다음과 같습니다.
 
-```
+```text
 h_i^(0) = main model backbone at position i
 h_i^(k) = T_k( M_k * concat(RMSNorm(h_i^(k-1)), RMSNorm(E(t_{i+k}))) )   for k >= 1
 ```
 
-The per-depth prediction is:
+Per-depth prediction:
 
-```
+```text
 logits_{i+k} = Out(h_i^(k-1))   for k = 1..D
 ```
 
-The per-depth loss is cross-entropy against the ground-truth `t_{i+k}`:
+Per-depth loss는 ground-truth `t_{i+k}`에 대한 cross-entropy입니다.
 
-```
+```text
 L_k = CE(logits_{i+k}, t_{i+k})
 ```
 
-The joint loss across depths:
+Depth 전반의 joint loss:
 
-```
+```text
 L_MTP = (lambda / D) * sum_{k=1..D} L_k
 ```
 
-`lambda` is a small weighting factor — DeepSeek-V3 uses 0.3 for the first 10% of training and 0.1 afterward. The total training loss is `L_main + L_MTP`.
+`lambda`는 작은 weighting factor입니다. DeepSeek-V3는 훈련 첫 10%에는 0.3, 이후에는 0.1을 사용합니다. Total training loss는 `L_main + L_MTP`입니다.
 
-### Why sequential, not parallel
+### 왜 parallel이 아니라 sequential인가
 
-Gloeckle's original parallel MTP had D output heads, each directly applied to `h_i^(0)`. Each head predicts `t_{i+k}` from the same backbone hidden state. That trains fine, but the predictions are not conditioned on each other. You cannot use `head_1`'s output to help `head_2` — the heads fire in parallel.
+Gloeckle의 original parallel MTP는 D개의 output head를 `h_i^(0)`에 직접 적용했습니다. 각 head는 같은 backbone hidden state에서 `t_{i+k}`를 예측합니다. 훈련은 잘 되지만 prediction들이 서로 conditioned되지 않습니다. `head_1`의 output을 `head_2`에 도움으로 쓸 수 없습니다. Head들이 parallel하게 발화하기 때문입니다.
 
-DeepSeek-V3's sequential design builds `h_i^(k)` from `h_i^(k-1)` plus the actual next-token embedding `E(t_{i+k})`. That preserves the causal chain: to predict `t_{i+k+1}`, the module at depth `k+1` sees what was at `t_{i+k}`. This is structurally identical to how an autoregressive decoder consumes its own output — making the MTP modules directly usable as speculative-decoding drafters.
+DeepSeek-V3의 sequential design은 `h_i^(k-1)`와 실제 next-token embedding `E(t_{i+k})`에서 `h_i^(k)`를 만듭니다. 이것이 causal chain을 보존합니다. `t_{i+k+1}`를 예측하려면 depth `k+1`의 module이 `t_{i+k}`에 있던 것을 봅니다. 이는 autoregressive decoder가 자신의 output을 소비하는 방식과 구조적으로 동일합니다. 그래서 MTP module을 speculative-decoding drafter로 직접 사용할 수 있습니다.
 
-At inference: feed `h_i^(k-1)` and the drafted `t_{i+k}` into module `k+1`, get a prediction for `t_{i+k+1}`. Repeat. That is exactly an EAGLE-style draft, using the trained MTP module as the draft network. DeepSeek-V3 reports 80%+ acceptance on the first MTP module and ~1.8× speedup.
+Inference에서는 `h_i^(k-1)`와 drafted `t_{i+k}`를 module `k+1`에 넣어 `t_{i+k+1}` prediction을 얻습니다. 반복하면 됩니다. 이는 trained MTP module을 draft network로 사용하는 EAGLE-style draft와 정확히 같습니다. DeepSeek-V3는 첫 MTP module에서 80%+ acceptance와 약 1.8× speedup을 보고합니다.
 
 ### Parameter accounting
 
-For a model with hidden `h` and vocabulary `V`:
+Hidden `h`와 vocabulary `V`를 가진 model에 대해:
 
-- Main model: billions of parameters, plus one output head of size `V * h`.
-- Shared output head: reuse the main model's head. No extra params.
-- Shared embedding: reuse the main model's embedding. No extra params.
+- Main model: billions of parameters, plus size `V * h`의 output head 하나.
+- Shared output head: main model의 head를 재사용합니다. Extra params 없음.
+- Shared embedding: main model의 embedding을 재사용합니다. Extra params 없음.
 - Per-MTP module:
   - Projection `M_k`: `(2h) * h = 2h^2`.
-  - Transformer block `T_k`: attention (`4h^2` for MHA) plus MLP (typically `8h^2` for SwiGLU with ratio 8/3). About `12h^2` per block.
+  - Transformer block `T_k`: attention(MHA에서 `4h^2`) plus MLP(보통 ratio 8/3의 SwiGLU로 `8h^2`). Block당 약 `12h^2`.
 
-Total extra per module: `~14h^2`. For DeepSeek-V3's `h = 7168`, D = 1 module: `~14 * 7168^2 = ~720M` parameters on paper. DeepSeek-V3 reports 14B — the difference is mostly expert layers being MoE in the MTP module too.
+Module당 total extra: `~14h^2`. DeepSeek-V3의 `h = 7168`, D = 1 module이면 paper 계산으로 `~14 * 7168^2 = ~720M` parameters입니다. DeepSeek-V3가 보고한 값은 14B입니다. 차이는 대부분 MTP module 안의 expert layer도 MoE이기 때문입니다.
 
-### The speculative-decoding payoff
+### Speculative decoding payoff
 
-During pre-training, the MTP modules slow training by about 10% (more forward compute, extra loss). The payoff is two-fold:
+Pre-training 중 MTP module은 훈련을 약 10% 늦춥니다(더 많은 forward compute, extra loss). 보상은 두 가지입니다.
 
-1. Denser training signal. Each hidden state sees D+1 supervision targets. Measured effect on MMLU, GSM8K, MATH, HumanEval: consistent few-percentage-point improvements in DeepSeek-V3's ablations.
+1. 더 dense한 training signal. 각 hidden state는 D+1개의 supervision target을 봅니다. DeepSeek-V3의 ablation에서 MMLU, GSM8K, MATH, HumanEval에 일관된 몇 percentage point 개선이 측정되었습니다.
 
-2. Free speculative decoding draft at inference. The MTP module is already trained to predict the next few tokens. Repurposed as a draft network, it delivers 80%+ acceptance rates. At that level, N=3 or N=5 spec decoding gives 1.8× throughput. The 10% training-time cost pays back the first time you run inference.
+2. Inference에서 무료 speculative decoding draft. MTP module은 이미 다음 몇 token을 예측하도록 훈련되어 있습니다. Draft network로 재사용하면 80%+ acceptance rate를 냅니다. 그 수준에서는 N=3 또는 N=5 spec decoding이 1.8× throughput을 줍니다. 10% training-time cost는 inference를 처음 실행할 때 회수됩니다.
 
-### Relation to EAGLE
+### EAGLE와의 관계
 
-EAGLE trains a small draft model SEPARATELY after pre-training. MTP bakes the draft into pre-training. The two approaches converge on similar accept rates but via different pipelines:
+EAGLE은 pre-training 이후 작은 draft model을 별도로 훈련합니다. MTP는 draft를 pre-training에 bake합니다. 두 접근은 비슷한 accept rate로 수렴하지만 pipeline이 다릅니다.
 
-| Dimension | EAGLE-3 | MTP (DeepSeek-V3) |
+| 차원 | EAGLE-3 | MTP(DeepSeek-V3) |
 |-----------|---------|------------------|
 | When trained | Post-pre-training | During pre-training |
 | Backward-compatible with existing weights | Yes | No (need to re-train) |
@@ -105,15 +105,15 @@ EAGLE trains a small draft model SEPARATELY after pre-training. MTP bakes the dr
 | Acceptance rate | 0.88-0.92 | 0.80+ at depth 1 |
 | Benefit beyond speedup | Speculative decoding only | Denser training signal + speedup |
 
-## Build It
+## 직접 만들기
 
-`code/main.py` builds a single MTP module end to end: shared embedding, projection, transformer block, shared output head. It then computes the per-depth cross-entropy loss on a short synthetic sequence and prints the parameter count by component. A toy vocabulary of 32 tokens keeps the numbers readable.
+`code/main.py`는 shared embedding, projection, transformer block, shared output head를 포함한 single MTP module을 end to end로 만듭니다. 이어서 짧은 synthetic sequence에서 per-depth cross-entropy loss를 계산하고 component별 parameter count를 출력합니다. 32 token의 toy vocabulary가 숫자를 읽기 쉽게 유지합니다.
 
-### Step 1: shared embedding table
+### 1단계: shared embedding table
 
-A single `vocab_size x hidden` table is used by the main model AND by every MTP module at every depth. Not a second copy — literally the same tensor.
+Single `vocab_size x hidden` table이 main model과 모든 depth의 모든 MTP module에 사용됩니다. 두 번째 copy가 아닙니다. 말 그대로 같은 tensor입니다.
 
-### Step 2: the per-depth combination
+### 2단계: depth별 combination
 
 ```python
 def combine(prev_hidden, next_token_embed, M_k):
@@ -123,78 +123,78 @@ def combine(prev_hidden, next_token_embed, M_k):
     return projected
 ```
 
-Real DeepSeek-V3 concatenates the two RMSNormed vectors to `[2h]` and projects with an `h x 2h` matrix. The toy uses vector addition for stdlib brevity.
+실제 DeepSeek-V3는 두 RMSNormed vector를 `[2h]`로 concat하고 `h x 2h` matrix로 projection합니다. Toy는 stdlib brevity를 위해 vector addition을 사용합니다.
 
-### Step 3: the transformer block at depth k
+### 3단계: depth k의 transformer block
 
-Self-attention plus MLP. In the toy, a one-layer linear attention block and a SwiGLU MLP keep the structure visible without numpy.
+Self-attention plus MLP입니다. Toy에서는 one-layer linear attention block과 SwiGLU MLP로 numpy 없이 구조를 보이게 유지합니다.
 
-### Step 4: the shared output head
+### 4단계: shared output head
 
-Reuse the main model's output projection. Logits over the vocabulary.
+Main model의 output projection을 재사용합니다. Vocabulary에 대한 logits입니다.
 
-### Step 5: per-depth loss
+### 5단계: depth별 loss
 
-Cross-entropy of softmax(logits) against the ground-truth token at offset `k`. Aggregate across depths with the `lambda / D` scaling factor.
+Offset `k`의 ground-truth token에 대한 softmax(logits)의 cross-entropy입니다. `lambda / D` scaling factor로 depth 전반을 aggregate합니다.
 
-### Step 6: parameter accounting
+### 6단계: parameter accounting
 
-Print the total parameter count, the shared (embedding, head) count, and the per-module extra count. Show the ratio of MTP extra to main-model size.
+Total parameter count, shared(embedding, head) count, per-module extra count를 출력합니다. Main-model size 대비 MTP extra ratio를 보이세요.
 
-## Use It
+## 활용하기
 
-MTP is integrated into DeepSeek-V3 (December 2024) and the DeepSeek-R1 series. At inference:
+MTP는 DeepSeek-V3(2024년 12월)와 DeepSeek-R1 series에 통합되어 있습니다. Inference에서는:
 
-- DeepSeek's own serving stack consumes MTP modules as speculative decoders out of the box.
-- vLLM and SGLang have integration paths for DeepSeek-V3 MTP as of April 2026.
-- AMD's ROCm SGLang tutorial shows a specific MTP speculative-decoding config with measured 1.8× speedup on the V3 checkpoint.
+- DeepSeek 자체 serving stack이 MTP module을 speculative decoder로 바로 사용합니다.
+- vLLM과 SGLang은 2026년 4월 기준 DeepSeek-V3 MTP integration path를 갖고 있습니다.
+- AMD의 ROCm SGLang tutorial은 V3 checkpoint에서 측정된 1.8× speedup과 함께 구체적 MTP speculative-decoding config를 보여 줍니다.
 
-When to use MTP in a new pre-training run:
+새 pre-training run에서 MTP를 사용할 때:
 
-- You control the full pre-training pipeline and want to bank denser training signal.
-- You know you will serve the model at scale and want speculative decoding for free.
-- Your hidden size is at least 4096. At 1B-scale the overhead hurts more than the gain helps.
+- Full pre-training pipeline을 제어하고 denser training signal을 확보하고 싶은 경우.
+- Model을 scale에서 serving할 것을 알고 speculative decoding을 무료로 얻고 싶은 경우.
+- Hidden size가 적어도 4096인 경우. 1B-scale에서는 overhead가 gain보다 더 아픕니다.
 
-When not to:
+쓰지 않을 때:
 
-- Fine-tuning an existing pre-trained dense model. The MTP module is not trained.
-- Research models where you want a clean baseline to compare against. MTP changes the architecture.
+- 기존 pre-trained dense model을 fine-tuning하는 경우. MTP module이 훈련되어 있지 않습니다.
+- 비교를 위한 clean baseline이 필요한 research model. MTP는 architecture를 바꿉니다.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-mtp-planner.md`. Given a pre-training run specification (model size, data, compute), it returns a plan for integrating MTP: number of depths D, `lambda` schedule, memory overhead, and the inference-time speculative-decoding wiring.
+이 lesson은 `outputs/skill-mtp-planner.md`를 생성합니다. Pre-training run specification(model size, data, compute)이 주어지면 MTP integration plan을 반환합니다. 여기에는 depth 수 D, `lambda` schedule, memory overhead, inference-time speculative-decoding wiring이 포함됩니다.
 
-## Exercises
+## 연습문제
 
-1. Run `code/main.py`. Show the per-depth loss decreases monotonically as the synthetic signal strengthens. Modify the synthetic to use a fixed pattern and verify both depth-1 and depth-2 losses converge.
+1. `code/main.py`를 실행하세요. Synthetic signal이 강해질수록 per-depth loss가 단조롭게 감소하는지 보이세요. Synthetic을 fixed pattern으로 바꾸고 depth-1과 depth-2 loss가 모두 수렴하는지 검증하세요.
 
-2. Compute the parameter overhead for a dense 70B model (hidden 8192, 80 layers) with D=1 MTP module. Compare to the DeepSeek-V3 reported 14B overhead. Explain why DeepSeek's number is higher: the MTP transformer block inherits the same MoE structure, inflating the per-module parameter count.
+2. D=1 MTP module을 가진 dense 70B model(hidden 8192, 80 layers)의 parameter overhead를 계산하세요. DeepSeek-V3가 보고한 14B overhead와 비교하세요. DeepSeek의 숫자가 더 큰 이유를 설명하세요. MTP transformer block이 같은 MoE structure를 상속해 per-module parameter count가 커지기 때문입니다.
 
-3. Implement D=2 in the toy: add a second MTP module that takes h^(1) and predicts `t_{i+2}`. Verify the joint loss and the parameter accounting match the DeepSeek paper's equations 19-21.
+3. Toy에서 D=2를 구현하세요. h^(1)을 받아 `t_{i+2}`를 예측하는 두 번째 MTP module을 추가하세요. Joint loss와 parameter accounting이 DeepSeek paper의 equations 19-21과 일치하는지 검증하세요.
 
-4. Switch the toy to parallel MTP (Gloeckle-style): add D output heads on top of the main hidden state, each predicting a different offset. Measure how the losses per depth compare to the sequential version on the same synthetic signal. The sequential version should produce lower depth-k loss for k > 1 because it conditions on the intermediate predictions.
+4. Toy를 parallel MTP(Gloeckle-style)로 바꾸세요. Main hidden state 위에 D개의 output head를 추가하고 각 head가 다른 offset을 예측하게 하세요. 같은 synthetic signal에서 sequential version과 depth별 loss를 비교하세요. Sequential version은 intermediate prediction에 conditioned되므로 k > 1에서 더 낮은 depth-k loss를 내야 합니다.
 
-5. Use the trained MTP module as an EAGLE-style draft: call module k to propose `t_{i+k}` at inference. Measure the acceptance rate of these draft tokens against the main model's predictions on a held-out sequence. If you hit 50%+ on the toy, you have reproduced the empirical MTP-as-draft property.
+5. Trained MTP module을 EAGLE-style draft로 사용하세요. Inference에서 module k를 호출해 `t_{i+k}`를 제안하세요. Held-out sequence에서 main model prediction 대비 draft token의 acceptance rate를 측정하세요. Toy에서 50%+에 도달하면 MTP-as-draft property를 empirical하게 재현한 것입니다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 말하는 뜻 | 실제 의미 |
 |------|----------------|------------------------|
-| MTP module | "Extra loss block" | A small transformer block plus projection that predicts a token `k` positions ahead of the main model |
-| Prediction depth | "Which offset" | The integer `k` such that module `k` predicts `t_{i+k}` from prefix through position `i` |
-| Parallel MTP | "Gloeckle-style" | D independent heads on the same backbone hidden state, no conditional chain |
-| Sequential MTP | "DeepSeek-V3 style" | Each module conditions on the previous depth's hidden state plus the next token's embedding; preserves causal chain |
-| Shared output head | "Reuse the main head" | The MTP modules call the main model's LM head, not a separate output projection |
-| Shared embedding | "Reuse the main table" | Same vocabulary embedding table is used everywhere; no duplicate parameters |
-| Projection matrix M_k | "Combine hidden + next-token" | An `h x 2h` linear layer that folds the previous hidden state and the target-token embedding into the next depth's input |
-| Joint loss L_MTP | "Averaged extra losses" | Arithmetic mean of per-depth cross-entropy losses, scaled by `lambda` |
-| Acceptance rate at depth 1 | "How often MTP draft is right" | The rate at which the D=1 MTP module's top-1 prediction equals the main model's top-1 prediction; 80%+ on DeepSeek-V3 |
-| Lambda weighting | "Extra-loss importance" | Per-depth scaling factor; 0.3 at start of training, 0.1 later on DeepSeek-V3 |
+| MTP module | "Extra loss block" | Main model보다 `k` position 앞의 token을 예측하는 small transformer block plus projection입니다 |
+| Prediction depth | "어떤 offset인가" | Module `k`가 position `i`까지의 prefix에서 `t_{i+k}`를 예측한다는 integer `k`입니다 |
+| Parallel MTP | "Gloeckle-style" | 같은 backbone hidden state 위의 D independent heads입니다. Conditional chain이 없습니다 |
+| Sequential MTP | "DeepSeek-V3 style" | 각 module이 previous depth hidden state와 next token embedding에 conditioned됩니다. Causal chain을 보존합니다 |
+| Shared output head | "Main head 재사용" | MTP module은 별도 output projection이 아니라 main model의 LM head를 호출합니다 |
+| Shared embedding | "Main table 재사용" | 같은 vocabulary embedding table을 모든 곳에서 사용합니다. Duplicate parameter가 없습니다 |
+| Projection matrix M_k | "hidden + next-token 결합" | Previous hidden state와 target-token embedding을 next depth input으로 접는 `h x 2h` linear layer입니다 |
+| Joint loss L_MTP | "평균 extra losses" | Per-depth cross-entropy loss의 arithmetic mean에 `lambda`를 곱한 것입니다 |
+| Acceptance rate at depth 1 | "MTP draft가 맞는 빈도" | D=1 MTP module의 top-1 prediction이 main model의 top-1 prediction과 같은 비율입니다. DeepSeek-V3에서 80%+입니다 |
+| Lambda weighting | "Extra-loss 중요도" | Per-depth scaling factor입니다. DeepSeek-V3에서는 훈련 초기에 0.3, 이후 0.1입니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [DeepSeek-AI — DeepSeek-V3 Technical Report (arXiv:2412.19437)](https://arxiv.org/abs/2412.19437) — the full sequential MTP description (Section 2.2), including the joint-loss equations and the 1.8× speedup at inference
-- [Gloeckle et al. — Better & Faster Large Language Models via Multi-token Prediction (arXiv:2404.19737)](https://arxiv.org/abs/2404.19737) — the parallel MTP baseline DeepSeek's design improves on
-- [DeepSeek-V3 model card on Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V3) — 685B total (671B main + 14B MTP), deployment notes
-- [Leviathan et al. — Fast Inference from Transformers via Speculative Decoding (arXiv:2211.17192)](https://arxiv.org/abs/2211.17192) — the speculative-decoding framework MTP fits into
-- [Li et al. — EAGLE-3 (arXiv:2503.01840)](https://arxiv.org/abs/2503.01840) — EAGLE's 2025 draft architecture, the counterpart MTP competes with
+- [DeepSeek-AI — DeepSeek-V3 Technical Report (arXiv:2412.19437)](https://arxiv.org/abs/2412.19437) — joint-loss equation과 inference 1.8× speedup을 포함한 full sequential MTP description(Section 2.2)
+- [Gloeckle et al. — Better & Faster Large Language Models via Multi-token Prediction (arXiv:2404.19737)](https://arxiv.org/abs/2404.19737) — DeepSeek design이 개선한 parallel MTP baseline
+- [DeepSeek-V3 model card on Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V3) — 685B total(671B main + 14B MTP), deployment notes
+- [Leviathan et al. — Fast Inference from Transformers via Speculative Decoding (arXiv:2211.17192)](https://arxiv.org/abs/2211.17192) — MTP가 들어맞는 speculative-decoding framework
+- [Li et al. — EAGLE-3 (arXiv:2503.01840)](https://arxiv.org/abs/2503.01840) — MTP가 경쟁하는 counterpart인 EAGLE의 2025 draft architecture

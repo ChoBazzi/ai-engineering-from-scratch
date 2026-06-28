@@ -1,30 +1,30 @@
-# Build a Complete Vision Pipeline — Capstone
+# 완전한 비전 파이프라인 만들기 - 캡스톤
 
-> A production vision system is a chain of models and rules stitched with data contracts. The pieces are already in this phase; the capstone wires them together end-to-end.
+> 프로덕션 비전 시스템은 데이터 계약으로 이어 붙인 모델과 규칙의 사슬입니다. 조각들은 이미 이 단계에 있습니다. 캡스톤은 그것들을 끝에서 끝까지 연결합니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 4 Lessons 01-15
-**Time:** ~120 minutes
+**Time:** ~120분
 
-## Learning Objectives
+## 학습 목표
 
-- Design a production vision pipeline that detects objects, classifies them, and emits structured JSON — with every failure path handled
-- Plug a detector (Mask R-CNN or YOLO), a classifier (ConvNeXt-Tiny), and a data contract (Pydantic) into one service
-- Benchmark the end-to-end pipeline and identify the first bottleneck (usually preprocessing, then the detector)
-- Ship a minimal FastAPI service that accepts an image upload, runs the pipeline, and returns detections with classifications
+- 객체를 감지하고 분류한 뒤 구조화된 JSON을 내보내는 프로덕션 비전 파이프라인을 설계합니다. 모든 실패 경로를 처리합니다
+- detector(Mask R-CNN 또는 YOLO), classifier(ConvNeXt-Tiny), 데이터 계약(Pydantic)을 하나의 서비스에 연결합니다
+- 엔드투엔드 파이프라인을 벤치마크하고 첫 번째 병목(보통 전처리, 그다음 detector)을 식별합니다
+- 이미지 업로드를 받아 파이프라인을 실행하고 분류가 붙은 detection을 반환하는 최소 FastAPI 서비스를 출시합니다
 
-## The Problem
+## 문제
 
-Individual vision models are useful; vision products are chains of them. A retail shelf audit is a detector plus a product classifier plus a price-OCR pipeline. Autonomous driving is a 2D detector plus a 3D detector plus a segmenter plus a tracker plus a planner. A medical pre-screen is a segmenter plus a region classifier plus a clinician UI.
+개별 비전 모델은 유용하지만, 비전 제품은 모델들의 사슬입니다. 소매 진열대 감사는 detector에 제품 classifier와 가격 OCR 파이프라인을 더한 것입니다. 자율주행은 2D detector, 3D detector, segmenter, tracker, planner의 조합입니다. 의료 사전 선별은 segmenter, 영역 classifier, 임상의 UI의 조합입니다.
 
-Wiring those chains is the part that separates a ML prototype from a product. Every interface between models is a new place for bugs. Every coordinate transform, every normalisation, every mask resize is a silent-failure candidate. A pipeline is as strong as its weakest interface.
+이 사슬을 연결하는 일이 ML 프로토타입과 제품을 가릅니다. 모델 사이의 모든 인터페이스는 새로운 버그 지점입니다. 모든 좌표 변환, 모든 정규화, 모든 mask resize는 조용한 실패 후보입니다. 파이프라인은 가장 약한 인터페이스만큼만 강합니다.
 
-This capstone sets up the minimum viable pipeline: detection + classification + structured output + a serving layer. Everything else in Phase 4 slots into this skeleton: swap Mask R-CNN for YOLOv8, add a OCR head, add a segmentation branch, add a tracker. The architecture is stable; the pieces are pluggable.
+이 캡스톤은 최소 실행 가능한 파이프라인을 세웁니다. detection + classification + 구조화된 출력 + serving layer입니다. Phase 4의 다른 모든 것은 이 뼈대에 꽂을 수 있습니다. Mask R-CNN을 YOLOv8로 바꾸고, OCR head를 추가하고, segmentation branch를 추가하고, tracker를 추가하세요. 아키텍처는 안정적이고 조각들은 교체 가능합니다.
 
-## The Concept
+## 개념
 
-### The pipeline
+### 파이프라인
 
 ```mermaid
 flowchart LR
@@ -43,13 +43,13 @@ flowchart LR
     style SCHEMA fill:#dcfce7,stroke:#16a34a
 ```
 
-Seven stages. The two model stages are expensive; the five other stages are where the bugs live.
+일곱 단계입니다. 두 모델 단계는 비용이 큽니다. 나머지 다섯 단계에는 버그가 숨어 있습니다.
 
-### Data contracts with Pydantic
+### Pydantic으로 만드는 데이터 계약
 
-Every model boundary becomes a typed object. This turns silent failures into loud ones.
+모든 모델 경계는 타입이 있는 객체가 됩니다. 이것은 조용한 실패를 크게 드러나는 실패로 바꿉니다.
 
-```
+```text
 Detection(
     box: tuple[float, float, float, float],   # (x1, y1, x2, y2), absolute pixels
     score: float,                              # [0, 1]
@@ -65,35 +65,35 @@ PipelineResult(
 )
 ```
 
-When a detector returns boxes in `(cx, cy, w, h)` instead of `(x1, y1, x2, y2)`, Pydantic's validation fails at the boundary and you find out immediately instead of debugging a downstream crop that silently returns empty regions.
+detector가 `(x1, y1, x2, y2)` 대신 `(cx, cy, w, h)` 상자를 반환하면 Pydantic 검증이 경계에서 실패합니다. 그러면 조용히 빈 영역을 반환하는 downstream crop을 디버깅하는 대신 즉시 알 수 있습니다.
 
-### Where latency goes
+### 지연 시간이 쓰이는 곳
 
-Three truths hold in nearly every vision pipeline:
+거의 모든 비전 파이프라인에서 세 가지 사실이 성립합니다.
 
-1. **Preprocessing is often the biggest single block.** Decoding JPEGs, converting colour spaces, resizing — these are CPU-bound and easy to forget.
-2. **The detector dominates GPU time.** 70-90% of GPU time is in the detection forward pass.
-3. **Postprocessing (NMS, RLE encode/decode) is cheap on GPU, expensive on CPU.** Always profile with the actual target.
+1. **전처리가 가장 큰 단일 블록인 경우가 많습니다.** JPEG decoding, color space 변환, resizing은 CPU-bound이며 잊기 쉽습니다.
+2. **detector가 GPU 시간을 지배합니다.** GPU 시간의 70-90%는 detection forward pass에 있습니다.
+3. **후처리(NMS, RLE encode/decode)는 GPU에서는 싸고 CPU에서는 비쌉니다.** 항상 실제 대상에서 프로파일링하세요.
 
-Knowing the distribution is what turns optimisation into a prioritised list.
+분포를 아는 것이 최적화를 우선순위 목록으로 바꿉니다.
 
-### Failure modes
+### 실패 모드
 
-- **Empty detections** — return empty list, do not crash. Log.
-- **Out-of-bounds boxes** — clamp to image size before cropping.
-- **Tiny crops** — skip classification for boxes smaller than the classifier's minimum input.
-- **Corrupt upload** — 400 response with a specific error code, not 500.
-- **Model load failure** — fail at service startup, not at first request.
+- **빈 detection**: 빈 리스트를 반환하고 crash하지 않습니다. 로그를 남깁니다.
+- **범위를 벗어난 box**: crop 전에 이미지 크기로 clamp합니다.
+- **너무 작은 crop**: classifier의 최소 입력보다 작은 box는 classification을 건너뜁니다.
+- **손상된 upload**: 500이 아니라 구체적인 error code가 있는 400 response를 반환합니다.
+- **모델 load 실패**: 첫 request가 아니라 service startup에서 실패합니다.
 
-A production pipeline handles each of these without writing generic `try/except` that hides the failure. Every failure gets a named code and a response.
+프로덕션 파이프라인은 실패를 숨기는 일반적인 `try/except` 없이 각각을 처리합니다. 모든 실패에는 이름 있는 code와 response가 있습니다.
 
-### Batching
+### 배칭
 
-A production service serves multiple clients. Batching detections and classifications across requests multiplies throughput. The trade-off: extra latency from waiting for a batch to fill. Typical setup: collect requests for up to 20ms, batch together, process, distribute responses. `torchserve` and `triton` do this natively; small services with predictable load roll their own micro-batcher.
+프로덕션 서비스는 여러 클라이언트를 처리합니다. request 간 detection과 classification을 배치하면 처리량이 증가합니다. 트레이드오프는 batch가 찰 때까지 기다리는 추가 지연 시간입니다. 일반적인 설정은 최대 20ms 동안 request를 모아 함께 batch 처리한 뒤 response를 분배하는 것입니다. `torchserve`와 `triton`은 이를 기본으로 지원합니다. 예측 가능한 부하의 작은 서비스는 자체 micro-batcher를 만듭니다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: Data contracts
+### 1단계: 데이터 계약
 
 ```python
 from pydantic import BaseModel, Field
@@ -120,9 +120,9 @@ class PipelineResult(BaseModel):
     inference_ms: float
 ```
 
-Five seconds of code saves an hour of debugging on any serious pipeline.
+5초짜리 코드가 진지한 파이프라인에서 한 시간의 디버깅을 아껴 줍니다.
 
-### Step 2: A minimal Pipeline class
+### 2단계: 최소 Pipeline 클래스
 
 ```python
 import time
@@ -211,9 +211,9 @@ class VisionPipeline:
         )
 ```
 
-Every interface is typed. Every failure path has a specific handling decision.
+모든 인터페이스에 타입이 있습니다. 모든 실패 경로에는 구체적인 처리 결정이 있습니다.
 
-### Step 3: Wire a detector and a classifier
+### 3단계: detector와 classifier 연결하기
 
 ```python
 from torchvision.models.detection import maskrcnn_resnet50_fpn_v2
@@ -232,7 +232,7 @@ result = pipe.run(test_image, image_id="demo")
 print(result.model_dump_json(indent=2)[:500])
 ```
 
-### Step 4: FastAPI service
+### 4단계: FastAPI 서비스
 
 ```python
 from fastapi import FastAPI, UploadFile, HTTPException
@@ -261,9 +261,9 @@ async def detect_endpoint(file: UploadFile):
     return result.model_dump()
 ```
 
-Run with `uvicorn main:app --host 0.0.0.0 --port 8000`. Test with `curl -F 'file=@dog.jpg' http://localhost:8000/detect`.
+`uvicorn main:app --host 0.0.0.0 --port 8000`로 실행합니다. `curl -F 'file=@dog.jpg' http://localhost:8000/detect`로 테스트합니다.
 
-### Step 5: Benchmark the pipeline
+### 5단계: 파이프라인 벤치마크
 
 ```python
 import time
@@ -302,49 +302,49 @@ def benchmark(pipe, num_runs=20, image_size=(400, 600)):
         print(f"{stage:12s}  p50={times[len(times)//2]:7.1f} ms  p95={times[int(len(times)*0.95)]:7.1f} ms")
 ```
 
-Typical output on CPU: preprocess ~3 ms, detect 300-500 ms, classify 20-40 ms, total 350-550 ms. On GPU, detect is 20-40 ms and the preprocess + classify start to matter more in relative terms.
+CPU의 일반적인 출력은 preprocess ~3 ms, detect 300-500 ms, classify 20-40 ms, total 350-550 ms입니다. GPU에서는 detect가 20-40 ms이고 preprocess + classify가 상대적으로 더 중요해지기 시작합니다.
 
-## Use It
+## 활용하기
 
-Production templates converge to the same structure, plus:
+프로덕션 템플릿은 같은 구조에 다음을 더하는 형태로 수렴합니다.
 
-- **Model versioning** — always log the model name and weights hash in the response.
-- **Per-request trace IDs** — log every stage timing for every request so you can correlate slow responses with stages.
-- **Fallback path** — if the classifier times out, return detections without classifications rather than failing the whole request.
-- **Safety filters** — NSFW / PII filters run after classification, before the response leaves the service.
-- **Batch endpoint** — a `/detect_batch` accepting a list of image URLs for bulk processing.
+- **모델 버전 관리**: response에 항상 모델 이름과 weights hash를 기록합니다.
+- **request별 trace ID**: 느린 response를 stage와 연결할 수 있도록 모든 request의 모든 stage timing을 기록합니다.
+- **fallback path**: classifier가 timeout되면 전체 request를 실패시키지 말고 classification 없는 detection을 반환합니다.
+- **safety filter**: NSFW / PII filter는 classification 뒤, response가 서비스를 떠나기 전에 실행됩니다.
+- **batch endpoint**: 대량 처리를 위해 이미지 URL 리스트를 받는 `/detect_batch`입니다.
 
-For production serving, `torchserve`, `Triton Inference Server`, and `BentoML` handle batching, versioning, metrics, and health checks out of the box. Running `FastAPI` directly is fine for prototypes and small-scale products.
+프로덕션 serving에서는 `torchserve`, `Triton Inference Server`, `BentoML`이 batching, versioning, metrics, health check를 기본으로 처리합니다. `FastAPI`를 직접 실행하는 것은 prototype과 작은 규모의 제품에는 괜찮습니다.
 
-## Ship It
+## 출시하기
 
-This lesson produces:
+이 레슨의 산출물:
 
-- `outputs/prompt-vision-service-shape-reviewer.md` — a prompt that reviews a vision service's code for contract/response shape violations and names the first breaking bug.
-- `outputs/skill-pipeline-budget-planner.md` — a skill that, given target latency and throughput, assigns a time budget to every pipeline stage and flags which stage will miss its budget first.
+- `outputs/prompt-vision-service-shape-reviewer.md`: 비전 서비스 코드의 contract/response shape 위반을 검토하고 첫 번째 breaking bug를 이름 붙이는 프롬프트입니다.
+- `outputs/skill-pipeline-budget-planner.md`: 목표 지연 시간과 처리량이 주어지면 모든 pipeline stage에 시간 예산을 배정하고 어떤 stage가 먼저 예산을 놓칠지 표시하는 스킬입니다.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Run the pipeline on 10 images from any open dataset. Report the average time per stage and the distribution of detection counts per image.
-2. **(Medium)** Add a mask output field to `Detection` and encode it as RLE. Verify the JSON stays under 1MB even for a 10-object image.
-3. **(Hard)** Add a micro-batcher in front of the classifier: collect crops for up to 10 ms, classify them all in one GPU call, return results per request. Measure the throughput gain at 5 concurrent requests per second and the latency added.
+1. **(Easy)** 공개 데이터셋의 이미지 10장에서 파이프라인을 실행하세요. stage별 평균 시간과 이미지별 detection 개수 분포를 보고하세요.
+2. **(Medium)** `Detection`에 mask output field를 추가하고 RLE로 인코딩하세요. 객체 10개짜리 이미지에서도 JSON이 1MB 미만으로 유지되는지 검증하세요.
+3. **(Hard)** classifier 앞에 micro-batcher를 추가하세요. 최대 10 ms 동안 crop을 모아 GPU call 한 번으로 모두 분류하고 request별 결과를 반환합니다. 초당 동시 request 5개에서 처리량 증가와 추가된 지연 시간을 측정하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Pipeline | "The system" | An ordered chain of preprocessing, inference, and postprocessing steps with a typed interface between each pair |
-| Data contract | "The schema" | Pydantic / dataclass definitions that every stage input and output conforms to; catches integration bugs at the boundary |
-| Preprocessing | "Before the model" | Decoding, colour conversion, resizing, normalising; usually the biggest CPU time sink |
-| Postprocessing | "After the model" | NMS, mask resize, threshold, RLE encode; cheap on GPU, expensive on CPU |
-| Microbatcher | "Collect then forward" | Aggregator that waits a fixed window for multiple requests, runs a single batched forward pass |
-| Trace ID | "Request id" | Per-request identifier logged at every stage so slow requests can be traced end-to-end |
-| Failure code | "Named error" | Specific error code per failure class instead of generic 500; enables client retry logic |
-| Health check | "Readiness probe" | Cheap endpoint that reports whether the service can answer; loadbalancers rely on this |
+| Pipeline | "시스템" | 전처리, 추론, 후처리 단계를 순서대로 이은 사슬이며 각 쌍 사이에 타입이 있는 인터페이스가 있습니다 |
+| Data contract | "스키마" | 모든 stage input과 output이 따르는 Pydantic / dataclass 정의입니다. 경계에서 통합 버그를 잡습니다 |
+| Preprocessing | "모델 전" | decoding, color conversion, resizing, normalising입니다. 보통 CPU 시간의 가장 큰 소모처입니다 |
+| Postprocessing | "모델 후" | NMS, mask resize, threshold, RLE encode입니다. GPU에서는 싸고 CPU에서는 비쌉니다 |
+| Microbatcher | "모아서 forward" | 고정 window 동안 여러 request를 기다린 뒤 단일 batched forward pass를 실행하는 aggregator입니다 |
+| Trace ID | "request id" | 느린 request를 end-to-end로 추적할 수 있도록 모든 stage에 기록되는 request별 식별자입니다 |
+| Failure code | "이름 있는 error" | generic 500 대신 실패 class별 구체적인 error code입니다. client retry logic을 가능하게 합니다 |
+| Health check | "readiness probe" | 서비스가 응답할 수 있는지 알려주는 저렴한 endpoint입니다. loadbalancer가 이에 의존합니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Full Stack Deep Learning — Deploying Models](https://fullstackdeeplearning.com/course/2022/lecture-5-deployment/) — the canonical overview of production ML deployment
-- [BentoML docs](https://docs.bentoml.com) — serving framework with batching, versioning, and metrics
-- [torchserve docs](https://pytorch.org/serve/) — PyTorch's official serving library
-- [NVIDIA Triton Inference Server](https://developer.nvidia.com/triton-inference-server) — high-throughput serving with batching and multi-model support
+- [Full Stack Deep Learning: Deploying Models](https://fullstackdeeplearning.com/course/2022/lecture-5-deployment/): 프로덕션 ML 배포의 표준 개요
+- [BentoML docs](https://docs.bentoml.com): batching, versioning, metrics를 갖춘 serving framework
+- [torchserve docs](https://pytorch.org/serve/): PyTorch의 공식 serving library
+- [NVIDIA Triton Inference Server](https://developer.nvidia.com/triton-inference-server): batching과 multi-model을 지원하는 고처리량 serving

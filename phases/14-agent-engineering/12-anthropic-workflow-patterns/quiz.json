@@ -1,34 +1,34 @@
 {
   "lesson": "12-anthropic-workflow-patterns",
-  "title": "Anthropic's Workflow Patterns: Simple Over Complex",
+  "title": "Anthropic의 Workflow Patterns: 복잡함보다 단순함",
   "questions": [
     {
       "stage": "pre",
-      "question": "How does Anthropic distinguish a workflow from an agent?",
+      "question": "Anthropic은 workflow와 agent를 어떻게 구분하나요?",
       "options": [
-        "Workflows use embeddings; agents use tools",
-        "Workflows are engineer-owned predefined graphs; agents are model-owned dynamic tool direction",
-        "Workflows run on CPUs; agents need GPUs",
-        "Workflows are stateless; agents are stateful"
+        "Workflow는 embedding을 쓰고 agent는 tool을 씁니다",
+        "Workflow는 engineer-owned predefined graph이고 agent는 model-owned dynamic tool direction입니다",
+        "Workflow는 CPU에서 돌고 agent는 GPU가 필요합니다",
+        "Workflow는 stateless이고 agent는 stateful입니다"
       ],
       "correct": 1,
-      "explanation": "Workflow = predefined code path the engineer owns; agent = the model owns the graph."
+      "explanation": "Workflow는 engineer가 소유하는 predefined code path이고, agent는 model이 graph를 소유합니다."
     },
     {
       "stage": "pre",
-      "question": "What are the three capabilities of the augmented LLM that underpins all five patterns?",
+      "question": "다섯 pattern의 바탕이 되는 augmented LLM의 세 capability는 무엇인가요?",
       "options": [
-        "Search (retrieval), tools (actions), memory (persistence)",
+        "Search(retrieval), tools(actions), memory(persistence)",
         "Embeddings, fine-tuning, RAG",
         "Vector, KV, graph",
         "Plan, execute, reflect"
       ],
       "correct": 0,
-      "explanation": "The atomic unit is one LLM with retrieval, tools, and memory wired in."
+      "explanation": "Atomic unit은 retrieval, tools, memory가 연결된 하나의 LLM입니다."
     },
     {
       "stage": "check",
-      "question": "Which is NOT one of the five Anthropic workflow patterns?",
+      "question": "다음 중 Anthropic의 다섯 workflow pattern이 아닌 것은 무엇인가요?",
       "options": [
         "Prompt chaining",
         "Routing",
@@ -36,23 +36,23 @@
         "Gradient distillation"
       ],
       "correct": 3,
-      "explanation": "The five are prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer. Gradient distillation is a training concept."
+      "explanation": "다섯 pattern은 prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer입니다. Gradient distillation은 training concept입니다."
     },
     {
       "stage": "check",
-      "question": "Which two shapes does parallelization come in?",
+      "question": "Parallelization은 어떤 두 형태로 나뉘나요?",
       "options": [
-        "Sync and async",
-        "Sectioning (different chunks) and voting (same prompt N times, aggregate)",
-        "Hot and cold",
-        "Stateful and stateless"
+        "Sync와 async",
+        "Sectioning(서로 다른 chunk)과 voting(같은 prompt를 N번 실행하고 aggregate)",
+        "Hot과 cold",
+        "Stateful과 stateless"
       ],
       "correct": 1,
-      "explanation": "Parallelization is sectioning or voting; both fan out N calls and aggregate."
+      "explanation": "Parallelization은 sectioning 또는 voting입니다. 둘 다 N call을 fan out하고 aggregate합니다."
     },
     {
       "stage": "check",
-      "question": "Which workflow pattern is Self-Refine generalized?",
+      "question": "Self-Refine을 일반화한 workflow pattern은 무엇인가요?",
       "options": [
         "Prompt chaining",
         "Routing",
@@ -60,31 +60,31 @@
         "Evaluator-optimizer"
       ],
       "correct": 3,
-      "explanation": "Evaluator-optimizer is the Anthropic name for the Self-Refine / CRITIC iterative pattern."
+      "explanation": "Evaluator-optimizer는 Self-Refine / CRITIC iterative pattern에 대한 Anthropic의 이름입니다."
     },
     {
       "stage": "post",
-      "question": "When do workflows beat agents according to the lesson?",
+      "question": "Lesson에 따르면 workflow는 언제 agent보다 낫나요?",
       "options": [
-        "Always",
-        "On predictable, cost-bounded, or compliance-bounded tasks where the graph can be enumerated and audited",
-        "Only for chat",
-        "Only on GPUs"
+        "항상",
+        "Graph를 enumerate하고 audit할 수 있는 predictable, cost-bounded, compliance-bounded task에서",
+        "Chat에만",
+        "GPU에서만"
       ],
       "correct": 1,
-      "explanation": "Workflows are cheaper, easier to debug, and auditable; pick them when steps are knowable."
+      "explanation": "Workflow는 더 저렴하고 debug하기 쉬우며 audit 가능합니다. Step을 알 수 있을 때 선택하세요."
     },
     {
       "stage": "post",
-      "question": "What is the lesson's recommended default starting point?",
+      "question": "이 lesson이 권장하는 기본 시작점은 무엇인가요?",
       "options": [
-        "A multi-agent framework",
-        "Direct API calls; add frameworks only when durable state, actor concurrency, or role templating earns its cost",
-        "Fine-tune the model",
-        "Build a custom MCTS"
+        "Multi-agent framework",
+        "Direct API call. Durable state, actor concurrency, role templating이 비용을 벌어낼 때만 framework를 추가합니다",
+        "Model fine-tuning",
+        "Custom MCTS 구축"
       ],
       "correct": 1,
-      "explanation": "Schluntz and Zhang: start simple; add framework complexity only when justified."
+      "explanation": "Schluntz와 Zhang의 지침은 단순하게 시작하고 정당화될 때만 framework complexity를 추가하라는 것입니다."
     }
   ]
 }

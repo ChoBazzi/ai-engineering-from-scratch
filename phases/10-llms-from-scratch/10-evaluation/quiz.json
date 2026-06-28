@@ -1,37 +1,37 @@
 [
   {
-    "question": "Why have benchmarks like MMLU become less useful for comparing frontier models?",
-    "options": ["They test the wrong subjects", "Frontier models have saturated MMLU (scoring 86-89%), compressing the leaderboard to a range where differences are statistical noise", "MMLU was designed for smaller models", "The questions are too easy"],
+    "question": "MMLU 같은 benchmark가 frontier model 비교에 덜 유용해진 이유는 무엇인가요?",
+    "options": ["잘못된 과목을 테스트하기 때문에", "frontier model이 MMLU를 포화시켜 86-89%를 기록하고, leaderboard 차이가 통계적 noise 수준으로 압축되었기 때문에", "MMLU가 작은 모델용으로 설계되었기 때문에", "문제가 너무 쉽기 때문에"],
     "correct": 1,
-    "explanation": "When GPT-4, Claude 3, and Llama 3 all score 86-89% on MMLU, a 1-point difference is not meaningful. The benchmark no longer discriminates between models, yet it still dominates leaderboard culture.",
+    "explanation": "GPT-4, Claude 3, Llama 3가 모두 MMLU에서 86-89%를 기록하면 1점 차이는 의미가 없습니다. benchmark는 더 이상 모델을 잘 구분하지 못하지만 여전히 leaderboard 문화를 지배합니다.",
     "stage": "pre"
   },
   {
-    "question": "What is Goodhart's Law in the context of LLM evaluation?",
-    "options": ["A law about model scaling", "When a measure becomes a target, it ceases to be a good measure -- models and teams optimize for benchmarks instead of real capabilities", "A rule about learning rate schedules", "A theorem about attention mechanisms"],
+    "question": "LLM 평가 맥락에서 Goodhart's Law란 무엇인가요?",
+    "options": ["model scaling에 관한 법칙", "측정 지표가 목표가 되는 순간 좋은 측정 지표가 아니게 된다는 법칙. 모델과 팀이 실제 능력이 아니라 benchmark에 최적화한다", "learning rate schedule에 관한 규칙", "attention mechanism에 관한 정리"],
     "correct": 1,
-    "explanation": "Labs optimize for benchmark scores (data contamination, benchmark-specific prompting). The score goes up, but real-world capability doesn't necessarily improve. Your own task-specific eval is the only reliable measure.",
+    "explanation": "연구소는 benchmark score에 최적화합니다(data contamination, benchmark-specific prompting). 점수는 오르지만 실제 능력이 반드시 좋아지지는 않습니다. 자신의 task-specific eval만이 신뢰할 수 있는 측정입니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the LLM-as-judge evaluation approach?",
-    "options": ["Having a human judge evaluate every response", "Using a strong LLM (e.g., GPT-4) to score responses against rubrics, replacing expensive human evaluation at scale", "Training a separate classifier for evaluation", "Using the model to evaluate itself"],
+    "question": "LLM-as-judge 평가 방식은 무엇인가요?",
+    "options": ["human judge가 모든 응답을 평가하게 하는 것", "강한 LLM(예: GPT-4)이 rubric에 따라 응답에 점수를 매기게 해 비싼 human evaluation을 scale에서 대체하는 것", "평가용 classifier를 따로 학습하는 것", "모델이 자기 자신을 평가하게 하는 것"],
     "correct": 1,
-    "explanation": "LLM-as-judge uses a capable model to score responses against defined criteria. It's cheaper and faster than human evaluation, though it has biases (e.g., preferring verbose responses) that must be calibrated.",
+    "explanation": "LLM-as-judge는 능력 있는 모델을 사용해 정의된 기준에 따라 응답을 채점합니다. human evaluation보다 싸고 빠르지만, 장황한 응답을 선호하는 등의 bias가 있어 보정해야 합니다.",
     "stage": "post"
   },
   {
-    "question": "Why is building a custom evaluation suite important rather than relying on public benchmarks?",
-    "options": ["Public benchmarks are always wrong", "Public benchmarks test general capabilities; your application has specific requirements that only a custom eval can measure", "Custom evals are easier to build", "Public benchmarks are too expensive"],
+    "question": "public benchmark에 의존하지 않고 custom evaluation suite를 만드는 것이 중요한 이유는 무엇인가요?",
+    "options": ["public benchmark는 항상 틀리기 때문에", "public benchmark는 일반 능력을 테스트하지만, 당신의 application에는 custom eval만 측정할 수 있는 구체적 요구사항이 있기 때문에", "custom eval이 만들기 더 쉽기 때문에", "public benchmark가 너무 비싸기 때문에"],
     "correct": 1,
-    "explanation": "A model scoring 90% on MMLU might fail on your specific task (e.g., extracting dates from legal documents in your format). Only a custom eval with your data, your edge cases, and your success criteria measures what matters.",
+    "explanation": "MMLU에서 90%를 받은 모델도 당신의 구체적 작업(예: 특정 형식의 법률 문서에서 날짜 추출)에서는 실패할 수 있습니다. 당신의 데이터, edge case, 성공 기준을 담은 custom eval만이 중요한 것을 측정합니다.",
     "stage": "post"
   },
   {
-    "question": "What is data contamination in the context of LLM benchmarks?",
-    "options": ["When training data is corrupted", "When benchmark questions appear in the model's pre-training data, inflating scores without reflecting true capability", "When the model generates incorrect data", "When evaluation data is mislabeled"],
+    "question": "LLM benchmark 맥락에서 data contamination이란 무엇인가요?",
+    "options": ["training data가 손상된 경우", "benchmark question이 모델의 pre-training data에 들어가 진짜 능력을 반영하지 않은 채 점수가 부풀려지는 경우", "모델이 잘못된 데이터를 생성하는 경우", "evaluation data가 잘못 label된 경우"],
     "correct": 1,
-    "explanation": "If MMLU questions appeared in the training corpus, the model memorized the answers rather than reasoning about them. This inflates scores and makes benchmark comparisons unreliable. It's a growing problem as training corpora expand.",
+    "explanation": "MMLU question이 training corpus에 있었다면 모델은 추론한 것이 아니라 답을 암기했을 수 있습니다. 이는 점수를 부풀리고 benchmark 비교를 불신하게 만듭니다. training corpus가 커질수록 더 커지는 문제입니다.",
     "stage": "post"
   }
 ]

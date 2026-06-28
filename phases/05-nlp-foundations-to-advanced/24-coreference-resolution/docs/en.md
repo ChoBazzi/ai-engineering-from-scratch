@@ -1,30 +1,30 @@
 # Coreference Resolution
 
-> "She called him. He did not answer. The doctor was at lunch." Three references to two people and nobody is named. Coreference resolution figures out who is who.
+> "She called him. He did not answer. The doctor was at lunch." 이름이 나오지 않아도 세 reference가 두 사람을 가리킨다. Coreference resolution은 누가 누구인지 알아낸다.
 
 **Type:** Learn
 **Languages:** Python
 **Prerequisites:** Phase 5 · 06 (NER), Phase 5 · 07 (POS & Parsing)
 **Time:** ~60 minutes
 
-## The Problem
+## 문제
 
-Extract every mention of Apple Inc. from a 300-word article. Easy when the article says "Apple." Hard when it says "the company," "they," "Cupertino's technology giant," or "Jobs's firm." Without resolving these mentions to the same entity, your NER pipeline misses 60-80% of the mentions.
+300-word article에서 Apple Inc.의 모든 mention을 추출하라. article이 "Apple"이라고 말하면 쉽다. "the company", "they", "Cupertino's technology giant", "Jobs's firm"이라고 말하면 어렵다. 이 mention들을 같은 entity로 resolve하지 않으면 NER pipeline은 mention의 60-80%를 놓친다.
 
-Coreference resolution links every expression that refers to the same real-world entity into one cluster. It is the glue between surface-level NLP (NER, parsing) and downstream semantics (IE, QA, summarization, KG).
+Coreference resolution은 같은 real-world entity를 가리키는 모든 expression을 하나의 cluster로 연결한다. 이는 surface-level NLP(NER, parsing)와 downstream semantics(IE, QA, summarization, KG)를 이어 주는 접착제다.
 
-Why it matters in 2026:
+2026년에 중요한 이유:
 
-- Summarization: "The CEO announced..." vs "Tim Cook announced..." — the summary should name the CEO.
-- Question answering: "Who did she call?" requires resolving "she."
-- Information extraction: a knowledge graph with "PER1 founded Apple" and "Jobs founded Apple" as separate entries is wrong.
-- Multi-document IE: merging mentions across articles about the same event is cross-document coreference.
+- Summarization: "The CEO announced..."와 "Tim Cook announced..." 중 summary는 CEO의 이름을 말해야 한다.
+- Question answering: "Who did she call?"에는 "she"를 resolve해야 한다.
+- Information extraction: "PER1 founded Apple"과 "Jobs founded Apple"이 별도 entry로 있는 knowledge graph는 틀렸다.
+- Multi-document IE: 같은 event를 다루는 여러 article의 mention을 merge하는 것은 cross-document coreference다.
 
-## The Concept
+## 개념
 
 ![Coreference clustering: mentions → entities](../assets/coref.svg)
 
-**The task.** Input: a document. Output: a clustering of mentions (spans) where each cluster refers to one entity.
+**Task.** Input: document. Output: 각 cluster가 하나의 entity를 가리키는 mention(span) clustering.
 
 **Mention types.**
 
@@ -35,24 +35,24 @@ Why it matters in 2026:
 
 **Architectures.**
 
-1. **Rule-based (Hobbs, 1978).** Syntactic-tree-based pronoun resolution using grammar rules. Good baseline. Surprisingly hard to beat on pronouns.
-2. **Mention-pair classifier.** For every pair of mentions (m_i, m_j), predict whether they corefer. Cluster by transitive closure. Standard pre-2016.
-3. **Mention-ranking.** For each mention, rank candidate antecedents (including "no antecedent"). Pick the top.
-4. **Span-based end-to-end (Lee et al., 2017).** Transformer encoder. Enumerate all candidate spans up to a length cap. Predict mention scores. Predict antecedent-probability for each span. Cluster greedily. The modern default.
-5. **Generative (2024+).** Prompt an LLM: "List every pronoun in this text and its antecedent." Works well on easy cases, struggles on long documents and rare referents.
+1. **Rule-based (Hobbs, 1978).** grammar rule을 사용한 syntactic-tree-based pronoun resolution. 좋은 baseline이다. pronoun에서는 놀랄 만큼 이기기 어렵다.
+2. **Mention-pair classifier.** 모든 mention pair (m_i, m_j)에 대해 corefer 여부를 예측한다. transitive closure로 cluster를 만든다. 2016년 이전의 표준.
+3. **Mention-ranking.** 각 mention마다 candidate antecedent("no antecedent" 포함)를 rank한다. top을 고른다.
+4. **Span-based end-to-end (Lee et al., 2017).** Transformer encoder. length cap까지 모든 candidate span을 enumerate한다. mention score를 예측한다. 각 span의 antecedent-probability를 예측한다. greedily cluster한다. 현대적 default다.
+5. **Generative (2024+).** LLM에 prompt한다. "List every pronoun in this text and its antecedent." 쉬운 case에서는 잘 동작하지만, long document와 rare referent에서는 흔들린다.
 
-**The evaluation metrics.** Five standard metrics (MUC, B³, CEAF, BLANC, LEA) because no single metric captures clustering quality. Report the average of the first three as CoNLL F1. State-of-the-art in 2026 on CoNLL-2012: ~83 F1.
+**Evaluation metrics.** clustering quality를 하나의 metric만으로 포착할 수 없어서 다섯 표준 metric(MUC, B³, CEAF, BLANC, LEA)을 쓴다. 앞의 세 개 평균을 CoNLL F1으로 report한다. 2026년 CoNLL-2012 state-of-the-art: 약 83 F1.
 
 **Known hard cases.**
 
-- Definite descriptions referring to entities introduced pages earlier.
-- Bridging anaphora ("the wheels" → a previously mentioned car).
-- Zero anaphora in languages like Chinese and Japanese.
-- Cataphora (pronoun before referent): "When **she** walked in, Mary smiled."
+- 몇 페이지 전에 소개된 entity를 가리키는 definite description.
+- Bridging anaphora("the wheels" → 앞서 언급된 car).
+- Chinese와 Japanese 같은 언어의 zero anaphora.
+- Cataphora(pronoun이 referent보다 먼저 나옴): "When **she** walked in, Mary smiled."
 
-## Build It
+## 직접 만들기
 
-### Step 1: pretrained neural coreference (AllenNLP / spaCy-experimental)
+### 1단계: pretrained neural coreference (AllenNLP / spaCy-experimental)
 
 ```python
 import spacy
@@ -62,24 +62,24 @@ for cluster in doc._.coref_clusters:
     print(cluster, "->", [m.text for m in cluster])
 ```
 
-On a longer document, you get something like:
+더 긴 document에서는 다음과 같은 결과를 얻는다.
 - Cluster 1: [Apple, The company, they]
 - Cluster 2: [new products]
 
-### Step 2: rule-based pronoun resolver (teaching)
+### 2단계: rule-based pronoun resolver (teaching)
 
-See `code/main.py` for a stdlib-only implementation:
+stdlib-only implementation은 `code/main.py`를 보라.
 
-1. Extract mentions: named entities (capitalized spans), pronouns (dict lookup), definite descriptions ("the X").
-2. For each pronoun, look at the previous K mentions and score them by:
-   - gender/number agreement (heuristic)
-   - recency (closer wins)
-   - syntactic role (subjects preferred)
-3. Link the highest-scoring antecedent.
+1. mention 추출: named entities(capitalized spans), pronouns(dict lookup), definite descriptions("the X").
+2. 각 pronoun마다 이전 K mentions를 살펴보고 다음으로 score한다.
+   - gender/number agreement(heuristic)
+   - recency(가까울수록 이김)
+   - syntactic role(subject 선호)
+3. 가장 높은 score의 antecedent에 link한다.
 
-Not competitive with neural models. But it shows the search space and the decisions an end-to-end model must make.
+neural model과 경쟁할 수준은 아니다. 하지만 search space와 end-to-end model이 내려야 하는 decision을 보여준다.
 
-### Step 3: using LLMs for coreference
+### 3단계: coreference에 LLM 사용하기
 
 ```python
 prompt = f"""Text: {text}
@@ -90,79 +90,79 @@ Cluster them by what they refer to. Output JSON:
 """
 ```
 
-Two failure modes to watch. First, LLMs over-merge ("him" and "her" referring to two distinct people). Second, LLMs silently drop mentions in long documents. Always verify with span-offset checks.
+주의할 failure mode가 두 가지 있다. 첫째, LLM은 서로 다른 사람을 가리키는 "him"과 "her"를 over-merge한다. 둘째, LLM은 long document에서 mention을 조용히 누락한다. 항상 span-offset check로 verify하라.
 
-### Step 4: evaluation
+### 4단계: evaluation
 
-The standard conll-2012 script computes MUC, B³, CEAF-φ4 and reports the average. For an in-house eval, start with span-level precision and recall on your annotated test set, then add mention-linking F1.
+표준 conll-2012 script는 MUC, B³, CEAF-φ4를 계산하고 평균을 report한다. in-house eval은 annotated test set에서 span-level precision과 recall로 시작한 뒤 mention-linking F1을 추가하라.
 
-## Pitfalls
+## 함정
 
-- **Singleton explosion.** Some systems report every mention as its own cluster. B³ is lenient. MUC punishes this. Always check all three metrics.
-- **Pronouns in long context.** Performance drops ~15 F1 on documents over 2,000 tokens. Chunk carefully.
-- **Gender assumptions.** Hard-coded gender rules break on non-binary referents, organizations, animals. Use learned models or neutral scoring.
-- **LLM drift on long docs.** A single API call cannot reliably cluster mentions across 50+ paragraphs. Use sliding-window + merge.
+- **Singleton explosion.** 일부 system은 모든 mention을 자기만의 cluster로 report한다. B³는 관대하다. MUC는 이를 벌한다. 항상 세 metric을 모두 확인하라.
+- **Long context의 pronoun.** 2,000 tokens를 넘는 document에서는 performance가 약 15 F1 떨어진다. 신중하게 chunk하라.
+- **Gender assumptions.** hard-coded gender rule은 non-binary referent, organization, animal에서 깨진다. learned model 또는 neutral scoring을 사용하라.
+- **Long doc에서 LLM drift.** 단일 API call로 50+ paragraphs 전체의 mention을 안정적으로 cluster할 수 없다. sliding-window + merge를 사용하라.
 
-## Use It
+## 사용하기
 
-The 2026 stack:
+2026년 stack:
 
 | Situation | Pick |
 |-----------|------|
-| English, single document | `en_coreference_web_trf` (spaCy-experimental) or AllenNLP neural coref |
-| Multilingual | SpanBERT / XLM-R trained on OntoNotes or Multilingual CoNLL |
-| Cross-document event coref | Specialized end-to-end models (2025–26 SOTA) |
-| Quick LLM baseline | GPT-4o / Claude with structured-output coref prompt |
-| Production dialog systems | Rule-based fallback + neural primary + manual review for critical slots |
+| English, single document | `en_coreference_web_trf` (spaCy-experimental) 또는 AllenNLP neural coref |
+| Multilingual | OntoNotes 또는 Multilingual CoNLL에서 train된 SpanBERT / XLM-R |
+| Cross-document event coref | Specialized end-to-end models (2025-26 SOTA) |
+| Quick LLM baseline | structured-output coref prompt를 쓰는 GPT-4o / Claude |
+| Production dialog systems | Rule-based fallback + neural primary + critical slots에 대한 manual review |
 
-The integration pattern that ships in 2026: run NER first, run coref, merge coref clusters into NER entities. Downstream tasks see one entity per cluster, not one entity per mention.
+2026년에 실제 배포되는 integration pattern: 먼저 NER를 실행하고, coref를 실행한 뒤, coref cluster를 NER entity로 merge한다. Downstream task는 mention마다 하나의 entity가 아니라 cluster마다 하나의 entity를 본다.
 
-## Ship It
+## 배포하기
 
-Save as `outputs/skill-coref-picker.md`:
+`outputs/skill-coref-picker.md`로 저장하라.
 
 ```markdown
 ---
 name: coref-picker
-description: Pick a coreference approach, evaluation plan, and integration strategy.
+description: coreference approach, evaluation plan, integration strategy를 고른다.
 version: 1.0.0
 phase: 5
 lesson: 24
 tags: [nlp, coref, information-extraction]
 ---
 
-Given a use case (single-doc / multi-doc, domain, language), output:
+use case(single-doc / multi-doc, domain, language)가 주어지면 다음을 출력하라.
 
 1. Approach. Rule-based / neural span-based / LLM-prompted / hybrid. One-sentence reason.
 2. Model. Named checkpoint if neural.
 3. Integration. Order of operations: tokenize → NER → coref → downstream task.
 4. Evaluation. CoNLL F1 (MUC + B³ + CEAF-φ4 average) on held-out set + manual cluster review on 20 documents.
 
-Refuse LLM-only coref for documents over 2,000 tokens without sliding-window merge. Refuse any pipeline that runs coref without a mention-level precision-recall report. Flag gender-heuristic systems deployed in demographically diverse text.
+sliding-window merge 없이 2,000 tokens를 넘는 document에 LLM-only coref를 쓰는 것은 거부하라. mention-level precision-recall report 없이 coref를 실행하는 pipeline은 거부하라. demographically diverse text에 배포된 gender-heuristic system은 flag하라.
 ```
 
-## Exercises
+## 연습문제
 
-1. **Easy.** Run the rule-based resolver in `code/main.py` on 5 hand-crafted paragraphs. Measure mention-link accuracy against ground truth.
-2. **Medium.** Use a pretrained neural coref model on a news article. Compare clusters against your own manual annotation. Where did it fail?
-3. **Hard.** Build a coref-enhanced NER pipeline: NER first, then merge via coref clusters. Measure entity-coverage improvement vs NER-only on 100 articles.
+1. **Easy.** `code/main.py`의 rule-based resolver를 직접 만든 5개 paragraph에 실행하라. ground truth 대비 mention-link accuracy를 측정하라.
+2. **Medium.** pretrained neural coref model을 news article에 사용하라. cluster를 직접 만든 manual annotation과 비교하라. 어디서 실패했는가?
+3. **Hard.** coref-enhanced NER pipeline을 만들라. 먼저 NER를 실행하고, coref cluster로 merge하라. 100 articles에서 NER-only 대비 entity-coverage improvement를 측정하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 말하는 것 | 실제 의미 |
 |------|-----------------|-----------------------|
-| Mention | A reference | A span of text that refers to an entity (name, pronoun, noun phrase). |
-| Antecedent | What "it" refers to | The earlier mention a later one corefers with. |
-| Cluster | The entity's mentions | Set of mentions that all refer to the same real-world entity. |
-| Anaphora | Backward reference | Later mention refers to earlier ("he" → "John"). |
-| Cataphora | Forward reference | Earlier mention refers to later ("When he arrived, John..."). |
-| Bridging | Implicit reference | "I bought a car. The wheels were bad." (wheels of THAT car.) |
-| CoNLL F1 | The number on leaderboards | Average of MUC, B³, CEAF-φ4 F1 scores. |
+| Mention | reference | entity(name, pronoun, noun phrase)를 가리키는 text span. |
+| Antecedent | "it"이 가리키는 것 | 뒤의 mention과 corefer하는 앞선 mention. |
+| Cluster | entity의 mentions | 모두 같은 real-world entity를 가리키는 mention 집합. |
+| Anaphora | 뒤쪽 reference | 나중 mention이 앞선 mention을 가리킴("he" → "John"). |
+| Cataphora | 앞쪽 reference | 앞선 mention이 나중 mention을 가리킴("When he arrived, John..."). |
+| Bridging | implicit reference | "I bought a car. The wheels were bad."(그 car의 wheels.) |
+| CoNLL F1 | leaderboard의 숫자 | MUC, B³, CEAF-φ4 F1 score의 평균. |
 
-## Further Reading
+## 더 읽을거리
 
 - [Jurafsky & Martin, SLP3 Ch. 26 — Coreference Resolution and Entity Linking](https://web.stanford.edu/~jurafsky/slp3/26.pdf) — canonical textbook chapter.
 - [Lee et al. (2017). End-to-end Neural Coreference Resolution](https://arxiv.org/abs/1707.07045) — span-based end-to-end.
-- [Joshi et al. (2020). SpanBERT](https://arxiv.org/abs/1907.10529) — pretraining that improves coref.
-- [Pradhan et al. (2012). CoNLL-2012 Shared Task](https://aclanthology.org/W12-4501/) — the benchmark.
-- [Hobbs (1978). Resolving Pronoun References](https://www.sciencedirect.com/science/article/pii/0024384178900064) — the rule-based classic.
+- [Joshi et al. (2020). SpanBERT](https://arxiv.org/abs/1907.10529) — coref를 개선하는 pretraining.
+- [Pradhan et al. (2012). CoNLL-2012 Shared Task](https://aclanthology.org/W12-4501/) — benchmark.
+- [Hobbs (1978). Resolving Pronoun References](https://www.sciencedirect.com/science/article/pii/0024384178900064) — rule-based classic.

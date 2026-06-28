@@ -1,79 +1,79 @@
 ---
 name: skill-feature-selector
-description: Quick reference decision tree for choosing the right feature selection method
+description: 올바른 특성 선택 방법을 고르기 위한 빠른 참조 의사결정 트리
 version: 1.0.0
 phase: 2
 lesson: 18
 tags: [feature-selection, mutual-information, rfe, lasso, tree-importance]
 ---
 
-# Feature Selection Strategy
+# 특성 선택 전략
 
-A quick reference for picking and applying the right feature selection method.
+올바른 특성 선택 방법을 고르고 적용하기 위한 빠른 참조입니다.
 
-## Step 1: Start with cleanup
+## 1단계: 정리부터 시작하기
 
-Before applying any method, remove obviously useless features:
+어떤 방법을 적용하기 전에 명백히 쓸모없는 특성을 제거하세요.
 
-- **Constant features**: variance = 0. Remove them.
-- **Near-constant features**: variance < 0.01 (or your threshold). Remove them.
-- **Duplicate features**: identical columns. Keep one, drop the rest.
-- **ID columns**: unique per row, carry no generalizable information. Remove them.
+- **상수 특성**: variance = 0. 제거합니다.
+- **거의 상수인 특성**: variance < 0.01(또는 여러분의 임계값). 제거합니다.
+- **중복 특성**: 동일한 열입니다. 하나만 남기고 나머지는 버립니다.
+- **ID 열**: 행마다 고유하며 일반화 가능한 정보를 담지 않습니다. 제거합니다.
 
-This takes seconds and can eliminate 10-30% of features in messy real-world datasets.
+이 작업은 몇 초면 끝나며 지저분한 실제 데이터셋에서 특성의 10-30%를 제거할 수 있습니다.
 
-## Step 2: Choose a method based on your situation
+## 2단계: 상황에 맞는 방법 선택하기
 
-### Quick Decision Tree
+### 빠른 의사결정 트리
 
-1. **< 50 features?** Start with mutual information ranking. Keep top K.
-2. **50 - 500 features?** Use variance threshold first, then L1 (Lasso) if using a linear model, or tree importance if using trees.
-3. **> 500 features?** Chain methods: variance threshold -> mutual information filter (top 50%) -> RFE on survivors.
-4. **Need interpretability?** L1 regularization gives you exact zero/nonzero. Tree importance gives ranked scores.
-5. **Need to capture nonlinear relationships?** Mutual information or tree-based importance. Avoid L1 (linear only).
-6. **Need feature interactions?** RFE or tree-based importance. Filter methods miss interactions.
+1. **< 50 특성?** 상호 정보량 순위부터 시작합니다. 상위 K개를 유지합니다.
+2. **50 - 500 특성?** 먼저 분산 임계값을 사용한 뒤, 선형 모델이면 L1(Lasso)을, 트리 모델이면 트리 중요도를 사용합니다.
+3. **> 500 특성?** 방법을 연결합니다: 분산 임계값 -> 상호 정보량 필터(상위 50%) -> 남은 특성에 RFE.
+4. **해석 가능성이 필요한가요?** L1 정규화는 정확한 0/비0을 제공합니다. 트리 중요도는 순위 점수를 제공합니다.
+5. **비선형 관계를 포착해야 하나요?** 상호 정보량 또는 트리 기반 중요도를 사용합니다. L1은 피하세요(선형 전용).
+6. **특성 상호작용이 필요한가요?** RFE 또는 트리 기반 중요도를 사용합니다. 필터 방식은 상호작용을 놓칩니다.
 
-### Method Reference
+### 방법 참조
 
-| Method | When to Use | When to Avoid |
+| 방법 | 사용할 때 | 피할 때 |
 |--------|------------|---------------|
-| Variance threshold | Always, as a first step | Never skip this |
-| Mutual information | Quick ranking, nonlinear relationships | When you need feature interaction detection |
-| RFE | Thorough selection, moderate feature count | Very expensive models, > 1000 features |
-| L1 / Lasso | Linear models, fast embedded selection | Nonlinear problems, highly correlated features |
-| Tree importance | Nonlinear relationships, feature interactions | Biased by high-cardinality features |
-| Permutation importance | Model-agnostic validation, final check | Too slow for initial screening |
+| 분산 임계값 | 항상, 첫 단계로 | 절대 건너뛰지 마세요 |
+| 상호 정보량 | 빠른 순위, 비선형 관계 | 특성 상호작용 탐지가 필요할 때 |
+| RFE | 철저한 선택, 중간 정도의 특성 수 | 매우 비싼 모델, > 1000 특성 |
+| L1 / Lasso | 선형 모델, 빠른 내장 선택 | 비선형 문제, 강하게 상관된 특성 |
+| 트리 중요도 | 비선형 관계, 특성 상호작용 | 높은 카디널리티 특성에 편향됨 |
+| 순열 중요도 | 모델 독립 검증, 최종 점검 | 초기 선별에는 너무 느림 |
 
-## Step 3: Validate your selection
+## 3단계: 선택 검증하기
 
-- Compare model performance with selected features vs all features
-- Use cross-validation, not a single train/test split
-- If performance drops by more than 1-2%, you may have removed useful features
-- If performance improves, you successfully removed noise
+- 선택된 특성으로 학습한 모델 성능과 모든 특성으로 학습한 모델 성능을 비교한다
+- 단일 훈련/테스트 분할이 아니라 교차 검증을 사용한다
+- 성능이 1-2%보다 더 떨어지면 유용한 특성을 제거했을 수 있다
+- 성능이 향상되면 노이즈를 성공적으로 제거한 것이다
 
-## Step 4: Handle common pitfalls
+## 4단계: 흔한 함정 다루기
 
-### Correlated features
-- L1 arbitrarily picks one from a correlated group and zeros the others
-- Compute the correlation matrix first and decide which correlated features to keep
-- Tree importance spreads importance across correlated features
+### 상관된 특성
+- L1은 상관된 그룹에서 임의로 하나를 고르고 나머지는 0으로 만든다
+- 먼저 상관 행렬을 계산하고 어떤 상관 특성을 유지할지 결정한다
+- 트리 중요도는 상관된 특성 전체에 중요도를 나눠 갖게 한다
 
-### Data leakage
-- Fit feature selection on training data only
-- Apply the same selection to test data
-- In cross-validation, feature selection must happen inside each fold
+### 데이터 누수
+- 특성 선택은 훈련 데이터에만 적합한다
+- 같은 선택을 테스트 데이터에 적용한다
+- 교차 검증에서는 특성 선택이 각 폴드 안에서 일어나야 한다
 
-### Overfitting to feature selection
-- RFE with too many iterations can overfit to the training set
-- Validate on held-out data, not the data used for selection
-- Use stability selection (repeat on subsamples) for more robust results
+### 특성 선택에 대한 과적합
+- 반복이 너무 많은 RFE는 훈련 세트에 과적합할 수 있다
+- 선택에 사용한 데이터가 아니라 홀드아웃 데이터에서 검증한다
+- 더 견고한 결과를 위해 안정성 선택(부분샘플에서 반복)을 사용한다
 
-## Step 5: Production checklist
+## 5단계: 프로덕션 체크리스트
 
-- [ ] Variance threshold applied as first filter
-- [ ] Feature selection fitted on training data only
-- [ ] Selected features documented (names, method used, scores)
-- [ ] Performance compared: selected features vs all features
-- [ ] Cross-validated, not single-split evaluation
-- [ ] Feature selection integrated into the training pipeline (not done manually)
-- [ ] Monitoring in place for feature drift (selected features may become stale)
+- [ ] 분산 임계값을 첫 필터로 적용함
+- [ ] 특성 선택을 훈련 데이터에만 적합함
+- [ ] 선택된 특성을 문서화함(이름, 사용한 방법, 점수)
+- [ ] 성능 비교 완료: 선택된 특성 vs 모든 특성
+- [ ] 단일 분할 평가가 아니라 교차 검증 완료
+- [ ] 특성 선택을 훈련 파이프라인에 통합함(수동으로 처리하지 않음)
+- [ ] 특성 드리프트 모니터링 준비 완료(선택된 특성이 오래될 수 있음)

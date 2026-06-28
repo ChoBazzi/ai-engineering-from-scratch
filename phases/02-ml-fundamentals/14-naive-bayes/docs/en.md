@@ -1,84 +1,84 @@
 # Naive Bayes
 
-> The "naive" assumption is wrong, and it works anyway. That's the beauty of it.
+> "naive" assumption은 틀렸지만 그래도 동작한다. 그 점이 아름답다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 2, Lessons 01-07 (classification, Bayes' theorem)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement Multinomial Naive Bayes from scratch with Laplace smoothing for text classification
-- Explain why the naive independence assumption is mathematically wrong but produces correct class rankings in practice
-- Compare Multinomial, Bernoulli, and Gaussian Naive Bayes variants and select the right one for a given feature type
-- Evaluate Naive Bayes against logistic regression on high-dimensional sparse data and explain the bias-variance tradeoff at work
+- text classification을 위해 Laplace smoothing을 적용한 Multinomial Naive Bayes를 처음부터 구현한다
+- naive independence assumption이 수학적으로 틀렸지만 실제로는 올바른 class ranking을 만드는 이유를 설명한다
+- Multinomial, Bernoulli, Gaussian Naive Bayes variant를 비교하고 주어진 feature type에 맞는 것을 선택한다
+- high-dimensional sparse data에서 Naive Bayes를 logistic regression과 비교하고, 작동 중인 bias-variance tradeoff를 설명한다
 
-## The Problem
+## 문제
 
-You need to classify text. Emails into spam or not-spam. Customer reviews into positive or negative. Support tickets into categories. You have thousands of features (one per word) and limited training data.
+text를 classify해야 한다. Email을 spam 또는 not-spam으로 나눈다. Customer review를 positive 또는 negative로 나눈다. Support ticket을 category로 나눈다. feature는 수천 개(word당 하나)이고 training data는 제한적이다.
 
-Most classifiers choke here. Logistic regression needs enough samples to estimate thousands of weights reliably. Decision trees split on one word at a time and overfit wildly. KNN in 10,000 dimensions is meaningless because every point is equally far from every other point.
+대부분의 classifier는 여기서 막힌다. Logistic regression은 수천 개 weight를 안정적으로 estimate할 만큼 충분한 sample이 필요하다. Decision tree는 한 번에 word 하나로 split하고 심하게 overfit한다. 10,000 dimension에서 KNN은 모든 point가 다른 모든 point에서 비슷하게 멀기 때문에 의미가 없다.
 
-Naive Bayes handles this. It makes a mathematically wrong assumption (that every feature is independent of every other feature given the class), and it still outperforms "smarter" models on text classification, especially with small training sets. It trains in a single pass through the data. It scales to millions of features. It produces probability estimates (though often poorly calibrated due to the independence assumption).
+Naive Bayes는 이를 처리한다. 수학적으로 틀린 assumption(class가 주어졌을 때 모든 feature가 서로 독립이라는 assumption)을 만들지만, text classification에서는 특히 small training set에서 "더 똑똑한" model보다 나은 성능을 내기도 한다. data를 한 번 통과하는 것으로 train된다. 수백만 feature까지 scale된다. probability estimate를 만들지만(independence assumption 때문에 calibration은 종종 좋지 않다).
 
-Understanding why a wrong assumption leads to good predictions teaches you something fundamental about machine learning: the best model is not the most correct one, it is the one with the best bias-variance tradeoff for your data.
+틀린 assumption이 좋은 prediction으로 이어지는 이유를 이해하면 machine learning의 근본을 배운다. best model은 가장 정확한 model이 아니라, 당신의 data에 대해 bias-variance tradeoff가 가장 좋은 model이다.
 
-## The Concept
+## 개념
 
-### Bayes' Theorem (Quick Review)
+### Bayes' Theorem (빠른 복습)
 
-Bayes' theorem flips conditional probabilities:
+Bayes' theorem은 conditional probability를 뒤집는다.
 
-```
+```text
 P(class | features) = P(features | class) * P(class) / P(features)
 ```
 
-We want `P(class | features)` -- the probability that a document belongs to a class given the words in it. We can compute this from:
-- `P(features | class)` -- the likelihood of seeing these words in documents of this class
-- `P(class)` -- the prior probability of the class (how common is spam in general?)
-- `P(features)` -- the evidence, same for all classes, so we can ignore it when comparing
+우리가 원하는 것은 `P(class | features)`다. 즉 document가 그 안의 word를 기준으로 어떤 class에 속할 probability다. 이것은 다음에서 계산할 수 있다.
+- `P(features | class)` -- 이 class의 document에서 이런 word를 볼 likelihood
+- `P(class)` -- class의 prior probability(spam은 일반적으로 얼마나 흔한가?)
+- `P(features)` -- evidence이며 모든 class에서 같으므로 비교할 때 무시할 수 있다
 
-The class with the highest `P(class | features)` wins.
+가장 높은 `P(class | features)`를 가진 class가 이긴다.
 
-### The Naive Independence Assumption
+### Naive Independence Assumption이란 무엇인가
 
-Computing `P(features | class)` exactly requires estimating the joint probability of all features together. With a vocabulary of 10,000 words, you would need to estimate a distribution over 2^10,000 possible combinations. Impossible.
+`P(features | class)`를 정확히 계산하려면 모든 feature가 함께 나타나는 joint probability를 estimate해야 한다. vocabulary가 10,000 word라면 2^10,000개의 가능한 combination에 대한 distribution을 estimate해야 한다. 불가능하다.
 
-The naive assumption: every feature is conditionally independent given the class.
+naive assumption: 모든 feature는 class가 주어졌을 때 conditionally independent다.
 
-```
+```text
 P(w1, w2, ..., wn | class) = P(w1 | class) * P(w2 | class) * ... * P(wn | class)
 ```
 
-Instead of one impossible joint distribution, you estimate n simple per-feature distributions. Each one needs only a count.
+하나의 불가능한 joint distribution 대신 n개의 simple per-feature distribution을 estimate한다. 각각은 count만 있으면 된다.
 
-This assumption is obviously wrong. The words "machine" and "learning" are not independent in any document. But the classifier does not need correct probability estimates. It needs correct rankings -- which class has the highest probability. The independence assumption introduces systematic errors, but those errors affect all classes similarly, so the ranking stays correct.
+이 assumption은 명백히 틀렸다. "machine"과 "learning"이라는 word는 어떤 document에서도 독립이 아니다. 하지만 classifier에는 정확한 probability estimate가 필요하지 않다. 필요한 것은 올바른 ranking, 즉 어떤 class의 probability가 가장 높은지다. independence assumption은 systematic error를 만들지만, 그 error가 모든 class에 비슷하게 영향을 주기 때문에 ranking은 유지된다.
 
-### Why It Still Works
+### 그래도 동작하는 이유
 
-Three reasons:
+세 가지 이유가 있다.
 
-1. **Ranking over calibration.** Classification only needs the top-ranked class to be correct. Even if P(spam) = 0.99999 when the true probability is 0.7, the classifier still picks spam correctly. We do not need correct probabilities. We need the correct winner.
+1. **calibration보다 ranking.** Classification에는 top-ranked class가 맞으면 된다. true probability가 0.7인데 P(spam) = 0.99999라고 해도 classifier는 여전히 spam을 올바르게 고른다. 정확한 probability가 필요한 것이 아니다. 올바른 winner가 필요하다.
 
-2. **High bias, low variance.** The independence assumption is a strong prior. It constrains the model heavily, which prevents overfitting. With limited training data, a model that is slightly wrong but stable beats a model that is theoretically right but wildly unstable. This is the bias-variance tradeoff in action.
+2. **High bias, low variance.** independence assumption은 강한 prior다. model을 강하게 constrain해서 overfitting을 막는다. training data가 제한적이면 조금 틀렸지만 안정적인 model이 이론적으로 맞지만 매우 불안정한 model을 이긴다. 이것이 작동 중인 bias-variance tradeoff다.
 
-3. **Feature redundancy cancels out.** Correlated features provide redundant evidence. The classifier double-counts this evidence, but it double-counts it for the correct class too. If "machine" and "learning" always appear together, both provide evidence for the "tech" class. NB counts them twice, but it counts them twice for the right class.
+3. **Feature redundancy가 상쇄된다.** Correlated feature는 redundant evidence를 제공한다. classifier는 이 evidence를 double-count하지만, 올바른 class에 대해서도 double-count한다. "machine"과 "learning"이 항상 함께 나타난다면 둘 다 "tech" class에 대한 evidence를 제공한다. NB는 둘을 두 번 count하지만, right class에 대해 두 번 count한다.
 
-A fourth, practical reason: Naive Bayes is extremely fast. Training is a single pass through the data counting frequencies. Prediction is a matrix multiplication. You can train on a million documents in seconds. This speed means you can iterate faster, try more feature sets, and run more experiments than with slower models.
+네 번째 practical reason도 있다. Naive Bayes는 매우 빠르다. Training은 frequency를 count하면서 data를 한 번 통과하는 일이다. Prediction은 matrix multiplication이다. 백만 document에서도 몇 초 만에 train할 수 있다. 이 speed 덕분에 더 빠르게 iterate하고, 더 많은 feature set을 시도하고, 느린 model보다 더 많은 experiment를 실행할 수 있다.
 
-### The Math Step by Step
+### 수학을 단계별로 보기
 
-Let us trace through a concrete example. Suppose we have two classes: spam and not-spam. Our vocabulary has three words: "free", "money", "meeting".
+concrete example을 따라가 보자. class가 두 개 있다고 하자: spam과 not-spam. vocabulary에는 세 word가 있다: "free", "money", "meeting".
 
 Training data:
-- Spam emails mention "free" 80 times, "money" 60 times, "meeting" 10 times (150 total words)
-- Not-spam emails mention "free" 5 times, "money" 10 times, "meeting" 100 times (115 total words)
-- 40% of emails are spam, 60% are not-spam
+- Spam email은 "free"를 80번, "money"를 60번, "meeting"을 10번 언급한다(총 150 word)
+- Not-spam email은 "free"를 5번, "money"를 10번, "meeting"을 100번 언급한다(총 115 word)
+- email의 40%는 spam이고, 60%는 not-spam이다
 
-With Laplace smoothing (alpha=1):
+Laplace smoothing(alpha=1)을 사용하면:
 
-```
+```text
 P(free | spam)    = (80 + 1) / (150 + 3) = 81/153 = 0.529
 P(money | spam)   = (60 + 1) / (150 + 3) = 61/153 = 0.399
 P(meeting | spam) = (10 + 1) / (150 + 3) = 11/153 = 0.072
@@ -90,7 +90,7 @@ P(meeting | not-spam) = (100 + 1) / (115 + 3) = 101/118 = 0.856
 
 New email contains: "free" (2 times), "money" (1 time), "meeting" (0 times).
 
-```
+```text
 log P(spam | email) = log(0.4) + 2*log(0.529) + 1*log(0.399) + 0*log(0.072)
                     = -0.916 + 2*(-0.637) + (-0.919) + 0
                     = -3.109
@@ -100,111 +100,111 @@ log P(not-spam | email) = log(0.6) + 2*log(0.051) + 1*log(0.093) + 0*log(0.856)
                         = -8.838
 ```
 
-Spam wins by a large margin. The word "free" appearing twice is strong evidence for spam. Note that "meeting" not appearing contributes zero to both log sums (0 * log(P)) -- in Multinomial NB, absent words have no effect. It is Bernoulli NB that explicitly models word absence.
+Spam이 큰 margin으로 이긴다. "free"라는 word가 두 번 나타난 것은 spam에 대한 강한 evidence다. "meeting"이 나타나지 않은 것은 두 log sum 모두에 0을 더한다(0 * log(P)). Multinomial NB에서는 absent word가 영향을 주지 않는다. word absence를 명시적으로 model하는 것은 Bernoulli NB다.
 
-### Three Variants
+### 세 가지 Variant
 
-Naive Bayes comes in three flavors. Each models `P(feature | class)` differently.
+Naive Bayes에는 세 가지 flavor가 있다. 각각은 `P(feature | class)`를 다르게 model한다.
 
 #### Multinomial Naive Bayes
 
-Models each feature as a count. Best for text data where features are word frequencies or TF-IDF values.
+각 feature를 count로 model한다. feature가 word frequency나 TF-IDF value인 text data에 가장 적합하다.
 
-```
+```text
 P(word_i | class) = (count of word_i in class + alpha) / (total words in class + alpha * vocab_size)
 ```
 
-The `alpha` is Laplace smoothing (explained below). This variant is the workhorse for text classification.
+`alpha`는 Laplace smoothing이다(아래에서 설명). 이 variant는 text classification의 workhorse다.
 
 #### Gaussian Naive Bayes
 
-Models each feature as a normal distribution. Best for continuous features.
+각 feature를 normal distribution으로 model한다. continuous feature에 가장 적합하다.
 
-```
+```text
 P(x_i | class) = (1 / sqrt(2 * pi * var)) * exp(-(x_i - mean)^2 / (2 * var))
 ```
 
-Each class gets its own mean and variance per feature. This works well when features genuinely follow a bell curve within each class.
+각 class는 feature마다 자체 mean과 variance를 가진다. feature가 각 class 안에서 실제로 bell curve를 따를 때 잘 작동한다.
 
 #### Bernoulli Naive Bayes
 
-Models each feature as binary (present or absent). Best for short text or binary feature vectors.
+각 feature를 binary(present or absent)로 model한다. short text나 binary feature vector에 가장 적합하다.
 
-```
+```text
 P(word_i | class) = (docs in class containing word_i + alpha) / (total docs in class + 2 * alpha)
 ```
 
-Unlike Multinomial, Bernoulli explicitly penalizes the absence of a word. If "free" typically appears in spam but is absent from this email, Bernoulli counts that as evidence against spam.
+Multinomial과 달리 Bernoulli는 word absence를 명시적으로 penalize한다. "free"가 보통 spam에 나타나지만 이 email에는 없다면, Bernoulli는 그것을 spam에 반대되는 evidence로 count한다.
 
-### When to Use Each Variant
+### 각 Variant를 언제 사용할까
 
-| Variant | Feature Type | Best For | Example |
+| Variant | Feature Type | 가장 적합한 용도 | 예시 |
 |---------|-------------|----------|---------|
-| Multinomial | Counts or frequencies | Text classification, bag-of-words | Email spam, topic classification |
-| Gaussian | Continuous values | Tabular data with normal-ish features | Iris classification, sensor data |
-| Bernoulli | Binary (0/1) | Short text, binary feature vectors | SMS spam, presence/absence features |
+| Multinomial | Count 또는 frequency | Text classification, bag-of-words | Email spam, topic classification |
+| Gaussian | Continuous value | normal에 가까운 feature가 있는 tabular data | Iris classification, sensor data |
+| Bernoulli | Binary (0/1) | Short text, binary feature vector | SMS spam, presence/absence feature |
 
-### Laplace Smoothing
+### Laplace smoothing
 
-What happens when a word appears in the test data but never appeared in the training data for a particular class?
+test data에는 나타났지만 특정 class의 training data에는 한 번도 나타난 적 없는 word가 있으면 어떻게 될까?
 
-Without smoothing: `P(word | class) = 0/N = 0`. One zero multiplied through the entire product makes `P(class | features) = 0`, regardless of all other evidence. A single unseen word destroys the entire prediction, no matter how much other evidence supports it.
+smoothing이 없으면: `P(word | class) = 0/N = 0`. 전체 product에 zero 하나가 곱해져 `P(class | features) = 0`이 된다. 다른 evidence가 얼마나 강하든 상관없다. unseen word 하나가 전체 prediction을 망친다.
 
-Laplace smoothing adds a small count `alpha` (usually 1) to every feature count:
+Laplace smoothing은 모든 feature count에 작은 count `alpha`(보통 1)를 더한다.
 
-```
+```text
 P(word_i | class) = (count(word_i, class) + alpha) / (total_words_in_class + alpha * vocab_size)
 ```
 
-With alpha=1, every word gets at least a tiny probability. The word "discombobulate" appearing in a test email no longer kills the spam probability. The smoothing has a Bayesian interpretation: it is equivalent to placing a uniform Dirichlet prior on the word distributions.
+alpha=1이면 모든 word가 최소한 작은 probability를 가진다. test email에 "discombobulate"가 나타나도 더 이상 spam probability를 죽이지 않는다. smoothing에는 Bayesian interpretation이 있다. word distribution에 uniform Dirichlet prior를 두는 것과 같다.
 
-Higher alpha means stronger smoothing (more uniform distributions). Lower alpha means the model trusts the data more. Alpha is a hyperparameter you tune.
+alpha가 높을수록 stronger smoothing(more uniform distribution)을 뜻한다. alpha가 낮을수록 model은 data를 더 신뢰한다. Alpha는 tune하는 hyperparameter다.
 
-The effect of alpha:
+alpha의 effect:
 
-| Alpha | Effect | When to use |
+| Alpha | Effect | 사용할 때 |
 |-------|--------|-------------|
-| 0.001 | Almost no smoothing, trust the data | Very large training set, no unseen features expected |
-| 0.1 | Light smoothing | Large training set |
-| 1.0 | Standard Laplace smoothing | Default starting point |
-| 10.0 | Heavy smoothing, flattens distributions | Very small training set, many unseen features expected |
+| 0.001 | 거의 smoothing 없음, data를 신뢰 | 매우 큰 training set, unseen feature가 예상되지 않음 |
+| 0.1 | Light smoothing | 큰 training set |
+| 1.0 | Standard Laplace smoothing | default starting point |
+| 10.0 | Heavy smoothing, distribution을 flatten | 매우 작은 training set, unseen feature가 많을 것으로 예상 |
 
-### Log-Space Computation
+### Log-Space 계산
 
-Multiplying hundreds of probabilities (each less than 1) causes floating-point underflow. The product becomes zero in floating point even though the true value is a very small positive number.
+수백 개 probability(각각 1보다 작음)를 곱하면 floating-point underflow가 발생한다. true value는 매우 작은 positive number인데도 floating point에서는 product가 zero가 된다.
 
-The solution: work in log space. Instead of multiplying probabilities, add their logarithms:
+해결책: log space에서 작업한다. probability를 곱하는 대신 logarithm을 더한다.
 
-```
+```text
 log P(class | x1, x2, ..., xn) = log P(class) + sum_i log P(xi | class)
 ```
 
-This turns the prediction into a dot product:
+이것은 prediction을 dot product로 바꾼다.
 
-```
+```text
 log_scores = X @ log_feature_probs.T + log_class_priors
 prediction = argmax(log_scores)
 ```
 
-Matrix multiplication. That is why Naive Bayes prediction is so fast -- it is the same operation as a single-layer linear model.
+Matrix multiplication. 그래서 Naive Bayes prediction이 빠르다. single-layer linear model과 같은 operation이다.
 
-### Naive Bayes vs Logistic Regression
+### Naive Bayes와 Logistic Regression
 
-Both are linear classifiers for text. The difference is in what they model.
+둘 다 text를 위한 linear classifier다. 차이는 무엇을 model하는지에 있다.
 
-| Aspect | Naive Bayes | Logistic Regression |
+| 관점 | Naive Bayes | Logistic Regression |
 |--------|------------|-------------------|
-| Type | Generative (models P(X\|Y)) | Discriminative (models P(Y\|X)) |
-| Training | Count frequencies | Optimize loss function |
-| Small data | Better (strong prior helps) | Worse (not enough to estimate weights) |
-| Large data | Worse (wrong assumption hurts) | Better (flexible boundary) |
-| Features | Assumes independence | Handles correlations |
-| Speed | Single pass, very fast | Iterative optimization |
-| Calibration | Poor probabilities | Better probabilities |
+| 유형 | Generative (P(X\|Y)를 model) | Discriminative (P(Y\|X)를 model) |
+| Training | frequency count | loss function optimize |
+| Small data | 더 나음(strong prior가 도움) | 더 나쁨(weight를 estimate하기에 부족) |
+| Large data | 더 나쁨(wrong assumption이 방해) | 더 나음(flexible boundary) |
+| Feature | independence를 assume | correlation을 처리 |
+| 속도 | single pass, 매우 빠름 | iterative optimization |
+| Calibration | probability가 poor | probability가 더 나음 |
 
-Rule of thumb: start with Naive Bayes. If you have enough data and NB plateaus, switch to logistic regression.
+경험칙: Naive Bayes로 시작한다. data가 충분하고 NB가 plateau에 도달하면 logistic regression으로 전환한다.
 
-### Classification Pipeline
+### Classification pipeline
 
 ```mermaid
 flowchart LR
@@ -219,9 +219,9 @@ flowchart LR
     style G fill:#9f9,stroke:#333
 ```
 
-In practice, we work in log space to avoid floating-point underflow. Instead of multiplying many small probabilities, we add their logarithms:
+실제로는 floating-point underflow를 피하기 위해 log space에서 작업한다. 많은 작은 probability를 곱하는 대신 logarithm을 더한다.
 
-```
+```text
 log P(class | features) = log P(class) + sum_i log P(feature_i | class)
 ```
 
@@ -229,19 +229,19 @@ log P(class | features) = log P(class) + sum_i log P(feature_i | class)
 naive-bayes
 ```
 
-## Build It
+## 직접 만들기
 
-The code in `code/naive_bayes.py` implements both MultinomialNB and GaussianNB from scratch.
+`code/naive_bayes.py`의 code는 MultinomialNB와 GaussianNB를 모두 처음부터 구현한다.
 
 ### MultinomialNB
 
-The from-scratch implementation:
+from-scratch implementation:
 
-1. **fit(X, y)**: For each class, count the frequency of each feature. Add Laplace smoothing. Compute log probabilities. Store class priors (log of class frequencies).
+1. **fit(X, y)**: 각 class에 대해 각 feature의 frequency를 count한다. Laplace smoothing을 더한다. log probability를 계산한다. class prior(class frequency의 log)를 저장한다.
 
-2. **predict_log_proba(X)**: For each sample, compute log P(class) + sum of log P(feature_i | class) for all classes. This is a matrix multiplication: X @ log_probs.T + log_priors.
+2. **predict_log_proba(X)**: 각 sample에 대해 모든 class의 log P(class) + sum of log P(feature_i | class)를 계산한다. 이것은 matrix multiplication이다: X @ log_probs.T + log_priors.
 
-3. **predict(X)**: Return the class with highest log probability.
+3. **predict(X)**: log probability가 가장 높은 class를 반환한다.
 
 ```python
 class MultinomialNB:
@@ -266,11 +266,11 @@ class MultinomialNB:
         return self
 ```
 
-The key insight: after fitting, prediction is just matrix multiplication plus a bias. This is why Naive Bayes is so fast.
+핵심 insight: fitting 후 prediction은 matrix multiplication에 bias를 더하는 것뿐이다. 그래서 Naive Bayes가 빠르다.
 
 ### GaussianNB
 
-For continuous features, we estimate mean and variance per class per feature:
+continuous feature에 대해서는 class별, feature별 mean과 variance를 estimate한다.
 
 ```python
 class GaussianNB:
@@ -293,34 +293,34 @@ class GaussianNB:
         return self
 ```
 
-Prediction uses the Gaussian PDF per feature, multiplied across features (added in log space).
+Prediction은 feature별 Gaussian PDF를 사용하고, 이를 feature 전반에 곱한다(log space에서는 더한다).
 
-### Demo: Text Classification
+### 데모: Text Classification
 
-The code generates synthetic bag-of-words data simulating two classes (tech articles vs sports articles). Each class has a different word frequency distribution. MultinomialNB classifies them using word counts.
+code는 두 class(tech article vs sports article)를 simulation하는 synthetic bag-of-words data를 생성한다. 각 class는 서로 다른 word frequency distribution을 가진다. MultinomialNB는 word count를 사용해 이를 classify한다.
 
-The synthetic data works like this: we create 200 "words" (feature columns). Words 0-39 have high frequency in tech articles and low in sports. Words 80-119 have high frequency in sports and low in tech. Words 40-79 are medium frequency in both. This creates a realistic scenario where some words are strong class indicators and others are noise.
+synthetic data는 이렇게 동작한다. 200개의 "word"(feature column)를 만든다. Word 0-39는 tech article에서 high frequency이고 sports에서는 low frequency다. Word 80-119는 sports에서 high frequency이고 tech에서는 low frequency다. Word 40-79는 둘 다 medium frequency다. 이렇게 일부 word는 강한 class indicator이고 다른 word는 noise인 realistic scenario가 만들어진다.
 
-### Demo: Continuous Features
+### 데모: Continuous Features
 
-The code generates Iris-like data (3 classes, 4 features, Gaussian clusters). GaussianNB classifies using per-class mean and variance. Each class has a different center (mean vector) and different spread (variance), mimicking real-world data where measurements differ systematically between categories.
+code는 Iris-like data(3 class, 4 feature, Gaussian cluster)를 생성한다. GaussianNB는 per-class mean과 variance를 사용해 classify한다. 각 class는 다른 center(mean vector)와 다른 spread(variance)를 가지며, measurement가 category 사이에서 systematic하게 다른 real-world data를 흉내 낸다.
 
-The code also demonstrates:
-- **Smoothing comparison:** Training MultinomialNB with different alpha values to show the effect of smoothing strength on accuracy.
-- **Training size experiment:** How NB accuracy improves as training data grows from 20 to 1600 samples. NB reaches decent accuracy even with very few samples -- this is its main advantage.
-- **Confusion matrix:** Per-class precision, recall, and F1 score to show where NB makes mistakes.
+code는 또한 다음을 보여준다.
+- **Smoothing comparison:** smoothing strength가 accuracy에 미치는 effect를 보여주기 위해 서로 다른 alpha value로 MultinomialNB를 train한다.
+- **Training size experiment:** training data가 20 sample에서 1600 sample로 늘어날 때 NB accuracy가 어떻게 개선되는지 보여준다. NB는 아주 적은 sample에서도 괜찮은 accuracy에 도달한다. 이것이 주요 장점이다.
+- **Confusion matrix:** NB가 어디서 mistake하는지 보여주기 위한 class별 precision, recall, F1 score.
 
-### Prediction Speed
+### Prediction 속도
 
-Naive Bayes prediction is a matrix multiplication. For n samples with d features and k classes:
-- MultinomialNB: one matrix multiply (n x d) @ (d x k) = O(n * d * k)
-- GaussianNB: n * k Gaussian PDF evaluations, each over d features = O(n * d * k)
+Naive Bayes prediction은 matrix multiplication이다. n sample, d feature, k class에 대해:
+- MultinomialNB: matrix multiply 한 번 (n x d) @ (d x k) = O(n * d * k)
+- GaussianNB: n * k Gaussian PDF evaluation, 각각 d feature에 대해 = O(n * d * k)
 
-Both are linear in every dimension. Compare this to KNN (which requires distance computation to all training points) or SVM with RBF kernel (which requires kernel evaluation against all support vectors). NB is faster by orders of magnitude at prediction time.
+둘 다 모든 dimension에 linear하다. 이것을 KNN(모든 training point에 대한 distance computation 필요)이나 RBF kernel SVM(모든 support vector에 대한 kernel evaluation 필요)과 비교해 보라. NB는 prediction time에 orders of magnitude만큼 더 빠르다.
 
-## Use It
+## 활용하기
 
-With sklearn, both variants are one-liners:
+sklearn에서는 두 variant 모두 one-liner다.
 
 ```python
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
@@ -334,7 +334,7 @@ mnb.fit(X_train_counts, y_train)
 print(f"MultinomialNB accuracy: {mnb.score(X_test_counts, y_test):.3f}")
 ```
 
-For text classification with sklearn:
+sklearn을 사용한 text classification:
 
 ```python
 from sklearn.feature_extraction.text import CountVectorizer
@@ -350,11 +350,11 @@ text_clf.fit(train_texts, train_labels)
 accuracy = text_clf.score(test_texts, test_labels)
 ```
 
-The code in `naive_bayes.py` compares from-scratch implementations against sklearn on the same data to verify correctness.
+`naive_bayes.py`의 code는 correctness를 verify하기 위해 같은 data에서 from-scratch implementation을 sklearn과 비교한다.
 
-### TF-IDF with Naive Bayes
+### Naive Bayes와 TF-IDF
 
-Raw word counts give every word equal weight per occurrence. But common words like "the" and "is" appear frequently in every class -- they carry no information. TF-IDF (Term Frequency - Inverse Document Frequency) downweights common words and upweights rare, discriminative words.
+raw word count는 occurrence마다 모든 word에 같은 weight를 준다. 하지만 "the"와 "is" 같은 common word는 모든 class에 자주 나타난다. information을 담지 않는다. TF-IDF(Term Frequency - Inverse Document Frequency)는 common word를 downweight하고 rare, discriminative word를 upweight한다.
 
 ```python
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -367,11 +367,11 @@ text_clf = Pipeline([
 ])
 ```
 
-TF-IDF values are non-negative, so they work with MultinomialNB. The combination of TF-IDF + MultinomialNB is one of the strongest baselines for text classification. It frequently beats more complex models on datasets with fewer than 10,000 training samples.
+TF-IDF value는 non-negative이므로 MultinomialNB와 함께 동작한다. TF-IDF + MultinomialNB 조합은 text classification에서 가장 강력한 baseline 중 하나다. training sample이 10,000개보다 적은 dataset에서는 더 복잡한 model을 자주 이긴다.
 
-### BernoulliNB for Short Text
+### Short Text를 위한 BernoulliNB
 
-For short text (tweets, SMS, chat messages), BernoulliNB can outperform MultinomialNB. Short texts have low word counts, so the frequency information that MultinomialNB relies on is noisy. BernoulliNB only cares about presence or absence, which is more reliable with short text.
+short text(tweet, SMS, chat message)에서는 BernoulliNB가 MultinomialNB보다 나을 수 있다. Short text는 word count가 낮기 때문에 MultinomialNB가 의존하는 frequency information이 noisy하다. BernoulliNB는 presence or absence만 신경 쓰며, short text에서는 이것이 더 reliable하다.
 
 ```python
 from sklearn.naive_bayes import BernoulliNB
@@ -383,11 +383,11 @@ text_clf = Pipeline([
 ])
 ```
 
-The `binary=True` flag in CountVectorizer converts all counts to 0/1. Without it, BernoulliNB still works but is seeing counts that it was not designed for.
+CountVectorizer의 `binary=True` flag는 모든 count를 0/1로 변환한다. 이것이 없으면 BernoulliNB도 동작하긴 하지만, 설계 대상이 아닌 count를 보게 된다.
 
-### Calibrating NB Probabilities
+### NB Probability 보정하기
 
-NB probabilities are poorly calibrated. When NB says P(spam) = 0.95, the true probability might be 0.7. If you need reliable probability estimates (for example, to set a threshold or to combine with other models), use sklearn's CalibratedClassifierCV:
+NB probability는 calibration이 좋지 않다. NB가 P(spam) = 0.95라고 말해도 true probability는 0.7일 수 있다. reliable probability estimate가 필요하다면(예: threshold를 설정하거나 다른 model과 결합하기 위해), sklearn의 CalibratedClassifierCV를 사용한다.
 
 ```python
 from sklearn.calibration import CalibratedClassifierCV
@@ -397,65 +397,65 @@ calibrated_nb.fit(X_train, y_train)
 proba = calibrated_nb.predict_proba(X_test)
 ```
 
-This fits a logistic regression on top of NB's raw scores using cross-validation. The resulting probabilities are much closer to the true class frequencies.
+이것은 cross-validation을 사용해 NB의 raw score 위에 logistic regression을 fit한다. resulting probability는 true class frequency에 훨씬 가까워진다.
 
-### Common Gotchas
+### 흔한 함정
 
-1. **Negative feature values.** MultinomialNB requires non-negative features. If you have negative values (like TF-IDF with certain settings or standardized features), use GaussianNB instead, or shift the features to be positive.
+1. **Negative feature values.** MultinomialNB는 non-negative feature가 필요하다. negative value가 있다면(특정 setting의 TF-IDF나 standardized feature처럼), GaussianNB를 대신 사용하거나 feature를 positive가 되도록 shift한다.
 
-2. **Zero variance features.** GaussianNB divides by variance. If a feature has zero variance for a class (all values identical), the probability computation breaks. The code adds a small smoothing term (1e-9) to all variances to prevent this.
+2. **Zero variance features.** GaussianNB는 variance로 나눈다. 어떤 feature가 class에서 zero variance를 가지면(모든 value가 동일), probability computation이 깨진다. code는 이를 막기 위해 모든 variance에 작은 smoothing term(1e-9)을 더한다.
 
-3. **Class imbalance.** If 99% of emails are not-spam, the prior P(not-spam) = 0.99 is so strong that it overwhelms the likelihood evidence. You can set class priors manually or use class_prior parameter in sklearn.
+3. **Class imbalance.** email의 99%가 not-spam이면 prior P(not-spam) = 0.99가 너무 강해서 likelihood evidence를 압도한다. class prior를 수동으로 설정하거나 sklearn의 class_prior parameter를 사용할 수 있다.
 
-4. **Feature scaling.** MultinomialNB does not need scaling (it works on counts). GaussianNB does not need scaling either (it estimates per-feature statistics). This is an advantage over logistic regression and SVM, which are sensitive to feature scales.
+4. **Feature scaling.** MultinomialNB는 scaling이 필요 없다(count에서 동작한다). GaussianNB도 scaling이 필요 없다(per-feature statistics를 estimate한다). 이것은 feature scale에 민감한 logistic regression과 SVM에 비한 장점이다.
 
-## Ship It
+## 내보내기
 
-This lesson produces:
-- `outputs/skill-naive-bayes-chooser.md` -- a decision skill for picking the right NB variant
-- `code/naive_bayes.py` -- MultinomialNB and GaussianNB from scratch, with sklearn comparison
+이 lesson은 다음을 만든다.
+- `outputs/skill-naive-bayes-chooser.md` -- 올바른 NB variant를 선택하기 위한 decision skill
+- `code/naive_bayes.py` -- scratch로 만든 MultinomialNB와 GaussianNB, sklearn comparison 포함
 
-### When Naive Bayes Fails
+### Naive Bayes가 실패할 때
 
-NB fails when the independence assumption causes incorrect rankings (not just incorrect probabilities). This happens when:
+NB는 independence assumption이 incorrect probability뿐 아니라 incorrect ranking을 만들 때 실패한다. 이는 다음 상황에서 발생한다.
 
-1. **Strong feature interactions.** If the class depends on the combination of two features but not either alone (XOR-like patterns), NB will miss it entirely. Each feature alone provides no evidence, and NB cannot combine them nonlinearly.
+1. **Strong feature interactions.** class가 두 feature의 combination에 의존하지만 각각에는 의존하지 않는다면(XOR-like pattern), NB는 이를 완전히 놓친다. 각 feature alone은 evidence를 제공하지 않고, NB는 이를 nonlinear하게 combine할 수 없다.
 
-2. **Highly correlated features with opposing evidence.** If feature A says "spam" and feature B says "not-spam", but A and B are perfectly correlated (they always agree in reality), NB will see conflicting evidence where there is none.
+2. **opposing evidence를 가진 highly correlated features.** feature A는 "spam"이라고 말하고 feature B는 "not-spam"이라고 말하지만, A와 B가 perfectly correlated라면(현실에서는 항상 agree), NB는 실제로는 없는 conflicting evidence를 본다.
 
-3. **Very large training sets.** With enough data, discriminative models like logistic regression learn the true decision boundary and outperform NB. The independence assumption that helped with small data now holds the model back.
+3. **Very large training sets.** data가 충분하면 logistic regression 같은 discriminative model이 true decision boundary를 학습하고 NB보다 나은 성능을 낸다. small data에서 도움을 주던 independence assumption이 이제 model을 붙잡는다.
 
-In practice, these failure modes are rare for text classification. Text features are numerous, individually weak, and the independence assumption's errors tend to cancel out. For tabular data with few strongly correlated features, consider logistic regression or tree-based models first.
+실제로 text classification에서는 이런 failure mode가 드물다. Text feature는 많고, 개별적으로 약하며, independence assumption의 error는 서로 상쇄되는 경향이 있다. strongly correlated feature가 적은 tabular data에서는 logistic regression이나 tree-based model을 먼저 고려한다.
 
-## Exercises
+## 연습문제
 
-1. **Smoothing experiment.** Train MultinomialNB on text data with alpha values of 0.01, 0.1, 1.0, 10.0, and 100.0. Plot accuracy vs alpha. Where does performance peak? Why does very high alpha hurt?
+1. **Smoothing experiment.** alpha 값 0.01, 0.1, 1.0, 10.0, 100.0으로 text data에서 MultinomialNB를 train한다. accuracy vs alpha를 plot한다. performance peak는 어디인가? alpha가 매우 높으면 왜 해로운가?
 
-2. **Feature independence test.** Take a real text dataset. Pick two words that are obviously correlated ("machine" and "learning"). Compute P(word1 | class) * P(word2 | class) and compare to P(word1 AND word2 | class). How wrong is the independence assumption? Does it affect classification accuracy?
+2. **Feature independence test.** real text dataset을 사용한다. 명백히 correlated된 두 word("machine"과 "learning")를 고른다. P(word1 | class) * P(word2 | class)를 계산하고 P(word1 AND word2 | class)와 비교한다. independence assumption은 얼마나 틀렸는가? classification accuracy에 영향을 주는가?
 
-3. **Bernoulli implementation.** Extend the code with a BernoulliNB class. Convert bag-of-words to binary (present/absent) and compare accuracy against MultinomialNB on text data. When does Bernoulli win?
+3. **Bernoulli implementation.** code에 BernoulliNB class를 추가한다. bag-of-words를 binary(present/absent)로 변환하고 text data에서 MultinomialNB와 accuracy를 비교한다. Bernoulli는 언제 이기는가?
 
-4. **NB vs Logistic Regression.** Train both on text data. Start with 100 training samples and increase to 10,000. Plot accuracy vs training set size for both. At what point does Logistic Regression overtake Naive Bayes?
+4. **NB vs Logistic Regression.** text data에서 둘 다 train한다. training sample 100개로 시작해 10,000개까지 늘린다. 두 model의 training set size 대비 accuracy를 plot한다. 어느 지점에서 Logistic Regression이 Naive Bayes를 추월하는가?
 
-5. **Spam filter.** Build a complete spam classifier: tokenize raw email text, build vocabulary, create bag-of-words features, train MultinomialNB, evaluate with precision and recall (not just accuracy -- why?).
+5. **Spam filter.** complete spam classifier를 만든다. raw email text를 tokenize하고, vocabulary를 만들고, bag-of-words feature를 만들고, MultinomialNB를 train하고, precision과 recall로 evaluate한다(accuracy만 사용하지 말 것. 왜인가?).
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Naive Bayes | "Simple probabilistic classifier" | A classifier that applies Bayes' theorem with the assumption that features are conditionally independent given the class |
-| Conditional independence | "Features don't affect each other" | P(A, B \| C) = P(A \| C) * P(B \| C) -- knowing B tells you nothing new about A once you know C |
-| Laplace smoothing | "Add-one smoothing" | Adding a small count to every feature to prevent zero probabilities from dominating the prediction |
-| Prior | "What you believed before seeing data" | P(class) -- the probability of each class before observing any features |
-| Likelihood | "How well the data fits" | P(features \| class) -- the probability of observing these features if the class is known |
-| Posterior | "What you believe after seeing data" | P(class \| features) -- the updated probability of the class after observing the features |
-| Generative model | "Models how data is generated" | A model that learns P(X \| Y) and P(Y), then uses Bayes' theorem to get P(Y \| X) |
-| Discriminative model | "Models the decision boundary" | A model that directly learns P(Y \| X) without modeling how X is generated |
-| Log probability | "Avoid underflow" | Working with log P instead of P to prevent the product of many small numbers from becoming zero in floating point |
+| Naive Bayes | "간단한 probabilistic classifier" | feature가 class가 주어졌을 때 conditionally independent라는 assumption으로 Bayes' theorem을 적용하는 classifier |
+| Conditional independence | "Feature들이 서로 영향을 주지 않음" | P(A, B \| C) = P(A \| C) * P(B \| C) -- C를 알고 나면 B를 아는 것이 A에 대한 새 정보를 주지 않음 |
+| Laplace smoothing | "Add-one smoothing" | zero probability가 prediction을 지배하지 못하게 모든 feature에 작은 count를 더함 |
+| Prior | "data를 보기 전에 믿었던 것" | P(class) -- feature를 관측하기 전 각 class의 probability |
+| Likelihood | "data가 얼마나 잘 맞는가" | P(features \| class) -- class를 알고 있을 때 이런 feature를 관측할 probability |
+| Posterior | "data를 본 뒤 믿는 것" | P(class \| features) -- feature를 관측한 뒤 class에 대해 update된 probability |
+| Generative model | "data가 생성되는 방식을 model" | P(X \| Y)와 P(Y)를 학습한 뒤 Bayes' theorem을 사용해 P(Y \| X)를 얻는 model |
+| Discriminative model | "decision boundary를 model" | X가 어떻게 generated되는지 model하지 않고 P(Y \| X)를 직접 학습하는 model |
+| Log probability | "underflow를 피함" | 많은 작은 number의 product가 floating point에서 zero가 되는 것을 막기 위해 P 대신 log P로 작업 |
 
-## Further Reading
+## 더 읽을거리
 
-- [scikit-learn Naive Bayes docs](https://scikit-learn.org/stable/modules/naive_bayes.html) -- all three variants with mathematical details
-- [McCallum and Nigam, A Comparison of Event Models for Naive Bayes Text Classification (1998)](https://www.cs.cmu.edu/~knigam/papers/multinomial-aaaiws98.pdf) -- the classic comparison of Multinomial vs Bernoulli for text
-- [Rennie et al., Tackling the Poor Assumptions of Naive Bayes Text Classifiers (2003)](https://people.csail.mit.edu/jrennie/papers/icml03-nb.pdf) -- improvements to NB for text
-- [Ng and Jordan, On Discriminative vs. Generative Classifiers (2001)](https://ai.stanford.edu/~ang/papers/nips01-discriminativegenerative.pdf) -- proves NB converges faster than LR with less data
+- [scikit-learn Naive Bayes docs](https://scikit-learn.org/stable/modules/naive_bayes.html) -- 세 variant와 mathematical detail
+- [McCallum and Nigam, A Comparison of Event Models for Naive Bayes Text Classification (1998)](https://www.cs.cmu.edu/~knigam/papers/multinomial-aaaiws98.pdf) -- text에서 Multinomial vs Bernoulli를 비교한 classic paper
+- [Rennie et al., Tackling the Poor Assumptions of Naive Bayes Text Classifiers (2003)](https://people.csail.mit.edu/jrennie/papers/icml03-nb.pdf) -- text를 위한 NB improvement
+- [Ng and Jordan, On Discriminative vs. Generative Classifiers (2001)](https://ai.stanford.edu/~ang/papers/nips01-discriminativegenerative.pdf) -- data가 적을 때 NB가 LR보다 빠르게 converge함을 증명

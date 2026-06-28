@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What problem do virtual environments solve?",
-      "options": ["They make Python code run faster by optimizing the interpreter", "They isolate project dependencies so different projects can use different package versions", "They provide a graphical interface for managing Python scripts", "They automatically update packages to the latest versions"],
+      "question": "virtual environment는 어떤 문제를 해결하나요?",
+      "options": ["interpreter를 최적화해 Python code를 더 빠르게 실행합니다", "project dependency를 격리해 서로 다른 project가 서로 다른 package version을 사용할 수 있게 합니다", "Python script 관리를 위한 graphical interface를 제공합니다", "package를 latest version으로 자동 update합니다"],
       "correct": 1,
-      "explanation": "Virtual environments give each project its own isolated set of packages. Without them, installing PyTorch 2.4 for one project would overwrite PyTorch 2.1 needed by another."
+      "explanation": "virtual environment는 각 project에 자체 격리된 package set을 제공합니다. 이것이 없으면 한 project를 위해 PyTorch 2.4를 설치할 때 다른 project에 필요한 PyTorch 2.1을 덮어쓰게 됩니다."
     },
     {
       "stage": "pre",
-      "question": "What is a lockfile in the context of Python dependency management?",
-      "options": ["A file that prevents other users from editing your code", "A file that pins every package to an exact version for reproducible installs", "A file that locks the Python interpreter version", "A file that encrypts your project dependencies"],
+      "question": "Python dependency management 맥락에서 lockfile은 무엇인가요?",
+      "options": ["다른 사용자가 code를 편집하지 못하게 하는 file", "재현 가능한 install을 위해 모든 package를 정확한 version으로 고정하는 file", "Python interpreter version을 잠그는 file", "project dependency를 암호화하는 file"],
       "correct": 1,
-      "explanation": "A lockfile records the exact version of every package (including transitive dependencies) so anyone installing from it gets identical packages, ensuring reproducibility."
+      "explanation": "lockfile은 모든 package(transitive dependency 포함)의 정확한 version을 기록하므로, 여기서 설치하는 사람은 누구나 동일한 package를 받으며 재현성이 보장됩니다."
     },
     {
       "stage": "post",
-      "question": "How can you verify that your pip and python commands are using the virtual environment and not the system Python?",
-      "options": ["Run 'pip --version' and check the version number", "Run 'which python' and confirm it shows .venv/bin/python, not /usr/bin/python", "Check if the terminal background color has changed", "Run 'python --check-env' to verify"],
+      "question": "pip와 python command가 system Python이 아니라 virtual environment를 사용 중인지 어떻게 확인할 수 있나요?",
+      "options": ["'pip --version'을 실행하고 version number를 확인합니다", "'which python'을 실행해 /usr/bin/python이 아니라 .venv/bin/python을 표시하는지 확인합니다", "terminal 배경색이 바뀌었는지 확인합니다", "'python --check-env'를 실행해 검증합니다"],
       "correct": 1,
-      "explanation": "'which python' (or 'where python' on Windows) shows the full path to the interpreter. If it points to .venv/bin/python, you are in the virtual environment."
+      "explanation": "'which python'(Windows에서는 'where python')은 interpreter의 전체 path를 보여줍니다. .venv/bin/python을 가리키면 virtual environment 안에 있는 것입니다."
     },
     {
       "stage": "post",
-      "question": "Why is mixing pip and conda in the same environment problematic?",
-      "options": ["Pip packages are incompatible with conda's Python interpreter", "Pip installs can break conda's dependency tracking, causing hard-to-debug conflicts", "Conda cannot install packages that pip has already installed", "It doubles the disk space used by every package"],
+      "question": "같은 environment에서 pip와 conda를 섞는 것이 문제가 되는 이유는 무엇인가요?",
+      "options": ["pip package는 conda의 Python interpreter와 호환되지 않기 때문에", "pip install이 conda의 dependency tracking을 깨서 디버깅하기 어려운 conflict를 만들 수 있기 때문에", "conda는 pip가 이미 설치한 package를 설치할 수 없기 때문에", "모든 package가 사용하는 disk space가 두 배가 되기 때문에"],
       "correct": 1,
-      "explanation": "Conda maintains its own dependency solver. Pip installs bypass it, so conda no longer knows the true state of the environment. This leads to dependency conflicts that are painful to resolve."
+      "explanation": "Conda는 자체 dependency solver를 유지합니다. pip install은 이를 우회하므로 conda가 environment의 실제 상태를 더 이상 알 수 없습니다. 이로 인해 해결하기 고통스러운 dependency conflict가 생깁니다."
     },
     {
       "stage": "post",
-      "question": "Your PyTorch code reports 'CUDA not available' despite having an NVIDIA GPU. What is the most likely cause?",
-      "options": ["Your GPU does not support CUDA", "PyTorch was installed with a CUDA version incompatible with your GPU driver", "You forgot to import the torch.cuda module", "Virtual environments cannot access GPU hardware"],
+      "question": "NVIDIA GPU가 있는데도 PyTorch code가 'CUDA not available'을 보고합니다. 가장 가능성 높은 원인은 무엇인가요?",
+      "options": ["GPU가 CUDA를 지원하지 않습니다", "PyTorch가 GPU driver와 호환되지 않는 CUDA version으로 설치되었습니다", "torch.cuda module을 import하는 것을 잊었습니다", "virtual environment는 GPU hardware에 접근할 수 없습니다"],
       "correct": 1,
-      "explanation": "PyTorch ships CUDA bindings compiled for specific CUDA versions. If the PyTorch CUDA version exceeds your driver's CUDA version, CUDA will not be available. Check with nvidia-smi and torch.version.cuda."
+      "explanation": "PyTorch는 특정 CUDA version용으로 compile된 CUDA binding을 제공합니다. PyTorch CUDA version이 driver의 CUDA version보다 높으면 CUDA를 사용할 수 없습니다. nvidia-smi와 torch.version.cuda로 확인하세요."
     }
   ]
 }

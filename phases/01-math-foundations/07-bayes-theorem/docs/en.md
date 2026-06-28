@@ -1,48 +1,48 @@
-# Bayes' Theorem
+# 베이즈 정리
 
-> Probability is about what you expect. Bayes' theorem is about what you learn.
+> 확률은 당신이 무엇을 예상하는지에 관한 것입니다. Bayes' theorem은 당신이 무엇을 배우는지에 관한 것입니다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 1, Lesson 06 (Probability Fundamentals)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Apply Bayes' theorem to compute posterior probabilities from priors, likelihoods, and evidence
-- Build a Naive Bayes text classifier from scratch with Laplace smoothing and log-space computation
-- Compare MLE and MAP estimation and explain how MAP corresponds to L2 regularization
-- Implement sequential Bayesian updating using Beta-Binomial conjugate priors for A/B testing
+- prior, likelihood, evidence에서 posterior probability를 계산하기 위해 Bayes' theorem을 적용한다
+- Laplace smoothing과 log-space computation을 사용해 Naive Bayes text classifier를 처음부터 만든다
+- MLE와 MAP estimation을 비교하고, MAP이 L2 regularization에 어떻게 대응되는지 설명한다
+- A/B testing을 위해 Beta-Binomial conjugate prior를 사용하는 sequential Bayesian updating을 구현한다
 
-## The Problem
+## 문제
 
-A medical test is 99% accurate. You test positive. What are the chances you actually have the disease?
+의료 검사가 99% 정확합니다. 검사 결과가 양성입니다. 실제로 병에 걸렸을 확률은 얼마일까요?
 
-Most people say 99%. The real answer depends on how rare the disease is. If 1 in 10,000 people have it, a positive result only gives you about a 1% chance of being sick. The other 99% of positive results are false alarms from healthy people.
+대부분은 99%라고 답합니다. 실제 답은 그 병이 얼마나 드문지에 따라 달라집니다. 10,000명 중 1명만 걸리는 병이라면, 양성 결과는 아플 확률을 약 1%로만 올립니다. 양성 결과의 나머지 99%는 건강한 사람에게서 나온 false alarm입니다.
 
-This is not a trick question. It is Bayes' theorem. Every spam filter, every medical diagnostic, every machine learning model that quantifies uncertainty uses this exact reasoning. You start with a belief. You see evidence. You update.
+이것은 함정 문제가 아닙니다. Bayes' theorem입니다. 모든 spam filter, 모든 medical diagnostic, 불확실성을 정량화하는 모든 machine learning model은 정확히 이 추론을 사용합니다. 믿음에서 시작합니다. 증거를 봅니다. 갱신합니다.
 
-If you build ML systems without understanding this, you will misinterpret model outputs, set bad thresholds, and ship overconfident predictions.
+이를 이해하지 못한 채 ML system을 만들면 model output을 잘못 해석하고, 나쁜 threshold를 설정하고, 지나치게 확신하는 prediction을 배포하게 됩니다.
 
-## The Concept
+## 개념
 
-### From joint probability to Bayes
+### 결합확률에서 Bayes로
 
-You already know from Lesson 06 that conditional probability is:
+Lesson 06에서 이미 조건부확률을 배웠습니다:
 
-```
+```text
 P(A|B) = P(A and B) / P(B)
 ```
 
-And symmetrically:
+그리고 대칭적으로:
 
-```
+```text
 P(B|A) = P(A and B) / P(A)
 ```
 
-Both expressions share the same numerator: P(A and B). Set them equal and rearrange:
+두 식은 같은 분자를 공유합니다: P(A and B). 두 식을 같게 놓고 정리합니다:
 
-```
+```text
 P(A and B) = P(A|B) * P(B) = P(B|A) * P(A)
 
 Therefore:
@@ -50,28 +50,28 @@ Therefore:
 P(A|B) = P(B|A) * P(A) / P(B)
 ```
 
-That is Bayes' theorem. Four quantities, one equation.
+이것이 Bayes' theorem입니다. 네 개의 양, 하나의 방정식입니다.
 
-### The four parts
+### 네 부분
 
 | Part | Name | What it means |
 |------|------|---------------|
-| P(A\|B) | Posterior | Your updated belief about A after seeing evidence B |
-| P(B\|A) | Likelihood | How probable the evidence B is if A is true |
-| P(A) | Prior | Your belief about A before seeing any evidence |
-| P(B) | Evidence | Total probability of seeing B under all possibilities |
+| P(A\|B) | Posterior | evidence B를 본 뒤 A에 대한 갱신된 믿음 |
+| P(B\|A) | Likelihood | A가 참일 때 evidence B가 얼마나 그럴듯한지 |
+| P(A) | Prior | evidence를 보기 전 A에 대한 믿음 |
+| P(B) | Evidence | 모든 가능성 아래에서 B를 볼 전체 확률 |
 
-The evidence term P(B) acts as a normalizer. You can expand it using the law of total probability:
+evidence 항 P(B)는 normalizer로 작동합니다. total probability law를 사용해 확장할 수 있습니다:
 
-```
+```text
 P(B) = P(B|A) * P(A) + P(B|not A) * P(not A)
 ```
 
-### Medical test example
+### 의료 검사 예시
 
-A disease affects 1 in 10,000 people. The test is 99% accurate (catches 99% of sick people, gives false positives 1% of the time).
+어떤 병이 10,000명 중 1명에게 영향을 줍니다. 검사는 99% 정확합니다(아픈 사람의 99%를 잡고, 건강한 사람에게 1%의 false positive를 냅니다).
 
-```
+```text
 P(sick)          = 0.0001     (prior: disease is rare)
 P(positive|sick) = 0.99       (likelihood: test catches it)
 P(positive|healthy) = 0.01    (false positive rate)
@@ -87,13 +87,13 @@ P(sick|positive) = P(positive|sick) * P(sick) / P(positive)
                  = 0.98%
 ```
 
-Less than 1%. The prior dominates. When a condition is rare, even accurate tests produce mostly false positives. This is why doctors order confirmation tests.
+1%보다 작습니다. prior가 지배합니다. 어떤 상태가 드물면, 정확한 검사도 대부분 false positive를 만들어냅니다. 그래서 의사는 confirmation test를 지시합니다.
 
-### Spam filter example
+### Spam filter 예시
 
-You receive an email containing the word "lottery". Is it spam?
+당신은 "lottery"라는 단어가 들어간 email을 받았습니다. 이것은 spam일까요?
 
-```
+```text
 P(spam)                = 0.3      (30% of email is spam)
 P("lottery"|spam)      = 0.05     (5% of spam emails contain "lottery")
 P("lottery"|not spam)  = 0.001    (0.1% of legitimate emails contain "lottery")
@@ -107,72 +107,72 @@ P(spam|"lottery") = 0.05 * 0.3 / 0.0157
                   = 95.5%
 ```
 
-One word shifts the probability from 30% to 95.5%. A real spam filter applies Bayes across hundreds of words simultaneously.
+단어 하나가 확률을 30%에서 95.5%로 이동시킵니다. 실제 spam filter는 수백 개 단어에 대해 동시에 Bayes를 적용합니다.
 
-### Naive Bayes: independence assumption
+### Naive Bayes: 독립성 가정
 
-Naive Bayes extends this to multiple features by assuming all features are conditionally independent given the class:
+Naive Bayes는 class가 주어졌을 때 모든 feature가 conditionally independent라고 가정하여 이를 여러 feature로 확장합니다:
 
-```
+```text
 P(class | feature_1, feature_2, ..., feature_n)
   = P(class) * P(feature_1|class) * P(feature_2|class) * ... * P(feature_n|class)
     / P(feature_1, feature_2, ..., feature_n)
 ```
 
-The "naive" part is the independence assumption. In text, word occurrences are not independent ("New" and "York" are correlated). But the assumption works surprisingly well in practice because the classifier only needs to rank classes, not produce calibrated probabilities.
+"naive"한 부분은 independence assumption입니다. text에서는 단어 발생이 독립이 아닙니다("New"와 "York"은 correlated입니다). 하지만 이 가정은 실제로 놀라울 만큼 잘 작동합니다. classifier가 calibrated probability를 생성할 필요 없이 class를 rank하기만 하면 되기 때문입니다.
 
-Since the denominator is the same for all classes, you can skip it and just compare numerators:
+분모는 모든 class에서 같으므로 생략하고 분자만 비교할 수 있습니다:
 
-```
+```text
 score(class) = P(class) * product of P(feature_i | class)
 ```
 
-Pick the class with the highest score.
+score가 가장 높은 class를 고릅니다.
 
-### Maximum likelihood estimation (MLE)
+### 최대우도추정(MLE)
 
-How do you get P(feature|class) from training data? Count.
+training data에서 P(feature|class)를 어떻게 얻을까요? 셉니다.
 
-```
+```text
 P("free"|spam) = (number of spam emails containing "free") / (total spam emails)
 ```
 
-This is MLE: choose the parameter values that make the observed data most likely. You are maximizing the likelihood function, which for discrete counts reduces to relative frequency.
+이것이 MLE입니다. 관측된 데이터를 가장 그럴듯하게 만드는 parameter value를 선택합니다. likelihood function을 최대화하는 것이며, 이산 count에서는 relative frequency로 줄어듭니다.
 
-Problem: if a word never appears in spam during training, MLE gives it probability zero. One unseen word kills the entire product. Fix this with Laplace smoothing:
+문제: 어떤 단어가 training 중 spam에서 한 번도 나타나지 않으면 MLE는 그 단어에 probability zero를 줍니다. 보지 못한 단어 하나가 전체 product를 죽입니다. Laplace smoothing으로 해결합니다:
 
-```
+```text
 P(word|class) = (count(word, class) + 1) / (total_words_in_class + vocabulary_size)
 ```
 
-Adding 1 to every count ensures no probability is ever zero.
+모든 count에 1을 더하면 어떤 확률도 0이 되지 않습니다.
 
-### Maximum a posteriori (MAP)
+### 최대 사후확률(MAP)
 
-MLE asks: what parameters maximize P(data|parameters)?
+MLE는 묻습니다: 어떤 parameters가 P(data|parameters)를 최대화하는가?
 
-MAP asks: what parameters maximize P(parameters|data)?
+MAP은 묻습니다: 어떤 parameters가 P(parameters|data)를 최대화하는가?
 
-By Bayes' theorem:
+Bayes' theorem에 의해:
 
-```
+```text
 P(parameters|data) proportional to P(data|parameters) * P(parameters)
 ```
 
-MAP adds a prior over the parameters themselves. If you believe parameters should be small, you encode that as a prior that penalizes large values. This is identical to L2 regularization in ML. The "ridge" penalty in ridge regression is literally a Gaussian prior on the weights.
+MAP은 parameter 자체에 대한 prior를 더합니다. parameter가 작아야 한다고 믿는다면, 큰 값을 penalize하는 prior로 이를 인코딩합니다. 이것은 ML의 L2 regularization과 동일합니다. ridge regression의 "ridge" penalty는 말 그대로 weights에 대한 Gaussian prior입니다.
 
 | Estimation | Optimizes | ML equivalent |
 |------------|-----------|---------------|
 | MLE | P(data\|params) | Unregularized training |
 | MAP | P(data\|params) * P(params) | L2 / L1 regularization |
 
-### Bayesian vs frequentist: the practical difference
+### Bayesian vs frequentist: 실용적 차이
 
-Frequentists treat parameters as fixed unknowns. They ask: "If I repeated this experiment many times, what would happen?"
+Frequentist는 parameter를 고정되었지만 모르는 값으로 봅니다. 그들은 묻습니다: "이 실험을 여러 번 반복하면 무슨 일이 일어날까?"
 
-Bayesians treat parameters as distributions. They ask: "Given what I have observed, what do I believe about the parameters?"
+Bayesian은 parameter를 분포로 봅니다. 그들은 묻습니다: "내가 관측한 것을 고려하면 parameter에 대해 무엇을 믿는가?"
 
-For building ML systems, the practical difference:
+ML system을 만들 때의 실용적 차이:
 
 | Aspect | Frequentist | Bayesian |
 |--------|-------------|----------|
@@ -181,27 +181,27 @@ For building ML systems, the practical difference:
 | Small data | Can overfit | Prior acts as regularization |
 | Computation | Usually faster | Often requires sampling (MCMC) |
 
-Most production ML is frequentist (SGD, point estimates). Bayesian methods shine when you need calibrated uncertainty (medical decisions, safety-critical systems) or when data is scarce (few-shot learning, cold start).
+대부분의 production ML은 frequentist입니다(SGD, point estimates). Bayesian method는 calibrated uncertainty가 필요할 때(medical decisions, safety-critical systems) 또는 데이터가 부족할 때(few-shot learning, cold start) 빛납니다.
 
-### Why Bayesian thinking matters for ML
+### Bayesian thinking이 ML에 중요한 이유
 
-The connection is deeper than analogy:
+연결은 비유보다 깊습니다:
 
-**Priors are regularization.** A Gaussian prior on weights is L2 regularization. A Laplace prior is L1. Every time you add a regularization term, you are making a Bayesian statement about what parameter values you expect.
+**Priors are regularization.** weights에 대한 Gaussian prior는 L2 regularization입니다. Laplace prior는 L1입니다. regularization term을 추가할 때마다, 당신은 어떤 parameter value를 기대하는지에 대한 Bayesian statement를 하고 있습니다.
 
-**Posteriors are uncertainty.** A single predicted probability tells you nothing about how confident the model is in that estimate. Bayesian methods give you a distribution: "I think P(spam) is between 0.8 and 0.95."
+**Posteriors are uncertainty.** 하나의 predicted probability는 모델이 그 estimate에 얼마나 confident한지 말해주지 않습니다. Bayesian method는 분포를 줍니다: "P(spam)이 0.8과 0.95 사이일 것으로 생각한다."
 
-**Bayes updates are online learning.** Today's posterior becomes tomorrow's prior. When your model sees new data, it updates its beliefs incrementally instead of retraining from scratch.
+**Bayes updates are online learning.** 오늘의 posterior가 내일의 prior가 됩니다. 모델이 새 데이터를 보면, 처음부터 다시 학습하는 대신 믿음을 점진적으로 갱신합니다.
 
-**Model comparison is Bayesian.** Bayesian information criterion (BIC), marginal likelihood, and Bayes factors all use Bayesian reasoning to choose between models without overfitting.
+**Model comparison is Bayesian.** Bayesian information criterion (BIC), marginal likelihood, Bayes factors는 모두 overfitting 없이 model을 선택하기 위해 Bayesian reasoning을 사용합니다.
 
 ```figure
 bayes-update
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Bayes theorem function
+### Step 1: Bayes theorem 함수
 
 ```python
 def bayes(prior, likelihood, false_positive_rate):
@@ -213,7 +213,7 @@ result = bayes(prior=0.0001, likelihood=0.99, false_positive_rate=0.01)
 print(f"P(sick|positive) = {result:.4f}")
 ```
 
-### Step 2: Naive Bayes classifier
+### Step 2: Naive Bayes 분류기
 
 ```python
 import math
@@ -254,9 +254,9 @@ class NaiveBayes:
         return best_class
 ```
 
-Log probabilities prevent underflow. Multiplying many small probabilities produces numbers too tiny for floating point. Summing log-probabilities is numerically stable and mathematically equivalent.
+Log probability는 underflow를 막습니다. 작은 확률을 많이 곱하면 floating point로 표현하기에는 너무 작은 숫자가 됩니다. log-probability를 더하는 것은 수치적으로 안정적이고 수학적으로 동일합니다.
 
-### Step 3: Train on spam data
+### Step 3: spam data로 학습하기
 
 ```python
 train_docs = [
@@ -293,7 +293,7 @@ for msg in test_messages:
     print(f"  '{msg}' -> {classifier.predict(msg)}")
 ```
 
-### Step 4: Inspect the learned probabilities
+### Step 4: 학습된 확률 살펴보기
 
 ```python
 def show_top_words(classifier, cls, n=5):
@@ -313,9 +313,9 @@ print("\nTop ham words:")
 show_top_words(classifier, "ham")
 ```
 
-## Use It
+## 사용하기
 
-Scikit-learn ships production-ready naive Bayes implementations:
+Scikit-learn은 production-ready naive Bayes implementation을 제공합니다:
 
 ```python
 from sklearn.feature_extraction.text import CountVectorizer
@@ -333,15 +333,15 @@ for msg, pred in zip(test_messages, predictions):
     print(f"  '{msg}' -> {pred}")
 ```
 
-Same algorithm. CountVectorizer handles tokenization and vocabulary building. MultinomialNB handles smoothing and log-probabilities internally. Your from-scratch version does the same thing in 40 lines.
+같은 알고리즘입니다. CountVectorizer는 tokenization과 vocabulary building을 처리합니다. MultinomialNB는 smoothing과 log-probabilities를 내부적으로 처리합니다. 당신이 처음부터 만든 버전은 같은 일을 40줄로 합니다.
 
-## Ship It
+## 배포하기
 
-The NaiveBayes class built here demonstrates the full pipeline: tokenization, probability estimation with Laplace smoothing, log-space prediction. The code in `code/bayes.py` runs end-to-end with no dependencies beyond Python's standard library.
+여기서 만든 NaiveBayes class는 전체 pipeline을 보여줍니다: tokenization, Laplace smoothing을 사용한 probability estimation, log-space prediction. `code/bayes.py`의 코드는 Python standard library 외 의존성 없이 end-to-end로 실행됩니다.
 
-### Conjugate Priors
+### 켤레 사전분포
 
-When the prior and posterior belong to the same family of distributions, the prior is called "conjugate." This makes Bayesian updating algebraically clean -- you get a closed-form posterior without numerical integration.
+prior와 posterior가 같은 distribution family에 속하면 그 prior를 "conjugate"라고 부릅니다. 이것은 Bayesian updating을 대수적으로 깔끔하게 만듭니다. numerical integration 없이 closed-form posterior를 얻습니다.
 
 | Likelihood | Conjugate Prior | Posterior | Example |
 |-----------|----------------|-----------|---------|
@@ -350,43 +350,43 @@ When the prior and posterior belong to the same family of distributions, the pri
 | Poisson | Gamma(a, b) | Gamma(a + sum of counts, b + n) | Modeling arrival rates |
 | Multinomial | Dirichlet(alpha) | Dirichlet(alpha + counts) | Topic modeling, language models |
 
-Why this matters: without conjugate priors, you need Monte Carlo sampling or variational inference to approximate the posterior. With conjugate priors, you just update two numbers.
+이것이 중요한 이유: conjugate prior가 없으면 posterior를 근사하기 위해 Monte Carlo sampling이나 variational inference가 필요합니다. conjugate prior가 있으면 숫자 두 개만 갱신하면 됩니다.
 
-The Beta distribution is the most common conjugate prior in practice. Beta(a, b) represents your belief about a probability parameter. The mean is a/(a+b). The larger a+b, the more concentrated (confident) the distribution.
+Beta distribution은 실제로 가장 흔한 conjugate prior입니다. Beta(a, b)는 probability parameter에 대한 믿음을 나타냅니다. 평균은 a/(a+b)입니다. a+b가 클수록 분포가 더 concentrated됩니다(confident).
 
-Special cases of the Beta prior:
-- Beta(1, 1) = uniform. You have no opinion about the parameter.
-- Beta(10, 10) = peaked at 0.5. You strongly believe the parameter is near 0.5.
-- Beta(1, 10) = skewed toward 0. You believe the parameter is small.
+Beta prior의 특수한 경우:
+- Beta(1, 1) = uniform. parameter에 대한 의견이 없습니다.
+- Beta(10, 10) = 0.5 근처에 peaked. parameter가 0.5 근처라고 강하게 믿습니다.
+- Beta(1, 10) = 0 쪽으로 skewed. parameter가 작다고 믿습니다.
 
-The update rule is dead simple:
+update rule은 매우 단순합니다:
 
-```
+```text
 Prior:     Beta(a, b)
 Data:      s successes, f failures
 Posterior: Beta(a + s, b + f)
 ```
 
-No integrals. No sampling. Just addition.
+적분도, 샘플링도 없습니다. 그냥 덧셈입니다.
 
-### Sequential Bayesian Updating
+### 순차적 베이지안 업데이트
 
-Bayesian inference is naturally sequential. Today's posterior becomes tomorrow's prior. This is how real systems learn incrementally without reprocessing all historical data.
+Bayesian inference는 자연스럽게 sequential합니다. 오늘의 posterior가 내일의 prior가 됩니다. 이것이 실제 system이 모든 historical data를 다시 처리하지 않고 점진적으로 배우는 방식입니다.
 
-Concrete example: estimating whether a coin is fair.
+구체적 예시: 동전이 fair한지 추정하기.
 
-**Day 1: No data yet.**
-Start with Beta(1, 1) -- a uniform prior. You have no opinion.
+**Day 1: 아직 데이터가 없습니다.**
+Beta(1, 1)로 시작합니다. uniform prior입니다. 의견이 없습니다.
 - Prior mean: 0.5
 - Prior is flat across [0, 1]
 
-**Day 2: Observe 7 heads, 3 tails.**
+**Day 2: 앞면 7번, 뒷면 3번을 관측합니다.**
 Posterior = Beta(1 + 7, 1 + 3) = Beta(8, 4)
 - Posterior mean: 8/12 = 0.667
 - Evidence suggests the coin is biased toward heads
 
-**Day 3: Observe 5 more heads, 5 more tails.**
-Use yesterday's posterior as today's prior.
+**Day 3: 앞면 5번, 뒷면 5번을 추가로 관측합니다.**
+어제의 posterior를 오늘의 prior로 사용합니다.
 Posterior = Beta(8 + 5, 4 + 5) = Beta(13, 9)
 - Posterior mean: 13/22 = 0.591
 - The balanced new data pulled the estimate back toward 0.5
@@ -398,40 +398,40 @@ graph LR
     C -->|"5H, 5T"| D["Posterior 2<br/>Beta(13,9)<br/>mean = 0.59"]
 ```
 
-The order of observations does not matter. Beta(1,1) updated with all 12 heads and 8 tails at once gives Beta(13, 9) -- the same result. Sequential updating and batch updating are mathematically equivalent. But sequential updating lets you make decisions at each step without storing raw data.
+관측 순서는 중요하지 않습니다. Beta(1,1)을 앞면 12번, 뒷면 8번 전체로 한 번에 갱신해도 Beta(13, 9)가 됩니다. 같은 결과입니다. Sequential updating과 batch updating은 수학적으로 동등합니다. 하지만 sequential updating은 raw data를 저장하지 않고도 각 단계에서 결정을 내리게 해줍니다.
 
-This is the foundation of online learning in production ML systems. Thompson sampling for bandits, incremental recommendation systems, and streaming anomaly detectors all use this pattern.
+이것이 production ML system에서 online learning의 기반입니다. bandit을 위한 Thompson sampling, incremental recommendation system, streaming anomaly detector가 모두 이 패턴을 사용합니다.
 
-### Connection to A/B Testing
+### A/B Testing과의 연결
 
-A/B testing is Bayesian inference in disguise.
+A/B testing은 변장한 Bayesian inference입니다.
 
-Setup: you are testing two button colors. Variant A (blue) and variant B (green). You want to know which one gets more clicks.
+설정: 버튼 색 두 가지를 테스트합니다. Variant A(blue)와 variant B(green). 어떤 것이 더 많은 click을 얻는지 알고 싶습니다.
 
-The Bayesian A/B test:
+베이지안 A/B test:
 
-1. **Prior.** Start with Beta(1, 1) for both variants. No prior preference.
-2. **Data.** Variant A: 50 clicks out of 1000 views. Variant B: 65 clicks out of 1000 views.
+1. **Prior.** 두 variant 모두 Beta(1, 1)로 시작합니다. prior preference가 없습니다.
+2. **Data.** Variant A: 1000 views 중 50 clicks. Variant B: 1000 views 중 65 clicks.
 3. **Posteriors.**
    - A: Beta(1 + 50, 1 + 950) = Beta(51, 951). Mean = 0.051
    - B: Beta(1 + 65, 1 + 935) = Beta(66, 936). Mean = 0.066
-4. **Decision.** Compute P(B > A) -- the probability that B's true conversion rate is higher than A's.
+4. **Decision.** P(B > A), 즉 B의 true conversion rate가 A보다 높을 확률을 계산합니다.
 
-Computing P(B > A) analytically is hard. But Monte Carlo makes it trivial:
+P(B > A)를 해석적으로 계산하기는 어렵습니다. 하지만 Monte Carlo를 쓰면 간단합니다:
 
-```
+```text
 1. Draw 100,000 samples from Beta(51, 951)  -> samples_A
 2. Draw 100,000 samples from Beta(66, 936)  -> samples_B
 3. P(B > A) = fraction of samples where B > A
 ```
 
-If P(B > A) > 0.95, you ship variant B. If it is between 0.05 and 0.95, you keep collecting data. If P(B > A) < 0.05, you ship variant A.
+P(B > A) > 0.95이면 variant B를 ship합니다. 0.05와 0.95 사이이면 데이터를 계속 모읍니다. P(B > A) < 0.05이면 variant A를 ship합니다.
 
-Advantages over frequentist A/B testing:
-- You get a direct probability statement: "there is a 97% chance B is better"
-- No p-value confusion. No "fail to reject the null hypothesis" hedging.
-- You can check results at any time without inflating false positive rates (no "peeking problem")
-- You can incorporate prior knowledge (e.g., previous tests suggest conversion rates are usually 3-8%)
+frequentist A/B testing 대비 장점:
+- 직접적인 probability statement를 얻습니다: "B가 더 좋을 확률이 97%다"
+- p-value 혼동이 없습니다. "fail to reject the null hypothesis" 같은 회피가 없습니다.
+- false positive rate를 부풀리지 않고 언제든 결과를 확인할 수 있습니다("peeking problem" 없음)
+- prior knowledge를 포함할 수 있습니다(예: 이전 test에서 conversion rate가 보통 3-8%였음)
 
 | Aspect | Frequentist A/B | Bayesian A/B |
 |--------|----------------|--------------|
@@ -441,34 +441,34 @@ Advantages over frequentist A/B testing:
 | Prior knowledge | Not used | Encoded as Beta prior |
 | Decision rule | p < 0.05 | P(B > A) > threshold |
 
-## Exercises
+## 연습문제
 
-1. **Multiple tests.** A patient tests positive twice on independent tests (both 99% accurate, disease prevalence 1 in 10,000). What is P(sick) after both tests? Use the posterior from the first test as the prior for the second.
+1. **Multiple tests.** 환자가 독립적인 검사 두 번에서 양성입니다(둘 다 99% 정확, disease prevalence는 10,000명 중 1명). 두 검사 이후 P(sick)은 얼마인가요? 첫 번째 test의 posterior를 두 번째 test의 prior로 사용하세요.
 
-2. **Smoothing impact.** Run the spam classifier with smoothing values of 0.01, 0.1, 1.0, and 10.0. How do the top word probabilities change? What happens with smoothing=0 and a word that appears only in ham?
+2. **Smoothing impact.** smoothing 값 0.01, 0.1, 1.0, 10.0으로 spam classifier를 실행하세요. top word probability가 어떻게 변하나요? smoothing=0이고 어떤 단어가 ham에만 나타나면 무슨 일이 생기나요?
 
-3. **Add features.** Extend the NaiveBayes class to also use message length (short/long) as a feature alongside word counts. Estimate P(short|spam) and P(short|ham) from the training data and fold it into the prediction score.
+3. **Add features.** NaiveBayes class를 확장해 word count와 함께 message length(short/long)도 feature로 사용하세요. training data에서 P(short|spam)과 P(short|ham)을 추정하고 prediction score에 포함하세요.
 
-4. **MAP by hand.** Given observed data (7 heads in 10 coin flips), compute the MAP estimate of the bias using a Beta(2,2) prior. Compare it to the MLE estimate (7/10).
+4. **MAP by hand.** 관측 데이터(동전 10번 중 앞면 7번)가 주어졌을 때 Beta(2,2) prior를 사용해 bias의 MAP estimate를 계산하세요. MLE estimate(7/10)와 비교하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Prior | "My initial guess" | P(hypothesis) before observing evidence. In ML: the regularization term. |
-| Likelihood | "How well the data fits" | P(evidence\|hypothesis). How probable the observed data is under a specific hypothesis. |
-| Posterior | "My updated belief" | P(hypothesis\|evidence). The prior multiplied by the likelihood, then normalized. |
-| Evidence | "The normalizing constant" | P(data) across all hypotheses. Ensures the posterior sums to 1. |
-| Naive Bayes | "That simple text classifier" | A classifier that assumes features are independent given the class. Works well despite the false assumption. |
-| Laplace smoothing | "Add-one smoothing" | Adding a small count to every feature to prevent zero probabilities from unseen data. |
-| MLE | "Just use the frequencies" | Choose parameters that maximize P(data\|parameters). No prior. Can overfit with small data. |
-| MAP | "MLE with a prior" | Choose parameters that maximize P(data\|parameters) * P(parameters). Equivalent to regularized MLE. |
-| Log-probability | "Work in log space" | Using log(P) instead of P to avoid floating-point underflow when multiplying many small numbers. |
-| False positive | "A wrong alarm" | The test says positive, but the true state is negative. Drives the base rate fallacy. |
+| Prior | "내 초기 추측" | evidence를 관측하기 전 P(hypothesis). ML에서는 regularization term입니다. |
+| Likelihood | "데이터가 얼마나 잘 맞는지" | P(evidence\|hypothesis). 특정 hypothesis 아래에서 observed data가 얼마나 그럴듯한지입니다. |
+| Posterior | "갱신된 믿음" | P(hypothesis\|evidence). prior에 likelihood를 곱한 뒤 normalize한 것입니다. |
+| Evidence | "정규화 상수" | 모든 hypothesis에 대한 P(data). posterior의 합이 1이 되게 합니다. |
+| Naive Bayes | "그 간단한 text classifier" | class가 주어졌을 때 feature가 independent라고 가정하는 classifier입니다. 틀린 가정에도 잘 작동합니다. |
+| Laplace smoothing | "Add-one smoothing" | unseen data 때문에 probability가 0이 되는 것을 막기 위해 모든 feature에 작은 count를 더하는 것입니다. |
+| MLE | "frequency를 그대로 쓰기" | P(data\|parameters)를 최대화하는 parameter를 선택합니다. prior가 없습니다. small data에서 overfit될 수 있습니다. |
+| MAP | "prior가 있는 MLE" | P(data\|parameters) * P(parameters)를 최대화하는 parameter를 선택합니다. regularized MLE와 동등합니다. |
+| Log-probability | "log space에서 작업" | 작은 확률을 많이 곱할 때 floating-point underflow를 피하기 위해 P 대신 log(P)를 사용합니다. |
+| False positive | "잘못된 경보" | test는 positive라고 하지만 true state는 negative입니다. base rate fallacy를 일으킵니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [3Blue1Brown: Bayes' theorem](https://www.youtube.com/watch?v=HZGCoVF3YvM) - visual explanation with the medical test example
-- [Stanford CS229: Generative Learning Algorithms](https://cs229.stanford.edu/notes2022fall/cs229-notes2.pdf) - naive Bayes and its connection to discriminative models
-- [Think Bayes](https://greenteapress.com/wp/think-bayes/) - free book, Bayesian statistics with Python code
-- [scikit-learn Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html) - production implementations and when to use each variant
+- [3Blue1Brown: Bayes' theorem](https://www.youtube.com/watch?v=HZGCoVF3YvM) - medical test 예시를 사용한 시각적 설명
+- [Stanford CS229: Generative Learning Algorithms](https://cs229.stanford.edu/notes2022fall/cs229-notes2.pdf) - naive Bayes와 discriminative model과의 연결
+- [Think Bayes](https://greenteapress.com/wp/think-bayes/) - Python code로 배우는 무료 Bayesian statistics 책
+- [scikit-learn Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html) - production implementation과 각 variant를 언제 쓸지

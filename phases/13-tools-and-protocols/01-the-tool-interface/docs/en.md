@@ -1,152 +1,152 @@
-# The Tool Interface — Why Agents Need Structured I/O
+# Tool Interface - 에이전트에 구조화된 I/O가 필요한 이유
 
-> A language model produces tokens. A program takes actions. The gap between those two is the tool interface: a contract that lets the model request an action and the host execute it. Every 2026 stack — function calling on OpenAI, Anthropic, and Gemini; MCP's `tools/call`; A2A's task parts — is a different encoding of the same four-step loop. This lesson names the loop and shows the minimum machinery to run it.
+> 언어 모델은 토큰을 생성합니다. 프로그램은 행동을 수행합니다. 이 둘 사이의 간극이 tool interface입니다. 모델이 어떤 행동을 요청하고 host가 그것을 실행할 수 있게 해 주는 계약입니다. 2026년의 모든 스택, 즉 OpenAI, Anthropic, Gemini의 function calling, MCP의 `tools/call`, A2A의 task part는 같은 4단계 loop를 서로 다르게 인코딩한 것입니다. 이 레슨은 그 loop에 이름을 붙이고, 이를 실행하는 데 필요한 최소 장치를 보여 줍니다.
 
 **Type:** Learn
 **Languages:** Python (stdlib, no LLM)
 **Prerequisites:** Phase 11 (LLM completion APIs)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Explain why an LLM that can only generate text cannot, on its own, take actions against the real world.
-- Draw the four-step tool-call loop (describe → decide → execute → observe) and name who owns each step.
-- Write a tool description as three parts: name, JSON Schema input, and a deterministic executor function.
-- Distinguish pure and side-effecting tools and state why the split matters for safety.
+- 텍스트만 생성할 수 있는 LLM이 왜 스스로 실제 세계에 대해 행동할 수 없는지 설명합니다.
+- 4단계 tool-call loop(describe -> decide -> execute -> observe)를 그리고 각 단계의 소유자를 말합니다.
+- tool description을 name, JSON Schema input, deterministic executor function의 세 부분으로 작성합니다.
+- pure tool과 side-effecting tool을 구분하고, 이 구분이 safety에 중요한 이유를 설명합니다.
 
-## The Problem
+## 문제
 
-An LLM emits a probability distribution over the next token. That is the entire output surface. If you ask a chat model "what is the weather in Bengaluru right now," it can write a plausible sentence, but it cannot dial into a weather API. The sentence might be right by coincidence or three days stale.
+LLM은 다음 토큰에 대한 확률 분포를 출력합니다. 이것이 출력 표면의 전부입니다. chat model에게 "Bengaluru의 지금 날씨가 어때?"라고 물으면 그럴듯한 문장을 쓸 수는 있지만, weather API에 접속할 수는 없습니다. 그 문장은 우연히 맞을 수도 있고, 사흘 전 정보일 수도 있습니다.
 
-Closing that gap is the purpose of the tool interface. The host program — your agent runtime, Claude Desktop, ChatGPT, Cursor, or a custom script — advertises a list of callable tools to the model. The model, when it decides an action is needed, emits a structured payload naming a tool and its arguments. The host parses that payload, runs the tool for real, and feeds the result back. The loop continues until the model decides no more calls are needed.
+그 간극을 닫는 것이 tool interface의 목적입니다. host program, 즉 agent runtime, Claude Desktop, ChatGPT, Cursor 또는 custom script가 호출 가능한 tool 목록을 모델에 광고합니다. 모델은 어떤 행동이 필요하다고 판단하면 tool 이름과 arguments를 담은 구조화된 payload를 출력합니다. host는 그 payload를 parse하고, 실제로 tool을 실행한 뒤, 결과를 다시 넣어 줍니다. 모델이 더 이상 호출이 필요 없다고 판단할 때까지 loop가 계속됩니다.
 
-The first version of this contract shipped in June 2023 as OpenAI's "functions" parameter. Anthropic followed with `tool_use` blocks in Claude 2.1. Gemini added `functionDeclarations` a few months later. Every provider now exposes the same shape: a JSON-Schema-typed tool list in, a JSON-payload tool call out. The Model Context Protocol (November 2024) generalized the contract so one tool registry serves every model. A2A (April 2026, v1.0) layered the same primitive for agent-to-agent delegation.
+이 계약의 첫 버전은 2023년 6월 OpenAI의 "functions" parameter로 출시되었습니다. Anthropic은 Claude 2.1에서 `tool_use` block으로 뒤따랐습니다. Gemini는 몇 달 뒤 `functionDeclarations`를 추가했습니다. 이제 모든 provider가 같은 형태를 제공합니다. 입력에는 JSON-Schema로 타입이 지정된 tool list, 출력에는 JSON payload tool call입니다. Model Context Protocol(2024년 11월)은 이 계약을 일반화해 하나의 tool registry가 모든 모델을 담당하게 했습니다. A2A(2026년 4월, v1.0)는 agent-to-agent delegation을 위해 같은 primitive를 층으로 얹었습니다.
 
-The four-step loop is the invariant underneath all of these. Everything else in Phase 13 is an elaboration.
+이 모든 것 아래에 있는 불변식이 4단계 loop입니다. Phase 13의 나머지는 모두 이 loop를 확장한 것입니다.
 
-## The Concept
+## 개념
 
-### Step one: describe
+### 1단계: describe
 
-The host declares each tool with three fields.
+host는 각 tool을 세 필드로 선언합니다.
 
-- **Name.** A stable, machine-readable identifier. `get_weather`, not "weather thing".
-- **Description.** A one-paragraph natural-language brief. "Use when the user asks about current conditions for a specific city. Do not use for historical data."
-- **Input schema.** A JSON Schema object (draft 2020-12) describing the tool's arguments.
+- **Name.** 안정적인 machine-readable identifier입니다. "weather thing"이 아니라 `get_weather`입니다.
+- **Description.** 한 문단짜리 natural-language brief입니다. "사용자가 특정 도시의 현재 상태를 물을 때 사용한다. 과거 데이터에는 사용하지 않는다."
+- **Input schema.** tool의 arguments를 설명하는 JSON Schema object(draft 2020-12)입니다.
 
-The model receives the list. Modern providers serialize these declarations into the system prompt using a provider-specific template, so you as the caller only deal with the structured form.
+모델은 이 목록을 받습니다. 최신 provider들은 provider-specific template을 사용해 이 선언들을 system prompt로 serialize하므로, caller인 당신은 structured form만 다루면 됩니다.
 
-### Step two: decide
+### 2단계: decide
 
-Given the user's message and the available tools, the model chooses one of three behaviors.
+사용자 메시지와 사용 가능한 tool이 주어지면 모델은 세 가지 행동 중 하나를 선택합니다.
 
-1. **Answer directly** in text. No tool call.
-2. **Call one or more tools.** Emit structured call objects. Under `parallel_tool_calls: true` (default on OpenAI and Gemini, opt-in on Anthropic) the model can emit multiple calls in one turn.
-3. **Refuse.** Strict-mode structured outputs can produce a typed `refusal` block instead of a call.
+1. 텍스트로 **직접 답변**합니다. tool call은 없습니다.
+2. **하나 이상의 tool을 호출**합니다. structured call object를 출력합니다. `parallel_tool_calls: true`(OpenAI와 Gemini는 기본값, Anthropic은 opt-in)에서는 모델이 한 turn에 여러 call을 출력할 수 있습니다.
+3. **거부**합니다. strict-mode structured output은 call 대신 typed `refusal` block을 만들 수 있습니다.
 
-A tool call payload has three stable fields: a call `id`, a tool `name`, and a JSON `arguments` object. The id exists so the host can correlate the later result with the specific call, which matters when parallel calls come back out of order.
+tool call payload에는 안정적인 세 필드가 있습니다. call `id`, tool `name`, JSON `arguments` object입니다. id는 host가 나중의 result를 특정 call과 연결할 수 있게 하려고 존재합니다. parallel call이 순서와 다르게 돌아올 때 특히 중요합니다.
 
-### Step three: execute
+### 3단계: execute
 
-The host receives the call, validates arguments against the declared schema, and runs the executor. Invalid arguments mean the model hallucinated a field or used the wrong type — a very common failure mode on weak models. Production hosts do one of three things on invalid arguments: fail fast and surface the error to the model, repair the JSON with a constrained parser, or retry the model with the validation error included in the prompt.
+host는 call을 받고, 선언된 schema에 대해 arguments를 validate한 뒤 executor를 실행합니다. invalid arguments는 모델이 존재하지 않는 필드를 hallucinate했거나 잘못된 type을 사용했다는 뜻입니다. 약한 모델에서 매우 흔한 failure mode입니다. production host는 invalid arguments에 대해 보통 세 가지 중 하나를 합니다. 빠르게 실패하고 error를 모델에 노출하거나, constrained parser로 JSON을 repair하거나, validation error를 prompt에 포함해 모델을 retry합니다.
 
-The executor itself is ordinary code. Python, TypeScript, a shell command, a database query. It produces a result, which is usually a string but can be any JSON value or a structured content block (text, image, or resource reference in MCP). The result must be serializable.
+executor 자체는 평범한 코드입니다. Python, TypeScript, shell command, database query가 될 수 있습니다. executor는 result를 생성합니다. 보통 string이지만 어떤 JSON value나 structured content block(MCP에서는 text, image, resource reference)도 될 수 있습니다. result는 serializable해야 합니다.
 
-### Step four: observe
+### 4단계: observe
 
-The host appends the tool result to the conversation (as a `tool` role message with matching `id`) and re-invokes the model. The model now has the tool output in context and can produce a final answer or request more calls. This continues until the model stops emitting calls or the host hits a safety limit on iteration count.
+host는 tool result를 conversation에 추가하고(matching `id`가 있는 `tool` role message), 모델을 다시 호출합니다. 이제 모델은 context 안에 tool output을 가지고 있으므로 final answer를 만들거나 추가 call을 요청할 수 있습니다. 모델이 call 출력을 멈추거나 host가 iteration count safety limit에 도달할 때까지 이 과정이 계속됩니다.
 
-### The trust split
+### trust split
 
-Tools come in two flavors that matter for safety.
+tool에는 safety에 중요한 두 종류가 있습니다.
 
-- **Pure.** Read-only, deterministic, no side effects. `get_weather`, `search_docs`, `get_current_time`. Safe to call speculatively.
-- **Consequential.** Mutates state, spends money, touches user data. `send_email`, `delete_file`, `execute_trade`. Must be gated.
+- **Pure.** read-only, deterministic, side effect 없음. `get_weather`, `search_docs`, `get_current_time`. 추측성으로 호출해도 안전합니다.
+- **Consequential.** state를 변경하거나, 돈을 쓰거나, 사용자 데이터를 건드립니다. `send_email`, `delete_file`, `execute_trade`. 반드시 gate가 필요합니다.
 
-Meta's 2026 "Rule of Two" for agent security says a single turn may combine at most two of: untrusted input, sensitive data, consequential action. The tool interface is where you enforce that rule — by rejecting calls, requiring user confirmation, or escalating scopes. See Phase 13 · 15 for the full security chapter and Phase 14 · 09 for agent-level permission policies.
+Meta의 2026년 agent security "Rule of Two"는 한 turn이 다음 셋 중 최대 둘까지만 결합할 수 있다고 말합니다. untrusted input, sensitive data, consequential action입니다. tool interface는 call을 거부하거나, 사용자 확인을 요구하거나, scope를 escalate하여 이 규칙을 강제하는 곳입니다. 전체 security 장은 Phase 13 · 15를, agent-level permission policy는 Phase 14 · 09를 참고하세요.
 
-### Where the loop lives
+### loop가 사는 곳
 
-| Context | Who describes | Who decides | Who executes |
+| 맥락 | 설명 주체 | 결정 주체 | 실행 주체 |
 |---------|---------------|-------------|--------------|
-| Single-turn function calling (OpenAI/Anthropic/Gemini) | App developer | LLM | App developer |
-| MCP | MCP server | LLM via MCP client | MCP server |
-| A2A | Agent Card publisher | Calling agent | Called agent |
-| Web browser (function-calling agent) | Browser extension / WebMCP | LLM | Browser runtime |
+| 단일 turn function calling(OpenAI/Anthropic/Gemini) | app developer | LLM | app developer |
+| MCP | MCP server | MCP client를 통한 LLM | MCP server |
+| A2A | Agent Card 게시자 | 호출 agent | 호출받은 agent |
+| Web browser(function-calling agent) | browser extension / WebMCP | LLM | browser runtime |
 
-Everywhere, the same four steps. The column names change; the structure does not.
+어디서나 같은 네 단계입니다. 열 이름은 바뀌지만 구조는 바뀌지 않습니다.
 
-### Why not just prompt the model to emit JSON?
+### 모델에게 JSON을 출력하라고 prompt하면 안 되는 이유
 
-"Ask the model to reply in JSON" was the pre-function-calling pattern. It fails ~5 to 15 percent of the time on frontier models and far more on smaller models. Failure modes include missing braces, trailing commas, hallucinated fields, and wrong types. You then need a JSON repair pass, a retry, or a constrained decoder.
+"JSON으로 답하라고 모델에게 요청하기"는 function calling 이전의 패턴이었습니다. frontier model에서도 5~15% 정도 실패하고, 작은 모델에서는 훨씬 더 많이 실패합니다. failure mode에는 빠진 중괄호, trailing comma, hallucinated field, wrong type이 포함됩니다. 그러면 JSON repair pass, retry 또는 constrained decoder가 필요합니다.
 
-Native function calling is better for three reasons. First, the provider trains the model end-to-end on the exact call shape, so valid-JSON rate climbs to 98 to 99 percent on strict mode. Second, the call payload sits in its own protocol slot, not inside free-text — so a tool call never leaks into the user-visible reply. Third, providers enforce schema compliance with constrained decoding (OpenAI's strict mode, Anthropic's `tool_use`, Gemini's `responseSchema`). The output is guaranteed to validate.
+native function calling이 더 나은 이유는 세 가지입니다. 첫째, provider가 정확한 call shape에 대해 end-to-end로 모델을 훈련하므로 strict mode에서 valid-JSON rate가 98~99%까지 올라갑니다. 둘째, call payload가 free-text 안이 아니라 자체 protocol slot에 있으므로 tool call이 사용자에게 보이는 reply로 새지 않습니다. 셋째, provider가 constrained decoding(OpenAI의 strict mode, Anthropic의 `tool_use`, Gemini의 `responseSchema`)으로 schema compliance를 강제합니다. 출력은 validate된다는 보장을 받습니다.
 
-Phase 13 · 02 walks the three provider APIs side by side. Phase 13 · 04 goes deep on structured outputs.
+Phase 13 · 02는 세 provider API를 나란히 살펴봅니다. Phase 13 · 04는 structured output을 깊게 다룹니다.
 
-### Circuit breakers
+### circuit breaker
 
-The loop terminates when the model stops emitting calls or the host hits a maximum turn count. Production hosts set this to between 5 and 20 turns. Beyond that, you are almost certainly in a loop the model cannot exit. Claude Code defaults to 20; OpenAI Assistants to 10; Cursor's agent mode to 25.
+loop는 모델이 call 출력을 멈추거나 host가 maximum turn count에 도달하면 종료됩니다. production host는 이를 보통 5~20 turn 사이로 설정합니다. 그 이상이면 모델이 빠져나올 수 없는 loop에 들어갔을 가능성이 매우 큽니다. Claude Code의 기본값은 20, OpenAI Assistants는 10, Cursor의 agent mode는 25입니다.
 
-The alternative — unbounded loops — shows up every six months as "agent spent $400 in API calls overnight" post-mortems. Do not ship without a bound.
+대안인 unbounded loop는 6개월마다 "agent가 밤새 API call에 400달러를 썼다"는 post-mortem으로 나타납니다. bound 없이 배포하지 마세요.
 
-Phase 14 · 12 covers error recovery and self-healing in depth; Phase 17 covers production rate limits.
+Phase 14 · 12는 error recovery와 self-healing을 자세히 다룹니다. Phase 17은 production rate limit을 다룹니다.
 
-### Where Phase 13 goes from here
+### Phase 13의 다음 방향
 
-- Lessons 02 through 05 polish the provider-level tool-call surface.
-- Lessons 06 through 14 generalize the loop into MCP.
-- Lessons 15 through 18 defend the loop against hostile servers, adversarial users, and unauthenticated remote auth surfaces.
-- Lessons 19 through 22 extend the pattern to agent-to-agent collaboration, observability, routing, and packaging.
-- Lesson 23 ships a complete ecosystem using every primitive.
+- Lesson 02부터 05까지는 provider-level tool-call surface를 다듬습니다.
+- Lesson 06부터 14까지는 loop를 MCP로 일반화합니다.
+- Lesson 15부터 18까지는 적대적 server, adversarial user, 인증되지 않은 remote auth surface로부터 loop를 방어합니다.
+- Lesson 19부터 22까지는 이 패턴을 agent-to-agent collaboration, observability, routing, packaging으로 확장합니다.
+- Lesson 23은 모든 primitive를 사용하는 완전한 ecosystem을 출하합니다.
 
-Every remaining lesson is an elaboration of this four-step loop. Hold it in mind as the invariant.
+남은 모든 레슨은 이 4단계 loop의 확장입니다. 이를 불변식으로 기억하세요.
 
-## Use It
+## 사용하기
 
-`code/main.py` runs the four-step loop without an LLM. A fake "decider" function simulates the model by pattern-matching on the user message; the executor, schema validator, and observe-step harness are real. Run it to see the full request/response choreography with printable intermediate state, then replace the fake decider with any real provider in a later lesson.
+`code/main.py`는 LLM 없이 4단계 loop를 실행합니다. 가짜 "decider" function이 사용자 메시지를 pattern-match해 모델을 simulation합니다. executor, schema validator, observe-step harness는 실제입니다. 실행해서 printable intermediate state와 함께 전체 request/response choreography를 확인한 뒤, 이후 레슨에서 fake decider를 실제 provider로 바꿔 보세요.
 
-What to look at:
+살펴볼 것:
 
-- The tool registry holds three fields per tool: name, description, schema, and an executor reference.
-- The validator is a minimal JSON Schema subset (types, required, enum, min/max) written in stdlib only. Phase 13 · 04 ships a fuller one.
-- The loop bounds iteration count at five. Production agents need exactly this kind of circuit breaker.
+- tool registry는 tool마다 name, description, schema, executor reference라는 세 필드를 보관합니다.
+- validator는 stdlib만으로 작성한 최소 JSON Schema subset(types, required, enum, min/max)입니다. Phase 13 · 04는 더 완전한 validator를 제공합니다.
+- loop는 iteration count를 5로 제한합니다. production agent에는 정확히 이런 circuit breaker가 필요합니다.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-tool-interface-reviewer.md`. Given a draft tool definition (name + description + schema + executor outline), the skill audits it for loop fitness: is the name machine-stable, is the description a complete usage brief, does the schema use JSON Schema 2020-12 correctly, and is the pure-vs-consequential classification explicit.
+이 레슨은 `outputs/skill-tool-interface-reviewer.md`를 만듭니다. draft tool definition(name + description + schema + executor outline)이 주어지면, 이 skill은 loop 적합성을 audit합니다. name이 machine-stable한지, description이 완전한 usage brief인지, schema가 JSON Schema 2020-12를 올바르게 사용하는지, pure-vs-consequential classification이 명시적인지를 확인합니다.
 
-## Exercises
+## 연습 문제
 
-1. Add a fourth tool to `code/main.py` called `get_stock_price(ticker)`. Write its description as "Use when the user asks for a current stock price by ticker. Do not use for historical prices or market summaries." Run the harness and confirm the fake decider routes queries mentioning tickers to the new tool.
+1. `code/main.py`에 `get_stock_price(ticker)`라는 네 번째 tool을 추가하세요. description은 "Use when the user asks for a current stock price by ticker. Do not use for historical prices or market summaries."로 작성하세요. harness를 실행하고 ticker를 언급한 query가 fake decider에 의해 새 tool로 route되는지 확인하세요.
 
-2. Break the schema validator. Pass a call whose `arguments` object is missing a required field, and confirm the host rejects it before execution. Then pass a call with an extra unknown field. Decide: should the host reject or ignore? Justify your choice with a safety argument.
+2. schema validator를 깨 보세요. `arguments` object에 required field가 빠진 call을 전달하고, host가 execution 전에 이를 reject하는지 확인하세요. 그런 다음 알 수 없는 extra field가 있는 call을 전달하세요. host는 reject해야 할까요, ignore해야 할까요? safety argument로 선택을 정당화하세요.
 
-3. Classify each tool in the harness as pure or consequential. Add a `consequential: true` flag to the registry entries that need it, and change the loop to print a "would confirm with user" line whenever a consequential tool is chosen. This is the shape of the confirmation gate every production host needs.
+3. harness의 각 tool을 pure 또는 consequential로 분류하세요. 필요한 registry entry에 `consequential: true` flag를 추가하고, consequential tool이 선택될 때마다 loop가 "would confirm with user" line을 출력하도록 바꾸세요. 이것이 모든 production host에 필요한 confirmation gate의 형태입니다.
 
-4. Draw the four-step loop on paper with the provider-column table above filled in for your favorite client (Claude Desktop, Cursor, ChatGPT, or a custom stack). Cross-reference with the MCP-specific variant in Phase 13 · 06.
+4. 위 provider-column table을 좋아하는 client(Claude Desktop, Cursor, ChatGPT 또는 custom stack)에 맞게 채운 뒤, 4단계 loop를 종이에 그려 보세요. Phase 13 · 06의 MCP-specific variant와 cross-reference하세요.
 
-5. Read OpenAI's function-calling guide top to bottom. Identify the one field that sits in the request but not in the four-step loop as presented here. Explain what it adds and why it is convenient rather than essential.
+5. OpenAI의 function-calling guide를 처음부터 끝까지 읽으세요. 여기 제시된 4단계 loop에는 없지만 request에는 있는 필드 하나를 찾으세요. 그것이 무엇을 더하고, 왜 필수라기보다 편의 기능인지 설명하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
-| Tool | "A thing the model can call" | A triple of name + JSON-Schema-typed input + executor function |
-| Function calling | "Native tool use" | Provider-level API support for emitting structured tool calls instead of prose |
-| Tool call | "The model's request to act" | A JSON payload with `id`, `name`, `arguments` emitted by the model |
-| Tool result | "What the tool returned" | The executor's output, wrapped in a `tool` role message with matching id |
-| Parallel tool calls | "Many calls at once" | Multiple call objects in one model turn, independent and orderable by id |
-| Strict mode | "Guaranteed JSON" | Constrained decoding that forces the model's output to validate against the declared schema |
-| Pure tool | "Read-only tool" | No side effects; safe to re-run |
-| Consequential tool | "Action tool" | Mutates external state; requires gate, audit, or user confirmation |
-| Four-step loop | "The tool-call cycle" | describe → decide → execute → observe |
-| Host | "Agent runtime" | The program that holds the tool registry, calls the model, and runs the executor |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
+|------|----------------|-----------|
+| Tool | "모델이 호출할 수 있는 것" | name + JSON-Schema-typed input + executor function의 삼중체 |
+| Function calling | "Native tool use" | prose 대신 structured tool call을 출력하게 하는 provider-level API support |
+| Tool call | "행동하라는 모델의 요청" | 모델이 출력하는 `id`, `name`, `arguments`가 있는 JSON payload |
+| Tool result | "tool이 반환한 것" | matching id가 있는 `tool` role message로 감싼 executor output |
+| Parallel tool calls | "여러 call을 한 번에" | 한 model turn 안의 여러 call object, id로 독립적이며 순서 지정 가능 |
+| Strict mode | "Guaranteed JSON" | 모델 출력이 선언된 schema에 validate되도록 강제하는 constrained decoding |
+| Pure tool | "Read-only tool" | side effect가 없고 다시 실행해도 안전함 |
+| Consequential tool | "Action tool" | external state를 변경하며 gate, audit 또는 사용자 확인이 필요함 |
+| Four-step loop | "tool-call cycle" | describe -> decide -> execute -> observe |
+| Host | "Agent runtime" | tool registry를 보관하고, 모델을 호출하고, executor를 실행하는 프로그램 |
 
-## Further Reading
+## 더 읽을거리
 
-- [OpenAI — Function calling guide](https://platform.openai.com/docs/guides/function-calling) — canonical reference for OpenAI-style tool declarations and call shapes
-- [Anthropic — Tool use overview](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview) — Claude's `tool_use` / `tool_result` block format
-- [Google — Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling) — `functionDeclarations` and parallel-call semantics in Gemini
-- [Model Context Protocol — Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) — the provider-agnostic generalization of the tool interface
-- [JSON Schema — 2020-12 release notes](https://json-schema.org/draft/2020-12/release-notes) — the schema dialect every modern tool API speaks
+- [OpenAI - Function calling guide](https://platform.openai.com/docs/guides/function-calling) - OpenAI-style tool declaration과 call shape의 canonical reference
+- [Anthropic - Tool use overview](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview) - Claude의 `tool_use` / `tool_result` block format
+- [Google - Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling) - Gemini의 `functionDeclarations`와 parallel-call semantics
+- [Model Context Protocol - Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) - tool interface의 provider-agnostic generalization
+- [JSON Schema - 2020-12 release notes](https://json-schema.org/draft/2020-12/release-notes) - 모든 최신 tool API가 사용하는 schema dialect

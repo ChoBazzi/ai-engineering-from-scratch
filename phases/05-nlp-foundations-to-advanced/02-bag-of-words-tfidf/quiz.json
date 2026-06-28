@@ -1,10 +1,10 @@
 {
   "lesson": "02-bag-of-words-tfidf",
-  "title": "Bag of Words, TF-IDF, and Text Representation",
+  "title": "Bag of Words, TF-IDF, 텍스트 표현",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does Bag of Words throw away?",
+      "question": "Bag of Words는 무엇을 버리는가?",
       "options": [
         "Token order",
         "Vocabulary size",
@@ -12,47 +12,47 @@
         "Punctuation"
       ],
       "correct": 0,
-      "explanation": "BoW counts tokens per document but discards their sequence."
+      "explanation": "BoW는 document별 token을 세지만 sequence는 버린다."
     },
     {
       "stage": "pre",
-      "question": "Why scale TF by an IDF factor?",
+      "question": "TF를 IDF factor로 scale하는 이유는 무엇인가?",
       "options": [
-        "Words that appear in every document carry little discriminative signal and should be downweighted",
-        "To normalize document length",
-        "To accelerate training",
-        "To remove punctuation"
+        "모든 document에 등장하는 단어는 discriminative signal이 적으므로 downweight해야 한다",
+        "Document length를 normalize하기 위해",
+        "Training을 accelerate하기 위해",
+        "Punctuation을 제거하기 위해"
       ],
       "correct": 0,
-      "explanation": "IDF penalizes ubiquitous words and boosts rare ones."
+      "explanation": "IDF는 ubiquitous word를 penalize하고 rare word를 boost한다."
     },
     {
       "stage": "check",
-      "question": "In the smoothed IDF formula log((N+1)/(df+1)) + 1, what does the trailing +1 ensure?",
+      "question": "Smoothed IDF formula log((N+1)/(df+1)) + 1에서 뒤의 +1은 무엇을 보장하는가?",
       "options": [
-        "Faster computation",
-        "A word that appears in every document still has IDF 1 instead of 0",
-        "Compatibility with raw counts",
-        "Numerical stability for large N"
+        "더 빠른 computation",
+        "모든 document에 등장하는 단어도 IDF 0 대신 1을 갖는다",
+        "Raw count와의 compatibility",
+        "큰 N에 대한 numerical stability"
       ],
       "correct": 1,
-      "explanation": "The +1 keeps ubiquitous words at IDF=1 so they are not zeroed out, matching scikit-learn's default."
+      "explanation": "+1은 어디에나 등장하는 단어가 IDF=1에 머물게 해 zero-out되지 않도록 하며, scikit-learn default와 일치한다."
     },
     {
       "stage": "check",
-      "question": "Why L2-normalize TF-IDF rows before cosine similarity?",
+      "question": "Cosine similarity 전에 TF-IDF row를 L2-normalize하는 이유는 무엇인가?",
       "options": [
-        "To convert sparse vectors to dense",
-        "To compress the vocabulary",
-        "To remove zero entries",
-        "Longer documents would otherwise dominate similarity scores; normalization puts all docs on the unit hypersphere"
+        "Sparse vector를 dense로 변환하기 위해",
+        "Vocabulary를 compress하기 위해",
+        "Zero entry를 제거하기 위해",
+        "그렇지 않으면 긴 document가 similarity score를 지배한다. normalization은 모든 doc을 unit hypersphere 위에 둔다"
       ],
       "correct": 3,
-      "explanation": "L2 normalization removes document-length bias and turns cosine similarity into a dot product."
+      "explanation": "L2 normalization은 document-length bias를 제거하고 cosine similarity를 dot product로 바꾼다."
     },
     {
       "stage": "check",
-      "question": "Which TfidfVectorizer setting is risky to enable for sentiment analysis?",
+      "question": "Sentiment analysis에서 enable하기 위험한 TfidfVectorizer setting은 무엇인가?",
       "options": [
         "stop_words='english'",
         "ngram_range=(1, 2)",
@@ -60,43 +60,43 @@
         "sublinear_tf=True"
       ],
       "correct": 0,
-      "explanation": "English stopword lists drop negations like 'not', which carry sentiment signal."
+      "explanation": "English stopword list는 'not' 같은 negation을 drop하는데, 이는 sentiment signal을 가진다."
     },
     {
       "stage": "post",
-      "question": "Which task does TF-IDF still win in 2026?",
+      "question": "2026년에도 TF-IDF가 여전히 이기는 task는 무엇인가?",
       "options": [
         "Open-ended dialogue",
         "Machine translation",
-        "Spam detection, log anomaly flagging, and low-latency narrow classification",
+        "Spam detection, log anomaly flagging, low-latency narrow classification",
         "Image captioning"
       ],
       "correct": 2,
-      "explanation": "TF-IDF beats embeddings when word presence is the signal and explainability or speed matter."
+      "explanation": "Word presence가 signal이고 explainability나 speed가 중요할 때 TF-IDF는 embedding을 이긴다."
     },
     {
       "stage": "post",
-      "question": "Why does TF-IDF fail on the pair 'The movie was not good' vs 'The movie was excellent'?",
+      "question": "TF-IDF는 왜 'The movie was not good'과 'The movie was excellent' 쌍에서 실패하는가?",
       "options": [
-        "TF-IDF cannot handle stopwords",
-        "TF-IDF requires bigrams to work",
-        "Embeddings overlap is too high",
-        "Both documents share most tokens; bag-of-words has no notion of negation or word order"
+        "TF-IDF는 stopword를 처리할 수 없기 때문에",
+        "TF-IDF는 작동하려면 bigram이 필요하기 때문에",
+        "Embedding overlap이 너무 높기 때문에",
+        "두 document가 대부분의 token을 공유하며, bag-of-words에는 negation이나 word order 개념이 없기 때문에"
       ],
       "correct": 3,
-      "explanation": "Without word order or syntactic context, BoW cannot model that 'not' flips the sentiment of 'good'."
+      "explanation": "Word order나 syntactic context가 없으면 BoW는 'not'이 'good'의 sentiment를 뒤집는다는 것을 model할 수 없다."
     },
     {
       "stage": "post",
-      "question": "What is the TF-IDF weighted embedding hybrid?",
+      "question": "TF-IDF weighted embedding hybrid란 무엇인가?",
       "options": [
-        "Using TF-IDF weights as a pooling weight over per-token embeddings before averaging",
-        "Running PCA on TF-IDF then re-embedding",
-        "Concatenating BoW and dense embeddings",
-        "Training BERT on TF-IDF features"
+        "averaging 전에 TF-IDF weight를 per-token embedding 위의 pooling weight로 사용하는 것",
+        "TF-IDF에 PCA를 실행한 다음 다시 embedding하는 것",
+        "BoW와 dense embedding을 concatenate하는 것",
+        "TF-IDF feature 위에서 BERT를 training하는 것"
       ],
       "correct": 0,
-      "explanation": "The hybrid weights each token's embedding by its TF-IDF score and averages, blending semantic capacity with rare-word emphasis."
+      "explanation": "Hybrid는 각 token의 embedding에 TF-IDF score로 weight를 주고 average하여 semantic capacity와 rare-word emphasis를 섞는다."
     }
   ]
 }

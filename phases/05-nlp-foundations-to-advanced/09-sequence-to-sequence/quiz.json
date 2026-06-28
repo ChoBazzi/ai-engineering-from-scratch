@@ -1,102 +1,102 @@
 {
   "lesson": "09-sequence-to-sequence",
-  "title": "Sequence-to-Sequence Models",
+  "title": "Sequence-to-Sequence 모델",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the role of the encoder in a 2014-style seq2seq model?",
+      "question": "2014년식 seq2seq 모델에서 encoder의 역할은 무엇인가?",
       "options": [
-        "Computes attention weights",
-        "Performs beam search",
-        "Reads the source and produces a fixed-size context vector summarizing it",
-        "Generates target tokens"
+        "Attention weight를 계산한다",
+        "Beam search를 수행한다",
+        "Source를 읽고 이를 요약하는 fixed-size context vector를 만든다",
+        "Target token을 생성한다"
       ],
       "correct": 2,
-      "explanation": "The encoder RNN compresses the source into a final hidden state used by the decoder."
+      "explanation": "Encoder RNN은 source를 decoder가 사용하는 final hidden state로 압축한다."
     },
     {
       "stage": "pre",
-      "question": "What is teacher forcing during seq2seq training?",
+      "question": "Seq2seq training에서 teacher forcing이란 무엇인가?",
       "options": [
-        "Adding a teacher network during inference",
-        "Doubling the batch size",
-        "Feeding the ground-truth previous token (instead of the model's prediction) as decoder input",
-        "Manually labeling each decoder step"
+        "Inference 중 teacher network를 추가하는 것",
+        "Batch size를 두 배로 늘리는 것",
+        "Decoder input으로 model prediction 대신 ground-truth previous token을 넣는 것",
+        "각 decoder step에 수동으로 label을 붙이는 것"
       ],
       "correct": 2,
-      "explanation": "Teacher forcing stabilizes training by using true previous tokens; without it early errors cascade."
+      "explanation": "Teacher forcing은 true previous token을 사용해 training을 안정화한다. 이것이 없으면 초기 error가 cascade된다."
     },
     {
       "stage": "check",
-      "question": "Why does fixed context-vector seq2seq accuracy fall as input length grows?",
+      "question": "Input length가 길어질수록 fixed context-vector seq2seq accuracy가 떨어지는 이유는 무엇인가?",
       "options": [
-        "Padding tokens accumulate",
-        "Cross-entropy diverges",
-        "All information about the source must fit in a single fixed-size encoder hidden state, which loses detail on long inputs",
-        "Vocabulary becomes too large"
+        "Padding token이 누적되기 때문이다",
+        "Cross-entropy가 발산하기 때문이다",
+        "Source에 대한 모든 정보가 하나의 fixed-size encoder hidden state에 들어가야 해서 긴 input에서 detail을 잃기 때문이다",
+        "Vocabulary가 너무 커지기 때문이다"
       ],
       "correct": 2,
-      "explanation": "The fixed context-vector bottleneck means long inputs cannot be losslessly summarized."
+      "explanation": "Fixed context-vector bottleneck은 긴 input을 lossless하게 요약할 수 없다는 뜻이다."
     },
     {
       "stage": "check",
-      "question": "What is exposure bias?",
+      "question": "Exposure bias란 무엇인가?",
       "options": [
-        "Bias from class imbalance",
-        "Bias in encoder embeddings",
+        "Class imbalance에서 오는 bias",
+        "Encoder embedding의 bias",
         "Annotator disagreement",
-        "The train/inference gap from training on ground-truth tokens but generating from the model's own predictions at inference"
+        "Training에서는 ground-truth token을 쓰지만 inference에서는 model 자신의 prediction으로 생성해서 생기는 train/inference gap"
       ],
       "correct": 3,
-      "explanation": "The model never practiced recovering from its own mistakes during training, so errors cascade at inference."
+      "explanation": "Model은 training 동안 자신의 실수에서 회복하는 연습을 하지 않았기 때문에 inference에서 error가 cascade된다."
     },
     {
       "stage": "check",
-      "question": "Why does beam search often outperform greedy decoding for generation?",
+      "question": "Generation에서 beam search가 greedy decoding보다 나은 경우가 많은 이유는 무엇인가?",
       "options": [
-        "Beam search keeps the top-k partial sequences alive at each step instead of irrevocably committing to one token",
-        "Beam search avoids exposure bias",
-        "Beam search is faster",
-        "Beam search lowers the loss"
+        "Beam search는 한 token에 되돌릴 수 없이 commit하는 대신 각 step에서 top-k partial sequence를 살려 둔다",
+        "Beam search는 exposure bias를 피한다",
+        "Beam search가 더 빠르다",
+        "Beam search가 loss를 낮춘다"
       ],
       "correct": 0,
-      "explanation": "Greedy commits per step; beam search explores multiple hypotheses, then picks the best complete one."
+      "explanation": "Greedy는 step마다 commit한다. Beam search는 여러 hypothesis를 탐색한 뒤 가장 좋은 complete sequence를 고른다."
     },
     {
       "stage": "post",
-      "question": "Which architectural family replaced RNN seq2seq for general generation tasks?",
+      "question": "General generation task에서 RNN seq2seq를 대체한 architectural family는 무엇인가?",
       "options": [
-        "Transformer encoder-decoder models (BART, T5, mBART, NLLB)",
-        "Graph neural networks",
+        "Transformer encoder-decoder model(BART, T5, mBART, NLLB)",
+        "Graph neural network",
         "Naive Bayes",
-        "1D CNNs"
+        "1D CNN"
       ],
       "correct": 0,
-      "explanation": "Transformer encoder-decoders dropped recurrence and now dominate generation tasks."
+      "explanation": "Transformer encoder-decoder는 recurrence를 버렸고 이제 generation task를 지배한다."
     },
     {
       "stage": "post",
-      "question": "What does scheduled sampling do?",
+      "question": "Scheduled sampling은 무엇을 하는가?",
       "options": [
-        "Anneals the teacher-forcing ratio downward during training so the model learns to recover from its own predictions",
-        "Schedules learning-rate decay",
-        "Reorders the training set",
-        "Adds random noise to embeddings"
+        "Training 동안 teacher-forcing ratio를 낮춰 model이 자신의 prediction에서 회복하는 법을 배우게 한다",
+        "Learning-rate decay를 schedule한다",
+        "Training set을 다시 정렬한다",
+        "Embedding에 random noise를 추가한다"
       ],
       "correct": 0,
-      "explanation": "Scheduled sampling gradually mixes in model predictions to close the train/inference gap."
+      "explanation": "Scheduled sampling은 model prediction을 점진적으로 섞어 train/inference gap을 줄인다."
     },
     {
       "stage": "post",
-      "question": "Why does greedy decoding alone often fail for user-facing generation?",
+      "question": "User-facing generation에서 greedy decoding만으로 자주 실패하는 이유는 무엇인가?",
       "options": [
-        "It cannot use embeddings",
-        "It always picks <EOS> first",
-        "Greedy can repeat or loop and cannot backtrack from a locally good but globally poor token choice",
-        "It requires more memory"
+        "Embedding을 사용할 수 없기 때문이다",
+        "항상 <EOS>를 먼저 고르기 때문이다",
+        "Greedy는 반복하거나 loop에 빠질 수 있고, locally good이지만 globally poor인 token choice에서 backtrack할 수 없기 때문이다",
+        "더 많은 memory가 필요하기 때문이다"
       ],
       "correct": 2,
-      "explanation": "Greedy decoding's irrevocable per-step choice causes loops and repetition without beam search or sampling."
+      "explanation": "Greedy decoding의 되돌릴 수 없는 per-step choice는 beam search나 sampling이 없을 때 loop와 repetition을 유발한다."
     }
   ]
 }

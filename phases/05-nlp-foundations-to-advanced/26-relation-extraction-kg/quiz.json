@@ -4,99 +4,99 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the atomic unit of a knowledge graph?",
+      "question": "Knowledge graph의 atomic unit은 무엇인가요?",
       "options": [
-        "A POS tag",
-        "A (subject, relation, object) triple",
-        "A token",
-        "A sentence"
+        "POS tag",
+        "(subject, relation, object) triple",
+        "token",
+        "sentence"
       ],
       "correct": 1,
-      "explanation": "KGs store information as (s, r, o) triples; aggregated triples form the graph."
+      "explanation": "KG는 정보를 (s, r, o) triple로 저장합니다. aggregate된 triple이 graph를 이룹니다."
     },
     {
       "stage": "pre",
-      "question": "What does AEVS stand for in 2026 relation extraction?",
+      "question": "2026년 relation extraction에서 AEVS는 무엇을 뜻하나요?",
       "options": [
-        "Anchor-Extraction-Verification-Supplement: anchor spans, extract triples, verify against source, supplement coverage",
+        "Anchor-Extraction-Verification-Supplement: span을 anchor하고, triple을 extract하고, source와 verify하고, coverage를 supplement합니다",
         "Auto-Encoder Vector Search",
         "Async Entity Validation Service",
         "Aggregated Entity-Value Schema"
       ],
       "correct": 0,
-      "explanation": "AEVS is the 2026 hallucination-mitigation framework for grounded RE."
+      "explanation": "AEVS는 grounded RE를 위한 2026년 hallucination-mitigation framework입니다."
     },
     {
       "stage": "check",
-      "question": "Why must each triple carry source provenance (doc id + span)?",
+      "question": "왜 각 triple은 source provenance(doc id + span)를 포함해야 하나요?",
       "options": [
-        "Provenance lets you audit triples and reject hallucinations whose spans do not match the source text",
-        "It speeds up extraction",
-        "Provenance changes the ontology",
-        "Provenance is required by SPARQL"
+        "Provenance는 triple을 audit하고 source text와 span이 맞지 않는 hallucination을 reject할 수 있게 합니다",
+        "extraction 속도를 높입니다",
+        "ontology를 바꿉니다",
+        "SPARQL에서 provenance를 요구합니다"
       ],
       "correct": 0,
-      "explanation": "Provenance enables auditing and is the core of AEVS-style hallucination detection."
+      "explanation": "Provenance는 audit을 가능하게 하며 AEVS-style hallucination detection의 핵심입니다."
     },
     {
       "stage": "check",
-      "question": "What does canonicalization of relations do?",
+      "question": "Relation canonicalization은 무엇을 하나요?",
       "options": [
-        "Maps surface verb phrases (e.g. 'was born in', 'is a native of') onto a fixed property id so the graph is queryable",
-        "Removes triples",
-        "Adds embeddings",
-        "Translates the document"
+        "surface verb phrase(예: 'was born in', 'is a native of')를 fixed property id에 매핑해 graph를 query 가능하게 만듭니다",
+        "triple을 제거합니다",
+        "embedding을 추가합니다",
+        "document를 번역합니다"
       ],
       "correct": 0,
-      "explanation": "Canonicalization collapses paraphrases into canonical KG property ids."
+      "explanation": "Canonicalization은 paraphrase를 canonical KG property id로 collapse합니다."
     },
     {
       "stage": "check",
-      "question": "Why does relation extraction usually need coreference resolution first?",
+      "question": "왜 relation extraction은 보통 먼저 coreference resolution이 필요한가요?",
       "options": [
-        "Pronouns like 'he founded Apple' must be resolved to a named entity before triple extraction",
-        "Coref adds embeddings",
-        "Coref provides positions",
-        "Coref normalizes case"
+        "'he founded Apple' 같은 pronoun은 triple extraction 전에 named entity로 resolve되어야 합니다",
+        "Coref가 embedding을 추가합니다",
+        "Coref가 position을 제공합니다",
+        "Coref가 case를 normalize합니다"
       ],
       "correct": 0,
-      "explanation": "Without coref, RE attaches relations to pronouns instead of the underlying named entity."
+      "explanation": "coref가 없으면 RE는 underlying named entity가 아니라 pronoun에 relation을 붙입니다."
     },
     {
       "stage": "post",
-      "question": "Which choice trades open IE recall for graph queryability?",
+      "question": "어떤 선택이 open IE recall을 graph queryability와 맞바꾸나요?",
       "options": [
-        "Skipping NER",
-        "Random sampling of triples",
-        "Embedding-only graphs",
-        "Mapping open-IE relations onto a closed ontology (e.g. Wikidata properties) before merging into the KG"
+        "NER 건너뛰기",
+        "triple random sampling",
+        "embedding-only graph",
+        "KG에 merge하기 전에 open-IE relation을 closed ontology(예: Wikidata properties)에 매핑하기"
       ],
       "correct": 3,
-      "explanation": "Closed ontologies make the graph queryable; the canonicalization step pays for itself downstream."
+      "explanation": "Closed ontology는 graph를 query 가능하게 만듭니다. canonicalization step은 downstream에서 비용을 회수합니다."
     },
     {
       "stage": "post",
-      "question": "Why do many production KGs use temporal qualifiers (start/end time)?",
+      "question": "왜 많은 production KG가 temporal qualifier(start/end time)를 사용하나요?",
       "options": [
-        "Faster SPARQL",
-        "Required by RDF",
-        "Many relations are time-bounded (employer, spouse, role); qualifiers prevent 'forever true' claims that go stale",
-        "To remove NIL entities"
+        "더 빠른 SPARQL을 위해",
+        "RDF에서 요구하기 때문에",
+        "많은 relation이 time-bounded(employer, spouse, role)이므로 qualifier가 stale한 'forever true' claim을 막습니다",
+        "NIL entity를 제거하기 위해"
       ],
       "correct": 2,
-      "explanation": "Time-bounded relations need qualifiers (e.g. Wikidata P580/P582) or facts go silently stale."
+      "explanation": "Time-bounded relation에는 qualifier(예: Wikidata P580/P582)가 필요합니다. 없으면 fact가 조용히 stale해집니다."
     },
     {
       "stage": "post",
-      "question": "What is REBEL?",
+      "question": "REBEL은 무엇인가요?",
       "options": [
-        "A vector database",
-        "A seq2seq relation extractor that outputs triples already in Wikidata property ids",
-        "A tokenizer",
-        "A coreference model"
+        "vector database",
+        "triple을 이미 Wikidata property id로 출력하는 seq2seq relation extractor",
+        "tokenizer",
+        "coreference model"
       ],
       "correct": 1,
-      "explanation": "REBEL (Babelscape) is a seq2seq RE model trained on distantly supervised Wikidata triples."
+      "explanation": "REBEL(Babelscape)은 distantly supervised Wikidata triple로 학습된 seq2seq RE model입니다."
     }
   ]
 }

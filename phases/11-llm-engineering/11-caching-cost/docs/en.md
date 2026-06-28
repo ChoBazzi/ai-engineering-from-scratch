@@ -1,50 +1,50 @@
-# Caching, Rate Limiting & Cost Optimization
+# 캐싱, 레이트 리미팅과 비용 최적화
 
-> Most AI startups do not die from bad models. They die from bad unit economics. A single GPT-4o call costs fractions of a cent. Ten thousand users making ten calls per day costs $250 in input tokens alone -- before you charge a single dollar. The companies that survive are the ones that treat every API call as a financial transaction, not a function call.
+> 대부분의 AI 스타트업은 나쁜 모델 때문에 죽지 않는다. 나쁜 단위 경제성 때문에 죽는다. GPT-4o 호출 한 번은 센트의 일부밖에 들지 않는다. 하지만 사용자 1만 명이 하루 10회 호출하면, 단 1달러를 청구하기 전에도 입력 토큰 비용만 $250이 든다. 살아남는 회사는 모든 API 호출을 함수 호출이 아니라 금융 거래로 다루는 회사다.
 
 **Type:** Build
 **Languages:** Python
-**Prerequisites:** Phase 11 Lesson 09 (Function Calling)
+**Prerequisites:** Phase 11 Lesson 09 (함수 호출)
 **Time:** ~45 minutes
-**Related:** Phase 11 · 15 (Prompt Caching) — this lesson covers application-layer caching (semantic cache, exact hash cache, model routing). Lesson 15 covers provider-layer prompt caching (Anthropic cache_control, OpenAI automatic, Gemini CachedContent). Combine both for 50-95% cost reduction.
+**Related:** Phase 11 · 15 (프롬프트 캐싱) -- 이 레슨은 애플리케이션 계층 캐싱(시맨틱 캐시, 정확 해시 캐시, 모델 라우팅)을 다룬다. 레슨 15는 제공자 계층 프롬프트 캐싱(Anthropic cache_control, OpenAI 자동 캐싱, Gemini CachedContent)을 다룬다. 둘을 결합하면 비용을 50-95% 줄일 수 있다.
 
-## Learning Objectives
+## 학습 목표
 
-- Implement semantic caching that serves repeated or similar queries from cache instead of making a new API call
-- Calculate per-request costs across providers and implement token-aware rate limiting and budget alerts
-- Build a cost optimization layer with prompt compression, model routing (expensive vs cheap), and response caching
-- Design a tiered caching strategy using exact match, semantic similarity, and prefix caching for different query types
+- 새 API 호출을 만들지 않고 반복되거나 비슷한 쿼리를 캐시에서 제공하는 시맨틱 캐싱을 구현한다
+- 제공자별 요청당 비용을 계산하고 토큰 인식 레이트 리미팅과 예산 알림을 구현한다
+- 프롬프트 압축, 모델 라우팅(비싼 모델 대 저렴한 모델), 응답 캐싱을 포함한 비용 최적화 계층을 만든다
+- 서로 다른 쿼리 유형에 맞게 정확 일치, 의미 유사도, 접두사 캐싱을 사용하는 계층형 캐싱 전략을 설계한다
 
-## The Problem
+## 문제
 
-You build a RAG chatbot. It works beautifully. Users love it.
+RAG 챗봇을 만들었다. 아주 잘 동작한다. 사용자도 좋아한다.
 
-Then the invoice arrives.
+그러고 나서 청구서가 도착한다.
 
-GPT-5 costs $5 per million input tokens and $15 per million output. Claude Opus 4.7 costs $15 input / $75 output. Gemini 3 Pro costs $1.25 input / $5 output. GPT-5-mini is $0.25/$2. Prices below are illustrative; always check the provider's current pricing page.
+GPT-5는 입력 토큰 100만 개당 $5, 출력 토큰 100만 개당 $15가 든다. Claude Opus 4.7은 입력 $15 / 출력 $75다. Gemini 3 Pro는 입력 $1.25 / 출력 $5다. GPT-5-mini는 $0.25/$2다. 아래 가격은 예시이므로 항상 제공자의 최신 가격 페이지를 확인하라.
 
-Here is the math that kills startups:
+스타트업을 죽이는 계산은 이렇다:
 
-- 10,000 daily active users
-- 10 queries per user per day
-- 1,000 input tokens per query (system prompt + context + user message)
-- 500 output tokens per response
+- 일일 활성 사용자 10,000명
+- 사용자당 하루 10개 쿼리
+- 쿼리당 입력 토큰 1,000개(시스템 프롬프트 + 컨텍스트 + 사용자 메시지)
+- 응답당 출력 토큰 500개
 
-**Daily input cost:** 10,000 x 10 x 1,000 / 1,000,000 x $2.50 = **$250/day**
-**Daily output cost:** 10,000 x 10 x 500 / 1,000,000 x $10.00 = **$500/day**
-**Monthly total:** **$22,500/month**
+**일일 입력 비용:** 10,000 x 10 x 1,000 / 1,000,000 x $2.50 = **$250/일**
+**일일 출력 비용:** 10,000 x 10 x 500 / 1,000,000 x $10.00 = **$500/일**
+**월간 합계:** **$22,500/월**
 
-That is just the LLM. Add embeddings, vector database hosting, infrastructure. You are looking at $30,000/month for a chatbot.
+이것은 LLM 비용만이다. 임베딩, 벡터 데이터베이스 호스팅, 인프라를 더하라. 챗봇 하나에 월 $30,000을 보게 된다.
 
-The brutal part: 40-60% of those queries are near-duplicates. Users ask the same questions in slightly different words. Your system prompt -- identical across every request -- gets billed every single time. Context documents retrieved by RAG repeat across users who ask about the same topic.
+잔인한 부분은 이 쿼리의 40-60%가 거의 중복이라는 점이다. 사용자는 같은 질문을 조금 다른 말로 묻는다. 모든 요청에서 동일한 시스템 프롬프트에는 매번 비용이 청구된다. RAG가 검색한 컨텍스트 문서도 같은 주제를 묻는 사용자들 사이에서 반복된다.
 
-You are paying full price for redundant computation.
+중복 계산에 정가를 내고 있는 것이다.
 
-## The Concept
+## 개념
 
-### The Cost Anatomy of an LLM Call
+### LLM 호출 비용의 해부
 
-Every API call has five cost components.
+모든 API 호출에는 다섯 가지 비용 구성 요소가 있다.
 
 ```mermaid
 graph LR
@@ -58,27 +58,27 @@ graph LR
     F --> G[Output Cost<br/>$10.00/1M tokens]
 ```
 
-System prompts are the silent killer. A 1,500-token system prompt sent with every request costs $3.75 per million requests just for that prefix. At 100K requests per day, that is $375/day -- $11,250/month -- for text that never changes.
+시스템 프롬프트는 조용한 비용 폭탄이다. 요청마다 전송되는 1,500토큰짜리 시스템 프롬프트는 그 접두사만으로 요청 100만 건당 $3.75가 든다. 하루 요청 100K건이면 절대 바뀌지 않는 텍스트에 하루 $375, 월 $11,250을 내는 셈이다.
 
-### Provider Caching: Built-in Discounts
+### 제공자 캐싱: 내장 할인
 
-All three major providers offer provider-side prompt caching in 2026, but the mechanics differ. See Phase 11 · 15 for the deep dive.
+2026년 기준 세 주요 제공자는 모두 제공자 측 프롬프트 캐싱을 제공하지만 동작 방식은 다르다. 자세한 내용은 Phase 11 · 15를 참고하라.
 
-| Provider | Mechanism | Discount | Minimum | Cache Duration |
+| 제공자 | 메커니즘 | 할인 | 최소 길이 | 캐시 지속 시간 |
 |----------|-----------|----------|---------|----------------|
-| Anthropic | Explicit cache_control markers | 90% on cache hits (pay 25% extra on write) | 1,024 tokens (Sonnet/Opus), 2,048 (Haiku) | 5 min default; 1h extended (2x write premium) |
-| OpenAI | Automatic prefix matching | 50% on cache hits | 1,024 tokens | Best-effort up to 1 hour |
-| Google Gemini | Explicit CachedContent API | ~75% reduction (plus storage) | 4,096 (Flash) / 32,768 (Pro) | User-configurable TTL |
+| Anthropic | 명시적 cache_control 마커 | 캐시 히트 시 90%(쓰기 시 25% 추가 비용) | 1,024토큰(Sonnet/Opus), 2,048(Haiku) | 기본 5분, 확장 1시간(쓰기 프리미엄 2배) |
+| OpenAI | 자동 접두사 매칭 | 캐시 히트 시 50% | 1,024토큰 | 최선 노력 기준 최대 1시간 |
+| Google Gemini | 명시적 CachedContent API | 약 75% 절감(저장 비용 별도) | 4,096(Flash) / 32,768(Pro) | 사용자가 설정 가능한 TTL |
 
-**Anthropic's approach** is explicit. You mark sections of your prompt with `cache_control: {"type": "ephemeral"}`. The first request pays a 25% write premium. Subsequent requests with the same prefix get a 90% discount. A 2,000-token system prompt that costs $0.005 normally costs $0.000625 on cache hits. Over 100K requests, that saves $437.50/day.
+**Anthropic의 방식**은 명시적이다. 프롬프트의 섹션에 `cache_control: {"type": "ephemeral"}`을 표시한다. 첫 요청은 25%의 쓰기 프리미엄을 낸다. 같은 접두사를 쓰는 후속 요청은 90% 할인을 받는다. 보통 $0.005가 드는 2,000토큰 시스템 프롬프트는 캐시 히트 시 $0.000625가 든다. 요청 100K건이면 하루 $437.50을 절약한다.
 
-**OpenAI's approach** is automatic. Any prompt prefix that matches a previous request gets a 50% discount. No markers needed. The tradeoff: less discount, less control, but zero implementation effort.
+**OpenAI의 방식**은 자동이다. 이전 요청과 일치하는 프롬프트 접두사는 50% 할인을 받는다. 마커가 필요 없다. 트레이드오프는 할인 폭과 제어권은 작지만 구현 노력이 0이라는 점이다.
 
-### Semantic Caching: Your Custom Layer
+### 시맨틱 캐싱: 직접 만드는 계층
 
-Provider caching only works for identical prefixes. Semantic caching handles the harder case: different queries with the same meaning.
+제공자 캐싱은 동일한 접두사에만 동작한다. 시맨틱 캐싱은 더 어려운 경우, 즉 의미는 같지만 서로 다른 쿼리를 처리한다.
 
-"What is the return policy?" and "How do I return an item?" are different strings but identical intent. A semantic cache embeds both queries, computes cosine similarity, and returns the cached response if similarity exceeds a threshold (typically 0.92-0.95).
+"반품 정책이 무엇인가요?"와 "상품을 어떻게 반품하나요?"는 문자열은 다르지만 의도는 같다. 시맨틱 캐시는 두 쿼리를 임베딩하고 코사인 유사도를 계산한 뒤, 유사도가 임계값(보통 0.92-0.95)을 넘으면 캐시된 응답을 반환한다.
 
 ```mermaid
 flowchart TD
@@ -91,36 +91,36 @@ flowchart TD
     D --> G
 ```
 
-The embedding costs are negligible. OpenAI's text-embedding-3-small costs $0.02 per million tokens. Checking the cache costs almost nothing compared to a full LLM call.
+임베딩 비용은 무시할 만하다. OpenAI의 text-embedding-3-small은 토큰 100만 개당 $0.02다. 캐시를 확인하는 비용은 전체 LLM 호출에 비하면 거의 없다.
 
-### Exact Caching: Hash and Match
+### 정확 일치 캐싱: 해시하고 매칭하기
 
-For deterministic calls (temperature=0, same model, same prompt), exact caching is simpler and faster. Hash the full prompt, check the cache, return if found.
+결정적 호출(temperature=0, 같은 모델, 같은 프롬프트)에서는 정확 일치 캐싱이 더 단순하고 빠르다. 전체 프롬프트를 해시하고 캐시를 확인한 뒤, 있으면 반환한다.
 
-This works perfectly for:
-- System prompt + fixed context + identical user queries
-- Function calling with identical tool definitions
-- Batch processing where the same document gets processed multiple times
+다음 경우에 완벽하게 동작한다:
+- 시스템 프롬프트 + 고정 컨텍스트 + 동일한 사용자 쿼리
+- 동일한 도구 정의를 사용하는 함수 호출
+- 같은 문서가 여러 번 처리되는 배치 처리
 
-### Rate Limiting: Protecting Your Budget
+### 레이트 리미팅: 예산 보호
 
-Rate limiting is not just about fairness. It is about survival.
+레이트 리미팅은 단지 공정성의 문제가 아니다. 생존의 문제다.
 
-**Token bucket algorithm:** each user gets a bucket of N tokens that refills at rate R per second. A request consumes tokens from the bucket. If the bucket is empty, the request is rejected. This allows bursts (use the full bucket at once) while enforcing an average rate.
+**토큰 버킷 알고리즘:** 각 사용자는 초당 R 속도로 다시 채워지는 N개 토큰 버킷을 받는다. 요청은 버킷의 토큰을 소비한다. 버킷이 비어 있으면 요청을 거부한다. 이 방식은 평균 속도를 강제하면서도 버스트(버킷 전체를 한 번에 사용)를 허용한다.
 
-**Per-user quotas:** set daily/monthly token limits per user tier.
+**사용자별 할당량:** 사용자 티어별 일일/월간 토큰 한도를 설정한다.
 
-| Tier | Daily Token Limit | Max Requests/min | Model Access |
+| 티어 | 일일 토큰 한도 | 최대 요청/분 | 모델 접근 |
 |------|------------------|------------------|-------------|
-| Free | 50,000 | 10 | GPT-4o-mini only |
-| Pro | 500,000 | 60 | GPT-4o, Claude Sonnet |
-| Enterprise | 5,000,000 | 300 | All models |
+| 무료 | 50,000 | 10 | GPT-4o-mini만 |
+| 프로 | 500,000 | 60 | GPT-4o, Claude Sonnet |
+| 엔터프라이즈 | 5,000,000 | 300 | 모든 모델 |
 
-### Model Routing: Right Model for the Right Job
+### 모델 라우팅: 작업에 맞는 모델
 
-Not every query needs GPT-4o.
+모든 쿼리에 GPT-4o가 필요한 것은 아니다.
 
-"What time does the store close?" does not require a $10/M-output model. GPT-4o-mini at $0.60/M output handles it perfectly. Claude Haiku at $1.25/M output handles it. A simple classifier routes cheap queries to cheap models and complex queries to expensive models.
+"매장이 몇 시에 닫나요?"에는 출력 $10/M 모델이 필요하지 않다. 출력 $0.60/M인 GPT-4o-mini가 충분히 처리한다. 출력 $1.25/M인 Claude Haiku도 처리한다. 단순한 분류기가 저렴한 쿼리는 저렴한 모델로, 복잡한 쿼리는 비싼 모델로 라우팅한다.
 
 ```mermaid
 flowchart TD
@@ -130,82 +130,82 @@ flowchart TD
     B -->|Complex: reasoning, code| E[GPT-4o / Claude Opus<br/>$2.50/$10.00+]
 ```
 
-A well-tuned router saves 40-70% on model costs alone.
+잘 튜닝된 라우터는 모델 비용만으로도 40-70%를 절약한다.
 
-### Cost Tracking: Know Where the Money Goes
+### 비용 추적: 돈이 어디로 가는지 알기
 
-You cannot optimize what you do not measure. Log every API call with:
+측정하지 않는 것은 최적화할 수 없다. 모든 API 호출에 다음을 기록하라:
 
-- Timestamp
-- Model name
-- Input tokens
-- Output tokens
-- Latency (ms)
-- Computed cost ($)
-- User ID
-- Cache hit/miss
-- Request category
+- 타임스탬프
+- 모델 이름
+- 입력 토큰
+- 출력 토큰
+- 지연 시간(ms)
+- 계산된 비용($)
+- 사용자 ID
+- 캐시 히트/미스
+- 요청 카테고리
 
-This data reveals which features are expensive, which users are heavy consumers, and where caching has the most impact.
+이 데이터는 어떤 기능이 비싼지, 어떤 사용자가 많이 소비하는지, 캐싱이 어디에서 가장 큰 영향을 주는지 보여준다.
 
-### Batching: Bulk Discounts
+### 배칭: 대량 할인
 
-OpenAI's Batch API processes requests asynchronously at a 50% discount. You submit a batch of up to 50,000 requests, and results come back within 24 hours.
+OpenAI의 Batch API는 요청을 비동기로 처리하며 50% 할인을 제공한다. 최대 50,000개 요청을 배치로 제출하면 결과가 24시간 안에 돌아온다.
 
-Use batching for:
-- Nightly document processing
-- Bulk classification
-- Evaluation runs
-- Data enrichment pipelines
+배칭은 다음에 사용한다:
+- 야간 문서 처리
+- 대량 분류
+- 평가 실행
+- 데이터 보강 파이프라인
 
-Not for: real-time user-facing queries (latency matters).
+사용하지 말아야 할 곳: 실시간 사용자 대면 쿼리(지연 시간이 중요함).
 
-### Budget Alerts and Circuit Breakers
+### 예산 알림과 서킷 브레이커
 
-A circuit breaker stops spending when you hit a limit. Without one, a bug or abuse can burn through your monthly budget in hours.
+서킷 브레이커는 한도에 도달하면 지출을 멈춘다. 이것이 없으면 버그나 남용이 몇 시간 만에 월간 예산을 태울 수 있다.
 
-Set three thresholds:
-1. **Warning** (70% of budget): send an alert
-2. **Throttle** (85% of budget): switch to cheaper models only
-3. **Stop** (95% of budget): reject new requests, return cached responses only
+세 가지 임계값을 설정한다:
+1. **경고**(예산의 70%): 알림 전송
+2. **스로틀**(예산의 85%): 저렴한 모델만 사용하도록 전환
+3. **중지**(예산의 95%): 새 요청을 거부하고 캐시된 응답만 반환
 
-### The Optimization Stack
+### 최적화 스택
 
-Apply these techniques in order. Each layer compounds on the previous ones.
+이 기법들을 순서대로 적용하라. 각 계층은 이전 계층 위에서 복리처럼 효과가 누적된다.
 
-| Layer | Technique | Typical Savings | Implementation Effort |
+| 계층 | 기법 | 일반적인 절감 | 구현 노력 |
 |-------|-----------|----------------|----------------------|
-| 1 | Provider prompt caching | 30-50% | Low (add cache markers) |
-| 2 | Exact caching | 10-20% | Low (hash + dict) |
-| 3 | Semantic caching | 15-30% | Medium (embeddings + similarity) |
-| 4 | Model routing | 40-70% | Medium (classifier) |
-| 5 | Rate limiting | Budget protection | Low (token bucket) |
-| 6 | Prompt compression | 10-30% | Medium (rewrite prompts) |
-| 7 | Batching | 50% on eligible | Low (batch API) |
+| 1 | 제공자 프롬프트 캐싱 | 30-50% | 낮음(캐시 마커 추가) |
+| 2 | 정확 일치 캐싱 | 10-20% | 낮음(해시 + dict) |
+| 3 | 시맨틱 캐싱 | 15-30% | 중간(임베딩 + 유사도) |
+| 4 | 모델 라우팅 | 40-70% | 중간(분류기) |
+| 5 | 레이트 리미팅 | 예산 보호 | 낮음(토큰 버킷) |
+| 6 | 프롬프트 압축 | 10-30% | 중간(프롬프트 재작성) |
+| 7 | 배칭 | 적격 워크로드에서 50% | 낮음(batch API) |
 
-A RAG app applying layers 1-5 typically reduces costs from $22,500/month to $4,000-6,000/month. That is the difference between burning runway and building a business.
+1-5계층을 적용한 RAG 앱은 보통 비용을 월 $22,500에서 월 $4,000-6,000으로 줄인다. 이는 런웨이를 태우는 것과 비즈니스를 만드는 것의 차이다.
 
-### Real Savings: Before and After
+### 실제 절감: 전과 후
 
-Here is a real breakdown for a RAG chatbot serving 10,000 DAU.
+DAU 10,000명을 처리하는 RAG 챗봇의 실제 내역은 다음과 같다.
 
-| Metric | Before Optimization | After Optimization | Savings |
+| 지표 | 최적화 전 | 최적화 후 | 절감 |
 |--------|--------------------|--------------------|---------|
-| Monthly LLM cost | $22,500 | $5,200 | 77% |
-| Avg cost per query | $0.0075 | $0.0017 | 77% |
-| Cache hit rate | 0% | 52% | -- |
-| Queries routed to mini | 0% | 65% | -- |
-| P95 latency | 2,800ms | 900ms (cache hits: 50ms) | 68% |
-| Monthly embedding cost | $0 | $180 | (new cost) |
-| Total monthly cost | $22,500 | $5,380 | 76% |
+| 월간 LLM 비용 | $22,500 | $5,200 | 77% |
+| 쿼리당 평균 비용 | $0.0075 | $0.0017 | 77% |
+| 캐시 히트율 | 0% | 52% | -- |
+| mini로 라우팅된 쿼리 | 0% | 65% | -- |
+| P95 지연 시간 | 2,800ms | 900ms(캐시 히트: 50ms) | 68% |
+| 월간 임베딩 비용 | $0 | $180 | (새 비용) |
+| 총 월간 비용 | $22,500 | $5,380 | 76% |
 
-The embedding cost for semantic caching ($180/month) pays for itself within the first hour of cache hits.
+시맨틱 캐싱의 임베딩 비용(월 $180)은 캐시 히트가 발생한 첫 한 시간 안에 회수된다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: Cost Calculator
+### 1단계: 비용 계산기
 
-Build a token cost calculator that knows current pricing for major models.
+주요 모델의 현재 가격을 아는 토큰 비용 계산기를 만든다.
 
 ```python
 import hashlib
@@ -253,9 +253,9 @@ def calculate_cost(model, input_tokens, output_tokens, cached_input_tokens=0):
     }
 ```
 
-### Step 2: Exact Cache
+### 2단계: 정확 일치 캐시
 
-Hash the full prompt and return cached responses for identical requests.
+전체 프롬프트를 해시하고 동일한 요청에는 캐시된 응답을 반환한다.
 
 ```python
 class ExactCache:
@@ -308,9 +308,9 @@ class ExactCache:
         }
 ```
 
-### Step 3: Semantic Cache
+### 3단계: 시맨틱 캐시
 
-Embed queries and return cached responses when similarity exceeds a threshold.
+쿼리를 임베딩하고 유사도가 임계값을 넘으면 캐시된 응답을 반환한다.
 
 ```python
 def simple_embed(text):
@@ -382,9 +382,9 @@ class SemanticCache:
         }
 ```
 
-### Step 4: Rate Limiter
+### 4단계: 레이트 리미터
 
-Token bucket rate limiter with per-user quotas.
+사용자별 할당량을 적용한 토큰 버킷 레이트 리미터다.
 
 ```python
 class TokenBucketRateLimiter:
@@ -452,9 +452,9 @@ class TokenBucketRateLimiter:
         }
 ```
 
-### Step 5: Cost Tracker
+### 5단계: 비용 추적기
 
-Log every call and compute running totals.
+모든 호출을 기록하고 누적 합계를 계산한다.
 
 ```python
 class CostTracker:
@@ -534,9 +534,9 @@ class CostTracker:
         }
 ```
 
-### Step 6: Model Router
+### 6단계: 모델 라우터
 
-Route queries to the cheapest model that can handle them.
+쿼리를 처리할 수 있는 가장 저렴한 모델로 라우팅한다.
 
 ```python
 SIMPLE_KEYWORDS = ["what time", "hours", "address", "phone", "price", "return policy", "hello", "hi", "thanks", "yes", "no"]
@@ -563,7 +563,7 @@ def route_model(query, tier="pro"):
     return {"query": query, "complexity": complexity, "model": model, "tier": tier}
 ```
 
-### Step 7: Run the Demo
+### 7단계: 데모 실행
 
 ```python
 def simulate_llm_call(model, query):
@@ -748,9 +748,9 @@ if __name__ == "__main__":
     run_demo()
 ```
 
-## Use It
+## 활용하기
 
-### Anthropic Prompt Caching
+### Anthropic 프롬프트 캐싱
 
 ```python
 # import anthropic
@@ -775,9 +775,9 @@ if __name__ == "__main__":
 # print(f"Cache read tokens: {response.usage.cache_read_input_tokens}")
 ```
 
-The first call writes to the cache (25% premium). Every subsequent call with the same system prompt prefix reads from the cache (90% discount). The cache lasts 5 minutes and resets the timer on every hit.
+첫 호출은 캐시에 쓴다(25% 프리미엄). 이후 같은 시스템 프롬프트 접두사를 가진 모든 호출은 캐시에서 읽는다(90% 할인). 캐시는 5분 동안 유지되며 히트가 발생할 때마다 타이머가 리셋된다.
 
-### OpenAI Automatic Caching
+### OpenAI 자동 캐싱
 
 ```python
 # from openai import OpenAI
@@ -797,7 +797,7 @@ The first call writes to the cache (25% premium). Every subsequent call with the
 # print(f"Completion tokens: {response.usage.completion_tokens}")
 ```
 
-OpenAI caches automatically. Any prompt prefix of 1,024+ tokens that matches a recent request gets a 50% discount. No code changes needed -- just check `prompt_tokens_details.cached_tokens` in the response to verify it is working.
+OpenAI는 자동으로 캐싱한다. 최근 요청과 일치하는 1,024토큰 이상의 프롬프트 접두사는 50% 할인을 받는다. 코드 변경은 필요 없다. 응답의 `prompt_tokens_details.cached_tokens`만 확인해 동작 여부를 검증하면 된다.
 
 ### OpenAI Batch API
 
@@ -828,9 +828,9 @@ OpenAI caches automatically. Any prompt prefix of 1,024+ tokens that matches a r
 # print(f"Batch ID: {batch.id}, Status: {batch.status}")
 ```
 
-Batch API gives a flat 50% discount on all tokens. Results arrive within 24 hours. Perfect for non-real-time workloads: evaluations, data labeling, bulk summarization.
+Batch API는 모든 토큰에 일괄 50% 할인을 제공한다. 결과는 24시간 안에 도착한다. 평가, 데이터 라벨링, 대량 요약처럼 실시간이 아닌 워크로드에 적합하다.
 
-### Production Semantic Cache with Redis
+### Redis를 사용하는 프로덕션 시맨틱 캐시
 
 ```python
 # import redis
@@ -859,45 +859,45 @@ Batch API gives a flat 50% discount on all tokens. Results arrive within 24 hour
 #     return None
 ```
 
-In production, replace the linear scan with a vector index (Redis Vector Search, Pinecone, or pgvector). Linear scan works for <1,000 entries. Beyond that, use ANN (approximate nearest neighbor) for O(log n) lookup.
+프로덕션에서는 선형 스캔을 벡터 인덱스(Redis Vector Search, Pinecone, pgvector)로 바꾼다. 선형 스캔은 항목이 1,000개 미만일 때 동작한다. 그 이상에서는 O(log n) 조회를 위해 ANN(approximate nearest neighbor)을 사용한다.
 
-## Ship It
+## 결과물
 
-This lesson produces `outputs/prompt-cost-optimizer.md` -- a reusable prompt that analyzes your LLM application and recommends specific cost optimizations with projected savings.
+이 레슨은 `outputs/prompt-cost-optimizer.md`를 만든다. 이는 LLM 애플리케이션을 분석하고 예상 절감액과 함께 구체적인 비용 최적화를 추천하는 재사용 가능한 프롬프트다.
 
-It also produces `outputs/skill-cost-patterns.md` -- a decision framework for choosing the right caching strategy, rate limiting configuration, and model routing rules for your use case.
+또한 `outputs/skill-cost-patterns.md`도 만든다. 이는 사용 사례에 맞는 캐싱 전략, 레이트 리미팅 설정, 모델 라우팅 규칙을 고르는 의사결정 프레임워크다.
 
-## Exercises
+## 연습 문제
 
-1. **Implement LRU eviction for the semantic cache.** Replace the oldest-first eviction with least-recently-used. Track the last access time for each entry and evict the entry with the oldest access time when the cache is full. Compare hit rates between the two strategies over 100 queries.
+1. **시맨틱 캐시에 LRU 축출을 구현하라.** 가장 오래된 항목을 먼저 내보내는 방식을 least-recently-used로 바꾼다. 각 항목의 마지막 접근 시간을 추적하고 캐시가 가득 차면 접근 시간이 가장 오래된 항목을 축출한다. 100개 쿼리에서 두 전략의 히트율을 비교한다.
 
-2. **Build a cost projection tool.** Given a log of API calls (the CostTracker logs), project the monthly cost based on the trailing 7-day average. Account for weekday/weekend patterns. Trigger an alert if the projected monthly cost exceeds the budget by more than 20%.
+2. **비용 예측 도구를 만들어라.** API 호출 로그(CostTracker 로그)가 주어졌을 때 최근 7일 평균을 기준으로 월간 비용을 예측한다. 평일/주말 패턴을 반영한다. 예상 월간 비용이 예산을 20% 넘게 초과하면 알림을 트리거한다.
 
-3. **Implement tiered semantic caching.** Use two similarity thresholds: 0.98 for high-confidence hits (return immediately) and 0.90 for medium-confidence hits (return with a disclaimer: "Based on a similar previous question..."). Track which tier each hit came from and measure user satisfaction differences.
+3. **계층형 시맨틱 캐싱을 구현하라.** 두 유사도 임계값을 사용한다. 고신뢰 히트는 0.98(즉시 반환), 중간 신뢰 히트는 0.90(면책 문구와 함께 반환: "Based on a similar previous question..."). 각 히트가 어느 티어에서 왔는지 추적하고 사용자 만족도 차이를 측정한다.
 
-4. **Build a model routing classifier.** Replace the keyword-based classifier with an embedding-based one. Embed 50 labeled queries (simple/medium/complex), then classify new queries by finding the nearest labeled example. Measure classification accuracy against a test set of 20 queries.
+4. **모델 라우팅 분류기를 만들어라.** 키워드 기반 분류기를 임베딩 기반 분류기로 바꾼다. 레이블이 붙은 쿼리 50개(simple/medium/complex)를 임베딩한 뒤, 가장 가까운 레이블 예시를 찾아 새 쿼리를 분류한다. 20개 쿼리 테스트 세트에 대해 분류 정확도를 측정한다.
 
-5. **Implement a circuit breaker with degradation levels.** At 70% budget, log a warning. At 85%, automatically switch all routing to the cheapest model (gpt-4o-mini). At 95%, serve only cached responses and reject new queries. Test by simulating 1,000 requests against a $1.00 budget and verify each threshold triggers correctly.
+5. **성능 저하 단계가 있는 서킷 브레이커를 구현하라.** 예산 70%에서는 경고를 기록한다. 85%에서는 모든 라우팅을 자동으로 가장 저렴한 모델(gpt-4o-mini)로 전환한다. 95%에서는 캐시된 응답만 제공하고 새 쿼리는 거부한다. $1.00 예산에 대해 요청 1,000개를 시뮬레이션하여 각 임계값이 올바르게 트리거되는지 검증한다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Prompt caching | "Cache the system prompt" | Provider-level caching where repeated prompt prefixes get a discount (90% Anthropic, 50% OpenAI) -- no code changes for OpenAI, explicit markers for Anthropic |
-| Semantic caching | "Smart caching" | Embedding the query, computing similarity to past queries, and returning the cached response if similarity exceeds a threshold -- catches paraphrases that exact matching misses |
-| Exact caching | "Hash caching" | Hashing the full prompt (model + messages + temperature) and returning the cached response for identical inputs -- only works for temperature=0 deterministic calls |
-| Token bucket | "Rate limiter" | An algorithm where each user has a bucket of N tokens that refills at rate R per second -- allows bursts up to N while enforcing an average rate of R |
-| Model routing | "Cheapskate routing" | Using a classifier to send simple queries to cheap models (GPT-4o-mini, Haiku) and complex queries to expensive models (GPT-4o, Opus) -- saves 40-70% on model costs |
-| Cost tracking | "Metering" | Logging every API call with model, tokens, latency, cost, and user ID so you know exactly where money goes and which features are expensive |
-| Circuit breaker | "Kill switch" | Automatically degrading service (cheaper models, cached-only) or stopping requests entirely when spending approaches the budget limit |
-| Batch API | "Bulk discount" | OpenAI's asynchronous processing at 50% discount -- submit up to 50,000 requests, get results within 24 hours |
-| Prompt compression | "Token diet" | Rewriting system prompts and context to use fewer tokens while preserving meaning -- shorter prompts cost less and often perform better |
-| Cache hit rate | "Cache efficiency" | The percentage of requests served from cache instead of calling the LLM -- 40-60% is typical for production chatbots, saves proportionally on cost |
+| 프롬프트 캐싱 | "시스템 프롬프트를 캐시한다" | 반복되는 프롬프트 접두사가 할인을 받는 제공자 수준 캐싱(Anthropic 90%, OpenAI 50%) -- OpenAI는 코드 변경이 필요 없고, Anthropic은 명시적 마커가 필요함 |
+| 시맨틱 캐싱 | "스마트 캐싱" | 쿼리를 임베딩하고 과거 쿼리와의 유사도를 계산한 뒤, 유사도가 임계값을 넘으면 캐시된 응답을 반환함 -- 정확 일치가 놓치는 패러프레이즈를 잡아냄 |
+| 정확 일치 캐싱 | "해시 캐싱" | 전체 프롬프트(모델 + 메시지 + temperature)를 해시하고 동일한 입력에 캐시된 응답을 반환함 -- temperature=0인 결정적 호출에만 동작 |
+| 토큰 버킷 | "레이트 리미터" | 각 사용자가 초당 R 속도로 다시 채워지는 N개 토큰 버킷을 가지는 알고리즘 -- 평균 속도 R을 강제하면서 최대 N까지 버스트를 허용 |
+| 모델 라우팅 | "저가 라우팅" | 분류기를 사용해 단순 쿼리는 저렴한 모델(GPT-4o-mini, Haiku)로, 복잡한 쿼리는 비싼 모델(GPT-4o, Opus)로 보내는 방식 -- 모델 비용을 40-70% 절감 |
+| 비용 추적 | "계량" | 모델, 토큰, 지연 시간, 비용, 사용자 ID와 함께 모든 API 호출을 기록해 돈이 정확히 어디로 가는지, 어떤 기능이 비싼지 파악함 |
+| 서킷 브레이커 | "킬 스위치" | 지출이 예산 한도에 가까워질 때 서비스를 자동으로 저하(저렴한 모델, 캐시 전용)시키거나 요청을 완전히 중지함 |
+| Batch API | "대량 할인" | OpenAI의 50% 할인 비동기 처리 -- 최대 50,000개 요청을 제출하고 24시간 안에 결과를 받음 |
+| 프롬프트 압축 | "토큰 다이어트" | 의미를 보존하면서 더 적은 토큰을 쓰도록 시스템 프롬프트와 컨텍스트를 재작성함 -- 짧은 프롬프트는 비용이 낮고 종종 성능도 더 좋음 |
+| 캐시 히트율 | "캐시 효율" | LLM을 호출하는 대신 캐시에서 제공된 요청의 비율 -- 프로덕션 챗봇에서는 40-60%가 일반적이며 비용도 비례해 절감 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Anthropic Prompt Caching Guide](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) -- the official docs for Anthropic's explicit cache_control markers, pricing, and cache lifetime behavior
-- [OpenAI Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) -- OpenAI's automatic caching, how to verify cache hits via usage fields, and minimum prefix lengths
+- [Anthropic 프롬프트 캐싱 가이드](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) -- Anthropic의 명시적 cache_control 마커, 가격, 캐시 수명 동작에 대한 공식 문서
+- [OpenAI 프롬프트 캐싱](https://platform.openai.com/docs/guides/prompt-caching) -- OpenAI의 자동 캐싱, usage 필드로 캐시 히트를 검증하는 방법, 최소 접두사 길이
 - [OpenAI Batch API](https://platform.openai.com/docs/guides/batch) -- 50% discount for asynchronous processing, JSONL format, 24-hour completion window, and 50K request limits
 - [GPTCache](https://github.com/zilliztech/GPTCache) -- open-source semantic caching library supporting multiple embedding backends, vector stores, and eviction policies
 - [Martian Model Router](https://docs.withmartian.com) -- production model routing that automatically selects the cheapest model capable of handling each query

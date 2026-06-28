@@ -1,37 +1,37 @@
 [
   {
-    "question": "What does the reward model in RLHF learn from?",
-    "options": ["Raw text documents", "Human preference pairs: given two responses, which one humans preferred", "Benchmark scores", "Model loss curves"],
+    "question": "RLHF의 reward model은 무엇에서 학습하나요?",
+    "options": ["원시 텍스트 문서", "사람의 preference pair: 두 응답이 주어졌을 때 사람이 어느 쪽을 선호했는지", "벤치마크 점수", "모델 loss 곡선"],
     "correct": 1,
-    "explanation": "The reward model is trained on preference data: pairs of responses to the same prompt where a human labeled which is better. It learns to assign higher scores to responses that match human preferences.",
+    "explanation": "reward model은 같은 prompt에 대한 응답 쌍 중 사람이 더 낫다고 label한 preference data로 학습됩니다. 사람의 선호와 맞는 응답에 더 높은 점수를 주도록 배웁니다.",
     "stage": "pre"
   },
   {
-    "question": "Why is a KL divergence penalty used in PPO training for RLHF?",
-    "options": ["To speed up training", "To prevent the policy from diverging too far from the SFT model, which would lead to reward hacking", "To reduce memory usage", "To improve tokenization"],
+    "question": "RLHF의 PPO 학습에서 KL divergence penalty를 쓰는 이유는 무엇인가요?",
+    "options": ["학습 속도를 높이기 위해", "policy가 SFT 모델에서 너무 멀어져 reward hacking으로 이어지는 것을 막기 위해", "메모리 사용량을 줄이기 위해", "토큰화를 개선하기 위해"],
     "correct": 1,
-    "explanation": "Without the KL penalty, the model finds degenerate ways to maximize the reward score (e.g., producing repetitive text that exploits reward model weaknesses). KL keeps the model close to the well-behaved SFT baseline.",
+    "explanation": "KL penalty가 없으면 모델은 reward model의 약점을 이용하는 반복 텍스트처럼 reward score를 극대화하는 퇴화된 방법을 찾습니다. KL은 모델을 이미 비교적 잘 동작하는 SFT baseline 가까이에 묶어 둡니다.",
     "stage": "pre"
   },
   {
-    "question": "How many separate models are required for a full RLHF pipeline?",
-    "options": ["One", "Two", "Three: SFT model, reward model, and policy model being optimized", "Four"],
+    "question": "전체 RLHF pipeline에는 서로 다른 모델이 몇 개 필요한가요?",
+    "options": ["하나", "둘", "셋: SFT model, reward model, 최적화 중인 policy model", "넷"],
     "correct": 2,
-    "explanation": "RLHF requires: (1) SFT model as the starting point and KL reference, (2) reward model trained on preferences, (3) policy model being optimized with PPO. This complexity is why DPO (lesson 08) was developed.",
+    "explanation": "RLHF에는 (1) 시작점이자 KL reference인 SFT model, (2) preference로 학습한 reward model, (3) PPO로 최적화하는 policy model이 필요합니다. 이 복잡성 때문에 DPO(lesson 08)가 개발되었습니다.",
     "stage": "post"
   },
   {
-    "question": "What is 'reward hacking' in RLHF?",
-    "options": ["When the reward model is attacked by adversaries", "When the policy finds ways to maximize the reward score without actually improving response quality", "When training data is corrupted", "When the learning rate is too high"],
+    "question": "RLHF에서 'reward hacking'이란 무엇인가요?",
+    "options": ["reward model이 adversary에게 공격받는 경우", "policy가 실제 응답 품질을 높이지 않으면서 reward score를 극대화하는 방법을 찾는 경우", "학습 데이터가 손상된 경우", "learning rate가 너무 높은 경우"],
     "correct": 1,
-    "explanation": "The reward model is an imperfect proxy for human judgment. The policy can discover patterns that score high rewards (e.g., verbose responses, excessive hedging) without actually being more helpful. The KL penalty limits this.",
+    "explanation": "reward model은 사람 판단의 불완전한 proxy입니다. policy는 실제로 더 도움이 되지 않더라도 장황한 응답이나 과도한 hedging처럼 높은 reward를 받는 패턴을 발견할 수 있습니다. KL penalty는 이를 제한합니다.",
     "stage": "post"
   },
   {
-    "question": "What does PPO's clipping mechanism prevent?",
-    "options": ["Gradient overflow", "Excessively large policy updates that could destabilize training", "Memory overflow", "Data leakage"],
+    "question": "PPO의 clipping mechanism은 무엇을 막나요?",
+    "options": ["gradient overflow", "학습을 불안정하게 만들 수 있는 지나치게 큰 policy update", "memory overflow", "data leakage"],
     "correct": 1,
-    "explanation": "PPO clips the probability ratio between the new and old policy to a range like [0.8, 1.2]. This prevents any single update from changing the policy too drastically, making training more stable than vanilla policy gradient.",
+    "explanation": "PPO는 새 policy와 이전 policy의 확률 비율을 [0.8, 1.2] 같은 범위로 clip합니다. 그래서 단일 update가 policy를 너무 급격히 바꾸지 못하게 하며, vanilla policy gradient보다 학습을 안정적으로 만듭니다.",
     "stage": "post"
   }
 ]

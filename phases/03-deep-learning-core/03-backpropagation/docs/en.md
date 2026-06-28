@@ -1,38 +1,38 @@
-# Backpropagation from Scratch
+# 백프로퍼게이션 직접 구현하기
 
-> Backpropagation is the algorithm that makes learning possible. Without it, neural networks are just expensive random number generators.
+> 백프로퍼게이션은 학습을 가능하게 만드는 알고리즘입니다. 이것이 없으면 신경망은 값비싼 난수 생성기에 불과합니다.
 
 **Type:** Build
 **Languages:** Python
-**Prerequisites:** Lesson 03.02 (Multi-Layer Networks)
+**Prerequisites:** Lesson 03.02 (다층 네트워크)
 **Time:** ~120 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement a Value-based autograd engine that builds a computational graph and computes gradients via topological sort
-- Derive the backward pass for addition, multiplication, and sigmoid using the chain rule
-- Train a multi-layer network on XOR and circle classification using only your from-scratch backpropagation engine
-- Identify the vanishing gradient problem in deep sigmoid networks and explain why gradients shrink exponentially
+- 계산 그래프를 만들고 위상 정렬로 그래디언트를 계산하는 Value 기반 autograd 엔진을 구현합니다
+- 연쇄 법칙을 사용해 덧셈, 곱셈, sigmoid의 역방향 패스를 유도합니다
+- 직접 만든 백프로퍼게이션 엔진만 사용해 XOR와 원 분류 문제에서 다층 네트워크를 훈련합니다
+- 깊은 sigmoid 네트워크에서 그래디언트 소실 문제를 식별하고 그래디언트가 왜 지수적으로 작아지는지 설명합니다
 
-## The Problem
+## 문제
 
-Your network has a single hidden layer with 768 inputs and 3072 outputs. That's 2,359,296 weights. It made a wrong prediction. Which weights caused the error? Testing each weight individually means 2.3 million forward passes. Backpropagation computes all 2.3 million gradients in a single backward pass. That's not an optimization. That's the difference between trainable and impossible.
+네트워크에 768개 입력과 3072개 출력을 가진 단일 은닉층이 있다고 합시다. 가중치는 2,359,296개입니다. 이 네트워크가 잘못 예측했습니다. 어떤 가중치가 오류를 만들었을까요? 각 가중치를 하나씩 시험하려면 230만 번의 순전파가 필요합니다. 백프로퍼게이션은 단 한 번의 역방향 패스로 230만 개 그래디언트를 모두 계산합니다. 이것은 단순한 최적화가 아닙니다. 훈련 가능한 것과 불가능한 것의 차이입니다.
 
-The naive approach: take one weight, nudge it by a tiny amount, run the forward pass again, measure whether the loss went up or down. That gives you the gradient for that weight. Now do it for every weight in the network. Multiply by thousands of training steps and millions of data points. You'd need geological time to train anything useful.
+순진한 접근은 이렇습니다. 가중치 하나를 잡고 아주 조금 움직인 뒤 순전파를 다시 실행하고 손실이 올라갔는지 내려갔는지 측정합니다. 그러면 그 가중치의 그래디언트를 얻습니다. 이제 네트워크의 모든 가중치에 대해 같은 일을 합니다. 여기에 수천 번의 훈련 스텝과 수백만 개 데이터 포인트를 곱해 보세요. 쓸 만한 것을 훈련하려면 지질학적 시간이 필요할 것입니다.
 
-Backpropagation solves this. One forward pass, one backward pass, all gradients computed. The trick is the chain rule from calculus, applied systematically to a computational graph. This is the algorithm that made deep learning practical. Without it, we'd still be stuck on toy problems.
+백프로퍼게이션은 이 문제를 해결합니다. 한 번의 순전파, 한 번의 역방향 패스, 그리고 모든 그래디언트 계산. 핵심은 미적분의 연쇄 법칙을 계산 그래프에 체계적으로 적용하는 것입니다. 이것이 딥러닝을 실용적으로 만든 알고리즘입니다. 이것이 없었다면 우리는 여전히 장난감 문제에 머물러 있었을 것입니다.
 
-## The Concept
+## 개념
 
-### The Chain Rule, Applied to Networks
+### 네트워크에 적용한 연쇄 법칙
 
-You saw the chain rule in Phase 01, Lesson 05. Quick recap: if y = f(g(x)), then dy/dx = f'(g(x)) * g'(x). You multiply derivatives along the chain.
+Phase 01, Lesson 05에서 연쇄 법칙을 봤습니다. 빠르게 되짚어 봅시다. y = f(g(x))라면 dy/dx = f'(g(x)) * g'(x)입니다. 사슬을 따라 미분값을 곱합니다.
 
-In a neural network, the "chain" is the sequence of operations from input to loss. Each layer applies weights, adds biases, passes through an activation. The loss function compares the final output to the target. Backpropagation traces this chain backward, computing how each operation contributed to the error.
+신경망에서 "사슬"은 입력에서 손실까지 이어지는 연산의 순서입니다. 각 층은 가중치를 적용하고, 편향을 더하고, 활성화 함수를 통과시킵니다. 손실 함수는 최종 출력을 타깃과 비교합니다. 백프로퍼게이션은 이 사슬을 거꾸로 따라가며 각 연산이 오류에 얼마나 기여했는지 계산합니다.
 
-### Computational Graphs
+### 계산 그래프
 
-Every forward pass builds a graph. Each node is an operation (multiply, add, sigmoid). Each edge carries a value forward and a gradient backward.
+모든 순전파는 그래프를 만듭니다. 각 노드는 연산입니다(곱셈, 덧셈, sigmoid). 각 간선은 값을 앞으로 전달하고 그래디언트를 뒤로 전달합니다.
 
 ```mermaid
 graph LR
@@ -45,13 +45,13 @@ graph LR
     y["target"] --> loss
 ```
 
-Forward pass: values flow left to right. x and w produce z1 = w*x. Add b to get z2. Sigmoid gives activation a. Compare a to target y using the loss function.
+순전파에서는 값이 왼쪽에서 오른쪽으로 흐릅니다. x와 w가 z1 = w*x를 만듭니다. b를 더해 z2를 얻습니다. Sigmoid가 활성화값 a를 줍니다. 손실 함수를 사용해 a를 타깃 y와 비교합니다.
 
-Backward pass: gradients flow right to left. Start with dL/da (how loss changes with the activation). Multiply by da/dz2 (sigmoid derivative). That gives dL/dz2. Split into dL/db (which equals dL/dz2, since z2 = z1 + b) and dL/dz1. Then dL/dw = dL/dz1 * x and dL/dx = dL/dz1 * w.
+역방향 패스에서는 그래디언트가 오른쪽에서 왼쪽으로 흐릅니다. dL/da(활성화값이 바뀔 때 손실이 어떻게 변하는지)에서 시작합니다. 여기에 da/dz2(sigmoid 미분)를 곱합니다. 그러면 dL/dz2를 얻습니다. 이를 dL/db(z2 = z1 + b이므로 dL/dz2와 같음)와 dL/dz1로 나눕니다. 그다음 dL/dw = dL/dz1 * x, dL/dx = dL/dz1 * w입니다.
 
-Every node in the graph has one job during the backward pass: take the gradient coming from above, multiply by its local derivative, and pass it down.
+그래프의 모든 노드는 역방향 패스 동안 한 가지 일을 합니다. 위에서 들어온 그래디언트를 받아 자신의 로컬 미분값을 곱하고 아래로 전달합니다.
 
-### Forward vs Backward
+### 순전파와 역방향 패스
 
 ```mermaid
 graph TB
@@ -70,11 +70,11 @@ graph TB
     Forward --> Backward
 ```
 
-The forward pass stores every intermediate value: z, a, the inputs to each layer. The backward pass needs these stored values to compute gradients. This is the memory-computation tradeoff at the heart of backprop. You trade memory (storing activations) for speed (one pass instead of millions).
+순전파는 z, a, 각 층의 입력 같은 모든 중간값을 저장합니다. 역방향 패스는 그래디언트를 계산하기 위해 이 저장된 값들이 필요합니다. 이것이 백프로퍼게이션의 핵심에 있는 메모리-계산 트레이드오프입니다. 메모리(활성화값 저장)를 써서 속도(수백만 번 대신 한 번의 패스)를 얻습니다.
 
-### Gradient Flow Through a Network
+### 네트워크를 통과하는 그래디언트 흐름
 
-For a 3-layer network, gradients chain through every layer:
+3층 네트워크에서는 그래디언트가 모든 층을 통해 사슬처럼 이어집니다.
 
 ```mermaid
 graph RL
@@ -84,13 +84,13 @@ graph RL
     L1 -- "dL/dz1 = dL/da1 * sigmoid'(z1)" --> I["Input"]
 ```
 
-At each layer, the gradient gets multiplied by the sigmoid derivative. The sigmoid derivative is a * (1 - a), which maxes out at 0.25 (when a = 0.5). Three layers deep, the gradient has been multiplied by at most 0.25^3 = 0.0156. Ten layers deep: 0.25^10 = 0.000001.
+각 층에서 그래디언트는 sigmoid 미분값과 곱해집니다. sigmoid 미분은 a * (1 - a)이고 최댓값은 0.25입니다(a = 0.5일 때). 3층 깊이에서는 그래디언트가 최대 0.25^3 = 0.0156만큼 곱해진 상태입니다. 10층 깊이에서는 0.25^10 = 0.000001입니다.
 
-### Vanishing Gradients
+### 그래디언트 소실
 
-This is the vanishing gradient problem. Sigmoid squashes its output between 0 and 1. Its derivative is always less than 0.25. Stack enough sigmoid layers and gradients shrink to nothing. Early layers barely learn because they receive near-zero gradients.
+이것이 그래디언트 소실 문제입니다. Sigmoid는 출력을 0과 1 사이로 눌러 넣습니다. 미분값은 항상 0.25보다 작습니다. sigmoid 층을 충분히 많이 쌓으면 그래디언트가 거의 사라집니다. 앞쪽 층은 거의 0에 가까운 그래디언트를 받기 때문에 거의 학습하지 못합니다.
 
-```
+```text
 sigmoid(z):     Output range [0, 1]
 sigmoid'(z):    Max value 0.25 (at z = 0)
 
@@ -98,14 +98,14 @@ After 5 layers:   gradient * 0.25^5 = 0.001x original
 After 10 layers:  gradient * 0.25^10 = 0.000001x original
 ```
 
-This is why deep sigmoid networks are nearly impossible to train. The fix -- ReLU and its variants -- is the subject of Lesson 04. For now, understand that backprop works perfectly. The problem is what it's working through.
+이것이 깊은 sigmoid 네트워크를 훈련하기가 거의 불가능한 이유입니다. 해결책인 ReLU와 그 변형들은 Lesson 04의 주제입니다. 지금은 백프로퍼게이션 자체는 완벽하게 동작한다는 점을 이해하세요. 문제는 백프로퍼게이션이 통과해야 하는 함수에 있습니다.
 
-### Deriving Gradients for a 2-Layer Network
+### 2층 네트워크의 그래디언트 유도
 
-Concrete math for a network with input x, hidden layer with sigmoid, output layer with sigmoid, and MSE loss.
+입력 x, sigmoid 은닉층, sigmoid 출력층, MSE 손실을 가진 네트워크의 구체적인 수식입니다.
 
-Forward pass:
-```
+순전파:
+```text
 z1 = W1 * x + b1
 a1 = sigmoid(z1)
 z2 = W2 * a1 + b2
@@ -113,8 +113,8 @@ a2 = sigmoid(z2)
 L = (a2 - y)^2
 ```
 
-Backward pass (applying chain rule step by step):
-```
+역방향 패스(연쇄 법칙을 단계별로 적용):
+```text
 dL/da2 = 2(a2 - y)
 da2/dz2 = a2 * (1 - a2)
 dL/dz2 = dL/da2 * da2/dz2 = 2(a2 - y) * a2 * (1 - a2)
@@ -130,17 +130,17 @@ dL/dW1 = dL/dz1 * x
 dL/db1 = dL/dz1
 ```
 
-Every gradient is a product of local derivatives traced back from the loss. That's all backpropagation is.
+모든 그래디언트는 손실에서 거슬러 올라가며 추적한 로컬 미분값들의 곱입니다. 백프로퍼게이션은 결국 이것이 전부입니다.
 
 ```figure
 backprop-vanishing
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: The Value Node
+### Step 1: Value 노드
 
-Every number in our computation becomes a Value. It stores its data, its gradient, and how it was created (so it knows how to compute gradients backward).
+계산에 등장하는 모든 숫자는 Value가 됩니다. Value는 자신의 데이터, 그래디언트, 그리고 어떻게 생성되었는지를 저장합니다(그래야 뒤로 그래디언트를 계산하는 방법을 압니다).
 
 ```python
 class Value:
@@ -155,11 +155,11 @@ class Value:
         return f"Value(data={self.data:.4f}, grad={self.grad:.4f})"
 ```
 
-No gradient yet (0.0). No backward function yet (no-op). The `_children` track which Values produced this one, so we can topologically sort the graph later.
+아직 그래디언트는 없습니다(0.0). 아직 역방향 함수도 없습니다(no-op). `_children`은 어떤 Values가 이 값을 만들었는지 추적하므로 나중에 그래프를 위상 정렬할 수 있습니다.
 
-### Step 2: Operations with Backward Functions
+### Step 2: 역방향 함수를 가진 연산
 
-Each operation creates a new Value and defines how gradients flow backward through it.
+각 연산은 새 Value를 만들고 그래디언트가 그 연산을 통해 뒤로 어떻게 흐르는지 정의합니다.
 
 ```python
 def __add__(self, other):
@@ -185,13 +185,13 @@ def __mul__(self, other):
     return out
 ```
 
-For addition: d(a+b)/da = 1, d(a+b)/db = 1. So both inputs get the output's gradient directly.
+덧셈에서는 d(a+b)/da = 1, d(a+b)/db = 1입니다. 따라서 두 입력 모두 출력의 그래디언트를 그대로 받습니다.
 
-For multiplication: d(a*b)/da = b, d(a*b)/db = a. Each input gets the other's value times the output gradient.
+곱셈에서는 d(a*b)/da = b, d(a*b)/db = a입니다. 각 입력은 다른 입력의 값에 출력 그래디언트를 곱한 값을 받습니다.
 
-The `+=` is critical. A Value might be used in multiple operations. Its gradient is the sum of gradients from all paths.
+`+=`가 중요합니다. 하나의 Value가 여러 연산에 사용될 수 있습니다. 그 그래디언트는 모든 경로에서 흘러온 그래디언트의 합입니다.
 
-### Step 3: Sigmoid and Loss
+### Step 3: Sigmoid와 손실
 
 ```python
 import math
@@ -209,7 +209,7 @@ def sigmoid(self):
     return out
 ```
 
-Sigmoid derivative: sigmoid(x) * (1 - sigmoid(x)). We computed sigmoid(x) = s during the forward pass. Reuse it. No extra work.
+Sigmoid 미분은 sigmoid(x) * (1 - sigmoid(x))입니다. 순전파 중 sigmoid(x) = s를 이미 계산했습니다. 그것을 재사용하면 됩니다. 추가 작업은 없습니다.
 
 ```python
 def mse_loss(predicted, target):
@@ -217,11 +217,11 @@ def mse_loss(predicted, target):
     return diff * diff
 ```
 
-MSE for a single output: (predicted - target)^2. We express subtraction as addition with a negated Value.
+단일 출력의 MSE는 (predicted - target)^2입니다. 뺄셈은 음수 Value를 더하는 방식으로 표현합니다.
 
-### Step 4: Backward Pass
+### Step 4: 역방향 패스
 
-Topological sort ensures we process nodes in the right order -- a node's gradient is fully accumulated before we propagate through it.
+위상 정렬은 노드를 올바른 순서로 처리하게 해 줍니다. 어떤 노드를 통해 그래디언트를 전파하기 전에 그 노드의 그래디언트가 완전히 누적되어야 합니다.
 
 ```python
 def backward(self):
@@ -241,9 +241,9 @@ def backward(self):
         v._backward()
 ```
 
-Start at the loss (gradient = 1.0, since dL/dL = 1). Walk backward through the sorted graph. Each node's `_backward` pushes gradients to its children.
+손실에서 시작합니다(gradient = 1.0, dL/dL = 1이기 때문). 정렬된 그래프를 거꾸로 걸어갑니다. 각 노드의 `_backward`가 그래디언트를 자식 노드로 밀어 넣습니다.
 
-### Step 5: Layer and Network
+### Step 5: 층과 네트워크
 
 ```python
 import random
@@ -301,9 +301,9 @@ class Network:
             p.grad = 0.0
 ```
 
-A Neuron takes inputs, computes weighted sum + bias, and applies sigmoid. Weight initialization scales by sqrt(2/n_inputs) to prevent sigmoid saturation in deeper networks. A Layer is a list of Neurons. A Network is a list of Layers. The `parameters()` method collects all learnable Values so we can update them.
+Neuron은 입력을 받아 가중합 + 편향을 계산하고 sigmoid를 적용합니다. 가중치 초기화는 더 깊은 네트워크에서 sigmoid 포화를 막기 위해 sqrt(2/n_inputs)로 스케일합니다. Layer는 Neuron의 리스트입니다. Network는 Layer의 리스트입니다. `parameters()` 메서드는 업데이트할 수 있도록 학습 가능한 모든 Values를 모읍니다.
 
-### Step 6: Train on XOR
+### Step 6: XOR에서 훈련하기
 
 ```python
 random.seed(42)
@@ -342,11 +342,11 @@ for inputs, target in xor_data:
     print(f"  {inputs} -> {pred.data:.4f} (expected {target})")
 ```
 
-Watch the loss decrease. From random predictions to correct XOR outputs, driven entirely by backpropagation computing gradients and nudging weights in the right direction.
+손실이 줄어드는 것을 관찰하세요. 무작위 예측에서 올바른 XOR 출력으로 이동하는 과정은 전적으로 백프로퍼게이션이 그래디언트를 계산하고 가중치를 올바른 방향으로 조금씩 움직이기 때문에 일어납니다.
 
-### Step 7: Circle Classification
+### Step 7: 원 분류
 
-In Lesson 02, you hand-tuned weights for circle classification. Now let the network learn them.
+Lesson 02에서는 원 분류를 위해 가중치를 손으로 조정했습니다. 이제 네트워크가 그 가중치를 학습하게 해 봅시다.
 
 ```python
 random.seed(7)
@@ -390,13 +390,13 @@ for epoch in range(2000):
         print(f"Epoch {epoch:4d} | Loss: {total_loss_val:.4f} | Accuracy: {accuracy:.1f}%")
 ```
 
-We use online SGD here -- update weights after each sample instead of accumulating the full batch. This breaks symmetry faster and avoids sigmoid saturation on the full loss landscape. Shuffling the data each epoch prevents the network from memorizing the order.
+여기서는 온라인 SGD를 사용합니다. 전체 배치를 누적하는 대신 각 샘플 뒤에 가중치를 업데이트합니다. 이렇게 하면 대칭이 더 빠르게 깨지고 전체 손실 지형에서 sigmoid가 포화되는 일을 피할 수 있습니다. 매 epoch마다 데이터를 섞으면 네트워크가 순서를 암기하지 못합니다.
 
-No hand-tuning. The network discovers the circular decision boundary on its own. That's the power of backpropagation: you define the architecture, the loss function, and the data. The algorithm figures out the weights.
+손 조정은 없습니다. 네트워크가 스스로 원형 결정 경계를 발견합니다. 이것이 백프로퍼게이션의 힘입니다. 여러분은 아키텍처, 손실 함수, 데이터를 정의합니다. 알고리즘이 가중치를 찾아냅니다.
 
-## Use It
+## 사용하기
 
-PyTorch does everything above in a few lines. The core idea is identical -- autograd builds a computational graph during the forward pass and traces it backward to compute gradients.
+PyTorch는 위의 모든 일을 몇 줄로 처리합니다. 핵심 아이디어는 동일합니다. autograd는 순전파 중 계산 그래프를 만들고, 그래디언트를 계산하기 위해 그것을 거꾸로 추적합니다.
 
 ```python
 import torch
@@ -428,43 +428,43 @@ with torch.no_grad():
         print(f"  {X[i].tolist()} -> {pred.item():.4f} (expected {y[i].item()})")
 ```
 
-`loss.backward()` is your `total_loss.backward()`. `optimizer.step()` is your manual `p.data -= lr * p.grad`. `optimizer.zero_grad()` is your `net.zero_grad()`. Same algorithm, industrial-strength implementation. PyTorch handles GPU acceleration, mixed precision, gradient checkpointing, and hundreds of layer types. But the backward pass is the same chain rule applied to the same computational graph.
+`loss.backward()`는 여러분의 `total_loss.backward()`입니다. `optimizer.step()`은 손으로 쓴 `p.data -= lr * p.grad`입니다. `optimizer.zero_grad()`는 `net.zero_grad()`입니다. 같은 알고리즘이지만 산업용 수준의 구현입니다. PyTorch는 GPU 가속, 혼합 정밀도, 그래디언트 체크포인팅, 수백 가지 층 타입을 처리합니다. 하지만 역방향 패스는 같은 계산 그래프에 같은 연쇄 법칙을 적용하는 것입니다.
 
-Training runs the forward pass, then the backward pass, then updates weights. Inference runs only the forward pass. No gradients, no updates. This distinction matters because inference is what happens in production. When you call an API like Claude or GPT, you're running inference -- your prompt flows forward through the network, and tokens come out the other end. No weights change. Understanding backprop matters because it shaped every weight in that network.
+훈련은 순전파를 실행한 뒤 역방향 패스를 실행하고, 그다음 가중치를 업데이트합니다. 추론은 순전파만 실행합니다. 그래디언트도 없고 업데이트도 없습니다. 이 구분이 중요한 이유는 운영 환경에서 일어나는 일이 추론이기 때문입니다. Claude나 GPT 같은 API를 호출할 때 여러분은 추론을 실행하는 것입니다. 프롬프트가 네트워크를 앞으로 통과하고, 반대쪽 끝에서 토큰이 나옵니다. 어떤 가중치도 바뀌지 않습니다. 백프로퍼게이션을 이해하는 것이 중요한 이유는 그 네트워크의 모든 가중치를 만든 과정이 바로 이것이기 때문입니다.
 
-## Ship It
+## 결과물
 
-This lesson produces:
-- `outputs/prompt-gradient-debugger.md` -- a reusable prompt for diagnosing gradient problems (vanishing, exploding, NaN) in any neural network
+이 레슨의 결과물:
+- `outputs/prompt-gradient-debugger.md` -- 어떤 신경망에서든 그래디언트 문제(소실, 폭주, NaN)를 진단하기 위한 재사용 가능한 프롬프트
 
-## Exercises
+## 연습 문제
 
-1. Add a `__sub__` method to the Value class (a - b = a + (-1 * b)). Then implement a `__neg__` method. Verify that the gradients are correct by comparing with manual calculation for a simple expression like (a - b)^2.
+1. Value 클래스에 `__sub__` 메서드를 추가하세요(a - b = a + (-1 * b)). 그런 다음 `__neg__` 메서드를 구현하세요. (a - b)^2 같은 간단한 식에 대해 손계산과 비교해 그래디언트가 올바른지 검증하세요.
 
-2. Add a `relu` method to Value (output max(0, x), derivative is 1 if x > 0, else 0). Replace sigmoid with relu in the hidden layers and train on XOR again. Compare convergence speed. You should see faster training -- this previews Lesson 04.
+2. Value에 `relu` 메서드를 추가하세요(출력은 max(0, x), 미분값은 x > 0이면 1, 아니면 0). 은닉층의 sigmoid를 relu로 바꾸고 XOR에서 다시 훈련하세요. 수렴 속도를 비교하세요. 더 빠른 훈련을 보게 될 것입니다. 이는 Lesson 04의 예고편입니다.
 
-3. Implement a `__pow__` method on Value for integer powers. Use it to replace `mse_loss` with a proper `(predicted - target) ** 2` expression. Verify gradients match the original implementation.
+3. 정수 거듭제곱을 위한 `__pow__` 메서드를 Value에 구현하세요. 이를 사용해 `mse_loss`를 올바른 `(predicted - target) ** 2` 식으로 바꾸세요. 그래디언트가 원래 구현과 일치하는지 검증하세요.
 
-4. Add gradient clipping to the training loop: after calling `backward()`, clip all gradients to [-1, 1]. Train a deeper network (4+ layers with sigmoid) and compare loss curves with and without clipping. This is your first defense against exploding gradients.
+4. 훈련 루프에 그래디언트 클리핑을 추가하세요. `backward()`를 호출한 뒤 모든 그래디언트를 [-1, 1]로 클리핑합니다. 더 깊은 네트워크(sigmoid를 쓰는 4층 이상)를 훈련하고 클리핑 유무에 따른 손실 곡선을 비교하세요. 이것이 그래디언트 폭주에 대한 첫 번째 방어선입니다.
 
-5. Build a visualization: after training on XOR, print the gradient of every parameter in the network. Identify which layer has the smallest gradients. This demonstrates the vanishing gradient problem you read about in the Concept section.
+5. 시각화를 만들어 보세요. XOR 훈련 뒤 네트워크의 모든 파라미터 그래디언트를 출력합니다. 어느 층의 그래디언트가 가장 작은지 식별하세요. 이는 개념 섹션에서 읽은 그래디언트 소실 문제를 보여 줍니다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Backpropagation | "The network learns" | An algorithm that computes dL/dw for every weight by applying the chain rule backward through the computational graph |
-| Computational graph | "The network structure" | A directed acyclic graph where nodes are operations and edges carry values (forward) and gradients (backward) |
-| Chain rule | "Multiply the derivatives" | If y = f(g(x)), then dy/dx = f'(g(x)) * g'(x) -- the mathematical foundation of backpropagation |
-| Gradient | "The direction of steepest ascent" | The partial derivative of the loss with respect to a parameter -- tells you how to change that parameter to reduce the loss |
-| Vanishing gradient | "Deep networks don't learn" | Gradients shrink exponentially as they propagate through layers with saturating activations like sigmoid |
-| Forward pass | "Running the network" | Computing the output from inputs by sequentially applying each layer's operations and storing intermediate values |
-| Backward pass | "Computing gradients" | Traversing the computational graph in reverse, accumulating gradients at each node using the chain rule |
-| Learning rate | "How fast it learns" | A scalar that controls the step size when updating weights: w_new = w_old - lr * gradient |
-| Topological sort | "The right order" | An ordering of graph nodes where each node appears after all nodes it depends on -- ensures gradients are fully accumulated before propagation |
-| Autograd | "Automatic differentiation" | A system that builds computational graphs during forward computation and automatically computes gradients -- what PyTorch's engine does |
+| Backpropagation | "네트워크가 학습한다" | 계산 그래프를 거꾸로 따라 연쇄 법칙을 적용해 모든 가중치의 dL/dw를 계산하는 알고리즘 |
+| Computational graph | "네트워크 구조" | 노드는 연산이고 간선은 값(순방향)과 그래디언트(역방향)를 전달하는 방향성 비순환 그래프 |
+| Chain rule | "미분값을 곱한다" | y = f(g(x))라면 dy/dx = f'(g(x)) * g'(x)라는 규칙으로, 백프로퍼게이션의 수학적 기반 |
+| Gradient | "가장 가파른 상승 방향" | 파라미터에 대한 손실의 편미분으로, 손실을 줄이려면 그 파라미터를 어떻게 바꿔야 하는지 알려 줌 |
+| Vanishing gradient | "깊은 네트워크가 학습하지 않는다" | sigmoid 같은 포화 활성화를 가진 층을 통과하며 그래디언트가 지수적으로 작아지는 현상 |
+| Forward pass | "네트워크 실행" | 각 층의 연산을 순서대로 적용해 입력에서 출력을 계산하고 중간값을 저장하는 과정 |
+| Backward pass | "그래디언트 계산" | 계산 그래프를 역순으로 순회하며 연쇄 법칙으로 각 노드의 그래디언트를 누적하는 과정 |
+| Learning rate | "얼마나 빨리 학습하는가" | 가중치를 업데이트할 때 스텝 크기를 제어하는 스칼라: w_new = w_old - lr * gradient |
+| Topological sort | "올바른 순서" | 각 노드가 의존하는 모든 노드 뒤에 나타나도록 그래프 노드를 정렬한 순서로, 전파 전에 그래디언트가 완전히 누적되게 함 |
+| Autograd | "자동 미분" | 순방향 계산 중 계산 그래프를 만들고 그래디언트를 자동으로 계산하는 시스템으로, PyTorch 엔진이 하는 일 |
 
-## Further Reading
+## 더 읽을거리
 
-- Rumelhart, Hinton & Williams, "Learning representations by back-propagating errors" (1986) -- the paper that made backpropagation mainstream and unlocked multi-layer network training
-- 3Blue1Brown, "Neural Networks" series (https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi) -- the best visual explanation of backpropagation and gradient flow through networks
+- Rumelhart, Hinton & Williams, "Learning representations by back-propagating errors" (1986) -- 백프로퍼게이션을 주류로 만들고 다층 네트워크 훈련을 열어 준 논문
+- 3Blue1Brown, "Neural Networks" series (https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi) -- 백프로퍼게이션과 네트워크를 통과하는 그래디언트 흐름에 대한 최고의 시각적 설명

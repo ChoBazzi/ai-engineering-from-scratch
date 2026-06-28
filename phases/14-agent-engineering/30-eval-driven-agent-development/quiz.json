@@ -4,7 +4,7 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What are the three evaluation layers the lesson names?",
+      "question": "이 lesson이 말하는 세 evaluation layer는 무엇인가?",
       "options": [
         "Static benchmarks, custom offline evals, online production evals",
         "Unit, integration, end-to-end",
@@ -12,79 +12,79 @@
         "Pre, check, post"
       ],
       "correct": 0,
-      "explanation": "Static (SWE-bench, GAIA), custom offline (LLM-judge, exec, trajectory), online (replays, alerts, cost/latency)."
+      "explanation": "static(SWE-bench, GAIA), custom offline(LLM-judge, exec, trajectory), online(replay, alert, cost/latency)이다."
     },
     {
       "stage": "pre",
-      "question": "What is Anthropic's recommended starting point?",
+      "question": "Anthropic이 권장하는 starting point는 무엇인가?",
       "options": [
-        "Start with multi-agent debate",
-        "Start with simple prompts, optimize them with comprehensive evaluation, and add multi-step agentic systems only when needed",
-        "Start with hierarchical orchestration",
-        "Start with a frontier model only"
+        "multi-agent debate로 시작한다",
+        "simple prompt로 시작해 comprehensive evaluation으로 최적화하고, 필요할 때만 multi-step agentic system을 추가한다",
+        "hierarchical orchestration으로 시작한다",
+        "frontier model만으로 시작한다"
       ],
       "correct": 1,
-      "explanation": "Anthropic explicitly says evaluation is the outer loop that drives every other choice."
+      "explanation": "Anthropic은 evaluation이 다른 모든 선택을 구동하는 outer loop라고 명시한다."
     },
     {
       "stage": "check",
-      "question": "What is the evaluator-optimizer tight loop?",
+      "question": "evaluator-optimizer tight loop란 무엇인가?",
       "options": [
-        "Train, evaluate, deploy",
-        "Proposer generates output, evaluator judges, refine until evaluator passes (Self-Refine generalized)",
-        "Sample, sort, deduplicate",
-        "Cache, retry, fail"
+        "train, evaluate, deploy",
+        "proposer가 output을 생성하고 evaluator가 judge하며 evaluator가 pass할 때까지 refine한다(Self-Refine generalized)",
+        "sample, sort, deduplicate",
+        "cache, retry, fail"
       ],
       "correct": 1,
-      "explanation": "It is Self-Refine generalized: any flow can wrap in propose-judge-refine."
+      "explanation": "이는 generalized Self-Refine이다. 어떤 flow든 propose-judge-refine으로 감쌀 수 있다."
     },
     {
       "stage": "check",
-      "question": "What is the 2026 best practice for where evals live?",
+      "question": "eval이 어디에 있어야 하는지에 대한 2026 best practice는 무엇인가?",
       "options": [
-        "In a separate vendor dashboard only",
-        "Next to code, run in CI on every PR, gate merges on eval scores",
-        "Only run quarterly",
-        "Owned exclusively by the QA team"
+        "별도 vendor dashboard에만 둔다",
+        "code 옆에 두고 모든 PR에서 CI로 실행하며 eval score로 merge를 gate한다",
+        "분기마다 한 번만 실행한다",
+        "QA team만 소유한다"
       ],
       "correct": 1,
-      "explanation": "Co-located with code, CI-gated, regression-tracked is the standard."
+      "explanation": "code와 co-locate하고 CI로 gate하며 regression을 track하는 것이 표준이다."
     },
     {
       "stage": "check",
-      "question": "Why does the lesson warn against an LLM-judge without grounding?",
+      "question": "이 lesson이 grounding 없는 LLM-judge를 경고하는 이유는 무엇인가?",
       "options": [
-        "It is too slow",
-        "Judges hallucinate too; pair with the CRITIC pattern so judgment grounds on external tools",
-        "It violates Apache 2.0",
-        "It only works on GPUs"
+        "너무 느리기 때문이다",
+        "judge도 hallucinate하기 때문이다. judgment가 external tool에 ground되도록 CRITIC pattern과 짝지어야 한다",
+        "Apache 2.0을 위반하기 때문이다",
+        "GPU에서만 작동하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "CRITIC (Lesson 5) applies: tool-grounded verification keeps the judge honest."
+      "explanation": "CRITIC(Lesson 5)이 적용된다. tool-grounded verification이 judge를 정직하게 유지한다."
     },
     {
       "stage": "post",
-      "question": "What is the danger of over-fitting to evals?",
+      "question": "eval에 over-fitting할 때의 위험은 무엇인가?",
       "options": [
-        "Compute cost rises",
-        "Optimizing for the eval set diverges from production usefulness; rotate cases",
-        "Vector indices fragment",
-        "Latency drops too far"
+        "compute cost가 오른다",
+        "eval set에 최적화하면 production usefulness에서 벗어난다. case를 rotate하라",
+        "vector index가 fragment된다",
+        "latency가 너무 많이 떨어진다"
       ],
       "correct": 1,
-      "explanation": "Eval set rotation keeps the optimization aligned with production reality."
+      "explanation": "eval set rotation은 optimization을 production reality와 align된 상태로 유지한다."
     },
     {
       "stage": "post",
-      "question": "Why do flaky evals cause problems?",
+      "question": "flaky eval이 문제를 일으키는 이유는 무엇인가?",
       "options": [
-        "They double inference cost",
-        "Non-deterministic cases produce false alarms; pin seeds and snapshot state",
-        "They cannot reach the database",
-        "They exceed the context window"
+        "inference cost를 두 배로 만들기 때문이다",
+        "non-deterministic case가 false alarm을 만들기 때문이다. seed를 고정하고 state를 snapshot하라",
+        "database에 도달할 수 없기 때문이다",
+        "context window를 초과하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Flake makes regressions unreadable; determinism (seeds, state snapshots) is required."
+      "explanation": "flake는 regression을 읽을 수 없게 만든다. determinism(seed, state snapshot)이 필요하다."
     }
   ]
 }

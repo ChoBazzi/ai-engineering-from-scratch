@@ -1,26 +1,26 @@
 ---
 name: skill-information-theory
-description: Apply information theory concepts to ML loss functions, model evaluation, and feature selection
+description: ML loss function, model evaluation, feature selection에 information theory 개념을 적용한다
 version: 1.0.0
 phase: 1
 lesson: 9
 tags: [information-theory, entropy, loss-functions]
 ---
 
-# Information Theory for ML
+# ML을 위한 정보 이론
 
-When to use entropy, cross-entropy, KL divergence, and mutual information in machine learning systems.
+machine learning system에서 entropy, cross-entropy, KL divergence, mutual information을 언제 사용할지 정리합니다.
 
-## Decision Checklist
+## 결정 체크리스트
 
-1. Measuring uncertainty in a single distribution? Use **entropy**.
-2. Measuring how well a model approximates true labels? Use **cross-entropy** (this is your classification loss).
-3. Measuring distance between two distributions? Use **KL divergence**.
-4. Checking if two variables are related? Use **mutual information**.
-5. Reporting language model quality? Use **perplexity** (exponential of cross-entropy).
-6. Distilling one model into another? Minimize **KL divergence** from teacher to student.
+1. 단일 distribution의 uncertainty를 측정하나요? **entropy**를 사용하세요.
+2. model이 true label을 얼마나 잘 근사하는지 측정하나요? **cross-entropy**를 사용하세요(이것이 classification loss입니다).
+3. 두 distribution 사이의 distance를 측정하나요? **KL divergence**를 사용하세요.
+4. 두 variable이 관련 있는지 확인하나요? **mutual information**을 사용하세요.
+5. language model quality를 report하나요? **perplexity**를 사용하세요(cross-entropy의 exponential).
+6. 한 model을 다른 model로 distill하나요? teacher에서 student로의 **KL divergence**를 최소화하세요.
 
-## When to use each measure
+## 각 measure를 언제 사용할지
 
 | Measure | Formula | Use case | ML application |
 |---|---|---|---|
@@ -31,9 +31,9 @@ When to use entropy, cross-entropy, KL divergence, and mutual information in mac
 | Perplexity | exp(H(P,Q)) or 2^H | How confused is the model? | Language model evaluation |
 | Conditional entropy H(X\|Y) | -sum(p(x,y) log p(x\|y)) | Remaining uncertainty in X after knowing Y | Feature informativeness |
 
-## Key relationships
+## 핵심 관계
 
-```
+```text
 Cross-entropy  = Entropy + KL divergence
 H(P, Q)        = H(P)   + D_KL(P || Q)
 
@@ -47,7 +47,7 @@ Perplexity = exp(cross-entropy in nats)
            = 2^(cross-entropy in bits)
 ```
 
-## Quick reference: formulas and units
+## 빠른 참고: 공식과 단위
 
 | Formula | Bits (log base 2) | Nats (log base e) |
 |---|---|---|
@@ -57,7 +57,7 @@ Perplexity = exp(cross-entropy in nats)
 | PyTorch default | -- | nats |
 | Information theory papers | bits | -- |
 
-## Interpreting values
+## 값 해석하기
 
 | Entropy value | What it means |
 |---|---|
@@ -73,15 +73,15 @@ Perplexity = exp(cross-entropy in nats)
 | 50 | GPT-2 level on standard benchmarks |
 | < 10 | State-of-the-art for well-represented domains |
 
-## Common mistakes
+## 흔한 실수
 
-- Computing KL divergence and treating it as symmetric. D_KL(P||Q) != D_KL(Q||P). For a symmetric measure, use Jensen-Shannon divergence: JS = 0.5 * KL(P||M) + 0.5 * KL(Q||M) where M = 0.5*(P+Q).
-- Forgetting that cross-entropy with one-hot labels simplifies to -log(p_true_class). You do not need to sum over all classes when the true distribution is one-hot.
-- Using log base 2 in code but reporting nats (or vice versa). PyTorch uses natural log by default. Multiply by log2(e) = 1.4427 to convert nats to bits.
-- Computing entropy of an empty or zero-probability event. Convention: 0 * log(0) = 0, because lim(p->0) p*log(p) = 0.
-- Comparing perplexity across different vocabularies. A model with vocab size 50k and perplexity 30 is not directly comparable to one with vocab size 10k and perplexity 30.
+- KL divergence를 계산하고 symmetric한 것처럼 다루기. D_KL(P||Q) != D_KL(Q||P). symmetric measure가 필요하면 Jensen-Shannon divergence를 사용하세요: JS = 0.5 * KL(P||M) + 0.5 * KL(Q||M) where M = 0.5*(P+Q).
+- one-hot label이 있는 cross-entropy가 -log(p_true_class)로 단순화된다는 점을 잊기. true distribution이 one-hot이면 모든 class에 대해 합을 계산할 필요가 없습니다.
+- code에서는 log base 2를 쓰고 nats로 report하기(또는 반대). PyTorch는 기본적으로 natural log를 사용합니다. nats를 bits로 변환하려면 log2(e) = 1.4427을 곱하세요.
+- empty 또는 zero-probability event의 entropy 계산하기. 관례: 0 * log(0) = 0, because lim(p->0) p*log(p) = 0.
+- vocabulary가 다른 model의 perplexity를 비교하기. vocab size 50k이고 perplexity 30인 model은 vocab size 10k이고 perplexity 30인 model과 직접 비교할 수 없습니다.
 
-## Where each concept appears in production ML
+## production ML에서 각 개념이 나타나는 곳
 
 | Concept | Where you see it |
 |---|---|

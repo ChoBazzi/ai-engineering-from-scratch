@@ -1,26 +1,26 @@
 ---
 name: skill-statistical-testing
-description: Choose the right statistical test for comparing ML models and evaluating experiments
+description: ML 모델 비교와 실험 평가에 맞는 올바른 통계 검정을 선택
 version: 1.0.0
 phase: 1
 lesson: 15
 tags: [statistics, hypothesis-testing, model-comparison]
 ---
 
-# Statistical Testing for ML
+# ML을 위한 통계 검정
 
-How to pick the right test when comparing models, running A/B experiments, or validating results.
+모델을 비교하거나 A/B 실험을 실행하거나 결과를 검증할 때 올바른 검정을 고르는 방법입니다.
 
-## Decision Checklist
+## 의사결정 체크리스트
 
-1. What are you comparing? Means, proportions, distributions, or correlations?
-2. How many groups? One sample vs reference, two groups, or multiple groups?
-3. Are observations paired (same test set, same folds) or independent?
-4. Is the data normally distributed? If n < 30 and not clearly normal, use non-parametric.
-5. Is the data continuous, ordinal, or categorical?
-6. How many tests are you running? Apply correction if more than one.
+1. 무엇을 비교하나요? Means, proportions, distributions, 또는 correlations?
+2. 그룹은 몇 개인가요? One sample vs reference, two groups, 또는 multiple groups?
+3. 관측값이 paired(same test set, same folds)인가요, independent인가요?
+4. 데이터가 normally distributed인가요? n < 30이고 분명히 normal이 아니면 non-parametric을 사용하세요.
+5. 데이터가 continuous, ordinal, 또는 categorical인가요?
+6. 몇 개의 test를 실행하나요? 하나보다 많으면 correction을 적용하세요.
 
-## Decision tree
+## 의사결정 트리
 
 ```text
 Comparing means?
@@ -49,53 +49,53 @@ Running many tests?
   Or use Holm-Bonferroni (less conservative, still controls family-wise error)
 ```
 
-## When to use each test
+## 각 검정을 사용할 때
 
-| Test | Data type | Assumptions | ML use case |
+| 검정 | 데이터 타입 | 가정 | ML use case |
 |---|---|---|---|
-| Paired t-test | Continuous, paired | Normal differences | Compare 2 models on same k-fold splits |
-| Wilcoxon signed-rank | Continuous/ordinal, paired | None (non-parametric) | Compare 2 models, small k (5-10 folds) |
-| Welch's t-test | Continuous, independent | Roughly normal | Compare model on two separate datasets |
-| Mann-Whitney U | Continuous/ordinal, independent | None | Compare latency distributions |
-| ANOVA | Continuous, 3+ groups | Normal, equal variance | Compare multiple model architectures |
-| Kruskal-Wallis | Continuous/ordinal, 3+ groups | None | Compare multiple models, non-normal metrics |
-| Chi-squared | Categorical counts | Expected count >= 5 | Compare class distributions, confusion matrices |
-| Fisher's exact | Categorical counts | Small samples | Rare event comparison |
-| KS test | Continuous | None | Check if predictions follow expected distribution |
-| Bootstrap CI | Any statistic | None | Confidence interval for AUC, F1, any metric |
-| McNemar's test | Paired binary | None | Compare two classifiers on same test set |
+| Paired t-test | Continuous, paired | Normal differences | 같은 k-fold splits에서 모델 2개 비교 |
+| Wilcoxon signed-rank | Continuous/ordinal, paired | 없음(non-parametric) | 모델 2개 비교, 작은 k(5-10 folds) |
+| Welch's t-test | Continuous, independent | 대략 normal | 서로 다른 dataset 두 개에서 모델 비교 |
+| Mann-Whitney U | Continuous/ordinal, independent | 없음 | latency distributions 비교 |
+| ANOVA | Continuous, 3+ groups | Normal, equal variance | 여러 model architectures 비교 |
+| Kruskal-Wallis | Continuous/ordinal, 3+ groups | 없음 | 여러 모델, non-normal metrics 비교 |
+| Chi-squared | Categorical counts | Expected count >= 5 | class distributions, confusion matrices 비교 |
+| Fisher's exact | Categorical counts | Small samples | rare event comparison |
+| KS test | Continuous | 없음 | predictions가 expected distribution을 따르는지 확인 |
+| Bootstrap CI | Any statistic | 없음 | AUC, F1, 어떤 metric이든 confidence interval |
+| McNemar's test | Paired binary | 없음 | 같은 test set에서 classifier 두 개 비교 |
 
-## Model comparison recipe
+## 모델 비교 recipe
 
-1. Define metric and significance level (alpha = 0.05) before running experiments.
-2. Run both models on the same k-fold cross-validation splits (k = 5 or 10).
-3. Collect paired scores: (a_1, b_1), (a_2, b_2), ..., (a_k, b_k).
-4. Compute differences: d_i = b_i - a_i.
-5. Run paired test (Wilcoxon for k <= 10, paired t-test for k > 10 or normal diffs).
-6. Report: p-value, mean difference, 95% confidence interval, effect size (Cohen's d).
-7. If p < alpha AND effect size is meaningful, the difference is real and worth acting on.
+1. 실험 전에 metric과 significance level(alpha = 0.05)을 정의하세요.
+2. 두 모델을 같은 k-fold cross-validation splits(k = 5 또는 10)에서 실행하세요.
+3. paired scores를 수집하세요: (a_1, b_1), (a_2, b_2), ..., (a_k, b_k).
+4. differences를 계산하세요: d_i = b_i - a_i.
+5. paired test를 실행하세요(k <= 10이면 Wilcoxon, k > 10 또는 normal diffs이면 paired t-test).
+6. 보고하세요: p-value, mean difference, 95% confidence interval, effect size(Cohen's d).
+7. p < alpha이고 effect size가 의미 있다면 차이는 실제이며 행동할 가치가 있습니다.
 
-## Common mistakes
+## 흔한 실수
 
-- Using an independent test when data is paired. If both models were evaluated on the same test folds, you must use a paired test. Independent tests throw away the pairing and lose statistical power.
-- Reporting p < 0.05 without effect size. A statistically significant 0.1% accuracy improvement is not worth deploying. Always compute Cohen's d or the raw mean difference.
-- Comparing models across different test sets. The test set MUST be identical for both models. Different test sets make comparison meaningless.
-- Running 20 comparisons and reporting the best one without Bonferroni correction. With 20 tests at alpha = 0.05, you expect 1 false positive by chance.
-- Using accuracy on imbalanced data. On a 99% majority class, a trivial classifier achieves 99%. Use F1, precision-recall AUC, or Matthews correlation coefficient.
-- Treating cross-validation folds as independent samples. They share training data, which violates the independence assumption. The corrected resampled t-test accounts for this.
+- data가 paired인데 independent test 사용. 두 모델이 같은 test folds에서 평가되었다면 paired test를 사용해야 합니다. Independent tests는 pairing을 버리고 statistical power를 잃습니다.
+- effect size 없이 p < 0.05만 보고. 통계적으로 유의한 0.1% accuracy improvement는 배포할 가치가 없습니다. 항상 Cohen's d 또는 raw mean difference를 계산하세요.
+- 서로 다른 test sets에서 모델 비교. test set은 두 모델에 대해 반드시 동일해야 합니다. 다른 test sets는 비교를 무의미하게 만듭니다.
+- 20개 비교를 실행하고 Bonferroni correction 없이 최고 결과만 보고. alpha = 0.05에서 20개 test를 하면 우연히 1개의 false positive를 기대하게 됩니다.
+- imbalanced data에 accuracy 사용. 99% majority class에서는 trivial classifier도 99%를 달성합니다. F1, precision-recall AUC, 또는 Matthews correlation coefficient를 사용하세요.
+- cross-validation folds를 independent samples처럼 취급. 이들은 training data를 공유하므로 independence assumption을 위반합니다. corrected resampled t-test가 이를 고려합니다.
 
-## Quick reference: effect size interpretation
+## 빠른 참조: effect size 해석
 
-| Cohen's d | Interpretation |
+| Cohen's d | 해석 |
 |---|---|
-| 0.2 | Small effect |
-| 0.5 | Medium effect |
-| 0.8 | Large effect |
-| > 1.0 | Very large effect |
+| 0.2 | 작은 효과 |
+| 0.5 | 중간 효과 |
+| 0.8 | 큰 효과 |
+| > 1.0 | 매우 큰 효과 |
 
-| What to report | Why |
+| 보고할 것 | 이유 |
 |---|---|
-| p-value | Is the difference real? |
-| Confidence interval | How big could the difference be? |
-| Effect size (Cohen's d) | Is the difference meaningful? |
-| Sample size (n or k folds) | Can we trust the result? |
+| p-value | 차이가 실제인가? |
+| Confidence interval | 차이가 얼마나 클 수 있는가? |
+| Effect size (Cohen's d) | 차이가 의미 있는가? |
+| Sample size (n or k folds) | 결과를 신뢰할 수 있는가? |

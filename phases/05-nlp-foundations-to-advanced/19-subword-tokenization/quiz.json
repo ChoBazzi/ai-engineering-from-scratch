@@ -1,102 +1,102 @@
 {
   "lesson": "19-subword-tokenization",
-  "title": "Subword Tokenization — BPE, WordPiece, Unigram, SentencePiece",
+  "title": "서브워드 토큰화 — BPE, WordPiece, Unigram, SentencePiece",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does subword tokenization buy you over word-level vocabularies?",
+      "question": "서브워드 토큰화는 단어 수준 vocabulary에 비해 무엇을 가능하게 하나요?",
       "options": [
-        "Rare words decompose into known subword pieces, eliminating OOV while keeping vocabulary bounded",
-        "Smaller models",
-        "Faster training",
-        "Better embeddings"
+        "Rare word를 알려진 subword 조각으로 분해해 vocabulary를 제한된 크기로 유지하면서 OOV를 제거한다",
+        "더 작은 모델",
+        "더 빠른 훈련",
+        "더 좋은 embedding"
       ],
       "correct": 0,
-      "explanation": "Subword tokens cover any input by decomposition, removing the OOV problem of word-level vocab."
+      "explanation": "서브워드 token은 분해를 통해 모든 입력을 cover하므로 단어 수준 vocab의 OOV 문제를 제거합니다."
     },
     {
       "stage": "pre",
-      "question": "Why does GPT-2 use byte-level BPE rather than character-level BPE?",
+      "question": "GPT-2는 왜 character-level BPE가 아니라 byte-level BPE를 사용하나요?",
       "options": [
-        "Required by transformers",
-        "Byte BPE skips merges",
-        "A 256-byte base vocabulary covers any UTF-8 input, guaranteeing no [UNK] tokens",
-        "Bytes are smaller"
+        "transformer에 필요하기 때문에",
+        "Byte BPE는 merge를 건너뛰기 때문에",
+        "256-byte base vocabulary가 모든 UTF-8 입력을 cover해 [UNK] token이 없음을 보장하기 때문에",
+        "byte가 더 작기 때문에"
       ],
       "correct": 2,
-      "explanation": "Byte-level BPE starts from 256 bytes so every input encodes; nothing is OOV."
+      "explanation": "Byte-level BPE는 256 bytes에서 시작하므로 모든 입력을 encode할 수 있고 OOV가 없습니다."
     },
     {
       "stage": "check",
-      "question": "How does the Unigram tokenizer build its vocabulary?",
+      "question": "Unigram tokenizer는 vocabulary를 어떻게 만드나요?",
       "options": [
         "Greedy IDF weighting",
-        "Start from a large candidate set, iteratively prune tokens whose removal least hurts corpus log-likelihood",
+        "큰 candidate set에서 시작해 제거해도 corpus log-likelihood를 가장 적게 해치는 token을 반복적으로 prune한다",
         "Greedy frequent-pair merging",
         "Random sampling"
       ],
       "correct": 1,
-      "explanation": "Unigram fits a unigram LM and iteratively removes the least useful tokens to reach target vocab size."
+      "explanation": "Unigram은 unigram LM을 fit하고 목표 vocab size에 도달할 때까지 가장 덜 유용한 token을 반복적으로 제거합니다."
     },
     {
       "stage": "check",
-      "question": "What distinguishes WordPiece's merge criterion from BPE's?",
+      "question": "WordPiece의 merge 기준은 BPE와 무엇이 다른가요?",
       "options": [
-        "WordPiece uses bytes",
-        "WordPiece is unsupervised",
-        "WordPiece merges pairs that maximize training-corpus likelihood, while BPE merges the most frequent pair",
-        "WordPiece skips merges"
+        "WordPiece는 byte를 사용한다",
+        "WordPiece는 unsupervised이다",
+        "WordPiece는 training-corpus likelihood를 최대화하는 pair를 merge하고, BPE는 가장 빈번한 pair를 merge한다",
+        "WordPiece는 merge를 건너뛴다"
       ],
       "correct": 2,
-      "explanation": "WordPiece picks merges by likelihood; BPE picks by raw frequency."
+      "explanation": "WordPiece는 likelihood로 merge를 고르고, BPE는 raw frequency로 고릅니다."
     },
     {
       "stage": "check",
-      "question": "Which tool trains a tokenizer directly on raw multilingual Unicode text?",
+      "question": "raw multilingual Unicode text에서 직접 tokenizer를 훈련하는 도구는 무엇인가요?",
       "options": [
         "spaCy",
         "tiktoken",
         "tokenizers-lite",
-        "SentencePiece (encodes whitespace as a special marker and trains BPE or Unigram)"
+        "SentencePiece (whitespace를 special marker로 encode하고 BPE 또는 Unigram을 훈련)"
       ],
       "correct": 3,
-      "explanation": "SentencePiece trains BPE/Unigram on raw text without pre-tokenization; tiktoken only encodes."
+      "explanation": "SentencePiece는 pre-tokenization 없이 raw text에서 BPE/Unigram을 훈련합니다. tiktoken은 encode만 합니다."
     },
     {
       "stage": "post",
-      "question": "Why must production CI hash-check the deployed tokenizer.json?",
+      "question": "production CI에서 배포된 tokenizer.json을 hash-check해야 하는 이유는 무엇인가요?",
       "options": [
-        "Tokenizer drift produces different token IDs from those the model was trained on, silently corrupting outputs",
-        "Required by Hugging Face",
-        "To compress storage",
-        "It reduces vocabulary size"
+        "Tokenizer drift는 모델이 훈련된 token ID와 다른 ID를 만들어 출력을 조용히 망가뜨리기 때문에",
+        "Hugging Face가 요구하기 때문에",
+        "storage를 압축하기 위해",
+        "vocabulary size를 줄이기 때문에"
       ],
       "correct": 0,
-      "explanation": "Even small tokenizer changes shift IDs; a hash check catches drift before it reaches users."
+      "explanation": "작은 tokenizer 변경도 ID를 이동시킵니다. hash check는 drift가 사용자에게 도달하기 전에 잡아냅니다."
     },
     {
       "stage": "post",
-      "question": "What is a common reason a single emoji takes many tokens?",
+      "question": "하나의 emoji가 많은 token을 차지하는 흔한 이유는 무엇인가요?",
       "options": [
-        "Emojis are reserved",
-        "Multi-codepoint emojis encode into multiple UTF-8 bytes; without dedicated tokens each byte is its own subword",
-        "Emojis are stored as floats",
-        "Emojis are stop characters"
+        "emoji가 reserved되어 있기 때문에",
+        "multi-codepoint emoji는 여러 UTF-8 byte로 encode되고, dedicated token이 없으면 각 byte가 자체 subword가 되기 때문에",
+        "emoji가 float로 저장되기 때문에",
+        "emoji가 stop character이기 때문에"
       ],
       "correct": 1,
-      "explanation": "Composite emojis encode as several bytes; byte-level tokenizers may use multiple tokens per glyph."
+      "explanation": "복합 emoji는 여러 byte로 encode됩니다. byte-level tokenizer는 glyph 하나에 여러 token을 사용할 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "What heuristic guides vocabulary size for a new monolingual transformer?",
+      "question": "새 monolingual transformer의 vocabulary size를 정할 때 어떤 heuristic을 사용하나요?",
       "options": [
-        "Always 8000",
-        "Always 1M",
-        "Roughly 32k for models under 1B parameters; 50-100k for 1-10B; 200k+ for multilingual or frontier models",
-        "Match training corpus size"
+        "항상 8000",
+        "항상 1M",
+        "대략 1B parameters 미만 모델은 32k, 1-10B는 50-100k, multilingual 또는 frontier model은 200k+",
+        "training corpus size와 맞춘다"
       ],
       "correct": 2,
-      "explanation": "Vocab size scales with model and language coverage; these are rough community defaults."
+      "explanation": "Vocab size는 model과 language coverage에 따라 scale합니다. 이 값들은 대략적인 community default입니다."
     }
   ]
 }

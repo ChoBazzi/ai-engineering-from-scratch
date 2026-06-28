@@ -1,102 +1,102 @@
 {
   "lesson": "06-named-entity-recognition",
-  "title": "Named Entity Recognition",
+  "title": "개체명 인식 (Named Entity Recognition)",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is BIO tagging?",
+      "question": "BIO tagging이란 무엇인가요?",
       "options": [
-        "Per-token labels: B-TYPE for entity start, I-TYPE for inside, O for outside",
-        "A binary entity vs non-entity scheme",
-        "A tokenization style",
-        "A tree representation of entities"
+        "Token별 label입니다. Entity start에는 B-TYPE, 내부에는 I-TYPE, 바깥에는 O를 붙입니다",
+        "Entity와 non-entity를 나누는 binary scheme입니다",
+        "Tokenization style입니다",
+        "Entity의 tree representation입니다"
       ],
       "correct": 0,
-      "explanation": "BIO turns span extraction into token classification with B/I/O prefixes."
+      "explanation": "BIO는 span extraction을 B/I/O prefix가 있는 token classification으로 바꿉니다."
     },
     {
       "stage": "pre",
-      "question": "Why are rule-based gazetteers brittle in production NER?",
+      "question": "Rule-based gazetteer가 production NER에서 brittle한 이유는 무엇인가요?",
       "options": [
-        "They require GPUs",
-        "They are slow",
-        "They have zero coverage on new entities and cannot disambiguate (e.g. Apple fruit vs company)",
-        "They cannot handle multi-token entities"
+        "GPU가 필요하기 때문입니다",
+        "느리기 때문입니다",
+        "새 entity에는 coverage가 없고 disambiguation(예: Apple fruit vs company)을 할 수 없기 때문입니다",
+        "Multi-token entity를 처리할 수 없기 때문입니다"
       ],
       "correct": 2,
-      "explanation": "Gazetteers can match known strings but cannot disambiguate sense or generalize to unseen names."
+      "explanation": "Gazetteer는 알려진 string을 match할 수 있지만 sense를 disambiguate하거나 보지 못한 name으로 generalize할 수 없습니다."
     },
     {
       "stage": "check",
-      "question": "What is the key advantage of a CRF over an HMM for NER?",
+      "question": "NER에서 CRF가 HMM보다 갖는 핵심 장점은 무엇인가요?",
       "options": [
-        "CRFs avoid the Viterbi algorithm",
-        "CRFs never need training data",
-        "CRFs are discriminative and can mix arbitrary features (shape, capitalization, neighbors)",
-        "CRFs are faster"
+        "CRF는 Viterbi algorithm을 피합니다",
+        "CRF는 training data가 전혀 필요 없습니다",
+        "CRF는 discriminative하고 임의의 feature(shape, capitalization, neighbor)를 섞을 수 있습니다",
+        "CRF가 더 빠릅니다"
       ],
       "correct": 2,
-      "explanation": "CRFs are discriminative and let you condition on rich, overlapping features."
+      "explanation": "CRF는 discriminative하며 rich하고 overlapping되는 feature에 condition할 수 있습니다."
     },
     {
       "stage": "check",
-      "question": "In a BiLSTM-CRF architecture, what role does the CRF layer play?",
+      "question": "BiLSTM-CRF architecture에서 CRF layer는 어떤 역할을 하나요?",
       "options": [
-        "Performs tokenization",
-        "Enforces valid BIO tag sequences by modeling tag-to-tag transitions on top of LSTM emissions",
-        "Pretrains the LSTM",
-        "Replaces embeddings"
+        "Tokenization을 수행합니다",
+        "LSTM emission 위에서 tag-to-tag transition을 model해 valid BIO tag sequence를 enforce합니다",
+        "LSTM을 pretrain합니다",
+        "Embedding을 대체합니다"
       ],
       "correct": 1,
-      "explanation": "The CRF on top of LSTM features models inter-label dependencies and rules out illegal sequences."
+      "explanation": "LSTM feature 위의 CRF는 inter-label dependency를 model하고 illegal sequence를 배제합니다."
     },
     {
       "stage": "check",
-      "question": "Why must NER be evaluated with entity-level F1, not token-level F1?",
+      "question": "NER을 token-level F1이 아니라 entity-level F1로 evaluate해야 하는 이유는 무엇인가요?",
       "options": [
-        "Entity-level F1 is easier to compute",
-        "Predicted spans must match true spans exactly; token-level F1 overstates accuracy by counting partial matches",
-        "Token-level F1 cannot handle BIO",
-        "Entity-level F1 is required by HuggingFace"
+        "Entity-level F1이 계산하기 더 쉽기 때문입니다",
+        "Predicted span이 true span과 정확히 match해야 하며, token-level F1은 partial match를 세어 accuracy를 과장하기 때문입니다",
+        "Token-level F1은 BIO를 처리할 수 없기 때문입니다",
+        "Entity-level F1은 HuggingFace가 요구하기 때문입니다"
       ],
       "correct": 1,
-      "explanation": "Span exact-match is the meaningful metric; token-level F1 inflates scores via partial overlap."
+      "explanation": "Span exact-match가 의미 있는 metric입니다. Token-level F1은 partial overlap으로 score를 부풀립니다."
     },
     {
       "stage": "post",
-      "question": "What does aggregation_strategy='simple' do in the HuggingFace NER pipeline?",
+      "question": "HuggingFace NER pipeline에서 aggregation_strategy='simple'은 무엇을 하나요?",
       "options": [
-        "Lowercases the output",
-        "Skips tokenization",
-        "Merges contiguous B-X and I-X tokens into a single span",
-        "Returns only the most confident entity"
+        "Output을 lowercase합니다",
+        "Tokenization을 건너뜁니다",
+        "Contiguous B-X 및 I-X token을 하나의 span으로 merge합니다",
+        "가장 confidence가 높은 entity만 return합니다"
       ],
       "correct": 2,
-      "explanation": "It merges contiguous BIO tokens of the same type into span-level entities."
+      "explanation": "같은 type의 contiguous BIO token을 span-level entity로 merge합니다."
     },
     {
       "stage": "post",
-      "question": "Why does standard BIO fail on nested entities?",
+      "question": "Standard BIO가 nested entity에서 실패하는 이유는 무엇인가요?",
       "options": [
-        "BIO requires a transformer",
-        "BIO is a flat per-token scheme and cannot express two overlapping spans of different types",
-        "BIO cannot represent multi-token entities",
-        "BIO drops the type label"
+        "BIO에는 transformer가 필요하기 때문입니다",
+        "BIO는 flat per-token scheme이라 서로 다른 type의 overlapping span 두 개를 표현할 수 없기 때문입니다",
+        "BIO는 multi-token entity를 표현할 수 없기 때문입니다",
+        "BIO가 type label을 버리기 때문입니다"
       ],
       "correct": 1,
-      "explanation": "BIO assigns one label per token; nested spans need multi-pass or span-based models."
+      "explanation": "BIO는 token마다 하나의 label을 할당합니다. Nested span에는 multi-pass 또는 span-based model이 필요합니다."
     },
     {
       "stage": "post",
-      "question": "When does classical NER (CRF or BiLSTM-CRF) still beat an LLM in 2026?",
+      "question": "2026년에 classical NER(CRF 또는 BiLSTM-CRF)이 LLM보다 여전히 나은 때는 언제인가요?",
       "options": [
-        "On nested entities",
-        "Whenever the input is in English",
-        "On open-domain narrative",
-        "Under tight latency budgets, abundant labels, stable ontologies, or non-generative regulatory constraints"
+        "Nested entity에서입니다",
+        "Input이 영어일 때마다입니다",
+        "Open-domain narrative에서입니다",
+        "Tight latency budget, 풍부한 label, stable ontology, 또는 non-generative regulatory constraint가 있을 때입니다"
       ],
       "correct": 3,
-      "explanation": "Classical NER wins on latency, labeled-data regimes, fixed ontologies, and on-prem constraints."
+      "explanation": "Classical NER은 latency, labeled-data regime, fixed ontology, on-prem constraint에서 이깁니다."
     }
   ]
 }

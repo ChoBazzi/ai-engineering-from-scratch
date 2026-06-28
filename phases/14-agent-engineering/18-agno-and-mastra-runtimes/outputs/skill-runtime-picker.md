@@ -1,41 +1,41 @@
 ---
 name: runtime-picker
-description: Pick a production agent runtime (Agno, Mastra, LangGraph, provider SDK) for a given stack, latency budget, and operational shape.
+description: 주어진 stack, latency budget, operational shape에 맞는 production agent runtime(Agno, Mastra, LangGraph, provider SDK)을 고른다.
 version: 1.0.0
 phase: 14
 lesson: 18
 tags: [agno, mastra, langgraph, runtime, selection]
 ---
 
-Given a stack, latency budget, required primitives, and operational shape, pick a runtime.
+stack, latency budget, 필요한 primitive, operational shape가 주어지면 runtime을 고른다.
 
-Decision:
+결정:
 
-1. Python + FastAPI + thousands of short-lived agents per second -> **Agno**.
+1. Python + FastAPI + 초당 수천 개의 short-lived agent -> **Agno**.
 2. TypeScript + Next.js/Vercel + unified multi-provider -> **Mastra**.
-3. Durable state, explicit graph, resume-on-failure -> **LangGraph** (Lesson 13).
-4. Claude-first product, wants the Claude Code harness shape -> **Claude Agent SDK** (Lesson 17).
-5. OpenAI-first product, wants handoffs + guardrails + tracing -> **OpenAI Agents SDK** (Lesson 16).
-6. Multi-agent team, actor-model concurrency, fault isolation -> **AutoGen v0.4** / **Microsoft Agent Framework** (Lesson 14).
-7. Role-based collaboration or event-driven deterministic workflows -> **CrewAI** Crew or Flow (Lesson 15).
-8. None of the above -> direct API calls + the stdlib loop from Lesson 01.
+3. Durable state, explicit graph, resume-on-failure -> **LangGraph**(Lesson 13).
+4. Claude-first product이며 Claude Code harness 형태를 원함 -> **Claude Agent SDK**(Lesson 17).
+5. OpenAI-first product이며 handoff + guardrail + tracing을 원함 -> **OpenAI Agents SDK**(Lesson 16).
+6. Multi-agent team, actor-model concurrency, fault isolation -> **AutoGen v0.4** / **Microsoft Agent Framework**(Lesson 14).
+7. Role-based collaboration 또는 event-driven deterministic workflow -> **CrewAI** Crew 또는 Flow(Lesson 15).
+8. 위에 해당 없음 -> direct API call + Lesson 01의 stdlib loop.
 
-Produce:
+다음을 만든다.
 
-- A short decision document: stack, latency target, primitives needed, observed trade-offs.
-- A minimal scaffold in the chosen runtime.
-- A migration plan if another runtime is in use today.
+- 짧은 decision document: stack, latency target, 필요한 primitive, 관찰된 trade-off.
+- 선택한 runtime의 최소 scaffold.
+- 다른 runtime을 현재 사용 중이라면 migration plan.
 
-Hard rejects:
+Hard reject:
 
-- Picking Agno or Mastra purely on "performance" when the workload is one slow call per request. Performance is rarely the bottleneck.
-- Picking a TypeScript runtime in a Python monorepo without a rationale. Mixed-language agent code is an operational tax.
-- Picking LangGraph for stateless short tasks. The checkpointer adds overhead that a simple workflow (Lesson 12) avoids.
+- workload가 요청당 느린 call 하나인데 "performance"만 보고 Agno나 Mastra를 고르는 것. performance가 병목인 경우는 드물다.
+- 근거 없이 Python monorepo에서 TypeScript runtime을 고르는 것. mixed-language agent code는 operational tax다.
+- stateless short task에 LangGraph를 고르는 것. checkpointer는 단순 workflow(Lesson 12)가 피하는 overhead를 추가한다.
 
-Refusal rules:
+거부 규칙:
 
-- If the user wants "all five runtimes, to compare," refuse. Benchmark on your workload; framework vendor benchmarks are directional.
-- If the user wants to self-host Mastra's `ee/` features, refuse and point to the license terms.
-- If the product needs long-running async work (hours-to-days), refuse self-hosted and route to Claude Managed Agents or a queue-based architecture (Lesson 29).
+- 사용자가 "비교를 위해 다섯 runtime 전부"를 원하면 거부한다. 자신의 workload에서 benchmark하라. framework vendor benchmark는 방향성일 뿐이다.
+- 사용자가 Mastra의 `ee/` 기능을 self-host하려 하면 거부하고 license terms를 가리킨다.
+- product에 장시간 비동기 작업(hours-to-days)이 필요하면 self-hosted를 거부하고 Claude Managed Agents 또는 queue-based architecture(Lesson 29)로 route한다.
 
-Output: decision doc + scaffold + README. End with "what to read next" pointing to Lesson 24 (observability) and Lesson 29 (production runtimes) for the operational layer above the framework.
+출력: decision doc + scaffold + README. 마지막에는 framework 위 operational layer를 위해 Lesson 24(observability)와 Lesson 29(production runtimes)를 가리키는 "what to read next"로 끝낸다.

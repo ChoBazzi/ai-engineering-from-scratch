@@ -1,22 +1,22 @@
 {
   "lesson": "14-autogen-actor-model",
-  "title": "AutoGen v0.4: Actor Model and Agent Framework",
+  "title": "AutoGen v0.4: Actor Model과 Agent Framework",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the only legal way actors interact in AutoGen v0.4?",
+      "question": "AutoGen v0.4에서 actor가 interact하는 유일하게 허용된 방식은 무엇인가요?",
       "options": [
-        "Direct access to a shared dict",
-        "Asynchronous messages exchanged through inboxes; no shared memory",
-        "Shared SQL transactions",
-        "Mutating each other's prompts"
+        "Shared dict에 직접 access",
+        "Inbox를 통해 교환되는 asynchronous message. Shared memory는 없습니다",
+        "Shared SQL transaction",
+        "서로의 prompt mutate"
       ],
       "correct": 1,
-      "explanation": "Actors have private state and an inbox; messages are the only interaction."
+      "explanation": "Actor는 private state와 inbox를 가집니다. Message가 유일한 interaction입니다."
     },
     {
       "stage": "pre",
-      "question": "What are the three API layers of AutoGen v0.4?",
+      "question": "AutoGen v0.4의 세 API layer는 무엇인가요?",
       "options": [
         "Core, AgentChat, Extensions",
         "Frontend, Backend, Database",
@@ -24,23 +24,23 @@
         "Plan, Act, Reflect"
       ],
       "correct": 0,
-      "explanation": "Core is the low-level actor framework, AgentChat is the task-driven high-level API, Extensions are integrations."
+      "explanation": "Core는 low-level actor framework, AgentChat은 task-driven high-level API, Extensions는 integration입니다."
     },
     {
       "stage": "check",
-      "question": "Why does decoupling delivery from handling give fault isolation?",
+      "question": "Delivery와 handling을 decouple하면 왜 fault isolation이 생기나요?",
       "options": [
-        "The runtime catches handler failures in B without crashing A; A's send() returned immediately and never blocked",
-        "Each actor runs on a separate machine",
-        "The runtime restarts the OS on failure",
-        "Handlers are pure functions"
+        "Runtime이 B의 handler failure를 A를 crash시키지 않고 catch합니다. A의 send()는 즉시 반환되어 block되지 않았습니다",
+        "각 actor가 별도 machine에서 실행되기 때문에",
+        "Runtime이 failure 시 OS를 restart하기 때문에",
+        "Handler가 pure function이기 때문에"
       ],
       "correct": 0,
-      "explanation": "send() puts the message in the recipient's inbox and returns; a handler crash is local to that actor."
+      "explanation": "send()는 message를 recipient inbox에 넣고 반환합니다. Handler crash는 해당 actor에 local합니다."
     },
     {
       "stage": "check",
-      "question": "Which AgentChat topology rotates agents in a fixed order?",
+      "question": "Agent를 fixed order로 rotate하는 AgentChat topology는 무엇인가요?",
       "options": [
         "SelectorGroupChat",
         "RoundRobinGroupChat",
@@ -48,43 +48,43 @@
         "Supervisor"
       ],
       "correct": 1,
-      "explanation": "RoundRobinGroupChat is fixed rotation; SelectorGroupChat uses a selector to pick next."
+      "explanation": "RoundRobinGroupChat은 fixed rotation입니다. SelectorGroupChat은 selector를 사용해 다음 순서를 고릅니다."
     },
     {
       "stage": "check",
-      "question": "What is Magentic-One in this lesson?",
+      "question": "이 lesson에서 Magentic-One은 무엇인가요?",
       "options": [
-        "A new LLM model",
-        "A reference multi-agent team for web browsing, code execution, and file handling built on AgentChat",
-        "A serialization format",
-        "An OTel exporter"
+        "새 LLM model",
+        "AgentChat 위에 구축된 web browsing, code execution, file handling용 reference multi-agent team",
+        "Serialization format",
+        "OTel exporter"
       ],
       "correct": 1,
-      "explanation": "Magentic-One is Microsoft's reference team that demonstrates the AgentChat API."
+      "explanation": "Magentic-One은 AgentChat API를 보여 주는 Microsoft의 reference team입니다."
     },
     {
       "stage": "post",
-      "question": "What is the lesson's stated status of AutoGen v0.4 in early 2026?",
+      "question": "2026년 초 AutoGen v0.4에 대해 lesson이 밝힌 상태는 무엇인가요?",
       "options": [
-        "Deprecated and removed",
-        "Stable but in maintenance mode; Microsoft Agent Framework is the forward path",
-        "Just announced",
-        "Replaced by LangGraph"
+        "Deprecated되어 제거됨",
+        "안정적이지만 maintenance mode입니다. Microsoft Agent Framework가 forward path입니다",
+        "막 발표됨",
+        "LangGraph로 대체됨"
       ],
       "correct": 1,
-      "explanation": "AutoGen v0.7.x is stable for research; active development has shifted to Microsoft Agent Framework."
+      "explanation": "AutoGen v0.7.x는 research에 안정적입니다. Active development는 Microsoft Agent Framework로 이동했습니다."
     },
     {
       "stage": "post",
-      "question": "Which observability standard does AutoGen v0.4 emit by default?",
+      "question": "AutoGen v0.4는 어떤 observability standard를 기본 emit하나요?",
       "options": [
-        "Prometheus metrics only",
-        "OpenTelemetry spans with gen_ai.* attributes per the OTel GenAI semantic conventions",
+        "Prometheus metric만",
+        "OTel GenAI semantic conventions에 따른 gen_ai.* attribute가 있는 OpenTelemetry span",
         "StatsD",
         "Datadog APM"
       ],
       "correct": 1,
-      "explanation": "Every message emits a span; tool calls carry gen_ai.* attributes per OTel GenAI conventions."
+      "explanation": "모든 message는 span을 emit합니다. Tool call은 OTel GenAI convention에 따라 gen_ai.* attribute를 가집니다."
     }
   ]
 }

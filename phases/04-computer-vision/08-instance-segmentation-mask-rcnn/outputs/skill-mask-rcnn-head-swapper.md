@@ -1,6 +1,6 @@
 ---
 name: skill-mask-rcnn-head-swapper
-description: Generate the exact code for swapping box and mask heads on a torchvision Mask R-CNN for a custom num_classes
+description: custom num_classes에 맞춰 torchvision Mask R-CNN의 box head와 mask head를 교체하는 정확한 코드를 생성합니다
 version: 1.0.0
 phase: 4
 lesson: 8
@@ -9,36 +9,36 @@ tags: [computer-vision, mask-rcnn, fine-tuning, torchvision]
 
 # Mask R-CNN Head Swapper
 
-Produces the head-swap boilerplate for Mask R-CNN specifically. The template below assumes `model.roi_heads.box_predictor` and `model.roi_heads.mask_predictor`, which exist on `maskrcnn_resnet50_fpn` and `maskrcnn_resnet50_fpn_v2` only. Faster R-CNN has a box predictor but no mask predictor; RetinaNet uses `RetinaNetHead` and has no `roi_heads` at all — both require different skills.
+Mask R-CNN 전용 head-swap boilerplate를 생성합니다. 아래 template은 `model.roi_heads.box_predictor`와 `model.roi_heads.mask_predictor`를 가정하며, 이들은 `maskrcnn_resnet50_fpn`과 `maskrcnn_resnet50_fpn_v2`에만 존재합니다. Faster R-CNN에는 box predictor는 있지만 mask predictor가 없습니다. RetinaNet은 `RetinaNetHead`를 사용하고 `roi_heads`가 전혀 없습니다. 둘 다 다른 skill이 필요합니다.
 
-## When to use
+## 사용할 때
 
-- Fine-tuning `maskrcnn_resnet50_fpn` or `maskrcnn_resnet50_fpn_v2` on a custom class set.
-- Porting a Mask R-CNN checkpoint trained on COCO to a non-COCO class count.
-- Debugging a Mask R-CNN training run that crashes on `cls_score.out_features` or `mask_predictor` mismatch.
+- custom class set에서 `maskrcnn_resnet50_fpn` 또는 `maskrcnn_resnet50_fpn_v2`를 fine-tuning할 때.
+- COCO에서 훈련된 Mask R-CNN checkpoint를 non-COCO class count로 옮길 때.
+- `cls_score.out_features` 또는 `mask_predictor` mismatch로 crash하는 Mask R-CNN training run을 디버깅할 때.
 
-## Out of scope
+## 범위 밖
 
-- `fasterrcnn_*` — no mask_predictor. Swap only `box_predictor`; use a separate Faster R-CNN head-swap recipe.
-- `retinanet_*` — no `roi_heads`; classifier + regression heads live under `model.head.classification_head` and `model.head.regression_head`. Use a RetinaNet-specific skill.
-- `keypointrcnn_*` — uses `keypoint_predictor` instead of `mask_predictor`.
+- `fasterrcnn_*` — `mask_predictor`가 없습니다. `box_predictor`만 교체하세요. 별도의 Faster R-CNN head-swap recipe를 사용하세요.
+- `retinanet_*` — `roi_heads`가 없습니다. classifier + regression head는 `model.head.classification_head`와 `model.head.regression_head` 아래에 있습니다. RetinaNet 전용 skill을 사용하세요.
+- `keypointrcnn_*` — `mask_predictor` 대신 `keypoint_predictor`를 사용합니다.
 
-## Inputs
+## 입력
 
-- `model_name`: torchvision detection model constructor, e.g. `maskrcnn_resnet50_fpn_v2`.
-- `num_classes`: including background. A 4-object-class dataset means `num_classes=5`.
-- `freeze`: one of `backbone`, `backbone_fpn`, `none`.
+- `model_name`: torchvision detection model constructor, 예: `maskrcnn_resnet50_fpn_v2`.
+- `num_classes`: background 포함. 4-object-class dataset은 `num_classes=5`를 뜻합니다.
+- `freeze`: `backbone`, `backbone_fpn`, `none` 중 하나.
 
-## Steps
+## 단계
 
-1. Import the model constructor and the two predictor classes (`FastRCNNPredictor`, `MaskRCNNPredictor`).
-2. Load the default-weights pretrained model.
-3. Replace `model.roi_heads.box_predictor` with a new `FastRCNNPredictor(in_features, num_classes)`.
-4. Replace `model.roi_heads.mask_predictor` with a new `MaskRCNNPredictor(in_features_mask, hidden_layer=256, num_classes)`.
-5. Apply the requested freeze policy.
-6. Print a confirmation block listing trainable params per module.
+1. model constructor와 두 predictor class(`FastRCNNPredictor`, `MaskRCNNPredictor`)를 import합니다.
+2. default-weights pretrained model을 load합니다.
+3. `model.roi_heads.box_predictor`를 새 `FastRCNNPredictor(in_features, num_classes)`로 교체합니다.
+4. `model.roi_heads.mask_predictor`를 새 `MaskRCNNPredictor(in_features_mask, hidden_layer=256, num_classes)`로 교체합니다.
+5. 요청된 freeze policy를 적용합니다.
+6. module별 trainable params를 나열하는 confirmation block을 출력합니다.
 
-## Output code template
+## 출력 코드 template
 
 ```python
 from torchvision.models.detection import {MODEL_NAME}, {MODEL_WEIGHTS}
@@ -57,9 +57,9 @@ def build_model(num_classes={NUM_CLASSES}):
     return model
 ```
 
-Where `{FREEZE_BLOCK}` is:
+여기서 `{FREEZE_BLOCK}`는 다음과 같습니다.
 
-- `none` -> empty
+- `none` -> 비어 있음
 - `backbone` ->
   ```python
   for p in model.backbone.parameters():
@@ -72,9 +72,9 @@ Where `{FREEZE_BLOCK}` is:
   # FPN parameters live inside backbone.fpn
   ```
 
-## Report
+## 보고서
 
-```
+```text
 [head-swap]
   model:         <MODEL_NAME>
   num_classes:   <N>  (includes background)
@@ -83,9 +83,9 @@ Where `{FREEZE_BLOCK}` is:
   total:         <N>
 ```
 
-## Rules
+## 규칙
 
-- Never recommend `num_classes` without the background included; always remind the user.
-- Always use the `_v2` variants of torchvision detection models when available; they have better pretrained weights than the legacy ones.
-- Do not instantiate the model inside this skill — produce the code block and let the user run it.
-- If the user requests `freeze backbone` on a dataset larger than 10,000 images, suggest they consider fine-tuning the backbone too.
+- background를 포함하지 않은 `num_classes`를 절대 권하지 마세요. 항상 사용자에게 상기시키세요.
+- 사용 가능한 경우 torchvision detection model의 `_v2` variant를 항상 사용하세요. legacy variant보다 더 나은 pretrained weights를 갖고 있습니다.
+- 이 skill 안에서 model을 instantiate하지 마세요. code block을 만들고 사용자가 실행하게 하세요.
+- 사용자가 10,000 images보다 큰 dataset에서 `freeze backbone`을 요청하면 backbone도 fine-tuning하는 것을 고려하라고 제안하세요.

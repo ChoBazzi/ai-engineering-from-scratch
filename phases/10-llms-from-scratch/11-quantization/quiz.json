@@ -1,37 +1,37 @@
 [
   {
-    "question": "How much VRAM does a 70B parameter model in FP16 require just for weights?",
+    "question": "70B parameter model을 FP16으로 올릴 때 weight만으로 필요한 VRAM은 얼마인가요?",
     "options": ["35 GB", "70 GB", "140 GB", "280 GB"],
     "correct": 2,
-    "explanation": "70 billion parameters * 2 bytes per FP16 parameter = 140 billion bytes = 140 GB. This exceeds a single A100 (80GB), requiring at least two GPUs just to load the weights.",
+    "explanation": "700억 parameter * FP16 parameter당 2 bytes = 1,400억 bytes = 140 GB입니다. 이는 단일 A100(80GB)을 넘으므로 weight를 load하는 데만 최소 두 개의 GPU가 필요합니다.",
     "stage": "pre"
   },
   {
-    "question": "What is quantization in the context of LLMs?",
-    "options": ["Removing unused model layers", "Reducing the numerical precision of weights (e.g., FP16 to INT4) to decrease memory usage and increase inference speed", "Compressing the training data", "Reducing the vocabulary size"],
+    "question": "LLM 맥락에서 quantization이란 무엇인가요?",
+    "options": ["사용하지 않는 model layer를 제거하는 것", "weight의 수치 precision을 낮춰(예: FP16에서 INT4로) memory usage를 줄이고 inference speed를 높이는 것", "training data를 압축하는 것", "vocabulary size를 줄이는 것"],
     "correct": 1,
-    "explanation": "Quantization maps high-precision floating point weights to lower-precision integers. INT4 quantization stores each weight in 4 bits instead of 16, reducing memory by 4x with minimal accuracy loss.",
+    "explanation": "quantization은 고정밀 floating point weight를 저정밀 integer로 mapping합니다. INT4 quantization은 각 weight를 16 bits 대신 4 bits에 저장해, accuracy loss를 작게 유지하면서 memory를 4배 줄입니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the key difference between post-training quantization (PTQ) and quantization-aware training (QAT)?",
-    "options": ["PTQ is more accurate", "PTQ quantizes after training with no retraining; QAT simulates quantization during training so the model learns to tolerate reduced precision", "QAT doesn't use gradients", "PTQ requires more data"],
+    "question": "post-training quantization(PTQ)과 quantization-aware training(QAT)의 핵심 차이는 무엇인가요?",
+    "options": ["PTQ가 더 정확하다", "PTQ는 재학습 없이 학습 후 quantize하고, QAT는 학습 중 quantization을 시뮬레이션해 모델이 낮은 precision을 견디도록 배운다", "QAT는 gradient를 사용하지 않는다", "PTQ는 더 많은 데이터가 필요하다"],
     "correct": 1,
-    "explanation": "PTQ is fast (just calibrate and quantize) but can lose accuracy. QAT includes fake quantization during training, allowing the model to adjust its weights to be more robust to precision loss. QAT usually gives better accuracy.",
+    "explanation": "PTQ는 보정하고 quantize하기만 하면 되어 빠르지만 accuracy를 잃을 수 있습니다. QAT는 학습 중 fake quantization을 포함해 모델이 precision loss에 더 robust하도록 weight를 조정하게 합니다. 보통 QAT가 더 좋은 accuracy를 냅니다.",
     "stage": "post"
   },
   {
-    "question": "What does 'per-channel' quantization mean and why is it better than 'per-tensor'?",
-    "options": ["It quantizes each output channel separately, using different scale/zero-point for each, reducing quantization error", "It processes one color channel at a time", "It uses separate GPUs per channel", "It's a type of data parallelism"],
+    "question": "'per-channel' quantization은 무엇을 뜻하며 왜 'per-tensor'보다 나은가요?",
+    "options": ["각 output channel을 따로 quantize하고 channel마다 다른 scale/zero-point를 사용해 quantization error를 줄인다", "한 번에 하나의 color channel만 처리한다", "channel마다 별도 GPU를 사용한다", "data parallelism의 한 종류다"],
     "correct": 0,
-    "explanation": "Per-tensor uses one scale factor for the entire weight matrix. Per-channel uses a separate scale for each output channel (row). Since different channels have different value ranges, per-channel captures them more accurately.",
+    "explanation": "per-tensor는 전체 weight matrix에 하나의 scale factor를 씁니다. per-channel은 각 output channel(row)에 별도 scale을 씁니다. channel마다 값 범위가 다르므로 per-channel이 이를 더 정확히 포착합니다.",
     "stage": "post"
   },
   {
-    "question": "Why do 95% of weights in Llama 3 70B fall between -0.1 and +0.1?",
-    "options": ["The model is poorly trained", "Weight decay and normalization during training push weights toward small values, making the full FP16 range wasteful", "The weights haven't converged yet", "This is specific to the Llama architecture"],
+    "question": "Llama 3 70B에서 weight의 95%가 -0.1과 +0.1 사이에 들어가는 이유는 무엇인가요?",
+    "options": ["모델이 잘못 학습되었기 때문에", "학습 중 weight decay와 normalization이 weight를 작은 값 쪽으로 밀어 전체 FP16 범위를 낭비하게 만들기 때문에", "weight가 아직 수렴하지 않았기 때문에", "Llama architecture에만 해당하는 특성이기 때문에"],
     "correct": 1,
-    "explanation": "Weight decay regularization shrinks weights toward zero. Layer normalization keeps activations centered. Combined, they produce weight distributions concentrated near zero, making low-precision quantization effective.",
+    "explanation": "weight decay regularization은 weight를 0 쪽으로 줄입니다. layer normalization은 activation을 중심에 맞춥니다. 둘이 합쳐져 0 근처에 집중된 weight distribution을 만들고, 그래서 low-precision quantization이 효과적입니다.",
     "stage": "post"
   }
 ]

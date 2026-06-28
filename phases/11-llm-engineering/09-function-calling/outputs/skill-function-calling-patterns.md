@@ -1,45 +1,45 @@
 ---
 name: skill-function-calling-patterns
-description: Decision framework for implementing function calling in production -- tool design, error handling, security, and provider patterns
+description: 프로덕션에서 함수 호출을 구현하기 위한 의사결정 프레임워크 -- 도구 설계, 오류 처리, 보안, 제공자 패턴
 version: 1.0.0
 phase: 11
 lesson: 09
 tags: [function-calling, tool-use, agents, mcp, security, openai, anthropic]
 ---
 
-# Function Calling Patterns
+# 함수 호출 패턴
 
-When building an LLM application that uses tools, apply this decision framework.
+도구를 사용하는 LLM 애플리케이션을 만들 때 이 의사결정 프레임워크를 적용한다.
 
-## When to use function calling
+## 함수 호출을 사용할 때
 
-**Use function calling when:**
-- The model needs real-time data (weather, stock prices, database queries)
-- The task requires side effects (sending emails, creating records, deploying code)
-- The model must choose between multiple actions based on user intent
-- You are building an agent that interacts with external systems
+**다음 상황에서는 함수 호출을 사용한다:**
+- 모델에 실시간 데이터가 필요하다(날씨, 주가, 데이터베이스 질의).
+- 작업에 부수 효과가 필요하다(이메일 보내기, 레코드 생성, 코드 배포).
+- 모델이 사용자 의도에 따라 여러 동작 중 하나를 선택해야 한다.
+- 외부 시스템과 상호작용하는 에이전트를 만들고 있다.
 
-**Use structured outputs instead when:**
-- You need data extraction from text (no external calls needed)
-- The output is the final product, not an intermediate step
-- You have a single schema, not multiple tools to choose from
+**다음 상황에서는 대신 구조화 출력을 사용한다:**
+- 텍스트에서 데이터를 추출해야 한다(외부 호출 불필요).
+- 출력이 중간 단계가 아니라 최종 산출물이다.
+- 선택할 여러 도구가 아니라 단일 스키마가 있다.
 
-**Use both when:**
-- The model calls a tool, then structures the tool result into a specific output format
+**다음 상황에서는 둘 다 사용한다:**
+- 모델이 도구를 호출한 다음, 도구 결과를 특정 출력 형식으로 구조화한다.
 
-## Tool design guidelines
+## 도구 설계 지침
 
-1. **One tool, one action.** A tool named `manage_database` that handles queries, inserts, updates, and deletes is too broad. Split into `query_records`, `insert_record`, `update_record`. The model selects better with specific tools.
+1. **도구 하나, 동작 하나.** 질의, 삽입, 업데이트, 삭제를 모두 처리하는 `manage_database`라는 도구는 너무 넓다. `query_records`, `insert_record`, `update_record`로 나눈다. 구체적인 도구가 있을 때 모델이 더 잘 선택한다.
 
-2. **Descriptions are prompts.** The model reads tool descriptions to decide selection. Write them like you would write instructions for a junior developer. Include what the tool returns, not just what it does.
+2. **설명은 프롬프트다.** 모델은 도구 설명을 읽고 선택을 결정한다. 주니어 개발자에게 지시문을 쓰듯 작성한다. 도구가 무엇을 하는지만이 아니라 무엇을 반환하는지도 포함한다.
 
-3. **Constrain with enums.** If a parameter has 3-10 valid values, use an enum. The model will invent strings -- "celsius", "Celsius", "C", "metric" -- unless you constrain it.
+3. **enum으로 제한한다.** 매개변수에 유효한 값이 3-10개 있다면 enum을 사용한다. 제한하지 않으면 모델은 "celsius", "Celsius", "C", "metric" 같은 문자열을 만들어 낼 것이다.
 
-4. **Fewer tools is better.** GPT-4o handles 5-10 tools well. At 20+ tools, selection accuracy drops. At 50+ tools, expect 10-15% wrong tool selection. Group related functionality or use a routing layer.
+4. **도구는 적을수록 좋다.** GPT-4o는 5-10개 도구를 잘 처리한다. 도구가 20개를 넘으면 선택 정확도가 떨어진다. 50개를 넘으면 10-15%의 잘못된 도구 선택을 예상해야 한다. 관련 기능을 묶거나 라우팅 계층을 사용한다.
 
-5. **Required means required.** Only mark a parameter as required if the tool literally cannot function without it. Optional parameters with good defaults reduce tool call failures.
+5. **Required는 정말 필수라는 뜻이다.** 도구가 그 매개변수 없이는 실제로 동작할 수 없을 때만 필수로 표시한다. 좋은 기본값을 가진 선택 매개변수는 도구 호출 실패를 줄인다.
 
-## Provider-specific patterns
+## 제공자별 패턴
 
 ### OpenAI (GPT-4o, o3, GPT-4o-mini)
 
@@ -50,10 +50,10 @@ tool_choice="required"   # must call at least one tool
 tool_choice={"type": "function", "function": {"name": "specific_tool"}}
 ```
 
-- Supports parallel tool calls (multiple `tool_calls` in one response)
-- Tool call IDs must be passed back with results
-- `gpt-4o-mini` is 10x cheaper and handles simple tool routing well
-- Structured outputs mode works with tool parameters for guaranteed schema compliance
+- 병렬 도구 호출을 지원한다(하나의 응답에 여러 `tool_calls`).
+- 도구 호출 ID를 결과와 함께 다시 전달해야 한다.
+- `gpt-4o-mini`는 비용이 10배 저렴하고 단순한 도구 라우팅을 잘 처리한다.
+- 구조화 출력 모드는 도구 매개변수와 함께 동작해 스키마 준수를 보장한다.
 
 ### Anthropic (Claude 3.5 Sonnet, Claude 4 Opus)
 
@@ -64,10 +64,10 @@ tool_choice={"type": "any"}      # must call at least one tool
 tool_choice={"type": "tool", "name": "specific_tool"}
 ```
 
-- Tool calls appear as content blocks with `type: "tool_use"`
-- Results go in user messages with `type: "tool_result"`
-- Field name is `input_schema`, not `parameters` (common migration bug)
-- Supports multiple tool calls per response
+- 도구 호출은 `type: "tool_use"`인 콘텐츠 블록으로 나타난다.
+- 결과는 `type: "tool_result"`인 사용자 메시지에 들어간다.
+- 필드 이름은 `parameters`가 아니라 `input_schema`다(흔한 마이그레이션 버그).
+- 응답당 여러 도구 호출을 지원한다.
 
 ### Google (Gemini 2.0 Flash, Gemini 2.0 Pro)
 
@@ -76,70 +76,70 @@ function_declarations=[{"name": ..., "description": ..., "parameters": ...}]
 function_calling_config={"mode": "AUTO"}   # or "ANY" or "NONE"
 ```
 
-- Uses `function_declarations` at the top level
-- Results returned via `function_response` parts
-- Supports parallel function calling
+- 최상위에서 `function_declarations`를 사용한다.
+- 결과는 `function_response` 파트를 통해 반환된다.
+- 병렬 함수 호출을 지원한다.
 
-### Open-source models (Llama 3, Hermes, Qwen)
+### 오픈소스 모델(Llama 3, Hermes, Qwen)
 
-- No standardized format -- varies by model and serving framework
-- Hermes format (NousResearch) is the most common fine-tuned convention
-- vLLM supports OpenAI-compatible tool calling for supported models
-- Ollama supports basic tool calling with compatible models
-- Test tool selection accuracy before production -- open models are 15-30% less accurate than GPT-4o on the Berkeley Function Calling Leaderboard
+- 표준화된 형식이 없다. 모델과 서빙 프레임워크에 따라 달라진다.
+- Hermes 형식(NousResearch)이 가장 흔한 파인튜닝 관례다.
+- vLLM은 지원 모델에 대해 OpenAI 호환 도구 호출을 지원한다.
+- Ollama는 호환 모델에서 기본 도구 호출을 지원한다.
+- 프로덕션 전에 도구 선택 정확도를 테스트한다. Berkeley Function Calling Leaderboard에서 오픈 모델은 GPT-4o보다 15-30% 낮은 정확도를 보인다.
 
-## Error handling patterns
+## 오류 처리 패턴
 
-### Return structured errors
+### 구조화된 오류 반환
 
 ```json
 {"error": true, "message": "City 'Toky' not found. Did you mean 'Tokyo'?", "code": "NOT_FOUND", "suggestions": ["Tokyo"]}
 ```
 
-Include actionable information. "Not found" is bad. "Not found, did you mean X?" is good. The model uses error messages to self-correct.
+실행 가능한 정보를 포함한다. "찾을 수 없음"은 나쁘다. "찾을 수 없습니다. X를 뜻한 것인가요?"는 좋다. 모델은 오류 메시지를 사용해 스스로 수정한다.
 
-### Retry strategy
+### 재시도 전략
 
-1. Tool call fails with a correctable error (typo, wrong enum value)
-2. Send the error back to the model as a tool result
-3. The model adjusts and retries
-4. Maximum 3 retries per tool call
-5. After 3 failures, return the error to the user
+1. 도구 호출이 수정 가능한 오류(오타, 잘못된 enum 값)로 실패한다.
+2. 오류를 도구 결과로 모델에 다시 보낸다.
+3. 모델이 조정하고 재시도한다.
+4. 도구 호출당 최대 3회 재시도한다.
+5. 3회 실패 후에는 오류를 사용자에게 반환한다.
 
-### Timeout handling
+### 타임아웃 처리
 
-Set timeouts on all tool executions. 30 seconds is a reasonable default. If a tool times out, return a structured timeout error so the model can inform the user rather than hanging.
+모든 도구 실행에 타임아웃을 설정한다. 기본값으로 30초가 합리적이다. 도구가 타임아웃되면 멈춰 있는 대신 모델이 사용자에게 알릴 수 있도록 구조화된 타임아웃 오류를 반환한다.
 
-## Security checklist
+## 보안 체크리스트
 
-| Check | Why | How |
+| 점검 항목 | 이유 | 방법 |
 |-------|-----|-----|
-| Allowlist functions | Prevent arbitrary code execution | Only register tools the user needs |
-| Validate argument types | Prevent type confusion attacks | Check types before execution |
-| Sanitize string arguments | Prevent injection | Reject or escape special characters |
-| Parameterize database queries | Prevent SQL injection | Never pass model-generated SQL directly |
-| Filter tool results | Prevent data leakage | Remove API keys, PII, internal errors |
-| Rate limit tool calls | Prevent runaway loops | Max 10-20 calls per conversation |
-| Log all tool calls | Audit trail | Store tool name, arguments, result, timestamp |
-| Block path traversal | Prevent file system access | Reject `..` and absolute paths in file tools |
-| Sandbox code execution | Prevent system access | Use containers or restricted builtins |
-| Validate return size | Prevent context stuffing | Truncate results over 10KB |
+| 함수 허용 목록 | 임의 코드 실행 방지 | 사용자에게 필요한 도구만 등록 |
+| 인수 타입 검증 | 타입 혼동 공격 방지 | 실행 전에 타입 확인 |
+| 문자열 인수 정제 | 인젝션 방지 | 특수 문자를 거부하거나 이스케이프 |
+| 데이터베이스 질의 매개변수화 | SQL 인젝션 방지 | 모델 생성 SQL을 직접 전달하지 않음 |
+| 도구 결과 필터링 | 데이터 유출 방지 | API 키, PII, 내부 오류 제거 |
+| 도구 호출 속도 제한 | 폭주 루프 방지 | 대화당 최대 10-20회 호출 |
+| 모든 도구 호출 로깅 | 감사 추적 | 도구 이름, 인수, 결과, 타임스탬프 저장 |
+| 경로 순회 차단 | 파일 시스템 접근 방지 | 파일 도구에서 `..`와 절대 경로 거부 |
+| 코드 실행 샌드박스화 | 시스템 접근 방지 | 컨테이너 또는 제한된 builtins 사용 |
+| 반환 크기 검증 | 컨텍스트 채우기 공격 방지 | 10KB 초과 결과는 잘라냄 |
 
-## Performance optimization
+## 성능 최적화
 
-- **Parallel calls:** When the model requests multiple independent tools, execute them concurrently with `asyncio.gather()` or `concurrent.futures`
-- **Caching:** Cache tool results for identical arguments within the same session (weather does not change in 60 seconds)
-- **Streaming:** Stream the model's final response while tool results are being fetched
-- **Tool pruning:** If context is tight, only include tool definitions relevant to the current query (use a classifier to filter)
-- **Smaller models for routing:** Use `gpt-4o-mini` or `claude-3-5-haiku` for tool selection, then pass results to a stronger model for synthesis
+- **병렬 호출:** 모델이 여러 독립 도구를 요청하면 `asyncio.gather()` 또는 `concurrent.futures`로 동시에 실행한다.
+- **캐싱:** 같은 세션 안에서 동일한 인수의 도구 결과를 캐시한다(날씨는 60초 안에 바뀌지 않는다).
+- **스트리밍:** 도구 결과를 가져오는 동안 모델의 최종 응답을 스트리밍한다.
+- **도구 가지치기:** 컨텍스트가 부족하면 현재 질의와 관련된 도구 정의만 포함한다(분류기로 필터링).
+- **라우팅에는 더 작은 모델 사용:** 도구 선택에는 `gpt-4o-mini` 또는 `claude-3-5-haiku`를 사용한 다음, 결과를 더 강한 모델에 넘겨 합성한다.
 
-## Common failure patterns
+## 흔한 실패 패턴
 
-| Failure | Cause | Fix |
+| 실패 | 원인 | 수정 |
 |---------|-------|-----|
-| Wrong tool selected | Ambiguous descriptions | Rewrite descriptions with specific trigger words |
-| Missing required args | Model forgot a parameter | Add clear examples in parameter descriptions |
-| Infinite tool loop | Model keeps calling same tool | Set max iterations (5-10) and detect repeated calls |
-| Hallucinated arguments | Model invents plausible but wrong values | Use enums, validate against known values |
-| Tool result too large | API returned 100KB of data | Truncate or summarize before feeding back |
-| Model ignores tool result | Result format confusing | Return clean JSON with clear field names |
+| 잘못된 도구 선택 | 모호한 설명 | 구체적인 트리거 단어로 설명을 다시 작성 |
+| 필수 인수 누락 | 모델이 매개변수를 잊음 | 매개변수 설명에 명확한 예시 추가 |
+| 무한 도구 루프 | 모델이 같은 도구를 계속 호출 | 최대 반복 횟수(5-10) 설정 및 반복 호출 감지 |
+| 환각 인수 | 모델이 그럴듯하지만 잘못된 값을 만듦 | enum 사용, 알려진 값과 대조 검증 |
+| 도구 결과가 너무 큼 | API가 100KB 데이터를 반환 | 다시 넣기 전에 잘라내거나 요약 |
+| 모델이 도구 결과를 무시 | 결과 형식이 혼란스러움 | 명확한 필드 이름을 가진 깨끗한 JSON 반환 |

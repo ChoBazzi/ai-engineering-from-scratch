@@ -1,6 +1,6 @@
 ---
 name: skill-lora-training-setup
-description: Write a full LoRA training config for a custom dataset, including captions, rank, batch size, and learning rate
+description: Captions, rank, batch size, learning rate를 포함해 custom dataset용 전체 LoRA training config를 작성한다
 version: 1.0.0
 phase: 4
 lesson: 11
@@ -9,18 +9,18 @@ tags: [computer-vision, stable-diffusion, lora, fine-tuning]
 
 # LoRA Training Setup
 
-Turn a description of the fine-tune intent into a concrete training config that is ready to pass to `diffusers` or `kohya_ss`.
+Fine-tune 의도에 대한 설명을 `diffusers` 또는 `kohya_ss`에 전달할 준비가 된 구체적인 training config로 바꾼다.
 
-## When to use
+## 사용 시점
 
-- Training a LoRA for a subject (person, object, character), a style (artist, brand), or a concept (pose, lighting).
-- Extending an existing LoRA with more data.
-- Debugging a LoRA run whose output underfits or overfits the training images.
+- Subject(인물, object, character), style(artist, brand), concept(pose, lighting)에 대한 LoRA를 학습할 때.
+- 기존 LoRA를 더 많은 data로 확장할 때.
+- 출력이 training image에 underfit 또는 overfit되는 LoRA run을 debugging할 때.
 
-## Inputs
+## 입력
 
 - `purpose`: subject | style | concept
-- `num_images`: how many training images are available
+- `num_images`: 사용할 수 있는 training image 수
 - `base_model`: SD 1.5 | SDXL | SD3 | FLUX
 - `gpu_vram_gb`: 8 | 12 | 16 | 24 | 48+
 - `caption_source`: manual | BLIP2-generated | dataset-native
@@ -33,33 +33,33 @@ Turn a description of the fine-tune intent into a concrete training config that 
 | Style | 16-32 | rank * 2 |
 | Concept | 32-64 | rank |
 
-Higher rank = more capacity, more overfitting risk on small datasets. Alpha scales the LoRA's effect strength; `alpha == rank` is the safe default. Styles are the documented exception: `alpha == rank * 2` gives a stronger style push at the cost of more risk of baking the style too hard — use only when subject fidelity is not the goal.
+Rank가 높을수록 capacity가 크지만 작은 dataset에서는 overfitting 위험도 커진다. Alpha는 LoRA 효과 강도를 scale한다. `alpha == rank`가 안전한 기본값이다. Style은 문서화된 예외다. `alpha == rank * 2`는 subject fidelity가 목표가 아닐 때만 사용하며, style을 너무 강하게 bake할 위험을 감수하는 대신 더 강한 style push를 준다.
 
 ## Training step target
 
-- `subject` with 5-20 images: 500-1500 steps.
-- `style` with 30-100 images: 1500-4000 steps.
-- `concept` with 100+ images: 4000-10000 steps.
+- 이미지 5-20장의 `subject`: 500-1500 steps.
+- 이미지 30-100장의 `style`: 1500-4000 steps.
+- 이미지 100+장의 `concept`: 4000-10000 steps.
 
-Overshoot at your peril — a LoRA that has memorised its training images cannot generalise.
+지나치게 많이 학습하지 말라. Training image를 memorise한 LoRA는 generalise할 수 없다.
 
 ## Learning rate
 
-- Text encoder LoRA: `1e-4` for SD 1.5, `5e-5` for SDXL.
-- U-Net LoRA: `1e-4` for SD 1.5, `1e-4` for SDXL.
-- FLUX / SD3: `5e-5` for the transformer, text encoders usually frozen.
-- Halve the LR when `num_images < 15` (subject) or when training for more than 3000 steps; tiny datasets and long runs both benefit from a gentler update.
+- Text encoder LoRA: SD 1.5는 `1e-4`, SDXL은 `5e-5`.
+- U-Net LoRA: SD 1.5는 `1e-4`, SDXL은 `1e-4`.
+- FLUX / SD3: transformer는 `5e-5`, text encoder는 보통 고정한다.
+- `num_images < 15`(subject)이거나 3000 step보다 오래 학습할 때는 LR을 절반으로 낮춘다. 아주 작은 dataset과 긴 run은 둘 다 더 부드러운 update가 유리하다.
 
 ## Scheduler
 
-- `cosine_with_warmup` (default): warmup over the first 5-10% of steps, then cosine decay. Use when `steps >= 1000`; the decay tail gives sharper final samples.
-- `constant`: use only for very short runs (`steps < 500`) or when resuming a previous LoRA where you want to preserve the current learned features without re-annealing.
+- `cosine_with_warmup`(기본값): 처음 5-10% step 동안 warmup하고 이후 cosine decay한다. `steps >= 1000`일 때 사용한다. Decay tail은 더 선명한 최종 sample을 만든다.
+- `constant`: 매우 짧은 run(`steps < 500`)이거나, 현재 학습된 feature를 re-annealing 없이 보존하고 싶은 이전 LoRA를 resume할 때만 사용한다.
 
 ## Caption format
 
-- Subject: prepend a unique trigger token ("myperson") to every caption. Keep trigger token rare so it does not overwrite existing concepts. Avoid real words and common names.
-- Style: append a unique style tag at the end of every caption ("...in mystyle style"). Treat the tag itself as a rare trigger token — `mystyle`, not `impressionism`, which already maps to a real concept.
-- Concept: describe the concept in every caption; no trigger token. The concept itself (e.g. "low-angle shot") is the anchor.
+- Subject: 모든 caption 앞에 고유 trigger token("myperson")을 붙인다. 기존 concept을 overwrite하지 않도록 trigger token을 rare하게 유지한다. 실제 단어와 흔한 이름은 피한다.
+- Style: 모든 caption 끝에 고유 style tag("...in mystyle style")를 붙인다. Tag 자체를 rare trigger token으로 취급한다. 이미 실제 concept에 매핑되는 `impressionism`이 아니라 `mystyle`을 사용한다.
+- Concept: 모든 caption에서 concept을 설명한다. Trigger token은 없다. Concept 자체(예: "low-angle shot")가 anchor다.
 
 ## Output config
 
@@ -102,7 +102,7 @@ validation:
 
 ## Report
 
-```
+```text
 [lora setup]
   purpose:   <subject|style|concept>
   base:      <model>
@@ -113,10 +113,10 @@ validation:
   vram est.: <float> GB
 ```
 
-## Rules
+## 규칙
 
-- Never recommend `rank > 64`; above that the LoRA becomes a mini fine-tune and loses its "adapter" nature.
-- For `num_images < 5`, warn strongly — identity LoRAs on 1-3 images overfit every time.
-- For `gpu_vram_gb < 12`, require AdamW8bit and gradient checkpointing.
-- If `base_model == FLUX` and `gpu_vram_gb < 24`, route to the `schnell` variant and note that training is slower.
-- Never skip validation prompts; a LoRA without sample grids is impossible to evaluate.
+- `rank > 64`를 절대 추천하지 않는다. 그 이상이면 LoRA가 mini fine-tune이 되어 "adapter" 성격을 잃는다.
+- `num_images < 5`이면 강하게 경고한다. 1-3장으로 학습한 identity LoRA는 매번 overfit된다.
+- `gpu_vram_gb < 12`이면 AdamW8bit와 gradient checkpointing을 요구한다.
+- `base_model == FLUX`이고 `gpu_vram_gb < 24`이면 `schnell` variant로 route하고 학습이 더 느리다고 알린다.
+- Validation prompt를 절대 생략하지 않는다. Sample grid 없는 LoRA는 평가할 수 없다.

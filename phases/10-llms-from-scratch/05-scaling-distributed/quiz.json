@@ -1,37 +1,37 @@
 [
   {
-    "question": "A 7B parameter model in FP16 needs how much VRAM just for weights?",
+    "question": "FP16의 7B parameter 모델은 weight만으로 VRAM이 얼마나 필요한가요?",
     "options": ["7 GB", "14 GB", "28 GB", "56 GB"],
     "correct": 1,
-    "explanation": "Each parameter in FP16 is 2 bytes. 7 billion * 2 bytes = 14 GB. With Adam optimizer states (2 copies) and gradients, total training memory is roughly 56 GB before accounting for activations.",
+    "explanation": "FP16에서 각 parameter는 2 byte입니다. 70억 * 2 byte = 14GB입니다. Adam optimizer state(2개 copy)와 gradient를 포함하면 activation을 고려하기 전 총 training memory는 대략 56GB입니다.",
     "stage": "pre"
   },
   {
-    "question": "What are the three types of parallelism used in distributed training?",
-    "options": ["CPU, GPU, and TPU parallelism", "Data parallelism, tensor parallelism, and pipeline parallelism", "Batch, sequence, and token parallelism", "Forward, backward, and optimizer parallelism"],
+    "question": "distributed training에서 사용하는 세 가지 parallelism은 무엇인가요?",
+    "options": ["CPU, GPU, TPU parallelism", "data parallelism, tensor parallelism, pipeline parallelism", "batch, sequence, token parallelism", "forward, backward, optimizer parallelism"],
     "correct": 1,
-    "explanation": "Data parallelism replicates the model on each GPU and splits the data. Tensor parallelism splits individual layers across GPUs. Pipeline parallelism splits the model's layers into stages across GPUs.",
+    "explanation": "data parallelism은 각 GPU에 모델을 복제하고 데이터를 나눕니다. tensor parallelism은 개별 layer를 GPU에 나눕니다. pipeline parallelism은 모델 layer를 GPU별 stage로 나눕니다.",
     "stage": "pre"
   },
   {
-    "question": "What does FSDP (Fully Sharded Data Parallel) do that standard DDP does not?",
-    "options": ["It uses a different optimizer", "It shards model parameters, gradients, and optimizer states across GPUs instead of replicating the full model on each", "It processes data faster", "It supports more GPUs"],
+    "question": "FSDP(Fully Sharded Data Parallel)는 표준 DDP와 달리 무엇을 하나요?",
+    "options": ["다른 optimizer를 사용한다", "전체 모델을 각 GPU에 복제하는 대신 모델 parameter, gradient, optimizer state를 GPU에 shard한다", "데이터를 더 빠르게 처리한다", "더 많은 GPU를 지원한다"],
     "correct": 1,
-    "explanation": "Standard DDP replicates the entire model on every GPU (wasteful). FSDP shards parameters across GPUs so each holds only a fraction. Parameters are gathered on-demand for computation and released after.",
+    "explanation": "표준 DDP는 전체 모델을 모든 GPU에 복제합니다(낭비가 큽니다). FSDP는 parameter를 GPU에 나누어 각 GPU가 일부만 보유하게 합니다. parameter는 계산 시 필요할 때 모았다가 이후 해제합니다.",
     "stage": "post"
   },
   {
-    "question": "What is DeepSpeed ZeRO Stage 3?",
-    "options": ["A quantization method", "It partitions optimizer states, gradients, AND model parameters across GPUs, achieving maximum memory efficiency", "A learning rate schedule", "A data preprocessing pipeline"],
+    "question": "DeepSpeed ZeRO Stage 3는 무엇인가요?",
+    "options": ["quantization 방법", "optimizer state, gradient, 그리고 모델 parameter까지 GPU에 분할해 최대 memory efficiency를 달성하는 방식", "learning rate schedule", "data preprocessing pipeline"],
     "correct": 1,
-    "explanation": "ZeRO Stage 1 shards optimizer states, Stage 2 adds gradient sharding, Stage 3 adds parameter sharding. Stage 3 gives maximum memory savings, allowing training of models that far exceed single-GPU memory.",
+    "explanation": "ZeRO Stage 1은 optimizer state를 shard하고, Stage 2는 gradient sharding을 추가하며, Stage 3는 parameter sharding을 추가합니다. Stage 3는 최대 memory 절감을 제공해 단일 GPU 메모리를 훨씬 초과하는 모델도 학습할 수 있게 합니다.",
     "stage": "post"
   },
   {
-    "question": "Why is gradient synchronization necessary in data-parallel training?",
-    "options": ["To prevent overfitting", "Each GPU computes gradients on different data; averaging gradients across GPUs ensures all replicas update identically", "To reduce memory usage", "To speed up the forward pass"],
+    "question": "data-parallel training에서 gradient synchronization이 필요한 이유는 무엇인가요?",
+    "options": ["overfitting을 막기 위해", "각 GPU가 서로 다른 데이터에서 gradient를 계산하므로 GPU 간 gradient를 평균내야 모든 replica가 동일하게 update된다", "메모리 사용량을 줄이기 위해", "forward pass 속도를 높이기 위해"],
     "correct": 1,
-    "explanation": "In data parallelism, each GPU processes a different batch and computes different gradients. AllReduce averages these gradients across all GPUs so every replica applies the same update and stays in sync.",
+    "explanation": "data parallelism에서는 각 GPU가 서로 다른 batch를 처리하고 서로 다른 gradient를 계산합니다. AllReduce는 모든 GPU의 gradient를 평균내어 모든 replica가 같은 update를 적용하고 동기화 상태를 유지하게 합니다.",
     "stage": "post"
   }
 ]

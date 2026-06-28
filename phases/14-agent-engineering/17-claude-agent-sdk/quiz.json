@@ -1,34 +1,34 @@
 {
   "lesson": "17-claude-agent-sdk",
-  "title": "Claude Agent SDK: Subagents and Session Store",
+  "title": "Claude Agent SDK: Subagent와 Session Store",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the difference between the Anthropic Client SDK and the Claude Agent SDK?",
+      "question": "Anthropic Client SDK와 Claude Agent SDK의 차이는 무엇인가?",
       "options": [
-        "Client SDK is raw Messages API; Agent SDK is the Claude Code harness shape with built-in tools, MCP, hooks, subagents, and session store",
-        "Client SDK is paid; Agent SDK is free",
-        "Client SDK is for Python only",
-        "There is no difference"
+        "Client SDK는 raw Messages API이고 Agent SDK는 내장 도구, MCP, hook, subagent, session store를 갖춘 Claude Code harness 형태다",
+        "Client SDK는 유료이고 Agent SDK는 무료다",
+        "Client SDK는 Python 전용이다",
+        "차이가 없다"
       ],
       "correct": 0,
-      "explanation": "Client SDK gives you the loop; Agent SDK ships the loop pre-built."
+      "explanation": "Client SDK는 loop를 직접 만들게 한다. Agent SDK는 미리 만들어진 loop를 제공한다."
     },
     {
       "stage": "pre",
-      "question": "What are the two documented purposes of subagents?",
+      "question": "subagent의 문서화된 두 가지 목적은 무엇인가?",
       "options": [
-        "Parallelization and context isolation",
-        "Caching and rate limiting",
-        "Logging and metrics",
-        "Authn and authz"
+        "Parallelization과 context isolation",
+        "Caching과 rate limiting",
+        "Logging과 metrics",
+        "Authn과 authz"
       ],
       "correct": 0,
-      "explanation": "Subagents run independent work concurrently and preserve the orchestrator's context budget by isolating context."
+      "explanation": "subagent는 독립 작업을 동시에 실행하고 context를 격리해 orchestrator의 context budget을 보존한다."
     },
     {
       "stage": "check",
-      "question": "Which method is NOT part of the session store surface?",
+      "question": "다음 중 session store surface에 속하지 않는 method는?",
       "options": [
         "append",
         "load",
@@ -36,11 +36,11 @@
         "compile_prompt"
       ],
       "correct": 3,
-      "explanation": "Session store ships append, load, list_sessions, delete, list_subkeys; compile_prompt is not a session API."
+      "explanation": "session store는 append, load, list_sessions, delete, list_subkeys를 제공한다. compile_prompt는 session API가 아니다."
     },
     {
       "stage": "check",
-      "question": "Which is NOT a Claude Agent SDK lifecycle hook?",
+      "question": "다음 중 Claude Agent SDK lifecycle hook이 아닌 것은?",
       "options": [
         "PreToolUse",
         "PostToolUse",
@@ -48,43 +48,43 @@
         "PreEmbedding"
       ],
       "correct": 3,
-      "explanation": "Hooks include PreToolUse, PostToolUse, SessionStart/End, UserPromptSubmit, PreCompact, Stop, Notification. PreEmbedding is not a hook."
+      "explanation": "hook에는 PreToolUse, PostToolUse, SessionStart/End, UserPromptSubmit, PreCompact, Stop, Notification이 있다. PreEmbedding은 hook이 아니다."
     },
     {
       "stage": "check",
-      "question": "How does trace context propagate across the agent and CLI subprocess?",
+      "question": "agent와 CLI subprocess 사이에서 trace context는 어떻게 전파되는가?",
       "options": [
-        "Through the file system",
-        "Through W3C trace context headers passed into the CLI subprocess",
-        "Only via the provider's dashboard",
-        "Through environment variables only"
+        "file system을 통해서",
+        "CLI subprocess로 전달되는 W3C trace context header를 통해서",
+        "provider dashboard를 통해서만",
+        "environment variable만 통해서"
       ],
       "correct": 1,
-      "explanation": "OTel spans on the caller propagate into the CLI subprocess via W3C trace context, so the whole multi-process run is one trace."
+      "explanation": "caller의 OTel span은 W3C trace context를 통해 CLI subprocess로 전파되므로 전체 multi-process run이 하나의 trace가 된다."
     },
     {
       "stage": "post",
-      "question": "What is subagent over-spawn and when does it happen?",
+      "question": "subagent over-spawn이란 무엇이며 언제 발생하는가?",
       "options": [
-        "Spawning 100 subagents for 100 tiny tasks where overhead dominates; batch instead",
-        "Forgetting to close subagents",
-        "Spawning before SessionStart",
-        "Spawning more subagents than CPU cores"
+        "overhead가 지배하는 100개의 작은 task에 100개의 subagent를 생성하는 것. 대신 batch한다",
+        "subagent를 닫는 것을 잊는 것",
+        "SessionStart 전에 생성하는 것",
+        "CPU core보다 많은 subagent를 생성하는 것"
       ],
       "correct": 0,
-      "explanation": "Subagents have overhead; batch small tasks instead of spawning one each."
+      "explanation": "subagent에는 overhead가 있다. 작은 task마다 하나씩 만들지 말고 batch하라."
     },
     {
       "stage": "post",
-      "question": "What does Claude Managed Agents trade off against the self-hosted SDK?",
+      "question": "Claude Managed Agents는 self-hosted SDK와 무엇을 trade off하는가?",
       "options": [
-        "Control for managed infrastructure (long-running async, built-in prompt caching, built-in compaction)",
-        "Latency for cost",
-        "Tools for memory",
-        "Tracing for streaming"
+        "제어권을 managed infrastructure와 맞바꾼다(장시간 async, 내장 prompt caching, 내장 compaction)",
+        "latency를 cost와 맞바꾼다",
+        "tool을 memory와 맞바꾼다",
+        "tracing을 streaming과 맞바꾼다"
       ],
       "correct": 0,
-      "explanation": "Managed Agents is the hosted alternative for long-running async work; less control, less ops surface."
+      "explanation": "Managed Agents는 장시간 async 작업을 위한 hosted 대안이다. 제어는 줄지만 운영 표면도 줄어든다."
     }
   ]
 }

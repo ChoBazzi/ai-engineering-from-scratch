@@ -1,119 +1,119 @@
-# Open Models: Architecture Walkthroughs
+# Open Model 아키텍처 해설
 
-> You built a GPT-2 Small from scratch in Lesson 04. Frontier open models in 2026 are the same family with five or six concrete changes. RMSNorm instead of LayerNorm. SwiGLU instead of GELU. RoPE instead of learned positions. GQA or MLA instead of full MHA. Mixture-of-Experts at scale. The math you already know covers 95% of them. This lesson reads Llama 3, DeepSeek-V3, Mixtral, Qwen, and Gemma side by side and names the exact line where each architecture diverges.
+> Lesson 04에서 GPT-2 Small을 처음부터 만들었습니다. 2026년의 frontier open model은 같은 계열에 다섯 여섯 가지 구체적 변경을 더한 것입니다. LayerNorm 대신 RMSNorm. GELU 대신 SwiGLU. Learned positions 대신 RoPE. Full MHA 대신 GQA 또는 MLA. Scale에서의 Mixture-of-Experts. 이미 알고 있는 수학이 그중 95%를 설명합니다. 이 lesson은 Llama 3, DeepSeek-V3, Mixtral, Qwen, Gemma를 나란히 읽고 각 architecture가 갈라지는 정확한 지점을 이름 붙입니다.
 
 **Type:** Learn
 **Languages:** Python (stdlib)
 **Prerequisites:** Phase 10, Lessons 04, 05, 12 (Pre-training, Scaling, Inference)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Read the config.json of Llama 3, Mistral, Mixtral, Gemma 2, Qwen 2.5, and DeepSeek-V3 and explain every field
-- Name the specific architectural change each model made versus GPT-2 Small and justify it from first principles
-- Compute parameter count, KV cache size, and activation memory for any open model from its config alone
-- Pick the right open model for a deployment target given latency, memory, and capability constraints
+- Llama 3, Mistral, Mixtral, Gemma 2, Qwen 2.5, DeepSeek-V3의 config.json을 읽고 모든 field를 설명하기
+- 각 model이 GPT-2 Small 대비 만든 구체적 architecture 변경을 이름 붙이고 first principles로 정당화하기
+- Config만으로 임의의 open model에 대한 parameter count, KV cache size, activation memory 계산하기
+- Latency, memory, capability constraint가 주어졌을 때 deployment target에 맞는 open model 고르기
 
-## The Problem
+## 문제
 
-In Lesson 04 you wrote 350 lines of numpy and had a GPT-2-shaped model. Llama 3 405B has a 200-page technical report. Your instinct is that these are different beasts. They are not. The 200 pages describe the same object with five or six well-motivated modifications, plus a thousand implementation details about scaling. The skeleton -- embedding, transformer blocks, attention, MLP, norm, head -- is unchanged.
+Lesson 04에서 350줄의 numpy로 GPT-2 모양의 model을 만들었습니다. Llama 3 405B에는 200페이지짜리 technical report가 있습니다. 직감적으로 둘은 다른 생물처럼 느껴집니다. 그렇지 않습니다. 그 200페이지는 같은 객체를 잘 동기화된 다섯 여섯 가지 수정과 scaling에 관한 수많은 구현 세부 사항으로 설명합니다. Skeleton, 즉 embedding, transformer blocks, attention, MLP, norm, head는 바뀌지 않았습니다.
 
-This lesson is a diff. For each major open model family, we list exactly what changed from GPT-2, why, and what it cost. When you are done you can read a fresh model card and mentally translate it back to the GPT-2 baseline.
+이 lesson은 diff입니다. 주요 open model family마다 GPT-2에서 정확히 무엇이 바뀌었는지, 왜 바뀌었는지, 어떤 비용이 들었는지 나열합니다. 끝나면 새 model card를 읽고 그것을 GPT-2 baseline으로 머릿속에서 다시 번역할 수 있습니다.
 
-The practical payoff is that when Meta releases Llama 5 or DeepSeek releases V4, you will not need a new mental model. You will look at the config, see which of the well-known knobs moved, and know what the downstream implications are. The 2026 architectures are a finite toolbox. Each new model picks a different subset.
+실용적 이득은 Meta가 Llama 5를 내거나 DeepSeek이 V4를 내도 새 mental model이 필요 없다는 것입니다. Config를 보고 잘 알려진 knob 중 무엇이 움직였는지 파악하면 downstream implication을 알 수 있습니다. 2026 architecture는 유한한 toolbox입니다. 새 model은 그중 다른 subset을 고릅니다.
 
-## The Concept
+## 개념
 
-### The Invariant Core
+### 변하지 않는 핵심
 
-All autoregressive open models share:
+모든 autoregressive open model은 다음을 공유합니다.
 
-- Token embedding matrix (vocab_size x hidden_dim).
-- Stack of N decoder blocks: norm, self-attention, residual, norm, MLP, residual.
-- Final norm and linear head projecting to vocab_size (often weight-tied with embeddings).
-- Causal mask, next-token cross-entropy loss.
+- Token embedding matrix(vocab_size x hidden_dim).
+- N개의 decoder block stack: norm, self-attention, residual, norm, MLP, residual.
+- Final norm과 vocab_size로 projection하는 linear head(embedding과 weight-tied인 경우가 많음).
+- Causal mask와 next-token cross-entropy loss.
 
-That is the shape. The rest is knobs.
+이것이 형태입니다. 나머지는 knob입니다.
 
-### The Six Knobs That Actually Move
+### 실제로 영향을 주는 여섯 knob
 
-Across every 2024-2026 frontier open model, the same six design choices get picked over and over:
+2024-2026년 모든 frontier open model을 가로질러 같은 여섯 가지 design choice가 반복해서 선택됩니다.
 
 1. **Normalization.** LayerNorm -> RMSNorm.
-2. **Positional encoding.** Learned absolute -> RoPE (plus variants: YaRN, NTK).
-3. **Activation.** GELU -> SwiGLU (or GeGLU).
+2. **Positional encoding.** Learned absolute -> RoPE(변형: YaRN, NTK).
+3. **Activation.** GELU -> SwiGLU(또는 GeGLU).
 4. **Attention head sharing.** MHA -> GQA -> MQA -> MLA.
 5. **Dense vs sparse MLP.** Dense -> Mixture-of-Experts.
-6. **Pre-norm placement.** Pre-norm stays. Post-norm is gone.
+6. **Pre-norm placement.** Pre-norm은 유지됩니다. Post-norm은 사라졌습니다.
 
-Everything else (learning rate schedule, data mix, batch size, context length) lives in the training config, not the architecture. Six knobs.
+그 밖의 것(learning rate schedule, data mix, batch size, context length)은 architecture가 아니라 training config에 있습니다. 여섯 knob입니다.
 
 ### Knob 1: RMSNorm
 
-LayerNorm subtracts mean, divides by std, scales, and shifts. RMSNorm keeps only the scale:
+LayerNorm은 mean을 빼고 std로 나눈 뒤 scale과 shift를 적용합니다. RMSNorm은 scale만 남깁니다.
 
-```
+```text
 RMSNorm(x) = x / sqrt(mean(x^2) + eps) * gamma
 ```
 
-No mean subtraction. No bias. One matmul fewer per token. Zhang and Sennrich (2019) argued it matched LayerNorm on machine translation while being 10% faster. Every modern open model runs it.
+Mean subtraction이 없습니다. Bias도 없습니다. Token당 matmul 하나가 줄어듭니다. Zhang and Sennrich(2019)는 machine translation에서 LayerNorm과 맞먹으면서 10% 빠르다고 주장했습니다. 모든 현대 open model이 이를 사용합니다.
 
-Cost: none. Benefit: small throughput win, simpler code.
+비용: 없음. 이점: 작은 throughput 개선, 더 단순한 코드.
 
 ### Knob 2: RoPE
 
-Learned position embeddings were a 1024-slot lookup table in GPT-2. Context 1025 is off the end of the table. Models cannot extrapolate beyond their training length.
+Learned position embedding은 GPT-2에서 1024-slot lookup table이었습니다. Context 1025는 table 끝 밖입니다. Model은 training length를 넘어 extrapolate할 수 없습니다.
 
-Rotary Position Embedding (RoPE, Su et al. 2021) injects position by rotating each Q and K vector in pairs before the attention dot product. The angle of rotation is a deterministic function of position, so there is nothing learned and nothing to run out of. With scaling tricks (NTK-aware interpolation, YaRN), a model trained on 8k context can stretch to 128k at inference with modest accuracy loss.
+Rotary Position Embedding(RoPE, Su et al. 2021)은 attention dot product 전에 각 Q와 K vector를 pair 단위로 회전시켜 position을 주입합니다. 회전 각도는 position의 deterministic function이므로 학습되는 것이 없고 고갈될 것도 없습니다. Scaling trick(NTK-aware interpolation, YaRN)을 쓰면 8k context로 훈련한 model도 inference에서 128k까지 modest accuracy loss로 늘릴 수 있습니다.
 
-```
+```text
 q_rotated = rotate(q, angle(pos))
 k_rotated = rotate(k, angle(pos))
 score = q_rotated . k_rotated
 ```
 
-Every Llama, Mistral, Qwen, DeepSeek, and Gemma uses RoPE. Gemma 2 uses a hybrid (RoPE on most layers, local sliding-window attention on others).
+모든 Llama, Mistral, Qwen, DeepSeek, Gemma가 RoPE를 씁니다. Gemma 2는 hybrid를 사용합니다(대부분의 layer에는 RoPE, 다른 layer에는 local sliding-window attention).
 
 ### Knob 3: SwiGLU
 
-GPT-2's MLP is `x -> gelu(xW1 + b1) -> (...)W2 + b2`. SwiGLU (Shazeer 2020) replaces the activation with a gated product:
+GPT-2의 MLP는 `x -> gelu(xW1 + b1) -> (...)W2 + b2`입니다. SwiGLU(Shazeer 2020)는 activation을 gated product로 바꿉니다.
 
-```
+```text
 SwiGLU(x) = (xW1) * sigmoid(xW1) * xV
 ```
 
-Two projections in parallel instead of one, gated by the Swish activation. Empirically stronger on perplexity per parameter. Llama 2 adopted it, everyone followed. The MLP's hidden size is usually set so that total parameter count matches the original dense MLP: if GPT-2 used `ff_dim = 4 * hidden`, SwiGLU uses `ff_dim = (2/3) * 4 * hidden = 8/3 * hidden`.
+하나 대신 두 projection을 병렬로 두고 Swish activation으로 gate합니다. 경험적으로 parameter당 perplexity가 더 좋습니다. Llama 2가 채택했고 모두가 뒤따랐습니다. MLP hidden size는 보통 total parameter count가 원래 dense MLP와 맞도록 설정됩니다. GPT-2가 `ff_dim = 4 * hidden`을 썼다면, SwiGLU는 `ff_dim = (2/3) * 4 * hidden = 8/3 * hidden`을 씁니다.
 
-### Knob 4: Attention Head Sharing
+### Knob 4: Attention head sharing
 
-GPT-2 used **Multi-Head Attention (MHA)**: every head has its own Q, K, V projection.
+GPT-2는 **Multi-Head Attention (MHA)** 를 사용했습니다. 모든 head가 자체 Q, K, V projection을 갖습니다.
 
-**Multi-Query Attention (MQA, Shazeer 2019)** shares one K and one V across all heads. Cuts the KV cache by num_heads, which is a 12x to 32x reduction on a typical model. Accuracy drops slightly on hard benchmarks.
+**Multi-Query Attention (MQA, Shazeer 2019)** 는 모든 head가 하나의 K와 하나의 V를 공유합니다. KV cache가 num_heads만큼 줄어듭니다. 일반적인 model에서는 12x에서 32x 감소입니다. 어려운 benchmark에서는 accuracy가 약간 떨어집니다.
 
-**Grouped-Query Attention (GQA, Ainslie et al. 2023)** is the middle ground: G groups of Q heads share one K and one V. Llama 3 8B uses GQA with 32 Q heads and 8 KV heads (G=8), so the KV cache shrinks 4x versus full MHA.
+**Grouped-Query Attention (GQA, Ainslie et al. 2023)** 는 중간 지점입니다. G개의 Q head group이 하나의 K와 하나의 V를 공유합니다. Llama 3 8B는 32 Q heads와 8 KV heads(G=8)의 GQA를 사용하므로 full MHA 대비 KV cache가 4x 줄어듭니다.
 
-**Multi-Head Latent Attention (MLA, DeepSeek 2024)** compresses K and V into a shared low-rank latent, projecting them back up per head. Further reduces KV cache while preserving per-head expressiveness. DeepSeek-V2 and V3 rely on this for their long-context performance.
+**Multi-Head Latent Attention (MLA, DeepSeek 2024)** 는 K와 V를 shared low-rank latent로 압축한 뒤 head별로 다시 projection합니다. KV cache를 더 줄이면서 head별 expressiveness를 보존합니다. DeepSeek-V2와 V3는 long-context 성능을 위해 이에 의존합니다.
 
-| Scheme | KV Heads | KV Cache | Accuracy |
+| Scheme | KV head | KV cache | 정확도 |
 |--------|----------|----------|----------|
 | MHA    | num_heads | full | best |
 | GQA    | num_groups (G < num_heads) | num_heads / G reduction | near-MHA |
 | MQA    | 1 | num_heads reduction | small hit |
 | MLA    | latent, per-head decompression | smaller than MQA | near-MHA |
 
-For any model above ~13B parameters, GQA or MLA is effectively mandatory. Full MHA at scale is a KV cache disaster.
+약 13B parameter를 넘는 model에서는 GQA 또는 MLA가 사실상 필수입니다. Scale에서 full MHA는 KV cache 재앙입니다.
 
 ### Knob 5: Mixture of Experts
 
-A dense MLP activates all its parameters for every token. An MoE MLP has K experts per block and a router that picks the top-k experts per token (typically top-2). Only those experts' weights see a forward pass for that token.
+Dense MLP는 모든 token에 대해 모든 parameter를 활성화합니다. MoE MLP는 block마다 K개의 expert와 token마다 top-k expert를 고르는 router를 갖습니다(보통 top-2). 그 expert들의 weight만 해당 token의 forward pass를 수행합니다.
 
-```
+```text
 router_logits = xW_r
 indices, weights = top_k(router_logits, k=2)
 output = sum_i weights[i] * expert[indices[i]](x)
 ```
 
-The appeal: you can have 64 experts of size 7B each (so total param count is huge) while only running 2 of them per token (so per-token compute matches a dense 7B model). Mixtral 8x7B has 47B total parameters but activates only 13B per token. DeepSeek-V3 has 671B total parameters but activates only 37B per token.
+매력은 이렇습니다. 7B 크기의 expert를 64개 둘 수 있지만(token별로는 2개만 실행), 그래서 total param count는 매우 크고 per-token compute는 dense 7B model과 맞먹습니다. Mixtral 8x7B는 total parameters가 47B지만 token당 13B만 활성화합니다. DeepSeek-V3는 total parameters가 671B지만 token당 37B만 활성화합니다.
 
 ```mermaid
 graph LR
@@ -132,17 +132,17 @@ graph LR
     style R fill:#1a1a2e,stroke:#e94560,color:#fff
 ```
 
-Pros: same compute, more parameters, better capacity. Cons: the expert memory still has to live somewhere (so serving needs more VRAM than a dense equivalent), load-balancing the router is hard, and fine-tuning the router during alignment is its own research area.
+장점: 같은 compute, 더 많은 parameter, 더 높은 capacity. 단점: expert memory는 어딘가에 있어야 하므로 serving에는 dense equivalent보다 더 많은 VRAM이 필요하고, router load-balancing은 어렵고, alignment 중 router fine-tuning은 별도 연구 영역입니다.
 
-### Knob 6: Pre-norm stays
+### Knob 6: Pre-norm 유지
 
-The original transformer applied layer norm after each sublayer. Every open model since GPT-2 puts it *before* each sublayer. Pre-norm is strictly easier to train at depth. Nothing to argue about.
+원래 transformer는 각 sublayer 뒤에 layer norm을 적용했습니다. GPT-2 이후 모든 open model은 각 sublayer 앞에 둡니다. Pre-norm은 depth에서 훈련하기 훨씬 쉽습니다. 논쟁의 여지가 없습니다.
 
-### Model-by-Model Diff
+### Model별 diff
 
-Here is the table that makes all of this concrete.
+다음 표가 이 내용을 구체화합니다.
 
-| Model | Year | Total Params | Active Params | Norm | Activation | Position | Attention | MoE | Context |
+| Model | 연도 | Total params | Active params | Norm | Activation | Position | Attention | MoE | Context |
 |-------|------|-------------|---------------|------|-----------|----------|-----------|-----|---------|
 | GPT-2 Small | 2019 | 124M | 124M | LayerNorm | GELU | Learned | MHA (12 heads) | no | 1k |
 | Llama 3 8B | 2024 | 8B | 8B | RMSNorm | SwiGLU | RoPE | GQA (32/8) | no | 128k |
@@ -155,13 +155,13 @@ Here is the table that makes all of this concrete.
 | DeepSeek V2 236B | 2024 | 236B | 21B | RMSNorm | SwiGLU | RoPE | MLA | yes (160 experts, top-6) | 128k |
 | DeepSeek V3 | 2024 | 671B | 37B | RMSNorm | SwiGLU | RoPE | MLA | yes (256 experts, top-8) | 128k |
 
-Scan the columns. RMSNorm is universal. SwiGLU or its GeGLU cousin is universal. RoPE is universal. GQA is universal above 7B except when replaced by MLA. MoE is the differentiator at the top end.
+열을 훑어보세요. RMSNorm은 보편적입니다. SwiGLU 또는 그 사촌 GeGLU도 보편적입니다. RoPE도 보편적입니다. 7B를 넘으면 MLA로 대체되지 않는 한 GQA가 보편적입니다. 최상위 영역의 차별점은 MoE입니다.
 
-### Reading a config.json
+### config.json 읽기
 
 Llama 3 8B config:
 
-```
+```json
 {
   "hidden_size": 4096,
   "intermediate_size": 14336,
@@ -175,58 +175,58 @@ Llama 3 8B config:
 }
 ```
 
-Every field corresponds to something you have already implemented.
+모든 field는 이미 구현해 본 무언가에 대응합니다.
 
 - `hidden_size`: embedding dimension.
-- `intermediate_size`: MLP hidden size (3.5x hidden -- SwiGLU math).
+- `intermediate_size`: MLP hidden size(3.5x hidden -- SwiGLU math).
 - `num_hidden_layers`: stack depth.
 - `num_attention_heads`: Q heads.
-- `num_key_value_heads`: KV heads (GQA).
+- `num_key_value_heads`: KV heads(GQA).
 - `max_position_embeddings`: training context length.
-- `rope_theta`: RoPE base frequency. Meta scaled it from the default 10k to 500k for long-context extrapolation.
+- `rope_theta`: RoPE base frequency. Meta는 long-context extrapolation을 위해 기본 10k에서 500k로 scale했습니다.
 - `rms_norm_eps`: numerical stability.
 - `vocab_size`: tokens.
 
-From these alone you compute total parameters, KV cache, and peak activation memory. See `code/main.py` for the exact formulas.
+이것만으로 total parameters, KV cache, peak activation memory를 계산합니다. 정확한 공식은 `code/main.py`를 보세요.
 
 ### Activation memory budget
 
-Activations dominate training memory above a few billion parameters. The rule of thumb for pre-training (with gradient checkpointing):
+수십억 parameter를 넘는 훈련에서는 activation이 training memory를 지배합니다. Pre-training의 경험식(gradient checkpointing 사용)은 다음과 같습니다.
 
-```
+```text
 activation_mem ~ batch_size * seq_len * hidden_size * num_layers * bytes_per_element
 ```
 
-For Llama 3 8B at batch 1, seq 8192, BF16, 32 layers, hidden 4096: roughly 8 GB just for activations with checkpointing, 40 GB without. This is why flash-attention and ring-attention matter -- they rewrite the attention computation so activations fit.
+Llama 3 8B에서 batch 1, seq 8192, BF16, 32 layers, hidden 4096이면 checkpointing이 있어도 activation만 대략 8 GB, 없으면 40 GB입니다. 이것이 flash-attention과 ring-attention이 중요한 이유입니다. Attention computation을 다시 써서 activation이 들어가게 만듭니다.
 
-### KV Cache budget
+### KV cache budget
 
-For inference at max context:
+Max context inference의 경우:
 
-```
+```text
 kv_cache = 2 * num_layers * num_kv_heads * head_dim * max_seq_len * bytes_per_element
 ```
 
 Llama 3 8B at 128k context, BF16, head_dim = hidden / num_heads = 128:
 `2 * 32 * 8 * 128 * 131072 * 2 = 17.2 GB` per sequence.
 
-The 8B weights are 16 GB in BF16. The KV cache for a single 128k sequence is larger than the weights. This is the memory pressure driving GQA, MLA, and KV cache quantization research.
+8B weights는 BF16에서 16 GB입니다. 단일 128k sequence의 KV cache가 weights보다 큽니다. 이것이 GQA, MLA, KV cache quantization 연구를 밀어붙이는 memory pressure입니다.
 
-### When Each Model Wins
+### 각 model이 유리한 경우
 
-- **Single 80GB GPU, no MoE**: Llama 3 8B, Mistral 7B, Gemma 2 9B. Easy to serve, wide tooling.
-- **Single node (8x80GB), big capacity**: Llama 3 70B, Qwen 2.5 72B. Highest dense open capability.
-- **Biggest open capability, accept MoE complexity**: DeepSeek V3, Mixtral 8x22B. Best capability per active FLOP.
-- **Long-context needs**: Llama 3 (128k with RoPE scaling), DeepSeek (MLA advantage).
-- **Low-latency serving**: Gemma 2 9B (sliding window cuts long-context compute).
+- **Single 80GB GPU, no MoE**: Llama 3 8B, Mistral 7B, Gemma 2 9B. Serving이 쉽고 tooling이 넓습니다.
+- **Single node (8x80GB), big capacity**: Llama 3 70B, Qwen 2.5 72B. 가장 높은 dense open capability.
+- **Biggest open capability, accept MoE complexity**: DeepSeek V3, Mixtral 8x22B. Active FLOP당 최고의 capability.
+- **Long-context needs**: Llama 3(RoPE scaling으로 128k), DeepSeek(MLA 이점).
+- **Low-latency serving**: Gemma 2 9B(sliding window가 long-context compute를 줄임).
 
 ```figure
 rmsnorm-vs-layernorm
 ```
 
-## Build It
+## 직접 만들기
 
-The lesson's code is a calculator. Given any config.json, it prints parameter count by component, KV cache at max context, SwiGLU MLP ratio, and a short verdict on the architecture (dense / GQA / MLA / MoE).
+이 lesson의 코드는 calculator입니다. 임의의 config.json이 주어지면 component별 parameter count, max context에서의 KV cache, SwiGLU MLP ratio, architecture에 대한 짧은 판정(dense / GQA / MLA / MoE)을 출력합니다.
 
 ```python
 config = {
@@ -237,54 +237,54 @@ config = {
 }
 ```
 
-The script walks the architecture field by field, computes param counts for embedding, attention (with GQA reduction), MLP (with SwiGLU expansion), layernorms, and the head. It then computes the KV cache at the stated context length and prints a summary.
+Script는 architecture field를 하나씩 훑으며 embedding, attention(GQA reduction 포함), MLP(SwiGLU expansion 포함), layernorms, head의 parameter count를 계산합니다. 이어서 명시된 context length에서 KV cache를 계산하고 summary를 출력합니다.
 
-See `code/main.py` for the implementation.
+구현은 `code/main.py`를 보세요.
 
-## Use It
+## 활용하기
 
-Run the calculator on Llama 3 8B, Mistral 7B, Mixtral 8x7B, and DeepSeek V3 configs bundled in the script. Compare the parameter breakdowns. Notice that the MoE models have a total param count that dwarfs the dense models but an active param count that is often smaller. Notice that DeepSeek V3's KV cache is smaller than Llama 3 405B's despite having more total parameters -- that is MLA in action.
+Script에 포함된 Llama 3 8B, Mistral 7B, Mixtral 8x7B, DeepSeek V3 config로 calculator를 실행하세요. Parameter breakdown을 비교하세요. MoE model은 total param count가 dense model을 압도하지만 active param count는 더 작은 경우가 많다는 점을 보세요. DeepSeek V3는 total parameter가 더 많은데도 KV cache가 Llama 3 405B보다 작다는 점을 보세요. 이것이 MLA의 효과입니다.
 
-Then plug in a config for any model you have locally, read the summary, and decide whether it fits your GPU.
+그다음 로컬에 있는 임의 model의 config를 넣고 summary를 읽은 뒤, 그것이 GPU에 맞는지 판단하세요.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-open-model-picker.md`. Given a deployment target (GPU type, VRAM, context length, latency budget) and a task profile (chat, code, reasoning, long-context), it recommends an open model, a quantization scheme from Lesson 11, and an inference stack from Lesson 12, with explicit reasoning about the six architectural knobs.
+이 lesson은 `outputs/skill-open-model-picker.md`를 생성합니다. Deployment target(GPU type, VRAM, context length, latency budget)과 task profile(chat, code, reasoning, long-context)이 주어지면 open model, Lesson 11의 quantization scheme, Lesson 12의 inference stack을 추천하고 여섯 architecture knob에 대한 명시적 근거를 제공합니다.
 
-## Exercises
+## 연습문제
 
-1. Read the Qwen 2.5 72B config from HuggingFace. Compute total parameters from scratch. Compare to the HF-reported value and identify where any delta comes from (head dim rounding, KV sharing factor, etc.).
+1. HuggingFace에서 Qwen 2.5 72B config를 읽으세요. Total parameters를 처음부터 계산하세요. HF가 보고한 값과 비교하고 차이가 어디서 나오는지 식별하세요(head dim rounding, KV sharing factor 등).
 
-2. DeepSeek V3 uses 256 experts with top-8 routing. Compute the ratio of activated experts to total experts and compare to Mixtral 8x7B's top-2 of 8. What does the shift from sparse (25%) to denser sparse (3%) imply about capacity per FLOP?
+2. DeepSeek V3는 256 experts와 top-8 routing을 사용합니다. Activated experts와 total experts의 비율을 계산하고 Mixtral 8x7B의 top-2 of 8과 비교하세요. Sparse(25%)에서 denser sparse(3%)로 이동한 것이 FLOP당 capacity에 대해 무엇을 의미하나요?
 
-3. Compute the KV cache for Llama 3 405B at 128k context in FP8 and BF16. At FP8 it is half the BF16 number. How many parallel sequences can you serve on a single 8xH100 node (80GB each = 640GB total, minus weight memory)?
+3. Llama 3 405B의 128k context KV cache를 FP8과 BF16에서 계산하세요. FP8에서는 BF16 수치의 절반입니다. 단일 8xH100 node(각 80GB = 총 640GB, weight memory 제외)에서 몇 개의 parallel sequence를 serving할 수 있나요?
 
-4. Gemma 2 alternates full-attention and sliding-window-attention layers. Write the math for the KV cache when half the layers use a 4096-token sliding window instead of full context. How much memory does that save at 8k total context?
+4. Gemma 2는 full-attention layer와 sliding-window-attention layer를 번갈아 씁니다. Layer 절반이 full context 대신 4096-token sliding window를 사용할 때 KV cache 수식을 쓰세요. 8k total context에서 memory를 얼마나 절약하나요?
 
-5. Find a recent frontier open model that was released after this lesson was written. Identify which of the six knobs it picked and whether it introduced a seventh knob. The curriculum will feel out of date the moment a new architecture ships -- the goal is to update your table without rebuilding your mental model.
+5. 이 lesson이 작성된 뒤 공개된 최신 frontier open model을 찾으세요. 여섯 knob 중 무엇을 선택했는지, 일곱 번째 knob를 도입했는지 식별하세요. 새 architecture가 나오는 순간 curriculum은 낡아 보일 것입니다. 목표는 mental model을 다시 만들지 않고 table을 갱신하는 것입니다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 흔히 말하는 뜻 | 실제 의미 |
 |------|----------------|----------------------|
-| RMSNorm | "LayerNorm without the mean" | Normalize by root mean square only, with a learned scale — cheaper and comparable to LayerNorm |
-| RoPE | "Rotary positions" | Rotate each Q and K vector in 2D pairs by an angle that depends on position — extrapolates beyond training length with scaling tricks |
-| SwiGLU | "The new MLP activation" | Gated linear unit with Swish: `(xW1) * sigmoid(xW1) * xV` — standard in every 2024+ open model |
-| GQA | "Middle ground attention" | Grouped-Query Attention: G groups of Q heads share one K and one V head — shrinks KV cache without MQA's accuracy hit |
-| MLA | "DeepSeek's attention" | Multi-Head Latent Attention: compress K/V into a shared low-rank latent, decompress per head — smallest KV cache for large models |
-| MoE | "Sparse experts" | Mixture of Experts: N MLPs per block, router picks top-k per token — huge total params, small active params |
-| Top-k routing | "Pick k experts per token" | The router computes a score per expert and activates the k highest — typical k is 2 (Mixtral) to 8 (DeepSeek) |
-| YaRN | "Stretch RoPE" | Yet another RoPE extension — interpolates rotary angles to extend context from 8k to 128k+ at inference time |
-| Sliding-window attention | "Don't attend to everything" | Each token attends only to the last W tokens — caps attention cost at O(W) per token, used in Gemma 2 and early Mistral |
-| Active params | "What runs per token" | For MoE models, the parameter count that sees a forward pass per token (much smaller than total params) — governs per-token FLOPs |
+| RMSNorm | "mean 없는 LayerNorm" | Root mean square만으로 normalize하고 learned scale을 적용합니다. LayerNorm과 비슷하면서 더 저렴합니다 |
+| RoPE | "Rotary positions" | Position에 따라 정해지는 각도로 각 Q와 K vector를 2D pair 단위로 회전합니다. Scaling trick으로 training length를 넘어 extrapolate합니다 |
+| SwiGLU | "새 MLP activation" | Swish를 쓰는 gated linear unit: `(xW1) * sigmoid(xW1) * xV`. 2024+ open model의 표준입니다 |
+| GQA | "중간 지점 attention" | Grouped-Query Attention: G개의 Q head group이 하나의 K와 하나의 V head를 공유합니다. MQA의 accuracy hit 없이 KV cache를 줄입니다 |
+| MLA | "DeepSeek의 attention" | Multi-Head Latent Attention: K/V를 shared low-rank latent로 압축하고 head별로 decompress합니다. Large model에서 KV cache가 가장 작습니다 |
+| MoE | "Sparse experts" | Mixture of Experts: block당 N개의 MLP, router가 token마다 top-k를 고릅니다. Total params는 크고 active params는 작습니다 |
+| Top-k routing | "token마다 k개 expert 선택" | Router가 expert별 score를 계산하고 가장 높은 k개를 활성화합니다. 보통 k는 2(Mixtral)에서 8(DeepSeek)입니다 |
+| YaRN | "RoPE 늘리기" | Yet another RoPE extension. Rotary angle을 interpolate해 inference context를 8k에서 128k+로 확장합니다 |
+| Sliding-window attention | "모든 것에 attend하지 않기" | 각 token이 마지막 W token에만 attend합니다. Token당 attention cost를 O(W)로 제한하며 Gemma 2와 초기 Mistral에 사용됩니다 |
+| Active params | "token당 실제 실행되는 것" | MoE model에서 token별 forward pass를 수행하는 parameter count입니다(total params보다 훨씬 작음). Per-token FLOPs를 좌우합니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Dubey et al., 2024 -- "The Llama 3 Herd of Models"](https://arxiv.org/abs/2407.21783) -- the architectural and training reference for the dense Llama 3 family
-- [DeepSeek-AI, 2024 -- "DeepSeek-V3 Technical Report"](https://arxiv.org/abs/2412.19437) -- MLA plus auxiliary-loss-free load balancing plus 671B MoE
-- [Jiang et al., 2024 -- "Mixtral of Experts"](https://arxiv.org/abs/2401.04088) -- the canonical MoE open model paper
-- [Su et al., 2021 -- "RoFormer: Enhanced Transformer with Rotary Position Embedding"](https://arxiv.org/abs/2104.09864) -- the RoPE paper
-- [Shazeer, 2020 -- "GLU Variants Improve Transformer"](https://arxiv.org/abs/2002.05202) -- SwiGLU, GeGLU, and friends
-- [Ainslie et al., 2023 -- "GQA: Training Generalized Multi-Query Transformer Models"](https://arxiv.org/abs/2305.13245) -- the GQA paper
+- [Dubey et al., 2024 -- "The Llama 3 Herd of Models"](https://arxiv.org/abs/2407.21783) -- dense Llama 3 family의 architecture와 training reference
+- [DeepSeek-AI, 2024 -- "DeepSeek-V3 Technical Report"](https://arxiv.org/abs/2412.19437) -- MLA, auxiliary-loss-free load balancing, 671B MoE
+- [Jiang et al., 2024 -- "Mixtral of Experts"](https://arxiv.org/abs/2401.04088) -- canonical MoE open model paper
+- [Su et al., 2021 -- "RoFormer: Enhanced Transformer with Rotary Position Embedding"](https://arxiv.org/abs/2104.09864) -- RoPE paper
+- [Shazeer, 2020 -- "GLU Variants Improve Transformer"](https://arxiv.org/abs/2002.05202) -- SwiGLU, GeGLU 등
+- [Ainslie et al., 2023 -- "GQA: Training Generalized Multi-Query Transformer Models"](https://arxiv.org/abs/2305.13245) -- GQA paper
 - [Gemma 2 Team, 2024 -- "Gemma 2: Improving Open Language Models at a Practical Size"](https://arxiv.org/abs/2408.00118) -- hybrid full+sliding attention, pre+post-norm
-- [Qwen Team, 2024 -- "Qwen 2.5 Technical Report"](https://arxiv.org/abs/2412.15115) -- YaRN context extension and long-context training recipes
+- [Qwen Team, 2024 -- "Qwen 2.5 Technical Report"](https://arxiv.org/abs/2412.15115) -- YaRN context extension과 long-context training recipe

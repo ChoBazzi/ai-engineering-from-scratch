@@ -1,34 +1,34 @@
 {
   "lesson": "27-prompt-injection-defense",
-  "title": "Prompt Injection and the PVE Defense",
+  "title": "Prompt Injection과 PVE Defense",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is indirect prompt injection?",
+      "question": "indirect prompt injection이란 무엇인가?",
       "options": [
-        "A user typing 'ignore all rules' directly",
-        "Instructions embedded in data the agent retrieves (a page, PDF, email, memory note) that override the developer prompt on ingest",
-        "A model misclick",
-        "A typo in the system prompt"
+        "user가 'ignore all rules'를 직접 입력하는 것",
+        "agent가 retrieve하는 data(page, PDF, email, memory note)에 embedded되어 ingest 시 developer prompt를 override하는 instruction",
+        "model misclick",
+        "system prompt의 typo"
       ],
       "correct": 1,
-      "explanation": "Greshake et al. coined indirect prompt injection: attacker-controlled retrieved content carries instructions."
+      "explanation": "Greshake et al.은 indirect prompt injection이라는 말을 정립했다. attacker-controlled retrieved content가 instruction을 운반한다."
     },
     {
       "stage": "pre",
-      "question": "What does the lesson say processing retrieved prompts is equivalent to?",
+      "question": "이 lesson은 retrieved prompt를 처리하는 것이 무엇과 같다고 말하는가?",
       "options": [
-        "Free speech",
-        "Arbitrary code execution on the agent's tool-use surface",
-        "A static analysis pass",
-        "A pure function call"
+        "free speech",
+        "agent의 tool-use surface에서 arbitrary code execution",
+        "static analysis pass",
+        "pure function call"
       ],
       "correct": 1,
-      "explanation": "Greshake's framing: retrieved instructions can hit any tool the agent has access to."
+      "explanation": "Greshake의 framing에서는 retrieved instruction이 agent가 접근할 수 있는 어떤 tool이든 때릴 수 있다."
     },
     {
       "stage": "check",
-      "question": "Which is NOT one of the five demonstrated exploit classes?",
+      "question": "다음 중 시연된 다섯 exploit class가 아닌 것은 무엇인가?",
       "options": [
         "Data theft",
         "Worming",
@@ -36,55 +36,55 @@
         "Cache invalidation"
       ],
       "correct": 3,
-      "explanation": "The five are data theft, worming, persistent memory poisoning, ecosystem contamination, arbitrary tool use."
+      "explanation": "다섯 가지는 data theft, worming, persistent memory poisoning, ecosystem contamination, arbitrary tool use다."
     },
     {
       "stage": "check",
-      "question": "What does PVE stand for?",
+      "question": "PVE는 무엇의 약자인가?",
       "options": [
-        "Prompt-Validator-Executor: a cheap fast validator runs on each tool call before the expensive main model commits",
+        "Prompt-Validator-Executor: expensive main model이 commit하기 전에 각 tool call에서 cheap fast validator가 실행된다",
         "Provider-Verifier-Encoder",
         "Plan-Verify-Execute, an HTN dialect",
         "Pre-Vectorize-Embed"
       ],
       "correct": 0,
-      "explanation": "PVE wraps every tool invocation with a cheap validator before main-model commit."
+      "explanation": "PVE는 main-model commit 전에 모든 tool invocation을 cheap validator로 감싼다."
     },
     {
       "stage": "check",
-      "question": "Why is 'system prompt says ignore untrusted instructions' insufficient?",
+      "question": "'system prompt says ignore untrusted instructions'가 충분하지 않은 이유는 무엇인가?",
       "options": [
-        "It is too short",
-        "It is instruction-following, not enforcement; the model can still be overridden by sufficiently persuasive injected content",
-        "Providers strip it",
-        "It is encrypted"
+        "너무 짧기 때문이다",
+        "enforcement가 아니라 instruction-following이기 때문이다. model은 충분히 설득력 있는 injected content에 여전히 override될 수 있다",
+        "provider가 제거하기 때문이다",
+        "암호화되어 있기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Real defense needs source tagging, allowlists, per-step safety, and PVE-style validation, not just prompting."
+      "explanation": "실제 방어에는 prompt만이 아니라 source tagging, allowlist, per-step safety, PVE-style validation이 필요하다."
     },
     {
       "stage": "post",
-      "question": "What is overtrust of retrieved memory?",
+      "question": "retrieved memory 과신이란 무엇인가?",
       "options": [
-        "Caching too aggressively",
-        "Yesterday's agent wrote a poisoned memory note; today's agent reads it and re-executes the injection",
-        "Loading the wrong model",
-        "Forgetting to vacuum the index"
+        "caching을 너무 공격적으로 하는 것",
+        "어제의 agent가 poisoned memory note를 썼고, 오늘의 agent가 그것을 읽고 injection을 다시 실행하는 것",
+        "wrong model을 load하는 것",
+        "index vacuum을 잊는 것"
       ],
       "correct": 1,
-      "explanation": "Persistent memory poisoning means injections survive across sessions if memory is treated as trusted."
+      "explanation": "persistent memory poisoning은 memory를 trusted로 취급하면 injection이 session을 넘어 살아남는다는 뜻이다."
     },
     {
       "stage": "post",
-      "question": "What metadata does the lesson recommend attaching to every piece of content?",
+      "question": "이 lesson은 모든 content 조각에 어떤 metadata를 붙이라고 권하는가?",
       "options": [
-        "An encryption key",
-        "A source tag: user_message vs tool_output vs retrieved; validator refuses directives in retrieved content",
-        "A timestamp only",
-        "A token count"
+        "encryption key",
+        "source tag: user_message vs tool_output vs retrieved. validator는 retrieved content 안의 directive를 거부한다",
+        "timestamp만",
+        "token count"
       ],
       "correct": 1,
-      "explanation": "Provenance tagging lets the validator treat content according to its trust level."
+      "explanation": "provenance tagging은 validator가 trust level에 따라 content를 다루게 해 준다."
     }
   ]
 }

@@ -1,34 +1,34 @@
-# 3D Vision — Point Clouds & NeRFs
+# 3D 비전 — 포인트 클라우드와 NeRF
 
-> 3D vision comes in two flavours. Point clouds are the sensor's raw output. NeRFs are the learned volumetric field. Both answer "what is where in space."
+> 3D 비전에는 두 가지 형태가 있습니다. 포인트 클라우드는 센서의 원시 출력입니다. NeRF는 학습된 체적장입니다. 둘 다 "공간의 어디에 무엇이 있는가"에 답합니다.
 
 **Type:** Learn + Build
 **Languages:** Python
 **Prerequisites:** Phase 4 Lesson 03 (CNNs), Phase 1 Lesson 12 (Tensor Operations)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Distinguish explicit (point cloud, mesh, voxel) and implicit (signed distance field, NeRF) 3D representations and when each is used
-- Understand PointNet's symmetric-function trick that makes a neural network permutation-invariant over an unordered set of points
-- Trace a NeRF forward pass: ray casting, volumetric rendering, positional encoding, MLP density+colour head
-- Use `nerfstudio` or `instant-ngp` for pretrained 3D reconstruction from a small set of posed images
+- 명시적 3D 표현(포인트 클라우드, 메시, 복셀)과 암시적 3D 표현(signed distance field, NeRF)을 구분하고 각각이 언제 쓰이는지 설명합니다
+- 순서 없는 점 집합에 대해 신경망을 순열 불변으로 만드는 PointNet의 대칭 함수 기법을 이해합니다
+- NeRF 순전파를 따라갑니다: 광선 투사, 체적 렌더링, 위치 인코딩, MLP 밀도+색상 헤드
+- 포즈가 주어진 소수의 이미지에서 사전학습된 3D 재구성을 수행하기 위해 `nerfstudio` 또는 `instant-ngp`를 사용합니다
 
-## The Problem
+## 문제
 
-A camera produces a 2D image. A LIDAR produces a set of 3D points with no ordering. A structure-from-motion pipeline produces a sparse cloud of 3D keypoints. A NeRF reconstructs an entire 3D scene from a handful of posed images. All of these are "vision" but none of them look like the dense tensor a CNN wants.
+카메라는 2D 이미지를 생성합니다. LIDAR는 순서가 없는 3D 점 집합을 생성합니다. structure-from-motion 파이프라인은 희소한 3D 키포인트 클라우드를 생성합니다. NeRF는 포즈가 주어진 몇 장의 이미지에서 전체 3D 장면을 재구성합니다. 이 모두가 "비전"이지만, 어느 것도 CNN이 원하는 조밀한 텐서처럼 보이지 않습니다.
 
-3D vision matters because almost every high-value robot task runs in 3D: grasping, obstacle avoidance, navigation, AR occlusion, 3D content capture. A vision engineer who only understands 2D images is locked out of the fastest-growing slice of the field (AR/VR content, robotics, autonomous driving stacks, NeRF-based 3D reconstruction for real-estate or construction).
+3D 비전이 중요한 이유는 거의 모든 고부가가치 로봇 작업이 3D에서 실행되기 때문입니다: 파지, 장애물 회피, 내비게이션, AR 오클루전, 3D 콘텐츠 캡처. 2D 이미지만 이해하는 비전 엔지니어는 이 분야에서 가장 빠르게 성장하는 영역(AR/VR 콘텐츠, 로보틱스, 자율주행 스택, 부동산이나 건설용 NeRF 기반 3D 재구성)에 접근하기 어렵습니다.
 
-The two representations dominate for different reasons. Point clouds are what sensors give you for free. NeRFs and their successors (3D Gaussian splatting, neural SDFs) are what you get when you ask a neural network to learn a scene.
+두 표현은 서로 다른 이유로 주류가 되었습니다. 포인트 클라우드는 센서가 그대로 제공하는 것입니다. NeRF와 그 후속 방식(3D Gaussian splatting, neural SDFs)은 신경망에게 장면을 학습하라고 요청했을 때 얻는 것입니다.
 
-## The Concept
+## 개념
 
-### Point clouds
+### 포인트 클라우드
 
-A point cloud is an unordered set of N points in R^3, optionally each with features (colour, intensity, normal).
+포인트 클라우드는 R^3의 N개 점으로 이루어진 순서 없는 집합이며, 선택적으로 각 점이 특징(색상, 강도, 법선)을 가질 수 있습니다.
 
-```
+```text
 cloud = [
   (x1, y1, z1, r1, g1, b1),
   (x2, y2, z2, r2, g2, b2),
@@ -37,20 +37,20 @@ cloud = [
 ]
 ```
 
-No grid, no connectivity. Two properties make this hard for neural networks:
+격자도 없고 연결성도 없습니다. 두 가지 특성이 신경망 처리에 어려움을 만듭니다:
 
-- **Permutation invariance** — the output must not depend on point order.
-- **Variable N** — a single model must handle clouds of different sizes.
+- **순열 불변성** — 출력은 점의 순서에 의존하면 안 됩니다.
+- **가변 N** — 하나의 모델이 서로 다른 크기의 클라우드를 처리해야 합니다.
 
-PointNet (Qi et al., 2017) solved both with one idea: apply a shared MLP to every point, then aggregate with a symmetric function (max pool). The result is a fixed-size vector that does not depend on order.
+PointNet(Qi et al., 2017)은 하나의 아이디어로 두 문제를 모두 해결했습니다: 모든 점에 공유 MLP를 적용한 다음 대칭 함수(max pool)로 집계합니다. 결과는 순서에 의존하지 않는 고정 크기 벡터입니다.
 
-```
+```text
 f(P) = max_{p in P} MLP(p)
 ```
 
-This is the entire core of PointNet. Deeper variants (PointNet++, Point Transformer) add hierarchical sampling and local aggregation but the symmetric-function trick is unchanged.
+이것이 PointNet의 전체 핵심입니다. 더 깊은 변형(PointNet++, Point Transformer)은 계층적 샘플링과 지역 집계를 추가하지만, 대칭 함수 기법은 바뀌지 않습니다.
 
-### The PointNet architecture
+### PointNet 아키텍처
 
 ```mermaid
 flowchart LR
@@ -66,13 +66,13 @@ flowchart LR
     style CLS fill:#dcfce7,stroke:#16a34a
 ```
 
-"Shared MLP" means the same MLP runs on every point independently. Implemented as a 1x1 conv over the point dimension for efficiency.
+"Shared MLP"는 같은 MLP가 모든 점에 독립적으로 실행된다는 뜻입니다. 효율을 위해 점 차원에 대한 1x1 conv로 구현합니다.
 
 ### Neural Radiance Fields (NeRFs)
 
-NeRFs (Mildenhall et al., 2020) took the question "can we reconstruct a 3D scene from N photos?" and answered with a neural network that is the scene. The network maps `(x, y, z, viewing_direction)` to `(density, colour)`. Rendering a new view is a ray-casting loop over this network.
+NeRF(Mildenhall et al., 2020)는 "N장의 사진에서 3D 장면을 재구성할 수 있는가?"라는 질문에, 장면 자체가 되는 신경망으로 답했습니다. 네트워크는 `(x, y, z, viewing_direction)`을 `(density, colour)`로 매핑합니다. 새로운 시점을 렌더링하는 과정은 이 네트워크 위에서 수행되는 광선 투사 루프입니다.
 
-```
+```text
 NeRF MLP:  (x, y, z, theta, phi) -> (sigma, r, g, b)
 
 To render a pixel (u, v) of a new view:
@@ -83,50 +83,50 @@ To render a pixel (u, v) of a new view:
   5. The sum is the rendered pixel colour
 ```
 
-A loss compares the rendered pixel to the ground-truth pixel in the training photos. Backprop through the rendering step updates the MLP. No 3D ground truth, no explicit geometry — the scene is stored in the MLP weights.
+손실은 렌더링된 픽셀과 학습 사진의 정답 픽셀을 비교합니다. 렌더링 단계를 통한 역전파가 MLP를 업데이트합니다. 3D 정답도, 명시적 기하도 없습니다. 장면은 MLP 가중치에 저장됩니다.
 
-### Positional encoding in NeRF
+### NeRF의 위치 인코딩
 
-A vanilla MLP on `(x, y, z)` cannot represent high-frequency details because MLPs are spectrally biased toward low frequencies. NeRF fixes this by encoding each coordinate into a Fourier feature vector before the MLP:
+`(x, y, z)`를 그대로 받는 일반 MLP는 고주파 세부사항을 표현할 수 없습니다. MLP가 저주파에 치우친 스펙트럼 편향을 갖기 때문입니다. NeRF는 각 좌표를 MLP에 넣기 전에 Fourier feature 벡터로 인코딩해 이를 해결합니다:
 
-```
+```text
 gamma(p) = (sin(2^0 pi p), cos(2^0 pi p), sin(2^1 pi p), cos(2^1 pi p), ...)
 ```
 
-Up to L=10 frequency levels. This is the same trick transformers use for positions, and it appears again in diffusion time conditioning (Lesson 10). Without it, NeRFs look blurry.
+최대 L=10 주파수 레벨까지 사용합니다. 이는 트랜스포머가 위치에 사용하는 것과 같은 기법이며, 확산 시간 조건화(Lesson 10)에서도 다시 등장합니다. 이것이 없으면 NeRF는 흐릿하게 보입니다.
 
-### Volumetric rendering
+### 체적 렌더링
 
-```
+```text
 C(r) = sum_i T_i * (1 - exp(-sigma_i * delta_i)) * c_i
 
 T_i  = exp(- sum_{j<i} sigma_j * delta_j)
 delta_i = t_{i+1} - t_i
 ```
 
-`T_i` is transmittance — how much light survives to point i. `(1 - exp(-sigma_i * delta_i))` is the opacity at point i. `c_i` is the colour. The final pixel is a weighted sum along the ray.
+`T_i`는 투과율입니다. 빛이 점 i까지 얼마나 살아남는지를 나타냅니다. `(1 - exp(-sigma_i * delta_i))`는 점 i에서의 불투명도입니다. `c_i`는 색상입니다. 최종 픽셀은 광선을 따라 계산한 가중합입니다.
 
-### What replaced NeRFs
+### NeRF를 대체한 것들
 
-Pure NeRFs are slow to train (hours) and slow to render (seconds per image). The lineage since:
+순수 NeRF는 학습이 느리고(몇 시간) 렌더링도 느립니다(이미지당 몇 초). 이후 계보는 다음과 같습니다:
 
-- **Instant-NGP** (2022) — hash-grid encoding replaces the MLP's position input; trains in seconds.
-- **Mip-NeRF 360** — handles unbounded scenes and anti-aliasing.
-- **3D Gaussian Splatting** (2023) — replaces the volumetric field with millions of 3D Gaussians; trains in minutes, renders in real time. The current production default.
+- **Instant-NGP** (2022) — 해시 격자 인코딩이 MLP의 위치 입력을 대체합니다. 몇 초 만에 학습됩니다.
+- **Mip-NeRF 360** — 경계가 없는 장면과 안티앨리어싱을 처리합니다.
+- **3D Gaussian Splatting** (2023) — 체적장을 수백만 개의 3D Gaussian으로 대체합니다. 몇 분 만에 학습하고 실시간으로 렌더링합니다. 현재 프로덕션 기본값입니다.
 
-Almost every real NeRF product in 2026 is actually 3D Gaussian splatting. The mental model is still NeRF.
+2026년의 거의 모든 실제 NeRF 제품은 사실상 3D Gaussian splatting입니다. 그래도 정신 모델은 여전히 NeRF입니다.
 
-### Datasets and benchmarks
+### 데이터셋과 벤치마크
 
-- **ShapeNet** — classification and segmentation of 3D CAD models as point clouds.
-- **ScanNet** — real indoor scans for segmentation.
-- **KITTI** — outdoor LIDAR point clouds for autonomous driving.
-- **NeRF Synthetic** / **Blended MVS** — posed-image datasets for view synthesis.
-- **Mip-NeRF 360** dataset — unbounded real scenes.
+- **ShapeNet** — 포인트 클라우드 형태의 3D CAD 모델 분류와 세그멘테이션.
+- **ScanNet** — 세그멘테이션을 위한 실제 실내 스캔.
+- **KITTI** — 자율주행을 위한 실외 LIDAR 포인트 클라우드.
+- **NeRF Synthetic** / **Blended MVS** — 시점 합성을 위한 포즈 이미지 데이터셋.
+- **Mip-NeRF 360** dataset — 경계가 없는 실제 장면.
 
-## Build It
+## 직접 만들기
 
-### Step 1: PointNet classifier
+### Step 1: PointNet 분류기
 
 ```python
 import torch
@@ -164,9 +164,9 @@ print(f"output: {net(pts).shape}")
 print(f"params: {sum(p.numel() for p in net.parameters()):,}")
 ```
 
-About 1.6M parameters. Runs on 1,024 points per cloud.
+약 1.6M개의 파라미터입니다. 클라우드당 1,024개 점에서 실행됩니다.
 
-### Step 2: Positional encoding
+### Step 2: 위치 인코딩
 
 ```python
 def positional_encoding(x, L=10):
@@ -184,9 +184,9 @@ print(f"input:  {x.shape}")
 print(f"encoded: {y.shape}     # (5, 60)")
 ```
 
-Multiplying by `2^l * pi` gives progressively higher frequencies.
+`2^l * pi`를 곱하면 점점 더 높은 주파수를 얻게 됩니다.
 
-### Step 3: Tiny NeRF MLP
+### Step 3: 작은 NeRF MLP
 
 ```python
 class TinyNeRF(nn.Module):
@@ -223,9 +223,9 @@ s, c = nerf(x, d)
 print(f"sigma: {s.shape}   rgb: {c.shape}")
 ```
 
-Tiny compared to the original NeRF (which has 2 MLP trunks of depth 8). Enough to demonstrate the architecture.
+원래 NeRF(깊이 8의 MLP trunk 2개)에 비하면 아주 작습니다. 그래도 아키텍처를 보여주기에는 충분합니다.
 
-### Step 4: Volumetric rendering along a ray
+### Step 4: 광선을 따라 체적 렌더링하기
 
 ```python
 def volumetric_render(sigma, rgb, t_vals):
@@ -252,47 +252,47 @@ print(f"rendered colour: {rendered.tolist()}")
 print(f"depth:           {depth.item():.2f}")
 ```
 
-One ray, 64 samples, composite to a single RGB pixel and a depth.
+하나의 광선, 64개 샘플을 하나의 RGB 픽셀과 깊이로 합성합니다.
 
-## Use It
+## 사용하기
 
-For real work:
+실제 작업에서는 다음을 사용합니다:
 
-- `nerfstudio` (Tancik et al.) — the current reference library for NeRF / Instant-NGP / Gaussian Splatting. Command-line plus a web viewer.
-- `pytorch3d` (Meta) — differentiable rendering, point-cloud utilities, mesh ops.
-- `open3d` — point cloud processing, registration, visualisation.
+- `nerfstudio` (Tancik et al.) — NeRF / Instant-NGP / Gaussian Splatting을 위한 현재 기준 라이브러리. 명령줄과 웹 뷰어를 함께 제공합니다.
+- `pytorch3d` (Meta) — 미분 가능한 렌더링, 포인트 클라우드 유틸리티, 메시 연산.
+- `open3d` — 포인트 클라우드 처리, 정합, 시각화.
 
-For deployment, 3D Gaussian splatting has largely replaced pure NeRFs because it renders 100x faster. The reconstruction quality is comparable.
+배포에서는 3D Gaussian splatting이 순수 NeRF를 대부분 대체했습니다. 렌더링이 100배 더 빠르기 때문입니다. 재구성 품질은 비슷합니다.
 
-## Ship It
+## 산출물
 
-This lesson produces:
+이 레슨은 다음을 만듭니다:
 
-- `outputs/prompt-3d-task-router.md` — a prompt that routes to the right 3D representation (point cloud, mesh, voxel, NeRF, Gaussian splat) based on task and input data.
-- `outputs/skill-point-cloud-loader.md` — a skill that writes a PyTorch `Dataset` for .ply / .pcd / .xyz files with correct normalisation, centring, and point sampling.
+- `outputs/prompt-3d-task-router.md` — 작업과 입력 데이터에 따라 적절한 3D 표현(포인트 클라우드, 메시, 복셀, NeRF, Gaussian splat)으로 라우팅하는 프롬프트.
+- `outputs/skill-point-cloud-loader.md` — .ply / .pcd / .xyz 파일을 올바른 정규화, 중심 맞추기, 점 샘플링이 적용된 PyTorch `Dataset`으로 작성하는 스킬.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Show that PointNet is permutation-invariant: run the same cloud through twice, once with points shuffled. Verify outputs are identical up to floating-point noise.
-2. **(Medium)** Implement a minimal ray-generation function that, given camera intrinsics and pose, produces ray origins and directions for every pixel of an H x W image.
-3. **(Hard)** Train a TinyNeRF on a synthetic dataset of rendered views of a coloured cube (generated via differentiable rendering or a simple ray tracer). Report rendering loss at epoch 1, 10, and 100. At what epoch does the model produce recognisable views?
+1. **(쉬움)** PointNet이 순열 불변임을 보이세요. 같은 클라우드를 두 번 통과시키되 한 번은 점 순서를 섞습니다. 출력이 부동소수점 잡음 수준까지 동일한지 확인하세요.
+2. **(중간)** 카메라 내부 파라미터와 포즈가 주어졌을 때 H x W 이미지의 모든 픽셀에 대한 광선 원점과 방향을 생성하는 최소한의 광선 생성 함수를 구현하세요.
+3. **(어려움)** 색이 있는 큐브의 렌더링된 뷰로 만든 합성 데이터셋에서 TinyNeRF를 학습하세요(미분 가능한 렌더링 또는 간단한 레이 트레이서로 생성). epoch 1, 10, 100에서 렌더링 손실을 보고하세요. 모델이 알아볼 수 있는 뷰를 만들어내는 시점은 몇 epoch입니까?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Point cloud | "3D points from LIDAR" | Unordered set of (x, y, z) + optional features per point |
-| PointNet | "First neural net on point clouds" | Shared MLP per point + symmetric (max) pool; permutation-invariant by construction |
-| NeRF | "MLP that is the scene" | Network mapping (x, y, z, dir) to (density, colour); rendered by ray casting |
-| Positional encoding | "Fourier features" | Encode each coordinate into sin/cos at multiple frequencies to overcome MLP low-frequency bias |
-| Volumetric rendering | "Ray integration" | Composite samples along a ray into a single pixel using transmittance and alpha |
-| Instant-NGP | "Hash-grid NeRF" | Replaces NeRF's coordinate MLP with a multi-resolution hash grid; 100-1000x faster |
-| 3D Gaussian splatting | "Millions of Gaussians" | Scene = collection of 3D Gaussians; renders in real time, trains in minutes |
-| SDF | "Signed distance field" | Function returning signed distance to the nearest surface; another implicit representation |
+| Point cloud | "LIDAR에서 나온 3D 점" | 순서 없는 (x, y, z) 집합 + 점별 선택적 특징 |
+| PointNet | "포인트 클라우드용 첫 신경망" | 점마다 공유 MLP + 대칭(max) pool; 구조적으로 순열 불변 |
+| NeRF | "장면 자체인 MLP" | (x, y, z, dir)을 (density, colour)로 매핑하는 네트워크; 광선 투사로 렌더링 |
+| Positional encoding | "Fourier features" | MLP의 저주파 편향을 극복하기 위해 각 좌표를 여러 주파수의 sin/cos로 인코딩 |
+| Volumetric rendering | "Ray integration" | 투과율과 alpha를 사용해 광선 위의 샘플을 하나의 픽셀로 합성 |
+| Instant-NGP | "Hash-grid NeRF" | NeRF의 좌표 MLP를 다중 해상도 해시 격자로 대체합니다. 100-1000배 더 빠릅니다 |
+| 3D Gaussian splatting | "수백만 개의 Gaussian" | 장면 = 3D Gaussian들의 모음. 실시간으로 렌더링하고 몇 분 만에 학습합니다 |
+| SDF | "Signed distance field" | 가장 가까운 표면까지의 부호 있는 거리를 반환하는 함수. 또 다른 암시적 표현입니다 |
 
-## Further Reading
+## 더 읽기
 
-- [PointNet (Qi et al., 2017)](https://arxiv.org/abs/1612.00593) — the permutation-invariant classifier
-- [NeRF (Mildenhall et al., 2020)](https://arxiv.org/abs/2003.08934) — the paper that made 3D reconstruction from photos a neural-net problem
-- [Instant-NGP (Müller et al., 2022)](https://arxiv.org/abs/2201.05989) — hash grids, 1000x speedup
-- [3D Gaussian Splatting (Kerbl et al., 2023)](https://arxiv.org/abs/2308.04079) — the architecture that replaced NeRFs in production
+- [PointNet (Qi et al., 2017)](https://arxiv.org/abs/1612.00593) — 순열 불변 분류기
+- [NeRF (Mildenhall et al., 2020)](https://arxiv.org/abs/2003.08934) — 사진 기반 3D 재구성을 신경망 문제로 만든 논문
+- [Instant-NGP (Müller et al., 2022)](https://arxiv.org/abs/2201.05989) — 해시 격자, 1000배 속도 향상
+- [3D Gaussian Splatting (Kerbl et al., 2023)](https://arxiv.org/abs/2308.04079) — 프로덕션에서 NeRF를 대체한 아키텍처

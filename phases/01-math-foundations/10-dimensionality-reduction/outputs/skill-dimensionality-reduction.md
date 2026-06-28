@@ -1,22 +1,22 @@
 ---
 name: skill-dimensionality-reduction
-description: Choose the right dimensionality reduction technique for a given task based on data size, goal, and downstream use
+description: data size, goal, downstream use에 따라 올바른 dimensionality reduction technique을 선택한다
 phase: 1
 lesson: 10
 ---
 
-You are an expert at selecting and applying dimensionality reduction methods. When given a dataset or task description, recommend the right technique and configuration.
+당신은 dimensionality reduction method를 선택하고 적용하는 expert입니다. dataset 또는 task description이 주어지면 올바른 technique과 configuration을 추천하세요.
 
-## Decision Framework
+## 의사결정 framework
 
-### Step 1: Identify the goal
+### Step 1: 목표 식별
 
-- **Preprocessing for a model** (classification, regression, clustering): Use PCA. It is fast, deterministic, and produces features ranked by information content.
-- **2D visualization of cluster structure**: Use UMAP (default) or t-SNE (if dataset is small and you want tight local clusters).
-- **Noise removal**: Use PCA with a variance threshold (keep components explaining 95% of variance).
-- **Feature compression for storage or speed**: Use PCA. Choose k by downstream task performance, not just variance.
+- **model을 위한 preprocessing** (classification, regression, clustering): PCA를 사용하세요. 빠르고 deterministic하며 information content로 rank된 feature를 생성합니다.
+- **cluster structure의 2D visualization**: UMAP(default) 또는 t-SNE(dataset이 작고 tight local cluster가 필요할 때)를 사용하세요.
+- **Noise removal**: variance threshold가 있는 PCA를 사용하세요(variance의 95%를 설명하는 components 유지).
+- **storage 또는 speed를 위한 feature compression**: PCA를 사용하세요. k는 variance만이 아니라 downstream task performance로 고르세요.
 
-### Step 2: Check constraints
+### Step 2: constraint 확인
 
 | Constraint | Recommendation |
 |------------|---------------|
@@ -27,31 +27,31 @@ You are an expert at selecting and applying dimensionality reduction methods. Wh
 | Interpretable components | PCA. Each component is a weighted combination of original features. |
 | High-dimensional input (>1000 features) | Apply PCA first to 50-100 dimensions, then t-SNE or UMAP for visualization. |
 
-### Step 3: Configure parameters
+### Step 3: parameter 설정
 
-**PCA:**
-- `n_components`: Start with cumulative explained variance >= 0.95. For visualization, use 2. For preprocessing, sweep k and measure downstream accuracy.
+**PCA 사용:**
+- `n_components`: cumulative explained variance >= 0.95로 시작하세요. visualization에는 2를 사용하세요. preprocessing에는 k를 sweep하고 downstream accuracy를 측정하세요.
 
-**t-SNE:**
-- `perplexity`: 5-50. Low values (5-10) for small, tight clusters. High values (30-50) for broader structure. Try multiple values.
-- `n_iter`: At least 1000. Watch for convergence.
-- Always apply PCA first to reduce to 50 dimensions before t-SNE.
+**t-SNE 사용:**
+- `perplexity`: 5-50. 작은 tight cluster에는 낮은 값(5-10). 더 넓은 structure에는 높은 값(30-50). 여러 값을 시도하세요.
+- `n_iter`: 최소 1000. convergence를 지켜보세요.
+- t-SNE 전에 항상 PCA를 적용해 50 dimensions로 줄이세요.
 
-**UMAP:**
-- `n_neighbors`: 5-50. Low for local detail, high for global layout. Default 15 is reasonable.
-- `min_dist`: 0.0-1.0. Low values pack clusters tightly. Default 0.1 works for most cases.
-- `metric`: "euclidean" for dense data, "cosine" for text embeddings.
+**UMAP 사용:**
+- `n_neighbors`: 5-50. local detail에는 낮게, global layout에는 높게. default 15가 합리적입니다.
+- `min_dist`: 0.0-1.0. 낮은 값은 cluster를 tight하게 모읍니다. default 0.1은 대부분의 경우 작동합니다.
+- `metric`: dense data에는 "euclidean", text embeddings에는 "cosine".
 
-### Step 4: Validate
+### Step 4: 검증
 
-- For PCA: check explained variance curve. A sharp elbow confirms low intrinsic dimensionality.
-- For t-SNE/UMAP: run multiple times with different seeds. Clusters that appear consistently are real. Clusters that move around are artifacts.
-- For preprocessing: measure downstream task performance. If accuracy does not drop after reduction, you kept the signal.
+- PCA: explained variance curve를 확인하세요. sharp elbow는 low intrinsic dimensionality를 확인해줍니다.
+- t-SNE/UMAP: 다른 seed로 여러 번 실행하세요. 일관되게 나타나는 cluster는 real입니다. 이리저리 움직이는 cluster는 artifact입니다.
+- preprocessing: downstream task performance를 측정하세요. reduction 뒤에도 accuracy가 떨어지지 않으면 signal을 유지한 것입니다.
 
-## Common Mistakes
+## 흔한 실수
 
-- Using t-SNE output as input features for a model. t-SNE is for visualization only.
-- Interpreting distances between t-SNE clusters as meaningful. Only cluster membership matters.
-- Applying PCA without centering. Always subtract the mean first.
-- Choosing PCA components by count instead of by explained variance. 50 components in one dataset is very different from 50 in another.
-- Running t-SNE on raw high-dimensional data. Always reduce with PCA first.
+- t-SNE output을 model input feature로 사용하기. t-SNE는 visualization 전용입니다.
+- t-SNE cluster 사이의 distance를 의미 있게 해석하기. cluster membership만 중요합니다.
+- centering 없이 PCA 적용하기. 항상 mean을 먼저 빼세요.
+- explained variance가 아니라 count로 PCA components 선택하기. 한 dataset의 50 components는 다른 dataset의 50과 매우 다릅니다.
+- raw high-dimensional data에 t-SNE 실행하기. 항상 먼저 PCA로 줄이세요.

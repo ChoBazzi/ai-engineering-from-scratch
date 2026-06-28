@@ -2,66 +2,66 @@
   {
     "id": "timeseries-pre-1",
     "stage": "pre",
-    "question": "Why is a random train/test split invalid for time series data?",
+    "question": "시계열 데이터에 무작위 train/test 분할이 유효하지 않은 이유는 무엇인가요?",
     "options": [
-      "Random splits make the dataset too small",
-      "Random splits leak future information into the training set, allowing the model to cheat",
-      "Time series data cannot be split at all",
-      "Random splits only work for classification problems"
+      "무작위 분할은 데이터셋을 너무 작게 만든다",
+      "무작위 분할은 미래 정보를 학습 세트로 누출시켜 모델이 속임수를 쓰게 한다",
+      "시계열 데이터는 전혀 분할할 수 없다",
+      "무작위 분할은 분류 문제에서만 작동한다"
     ],
     "correct": 1,
-    "explanation": "In a random split, future data points can end up in the training set while past points are in the test set. The model then uses future information to predict the past, giving falsely optimistic results."
+    "explanation": "무작위 분할에서는 미래 데이터 포인트가 학습 세트에 들어가고 과거 포인트가 테스트 세트에 들어갈 수 있습니다. 그러면 모델은 미래 정보를 사용해 과거를 예측하게 되어, 실제보다 지나치게 낙관적인 결과를 냅니다."
   },
   {
     "id": "timeseries-pre-2",
     "stage": "pre",
-    "question": "What does it mean for a time series to be stationary?",
+    "question": "시계열이 정상적이라는 것은 무엇을 의미하나요?",
     "options": [
-      "The values never change over time",
-      "Its statistical properties (mean, variance, autocorrelation) do not change over time",
-      "It has no seasonal patterns",
-      "It always trends upward"
+      "값이 시간이 지나도 절대 변하지 않는다",
+      "통계적 속성(평균, 분산, 자기상관)이 시간이 지나도 변하지 않는다",
+      "계절 패턴이 전혀 없다",
+      "항상 상승 추세를 보인다"
     ],
     "correct": 1,
-    "explanation": "A stationary series has constant mean, variance, and autocorrelation structure over time. Most forecasting methods assume stationarity. Non-stationary series need differencing or detrending first."
+    "explanation": "정상 시계열은 시간이 지나도 평균, 분산, 자기상관 구조가 일정합니다. 대부분의 예측 방법은 정상성을 가정합니다. 비정상 시계열은 먼저 차분하거나 추세를 제거해야 합니다."
   },
   {
     "id": "timeseries-post-1",
     "stage": "post",
-    "question": "What is the purpose of differencing a time series?",
+    "question": "시계열을 차분하는 목적은 무엇인가요?",
     "options": [
-      "To increase the number of data points",
-      "To remove trend and make the series stationary by modeling changes between consecutive values",
-      "To convert regression into classification",
-      "To normalize the values between 0 and 1"
+      "데이터 포인트 수를 늘리기 위해",
+      "연속된 값 사이의 변화를 모델링하여 추세를 제거하고 시계열을 정상적으로 만들기 위해",
+      "회귀를 분류로 변환하기 위해",
+      "값을 0과 1 사이로 정규화하기 위해"
     ],
     "correct": 1,
-    "explanation": "Differencing replaces each value with the change from the previous value: diff[t] = value[t] - value[t-1]. This removes trend, making the series closer to stationary."
+    "explanation": "차분은 각 값을 이전 값으로부터의 변화로 바꿉니다: diff[t] = value[t] - value[t-1]. 이렇게 하면 추세가 제거되어 시계열이 정상성에 가까워집니다."
   },
   {
     "id": "timeseries-post-2",
     "stage": "post",
-    "question": "Lag features convert a time series into a supervised learning problem. What is a lag-3 feature for predicting y[t]?",
+    "question": "지연 특징은 시계열을 지도 학습 문제로 바꿉니다. y[t]를 예측하기 위한 lag-3 특징은 무엇인가요?",
     "options": [
-      "The average of the next 3 values: (y[t+1] + y[t+2] + y[t+3]) / 3",
-      "The value 3 time steps ago: y[t-3]",
-      "The 3rd derivative of the series",
-      "The difference between the current value and 3 steps ahead"
+      "다음 3개 값의 평균: (y[t+1] + y[t+2] + y[t+3]) / 3",
+      "3시점 전의 값: y[t-3]",
+      "시계열의 3차 도함수",
+      "현재 값과 3단계 뒤 값의 차이"
     ],
     "correct": 1,
-    "explanation": "A lag-3 feature is y[t-3]: the value 3 time steps in the past. Using past values as input features lets standard ML models (regression, trees) make time series predictions without specialized algorithms."
+    "explanation": "lag-3 특징은 y[t-3], 즉 과거 3시점 전의 값입니다. 과거 값을 입력 특징으로 사용하면 표준 ML 모델(회귀, 트리)이 특수 알고리즘 없이도 시계열 예측을 할 수 있습니다."
   },
   {
     "id": "timeseries-post-3",
     "stage": "post",
-    "question": "Walk-forward validation splits time data into expanding or sliding windows. Why is this better than K-fold CV for time series?",
+    "question": "Walk-forward 검증은 시간 데이터를 확장 창 또는 슬라이딩 창으로 분할합니다. 이것이 시계열에서 K-fold CV보다 나은 이유는 무엇인가요?",
     "options": [
-      "Walk-forward is faster to compute",
-      "Walk-forward respects temporal order, training only on past data and testing on future data, preventing lookahead bias",
-      "K-fold CV cannot be used on numeric data",
-      "Walk-forward uses more data for training"
+      "Walk-forward는 계산이 더 빠르다",
+      "Walk-forward는 시간 순서를 존중해 과거 데이터로만 학습하고 미래 데이터에서 테스트하므로 lookahead bias를 방지한다",
+      "K-fold CV는 숫자 데이터에 사용할 수 없다",
+      "Walk-forward는 학습에 더 많은 데이터를 사용한다"
     ],
     "correct": 1,
-    "explanation": "Walk-forward validation always trains on past data and tests on future data, mimicking real-world deployment. K-fold CV shuffles data, potentially training on future to predict past (temporal leakage)."
+    "explanation": "Walk-forward 검증은 항상 과거 데이터로 학습하고 미래 데이터에서 테스트해 실제 배포 상황을 모방합니다. K-fold CV는 데이터를 섞기 때문에 미래로 학습해 과거를 예측하는 시간 누출이 생길 수 있습니다."
   }
 ]

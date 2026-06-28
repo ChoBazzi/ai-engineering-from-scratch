@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why do production vision pipelines use Pydantic models (or equivalent) at every stage boundary?",
-      "options": ["Pydantic is faster than dict access", "Typed schemas catch interface mismatches at the boundary; a detector returning (cx, cy, w, h) when the downstream expects (x1, y1, x2, y2) fails loudly with a validation error instead of silently producing empty crops", "Pydantic is required by FastAPI", "It helps with GPU allocation"],
+      "question": "프로덕션 비전 파이프라인은 왜 모든 stage boundary에서 Pydantic model(또는 동등한 것)을 사용하나요?",
+      "options": ["Pydantic이 dict 접근보다 빠르기 때문입니다", "타입이 있는 schema가 boundary에서 interface mismatch를 잡기 때문입니다. downstream이 (x1, y1, x2, y2)를 기대할 때 detector가 (cx, cy, w, h)를 반환하면 조용히 빈 crop을 만들지 않고 validation error로 크게 실패합니다", "FastAPI가 Pydantic을 요구하기 때문입니다", "GPU allocation에 도움이 되기 때문입니다"],
       "correct": 1,
-      "explanation": "Silent interface bugs are the defining pain of ML pipelines. Every boundary has a coordinate system, a channel order, a value range, and a shape. Validating at the boundary with Pydantic turns every mismatch into an immediate error. The cost is a few microseconds; the savings are hours of debugging."
+      "explanation": "조용한 interface bug는 ML pipeline의 핵심 고통입니다. 모든 boundary에는 coordinate system, channel order, value range, shape가 있습니다. Pydantic으로 boundary에서 검증하면 모든 mismatch가 즉시 error가 됩니다. 비용은 몇 microsecond이고, 절약되는 것은 몇 시간의 debugging입니다."
     },
     {
       "stage": "pre",
-      "question": "On a CPU-only vision pipeline, which stage is most often the biggest latency block?",
-      "options": ["The detector's final NMS", "Image preprocessing (JPEG decode, colour conversion, resize); it is CPU-bound and often dominates when no GPU is involved or when the GPU model is small", "Writing the JSON response", "Reading the HTTP request body"],
+      "question": "CPU-only 비전 파이프라인에서 어떤 stage가 가장 큰 latency block인 경우가 가장 많나요?",
+      "options": ["detector의 final NMS입니다", "image preprocessing(JPEG decode, color conversion, resize)입니다. CPU-bound이며 GPU가 없거나 GPU model이 작을 때 자주 지배합니다", "JSON response 작성입니다", "HTTP request body 읽기입니다"],
       "correct": 1,
-      "explanation": "On CPU, preprocessing is frequently the biggest single cost. JPEG decode can take milliseconds, colour conversion more, resizing to model input another chunk. The rule is simple: profile before optimising. On GPU the detector typically dominates, but do not assume that on CPU."
+      "explanation": "CPU에서는 preprocessing이 가장 큰 단일 비용인 경우가 많습니다. JPEG decode에 몇 ms, color conversion에 추가 시간, model input으로 resize하는 데 또 한 덩어리가 걸립니다. 규칙은 단순합니다. 최적화 전에 profile하세요. GPU에서는 detector가 보통 지배하지만 CPU에서는 그렇게 가정하지 마세요."
     },
     {
       "stage": "post",
-      "question": "The pipeline classifier crashes when a detection has box size 3x4 pixels. What is the correct fix?",
-      "options": ["Add a global try/except and return empty classifications", "Set a min_crop threshold (e.g. 16 or 32 pixels) and skip classification for detections smaller than that; log the skip and include the detection in the response without a classification field", "Retrain the classifier on smaller images", "Increase batch size"],
+      "question": "detection의 box size가 3x4 pixels일 때 pipeline classifier가 crash합니다. 올바른 수정은 무엇인가요?",
+      "options": ["global try/except를 추가하고 empty classifications를 반환합니다", "min_crop threshold(예: 16 또는 32 pixels)를 설정하고 그보다 작은 detection은 classification을 건너뜁니다. skip을 log하고 classification field 없이 detection을 response에 포함합니다", "classifier를 더 작은 image로 재학습합니다", "batch size를 늘립니다"],
       "correct": 1,
-      "explanation": "Tiny crops are a legitimate failure mode: the classifier was trained on 224x224 inputs and cannot reliably classify 3-pixel patches. A threshold (min_crop) skips those, preserves the detection, and produces a complete, honest response. Generic try/except hides the condition; returning no classification at all hides real failures; the right move is a named, logged skip."
+      "explanation": "tiny crop은 합법적인 failure mode입니다. classifier는 224x224 input으로 학습되었고 3-pixel patch를 안정적으로 분류할 수 없습니다. threshold(min_crop)는 그런 항목을 건너뛰고 detection은 보존하며 완전하고 정직한 response를 만듭니다. generic try/except는 조건을 숨기고, classification을 전혀 반환하지 않는 것은 실제 실패를 숨깁니다. 올바른 조치는 이름 있고 log되는 skip입니다."
     },
     {
       "stage": "post",
-      "question": "You add batching to the classifier (wait up to 10 ms, batch all pending crops, one GPU forward). What is the expected effect?",
-      "options": ["Latency strictly decreases", "Throughput increases significantly, per-request latency increases by up to the batching window (~10ms) plus a smaller amount from larger tensor ops; the right answer depends on whether the service is throughput-bound or latency-bound", "Throughput decreases because of the wait", "No effect"],
+      "question": "classifier에 batching을 추가했습니다(최대 10 ms 대기, pending crop 모두 batch, GPU forward 한 번). 예상되는 효과는 무엇인가요?",
+      "options": ["latency가 엄격히 감소합니다", "throughput은 크게 증가하고, request별 latency는 batching window(약 10ms)까지와 더 큰 tensor op에서 오는 더 작은 양만큼 증가합니다. 정답은 서비스가 throughput-bound인지 latency-bound인지에 따라 달라집니다", "대기 때문에 throughput이 감소합니다", "효과가 없습니다"],
       "correct": 1,
-      "explanation": "Batching is a throughput-latency trade. Each request waits up to the window, which adds latency. The batched forward pass is more efficient per image, so throughput scales with batch size. Use batching when QPS is high and individual latency has slack; avoid it when latency SLA is under 50ms."
+      "explanation": "batching은 throughput-latency trade입니다. 각 request는 window까지 기다리므로 latency가 추가됩니다. batched forward pass는 image당 더 효율적이어서 throughput은 batch size와 함께 증가합니다. QPS가 높고 개별 latency에 여유가 있을 때 batching을 사용하세요. latency SLA가 50ms 미만이면 피하세요."
     },
     {
       "stage": "post",
-      "question": "Your pipeline response is a 500 error when a user uploads a corrupted JPEG. How should you fix it?",
-      "options": ["Ignore it; the user will retry", "Catch image-decode failures early in preprocessing, return a 400 with a specific error code like 'image_decode_failed' so the client can retry with a different file instead of a 500 that implies server error", "Always return 200 with an empty result", "Move decoding to the classifier"],
+      "question": "사용자가 손상된 JPEG를 업로드할 때 pipeline response가 500 error입니다. 어떻게 고쳐야 하나요?",
+      "options": ["무시합니다. 사용자가 다시 시도할 것입니다", "preprocessing 초기에 image-decode failure를 잡고, client가 다른 file로 재시도할 수 있도록 'image_decode_failed' 같은 구체적인 error code와 함께 400을 반환합니다. server error를 뜻하는 500을 반환하면 안 됩니다", "항상 empty result와 함께 200을 반환합니다", "decoding을 classifier로 옮깁니다"],
       "correct": 1,
-      "explanation": "A 500 from corrupt user input is an API contract bug. Bad inputs should return 4xx so the client knows it is their problem; 5xx responses signal a server problem and trigger the client's retry logic with the same bad input, amplifying load. Named failure codes (image_decode_failed, image_too_large, unsupported_content_type) let clients react correctly."
+      "explanation": "손상된 사용자 input 때문에 500이 나는 것은 API contract bug입니다. 나쁜 input은 client 문제임을 알 수 있도록 4xx를 반환해야 합니다. 5xx response는 server 문제를 뜻하며 client의 retry logic이 같은 나쁜 input으로 재시도하게 만들어 부하를 키웁니다. 이름 있는 failure code(image_decode_failed, image_too_large, unsupported_content_type)는 client가 올바르게 반응하게 합니다."
     }
   ]
 }

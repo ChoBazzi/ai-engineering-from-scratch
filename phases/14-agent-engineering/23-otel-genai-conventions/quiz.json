@@ -4,19 +4,19 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Which span name represents an agent run in the GenAI conventions?",
+      "question": "GenAI convention에서 agent run을 나타내는 span 이름은 무엇인가?",
       "options": [
         "agent.start",
-        "invoke_agent (optionally suffixed by gen_ai.agent.name)",
+        "invoke_agent(선택적으로 gen_ai.agent.name suffix 포함)",
         "run_chain",
         "agent_loop"
       ],
       "correct": 1,
-      "explanation": "invoke_agent is the canonical name; the agent's name attribute appears in the span name when set."
+      "explanation": "invoke_agent가 표준 이름이다. agent name attribute가 설정되면 span 이름에 나타난다."
     },
     {
       "stage": "pre",
-      "question": "Which three span categories does the GenAI SIG define?",
+      "question": "GenAI SIG는 어떤 세 span category를 정의하는가?",
       "options": [
         "Model/client, agent, tool",
         "Frontend, backend, db",
@@ -24,35 +24,35 @@
         "Latency, error, throughput"
       ],
       "correct": 0,
-      "explanation": "Model/client (LLM calls), agent (create/invoke), tool (per invocation) are the categories."
+      "explanation": "category는 Model/client(LLM call), agent(create/invoke), tool(invocation별)이다."
     },
     {
       "stage": "check",
-      "question": "When does an invoke_agent span use kind CLIENT vs INTERNAL?",
+      "question": "invoke_agent span은 언제 kind CLIENT와 INTERNAL을 각각 사용하는가?",
       "options": [
-        "Always INTERNAL",
-        "CLIENT for remote agent services (OpenAI Assistants, Bedrock Agents); INTERNAL for in-process frameworks (LangChain, CrewAI, local ReAct)",
-        "CLIENT for HTTPS only",
-        "Always CLIENT"
+        "항상 INTERNAL",
+        "remote agent service(OpenAI Assistants, Bedrock Agents)는 CLIENT, in-process framework(LangChain, CrewAI, local ReAct)는 INTERNAL",
+        "HTTPS에만 CLIENT",
+        "항상 CLIENT"
       ],
       "correct": 1,
-      "explanation": "Remote agent calls are CLIENT; in-process agent runs are INTERNAL."
+      "explanation": "remote agent call은 CLIENT이고, in-process agent run은 INTERNAL이다."
     },
     {
       "stage": "check",
-      "question": "What is the default rule for content capture (inputs and outputs)?",
+      "question": "content capture(input과 output)의 기본 규칙은 무엇인가?",
       "options": [
-        "Capture everything by default",
-        "Instrumentations SHOULD NOT capture by default; capture is opt-in via gen_ai.* attributes",
-        "Capture only output, never input",
-        "Capture only on errors"
+        "기본적으로 모든 것을 capture한다",
+        "instrumentation은 기본적으로 capture해서는 안 되며, capture는 gen_ai.* attribute를 통한 opt-in이다",
+        "output만 capture하고 input은 절대 capture하지 않는다",
+        "error에서만 capture한다"
       ],
       "correct": 1,
-      "explanation": "Default-off content capture protects PII and secrets; opt-in is explicit."
+      "explanation": "기본 off content capture는 PII와 secret을 보호한다. opt-in은 명시적이다."
     },
     {
       "stage": "check",
-      "question": "Which attribute identifies the corpus or store consulted for a retrieval?",
+      "question": "retrieval에서 참조한 corpus 또는 store를 식별하는 attribute는 무엇인가?",
       "options": [
         "gen_ai.provider.name",
         "gen_ai.request.model",
@@ -60,31 +60,31 @@
         "gen_ai.agent.name"
       ],
       "correct": 2,
-      "explanation": "gen_ai.data_source.id labels the RAG corpus or store hit by retrieval."
+      "explanation": "gen_ai.data_source.id는 retrieval이 hit한 RAG corpus 또는 store를 label한다."
     },
     {
       "stage": "post",
-      "question": "What does the lesson recommend for storing prompt content in production?",
+      "question": "이 lesson은 production에서 prompt content를 어떻게 저장하라고 권하는가?",
       "options": [
-        "Capture full prompts on every span as plain text",
-        "Store content externally (S3, log store) and record reference IDs on the span instead",
-        "Never store any content",
-        "Encrypt prompts in span attributes"
+        "모든 span에 full prompt를 plain text로 capture한다",
+        "content를 외부(S3, log store)에 저장하고 span에는 reference ID만 기록한다",
+        "content를 절대 저장하지 않는다",
+        "span attribute 안에서 prompt를 암호화한다"
       ],
       "correct": 1,
-      "explanation": "External storage with pointer IDs avoids PII leaking into traces that ops can read."
+      "explanation": "pointer ID를 쓰는 외부 저장은 운영자가 읽을 수 있는 trace로 PII가 새는 일을 피한다."
     },
     {
       "stage": "post",
-      "question": "How do you opt into the experimental stable preview of GenAI conventions?",
+      "question": "GenAI convention의 experimental stable preview에는 어떻게 opt in하는가?",
       "options": [
-        "Edit the OTel collector config",
-        "Set OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental",
-        "Rebuild the SDK from source",
-        "Pay for a license"
+        "OTel collector config를 수정한다",
+        "OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental을 설정한다",
+        "SDK를 source에서 rebuild한다",
+        "license 비용을 지불한다"
       ],
       "correct": 1,
-      "explanation": "The env var pins the experimental conventions so attributes are not silently renamed."
+      "explanation": "이 env var는 experimental convention을 고정해 attribute가 조용히 rename되지 않게 한다."
     }
   ]
 }

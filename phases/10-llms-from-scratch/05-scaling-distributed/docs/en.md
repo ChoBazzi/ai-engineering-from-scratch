@@ -1,38 +1,38 @@
-# Scaling: Distributed Training, FSDP, DeepSpeed
+# 스케일링: 분산 학습, FSDP, DeepSpeed
 
-> Your 124M model trained on one GPU. Now try 7 billion parameters. The model doesn't fit in memory. The data takes weeks on a single machine. Distributed training isn't optional at scale. It's the only path forward.
+> 124M 모델은 GPU 하나에서 학습되었습니다. 이제 70억 parameter를 시도해보세요. 모델은 메모리에 들어가지 않습니다. 데이터는 단일 machine에서 몇 주가 걸립니다. scale에서 distributed training은 선택 사항이 아닙니다. 유일한 길입니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 10, Lesson 04 (Pre-Training a Mini GPT)
 **Time:** ~120 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Explain the three types of parallelism (data, tensor, pipeline) and when each is necessary based on model and cluster size
-- Implement data-parallel training using PyTorch DDP with gradient synchronization across multiple GPUs
-- Calculate the memory budget for a given model size (weights + optimizer states + gradients + activations) to determine the minimum hardware
-- Configure FSDP or DeepSpeed ZeRO stages to shard model states across GPUs and fit models that exceed single-GPU memory
+- model과 cluster size에 따라 세 가지 parallelism(data, tensor, pipeline)이 무엇이고 언제 필요한지 설명합니다
+- 여러 GPU 간 gradient synchronization이 있는 PyTorch DDP로 data-parallel training을 구현합니다
+- 주어진 model size에 대한 memory budget(weights + optimizer states + gradients + activations)을 계산해 최소 hardware를 결정합니다
+- FSDP 또는 DeepSpeed ZeRO stage를 구성해 model state를 GPU에 shard하고 single-GPU memory를 초과하는 모델을 맞춥니다
 
-## The Problem
+## 문제
 
-A 7B parameter model in FP16 needs 14GB just for the weights. Adam optimizer stores two additional copies of every parameter (first and second moment estimates). That is another 28GB. Gradients during backpropagation add 14GB more. You are at 56GB before a single activation is stored.
+FP16의 7B parameter 모델은 weight만으로 14GB가 필요합니다. Adam optimizer는 모든 parameter에 대해 두 개의 추가 copy(first and second moment estimate)를 저장합니다. 또 28GB입니다. backpropagation 중 gradient가 14GB를 더합니다. activation 하나를 저장하기 전 이미 56GB입니다.
 
-An NVIDIA A100 has 80GB of memory.
+NVIDIA A100은 80GB memory를 가집니다.
 
-56GB out of 80GB consumed. That leaves 24GB for activations -- the intermediate values computed during the forward pass that must be kept alive for backpropagation. For a 2048-token sequence with a 4096-dimensional model, a single layer's activations use about 64MB. With 32 layers, you need 2GB per sample. A batch size of 8 requires 16GB. You have 24GB. A batch size of 12 blows up.
+80GB 중 56GB를 소비했습니다. activation을 위해 24GB가 남습니다. activation은 forward pass 중 계산되어 backpropagation을 위해 살아 있어야 하는 intermediate value입니다. 4096차원 모델에서 2048-token sequence를 쓰면 단일 layer의 activation이 약 64MB를 사용합니다. 32 layer라면 sample당 2GB가 필요합니다. batch size 8은 16GB가 필요합니다. 남은 것은 24GB입니다. batch size 12는 터집니다.
 
-Now try 70B parameters. Weights alone: 140GB in FP16. Does not fit on one GPU. You need at least 2 A100s (2 x 80GB = 160GB) just to hold the weights. Add optimizer states and gradients and you need far more: 3+ GPUs minimum, and realistically 8-16 depending on sharding strategy.
+이제 70B parameter를 시도해보세요. weight만 FP16에서 140GB입니다. GPU 하나에 들어가지 않습니다. weight만 담기 위해서도 최소 A100 2개(2 x 80GB = 160GB)가 필요합니다. optimizer state와 gradient를 더하면 훨씬 더 필요합니다. 최소 3개 이상, 현실적으로는 sharding strategy에 따라 8-16개입니다.
 
-Llama 3 405B was trained on 16,384 NVIDIA H100 GPUs. The training run cost an estimated $100 million in compute. DeepSeek V3 trained a comparable model for roughly $5.6 million by being clever about architecture (Mixture of Experts means only a fraction of parameters activate per token) and training efficiency.
+Llama 3 405B는 NVIDIA H100 GPU 16,384개에서 학습되었습니다. training run의 compute cost는 약 1억 달러로 추정됩니다. DeepSeek V3는 architecture(Mixture of Experts는 token당 parameter 일부만 활성화됨)와 training efficiency를 영리하게 활용해 비슷한 모델을 약 560만 달러에 학습했습니다.
 
-This lesson covers the four strategies that make large-scale training possible: data parallelism, tensor parallelism, pipeline parallelism, and fully sharded data parallelism. You will simulate each one in pure Python to understand the mechanics before ever touching a distributed training framework.
+이 lesson은 large-scale training을 가능하게 하는 네 가지 strategy를 다룹니다. data parallelism, tensor parallelism, pipeline parallelism, fully sharded data parallelism입니다. distributed training framework를 만지기 전에 각 strategy를 순수 Python으로 simulate해 mechanics를 이해합니다.
 
-## The Concept
+## 개념
 
-### Why Distribution is Required
+### Distribution이 필요한 이유
 
-Here is the memory math for real models. Every number is calculated, not estimated.
+실제 모델의 memory 계산입니다. 모든 숫자는 추정이 아니라 계산된 값입니다.
 
 | Model | Params | Weights (FP16) | Adam States | Gradients (FP16) | Total (no activations) |
 |-------|--------|----------------|-------------|------------------|----------------------|
@@ -41,19 +41,19 @@ Here is the memory math for real models. Every number is calculated, not estimat
 | Llama 3 70B | 70B | 140 GB | 560 GB | 140 GB | 840 GB |
 | Llama 3 405B | 405B | 810 GB | 3,240 GB | 810 GB | 4,860 GB |
 
-The "Adam States" column is the killer. Adam stores a running mean (m) and a running variance (v) for every parameter, both in FP32. For a 70B model, that is 70B x 4 bytes x 2 = 560GB. The optimizer alone needs seven A100s.
+"Adam States" 열이 치명적입니다. Adam은 모든 parameter에 대해 running mean(m)과 running variance(v)를 저장하며 둘 다 FP32입니다. 70B 모델에서는 70B x 4 bytes x 2 = 560GB입니다. optimizer만으로도 A100 일곱 개가 필요합니다.
 
-A single H100 has 80GB. Llama 3 405B needs at least 61 H100s to hold the weights, optimizer, and gradients. Add activations and the number grows further. Meta used 16,384 GPUs not because they wanted to -- because they had to.
+H100 하나는 80GB를 가집니다. Llama 3 405B는 weight, optimizer, gradient를 담는 데만 최소 61개의 H100이 필요합니다. activation을 더하면 수는 더 늘어납니다. Meta가 16,384개 GPU를 쓴 것은 원해서가 아니라 필요했기 때문입니다.
 
-### Data Parallelism
+### Data parallelism
 
-The simplest distributed strategy. Copy the entire model to N GPUs. Split each training batch into N equal parts. Each GPU runs a forward and backward pass on its shard of the data. After the backward pass, average the gradients across all GPUs. Every GPU updates its copy of the weights with the same averaged gradients, keeping all copies in sync.
+가장 단순한 distributed strategy입니다. 전체 모델을 N개 GPU에 복사합니다. 각 training batch를 N개의 동일한 부분으로 나눕니다. 각 GPU는 자기 data shard에서 forward와 backward pass를 실행합니다. backward pass 이후 모든 GPU에 걸쳐 gradient를 평균냅니다. 모든 GPU는 같은 averaged gradient로 weight copy를 update해 모든 copy를 동기화 상태로 유지합니다.
 
-**The good:** Linear throughput scaling. N GPUs process N times more data per step. Communication is limited to gradient averaging, which overlaps with computation.
+**장점:** linear throughput scaling입니다. N개 GPU는 step당 N배 많은 데이터를 처리합니다. communication은 gradient averaging으로 제한되며 computation과 overlap됩니다.
 
-**The bad:** Every GPU holds a complete copy of the model, optimizer states, and gradients. For a 70B model, each GPU needs 840GB. Data parallelism does nothing to reduce per-GPU memory. It only reduces training time.
+**단점:** 모든 GPU가 모델, optimizer state, gradient의 완전한 copy를 보유합니다. 70B 모델에서는 각 GPU에 840GB가 필요합니다. data parallelism은 per-GPU memory를 줄이지 않습니다. training time만 줄입니다.
 
-**The math:** Effective batch size = per_gpu_batch_size x N. For N=64 GPUs with per-GPU batch of 16, the effective batch is 1,024. Llama 3 used an effective batch size of 16 million tokens per step.
+**계산:** effective batch size = per_gpu_batch_size x N입니다. N=64 GPU이고 per-GPU batch가 16이면 effective batch는 1,024입니다. Llama 3는 step당 1600만 token의 effective batch size를 사용했습니다.
 
 ```mermaid
 graph TD
@@ -79,46 +79,46 @@ graph TD
     style U fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-### Tensor Parallelism
+### Tensor parallelism
 
-Split individual layers across GPUs. A single matrix multiplication is divided among GPUs, each computing part of the result.
+개별 layer를 GPU에 나눕니다. 단일 matrix multiplication이 GPU들 사이에 분할되고, 각 GPU는 결과의 일부를 계산합니다.
 
-Consider a weight matrix of shape (8192, 8192) in a feedforward layer. With 4-way tensor parallelism, each GPU holds a (8192, 2048) shard. Each GPU multiplies the input by its shard, producing a partial result. The partial results are combined (via all-reduce or all-gather) to produce the full output.
+feedforward layer의 shape (8192, 8192) weight matrix를 생각해봅시다. 4-way tensor parallelism에서는 각 GPU가 (8192, 2048) shard를 가집니다. 각 GPU는 입력에 자기 shard를 곱해 partial result를 만듭니다. partial result는 all-reduce 또는 all-gather로 결합되어 full output을 만듭니다.
 
-**The good:** Reduces per-GPU memory for model weights. A 70B model split across 8 GPUs means each GPU holds ~8.75B parameters worth of weights.
+**장점:** model weight의 per-GPU memory를 줄입니다. 70B 모델을 8개 GPU에 나누면 각 GPU는 약 8.75B parameter worth의 weight를 보유합니다.
 
-**The bad:** Requires fast inter-GPU communication after every layer. The all-reduce after each matmul adds latency. This works well with NVLink (900 GB/s between GPUs on the same node) but poorly across nodes connected by InfiniBand (400 Gb/s, about 50 GB/s). Tensor parallelism is almost always limited to within a single node (8 GPUs).
+**단점:** 모든 layer 뒤에 빠른 GPU 간 communication이 필요합니다. 각 matmul 뒤의 all-reduce가 latency를 더합니다. NVLink(같은 node의 GPU 간 900 GB/s)에서는 잘 작동하지만 InfiniBand(400 Gb/s, 약 50 GB/s)로 연결된 node 간에는 좋지 않습니다. tensor parallelism은 거의 항상 단일 node 내부(8 GPUs)로 제한됩니다.
 
-**Real usage:** Megatron-LM pioneered tensor parallelism. Llama 3 405B uses 8-way tensor parallelism within each node.
+**실제 사용:** Megatron-LM이 tensor parallelism을 개척했습니다. Llama 3 405B는 각 node 안에서 8-way tensor parallelism을 사용합니다.
 
-### Pipeline Parallelism
+### Pipeline parallelism
 
-Split the model by layers. GPU 1 runs layers 1-8. GPU 2 runs layers 9-16. GPU 3 runs layers 17-24. GPU 4 runs layers 25-32. Data flows through the pipeline: GPU 1 computes its layers and sends activations to GPU 2, which computes its layers and sends to GPU 3, and so on.
+모델을 layer 기준으로 나눕니다. GPU 1은 layer 1-8을 실행합니다. GPU 2는 layer 9-16을 실행합니다. GPU 3은 layer 17-24를 실행합니다. GPU 4는 layer 25-32를 실행합니다. 데이터는 pipeline을 따라 흐릅니다. GPU 1이 자기 layer를 계산하고 activation을 GPU 2로 보내면, GPU 2가 자기 layer를 계산해 GPU 3으로 보내는 식입니다.
 
-**The good:** Minimal communication between GPUs -- just the activations at layer boundaries, which are small compared to gradients or weights. Works across nodes because bandwidth requirements are low.
+**장점:** GPU 간 communication이 최소입니다. layer boundary의 activation만 보내며, 이는 gradient나 weight에 비해 작습니다. bandwidth 요구사항이 낮아 node 간에도 작동합니다.
 
-**The bad:** Pipeline bubbles. When GPU 4 is computing the forward pass on micro-batch 1, GPUs 1, 2, and 3 are idle (they have already forwarded their portion). During backward pass, the pattern reverses. With naive pipelining, GPU utilization is only 1/N for N pipeline stages.
+**단점:** pipeline bubble입니다. GPU 4가 micro-batch 1의 forward pass를 계산할 때 GPU 1, 2, 3은 이미 자기 부분을 forward했으므로 idle입니다. backward pass에서는 pattern이 반대로 됩니다. naive pipelining에서는 N개 pipeline stage에서 GPU utilization이 1/N에 불과합니다.
 
-**GPipe and PipeDream** solve the bubble problem by splitting the batch into micro-batches. GPU 1 starts on micro-batch 2 as soon as it finishes forwarding micro-batch 1. This overlaps computation across pipeline stages. With M micro-batches and N stages, the bubble fraction drops to (N-1)/M. Use M=16 micro-batches with N=4 stages and the bubble is 3/16 = 18.75% idle time.
+**GPipe와 PipeDream**은 batch를 micro-batch로 나눠 bubble 문제를 해결합니다. GPU 1은 micro-batch 1의 forward를 끝내자마자 micro-batch 2를 시작합니다. 이는 pipeline stage 전반의 computation을 overlap합니다. M개 micro-batch와 N개 stage가 있으면 bubble fraction은 (N-1)/M으로 내려갑니다. N=4 stage에서 M=16 micro-batch를 사용하면 bubble은 3/16 = 18.75% idle time입니다.
 
 ### FSDP: Fully Sharded Data Parallel
 
-FSDP combines the scalability of data parallelism with the memory efficiency of sharding. Instead of each GPU holding a complete copy of the model, each GPU holds only 1/N of the parameters, gradients, and optimizer states.
+FSDP는 data parallelism의 scalability와 sharding의 memory efficiency를 결합합니다. 각 GPU가 모델의 완전한 copy를 보유하는 대신, 각 GPU는 parameter, gradient, optimizer state의 1/N만 보유합니다.
 
-Before a layer's forward pass, FSDP runs an **all-gather** to collect the full parameters from all GPUs into each GPU's memory. After the forward pass, each GPU discards the non-local parameters. During backward, the all-gather runs again to reconstruct parameters for gradient computation. After the backward pass, a **reduce-scatter** distributes gradient shards so each GPU only stores 1/N of the gradients.
+layer의 forward pass 전에 FSDP는 **all-gather**를 실행해 모든 GPU의 full parameter를 각 GPU memory에 모읍니다. forward pass 후 각 GPU는 non-local parameter를 버립니다. backward 중에는 gradient 계산을 위해 parameter를 재구성하도록 all-gather가 다시 실행됩니다. backward pass 후에는 **reduce-scatter**가 gradient shard를 분배해 각 GPU가 gradient의 1/N만 저장하게 합니다.
 
-**The math for a 70B model on 8 GPUs:**
+**8개 GPU에서 70B 모델 계산:**
 
-| Component | Without FSDP | With FSDP |
+| Component | FSDP 없음 | FSDP 사용 |
 |-----------|-------------|-----------|
 | Weights (FP16) | 140 GB per GPU | 17.5 GB per GPU |
 | Adam States (FP32) | 560 GB per GPU | 70 GB per GPU |
 | Gradients (FP16) | 140 GB per GPU | 17.5 GB per GPU |
 | **Total** | **840 GB per GPU** | **105 GB per GPU** |
 
-Without FSDP, you cannot fit a 70B model on a single 80GB GPU. With FSDP on 8 GPUs, each GPU uses 105GB -- wait, that still does not fit. You need at least 16 GPUs to get under 80GB per GPU, or you combine FSDP with activation checkpointing (recompute activations during backward instead of storing them).
+FSDP가 없으면 70B 모델은 단일 80GB GPU에 들어가지 않습니다. 8개 GPU에서 FSDP를 사용해도 각 GPU는 105GB를 씁니다. 아직 들어가지 않습니다. per-GPU 80GB 아래로 내려가려면 최소 16개 GPU가 필요하거나, FSDP와 activation checkpointing(activation을 저장하는 대신 backward 중 재계산)을 결합해야 합니다.
 
-The communication cost is higher than vanilla data parallelism because of the all-gather before each layer. But the memory savings make previously impossible training runs possible.
+각 layer 전에 all-gather가 있으므로 communication cost는 vanilla data parallelism보다 높습니다. 하지만 memory 절감 덕분에 이전에는 불가능했던 training run이 가능해집니다.
 
 ```mermaid
 graph TD
@@ -166,7 +166,7 @@ graph TD
 
 ### DeepSpeed ZeRO
 
-DeepSpeed's ZeRO (Zero Redundancy Optimizer) is conceptually identical to FSDP but was developed independently by Microsoft. It defines three stages, each sharding more aggressively:
+DeepSpeed의 ZeRO(Zero Redundancy Optimizer)는 개념적으로 FSDP와 동일하지만 Microsoft가 독립적으로 개발했습니다. 세 stage를 정의하며, 각 stage는 더 공격적으로 sharding합니다.
 
 | Stage | Shards | Memory Savings | Communication |
 |-------|--------|---------------|---------------|
@@ -174,47 +174,47 @@ DeepSpeed's ZeRO (Zero Redundancy Optimizer) is conceptually identical to FSDP b
 | ZeRO-2 | + Gradients | ~8x reduction | Slightly more |
 | ZeRO-3 | + Parameters | ~Nx reduction (N GPUs) | All-gather per layer |
 
-ZeRO-3 is equivalent to FSDP. The naming is different, the mechanism is the same. PyTorch added FSDP as a native implementation after DeepSpeed proved the concept.
+ZeRO-3는 FSDP와 동등합니다. 이름은 다르지만 mechanism은 같습니다. DeepSpeed가 concept을 증명한 뒤 PyTorch는 FSDP를 native implementation으로 추가했습니다.
 
-DeepSpeed also introduced ZeRO-Offload (offload optimizer states to CPU RAM, which is cheaper and larger) and ZeRO-Infinity (offload to NVMe SSDs). These trade compute speed for memory capacity -- the offloaded operations are slower but free up GPU memory.
+DeepSpeed는 ZeRO-Offload(더 싸고 큰 CPU RAM으로 optimizer state offload)와 ZeRO-Infinity(NVMe SSD로 offload)도 도입했습니다. 이는 compute speed를 memory capacity와 교환합니다. offloaded operation은 더 느리지만 GPU memory를 비웁니다.
 
-### Mixed Precision Training
+### Mixed precision training
 
-Modern training uses multiple floating-point formats simultaneously:
+현대 training은 여러 floating-point format을 동시에 사용합니다.
 
-- **Forward pass**: FP16 or BF16 (16-bit). Half the memory of FP32. Matmuls run 2x faster on tensor cores.
-- **Master weights**: FP32 (32-bit). Maintained by the optimizer for numerical precision during weight updates.
-- **Loss scaling**: Multiply the loss by a large constant before backward pass to prevent FP16 gradients from underflowing to zero. Divide by the same constant before the optimizer step.
+- **Forward pass**: FP16 또는 BF16(16-bit). FP32의 절반 memory입니다. tensor core에서 matmul이 2배 빠르게 실행됩니다.
+- **Master weights**: FP32(32-bit). weight update 중 numerical precision을 위해 optimizer가 유지합니다.
+- **Loss scaling**: FP16 gradient가 0으로 underflow되는 것을 막기 위해 backward pass 전에 loss에 큰 상수를 곱합니다. optimizer step 전에 같은 상수로 나눕니다.
 
-BF16 (Brain Float 16) has the same exponent range as FP32 (8 exponent bits) but reduced precision (7 mantissa bits vs FP32's 23). It rarely needs loss scaling because it can represent the same range of values. FP16 has 5 exponent bits and 10 mantissa bits -- it can represent fine-grained values but overflows/underflows at extreme magnitudes.
+BF16(Brain Float 16)은 FP32와 같은 exponent range(8 exponent bits)를 가지지만 precision은 낮습니다(7 mantissa bits vs FP32의 23). 같은 값 범위를 표현할 수 있으므로 loss scaling이 거의 필요 없습니다. FP16은 5 exponent bits와 10 mantissa bits를 가집니다. 세밀한 값은 표현할 수 있지만 극단적인 magnitude에서는 overflow/underflow됩니다.
 
-Google's TPUs use BF16 natively. NVIDIA's A100 and H100 support both FP16 and BF16. The industry has largely moved to BF16 because it eliminates loss scaling headaches.
+Google TPU는 BF16을 native로 사용합니다. NVIDIA A100과 H100은 FP16과 BF16을 모두 지원합니다. loss scaling 문제를 없애기 때문에 업계는 대체로 BF16으로 이동했습니다.
 
-**Memory comparison for a 7B model:**
+**7B 모델의 memory 비교:**
 
 | Precision | Weights | Optimizer | Gradients | Total |
 |-----------|---------|-----------|-----------|-------|
 | FP32 everywhere | 28 GB | 56 GB | 28 GB | 112 GB |
 | Mixed (BF16 + FP32 master) | 14 GB | 56 GB | 14 GB | 84 GB |
 
-Mixed precision saves 28GB on this model. The optimizer states stay in FP32 regardless -- this is where most of the memory goes.
+mixed precision은 이 모델에서 28GB를 절약합니다. optimizer state는 precision과 무관하게 FP32에 머뭅니다. memory 대부분이 여기에 들어갑니다.
 
-### Megatron-LM and 3D Parallelism
+### Megatron-LM과 3D Parallelism
 
-Real large-scale training combines all three parallelisms:
+실제 large-scale training은 세 parallelism을 모두 결합합니다.
 
-- **Data parallelism** across groups of nodes (scale batch size)
-- **Tensor parallelism** within a node (split layers across 8 GPUs)
-- **Pipeline parallelism** across nodes (split layer groups across machines)
+- node group 전반의 **data parallelism**(batch size scale)
+- node 내부의 **tensor parallelism**(8개 GPU에 layer 분할)
+- node 전반의 **pipeline parallelism**(machine에 layer group 분할)
 
-Llama 3 405B on 16,384 H100s:
-- 8-way tensor parallelism within each node (8 GPUs per node)
-- 16-way pipeline parallelism across nodes (16 pipeline stages)
-- 128-way data parallelism across the remaining dimension (16,384 / 8 / 16 = 128)
+16,384개 H100에서의 Llama 3 405B:
+- 각 node 내부 8-way tensor parallelism(node당 8 GPU)
+- node 전반 16-way pipeline parallelism(16 pipeline stages)
+- 남은 dimension 전반 128-way data parallelism(16,384 / 8 / 16 = 128)
 
-This 3D decomposition (8 x 16 x 128 = 16,384) is how you scale to thousands of GPUs. Each GPU sees a different data shard (data parallel), holds one slice of each layer (tensor parallel), and computes a different set of layers (pipeline parallel).
+이 3D decomposition(8 x 16 x 128 = 16,384)이 수천 GPU로 scale하는 방법입니다. 각 GPU는 서로 다른 data shard를 보고(data parallel), 각 layer의 한 slice를 보유하며(tensor parallel), 서로 다른 layer set을 계산합니다(pipeline parallel).
 
-DeepSeek V3 took a different approach. Their Mixture of Experts architecture activates only 37B out of 671B parameters per token. This means each GPU only needs to compute (and store activations for) the active parameters. They trained on 2,048 H800 GPUs -- less than 1/8 of Meta's GPU count -- for $5.6M vs Meta's estimated $100M.
+DeepSeek V3는 다른 접근을 취했습니다. Mixture of Experts architecture는 token당 671B parameter 중 37B만 활성화합니다. 이는 각 GPU가 active parameter만 계산하고 그에 대한 activation만 저장하면 된다는 뜻입니다. 이들은 2,048개 H800 GPU, 즉 Meta GPU 수의 1/8 미만으로 학습했고 비용은 Meta 추정 1억 달러 대비 560만 달러였습니다.
 
 ```mermaid
 graph TD
@@ -243,11 +243,11 @@ graph TD
 paged-kv-cache
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Simulate Data Parallelism
+### 1단계: Data Parallelism Simulation
 
-Split a batch across simulated GPUs. Each GPU computes a forward pass on its shard. Average the "gradients" (we simulate them as the loss values).
+batch를 simulated GPU에 나눕니다. 각 GPU는 자기 shard에서 forward pass를 계산합니다. "gradient"를 평균냅니다(여기서는 loss value로 simulate합니다).
 
 ```python
 import numpy as np
@@ -276,11 +276,11 @@ def simulate_data_parallelism(data, num_gpus, model_fn):
     return avg_loss, avg_gradient
 ```
 
-The all-reduce operation (averaging gradients) is the only communication in data parallelism. In practice, this uses the NCCL library on NVIDIA GPUs, which implements ring all-reduce: each GPU sends 1/N of its gradients to its neighbor, receives 1/N from the other neighbor, and after N-1 steps every GPU has the complete average. Total communication volume: 2 x gradient_size x (N-1)/N, approaching 2x the gradient size for large N.
+all-reduce operation(gradient averaging)은 data parallelism의 유일한 communication입니다. 실제로는 NVIDIA GPU에서 NCCL library를 사용하며, 이는 ring all-reduce를 구현합니다. 각 GPU는 gradient의 1/N을 이웃에게 보내고 다른 이웃에게서 1/N을 받으며, N-1 step 뒤 모든 GPU가 완전한 평균을 갖습니다. 총 communication volume은 2 x gradient_size x (N-1)/N이며, N이 커지면 gradient size의 2배에 가까워집니다.
 
-### Step 2: Simulate Tensor Parallelism
+### 2단계: Tensor Parallelism Simulation
 
-Split a weight matrix across GPUs. Each GPU computes a partial matrix multiplication. Combine the results.
+weight matrix를 GPU에 나눕니다. 각 GPU는 partial matrix multiplication을 계산합니다. 결과를 결합합니다.
 
 ```python
 def simulate_tensor_parallelism(input_data, weight_matrix, num_gpus):
@@ -305,13 +305,13 @@ def simulate_tensor_parallelism(input_data, weight_matrix, num_gpus):
     return full_output, error
 ```
 
-The error should be exactly zero (or machine epsilon). Tensor parallelism is mathematically exact -- it produces the same result as computing the full matmul on one GPU. The split is along the output dimension, so each GPU produces a different chunk of columns, and concatenation reconstructs the full result.
+error는 정확히 0 또는 machine epsilon이어야 합니다. tensor parallelism은 수학적으로 exact합니다. 하나의 GPU에서 full matmul을 계산한 것과 같은 결과를 만듭니다. output dimension을 따라 split하므로 각 GPU는 서로 다른 column chunk를 만들고, concatenation이 full result를 재구성합니다.
 
-For column-parallel linear layers (splitting the output dimension), you concatenate. For row-parallel (splitting the input dimension), you sum. In a transformer FFN, the first linear (expand) uses column-parallel and the second linear (contract) uses row-parallel. This avoids an all-reduce between the two layers.
+column-parallel linear layer(output dimension 분할)에서는 concatenate합니다. row-parallel(input dimension 분할)에서는 sum합니다. transformer FFN에서 첫 linear(expand)는 column-parallel을, 두 번째 linear(contract)는 row-parallel을 사용합니다. 이는 두 layer 사이의 all-reduce를 피합니다.
 
-### Step 3: Simulate Pipeline Parallelism
+### 3단계: Pipeline Parallelism Simulation
 
-Split a model's layers across virtual GPUs. Show the bubble problem where early stages sit idle while later stages compute.
+모델 layer를 virtual GPU에 나눕니다. later stage가 계산하는 동안 early stage가 idle인 bubble problem을 보여줍니다.
 
 ```python
 def simulate_pipeline_parallelism(num_layers, num_stages, num_microbatches):
@@ -349,11 +349,11 @@ def simulate_pipeline_parallelism(num_layers, num_stages, num_microbatches):
     return timeline, total_time, bubble_fraction
 ```
 
-With 4 stages and 1 micro-batch, the bubble fraction is 75% -- three out of four GPUs idle at any time. With 16 micro-batches, it drops to about 19%. The cost of eliminating bubbles is memory: you must store activations for all in-flight micro-batches simultaneously.
+4개 stage와 1개 micro-batch에서는 bubble fraction이 75%입니다. 어떤 시점에도 네 GPU 중 세 개가 idle입니다. 16개 micro-batch에서는 약 19%로 내려갑니다. bubble을 제거하는 비용은 memory입니다. 동시에 진행 중인 모든 micro-batch의 activation을 저장해야 합니다.
 
-### Step 4: Memory Calculator
+### 4단계: Memory Calculator
 
-Compute the exact memory requirements for training any model size.
+어떤 model size든 training에 필요한 정확한 memory requirement를 계산합니다.
 
 ```python
 def memory_calculator(
@@ -416,11 +416,11 @@ def memory_calculator(
     }
 ```
 
-This calculator answers the question every ML engineer asks: "How many GPUs do I need?" Feed it the model size and see whether it fits. Adjust sharding strategy until the per-GPU total drops below 80GB.
+이 calculator는 모든 ML engineer가 묻는 질문에 답합니다. "GPU가 몇 개 필요한가?" model size를 넣고 들어가는지 확인하세요. per-GPU total이 80GB 아래로 내려갈 때까지 sharding strategy를 조정합니다.
 
-### Step 5: Mixed Precision Simulation
+### 5단계: Mixed Precision Simulation
 
-Compare memory usage between FP32, FP16, and mixed precision training.
+FP32, FP16, mixed precision training의 memory usage를 비교합니다.
 
 ```python
 def mixed_precision_comparison(params_billions):
@@ -450,11 +450,11 @@ def mixed_precision_comparison(params_billions):
     }
 ```
 
-The biggest surprise for most people: mixed precision does not halve the memory. The optimizer states (Adam's m and v) stay in FP32 regardless of precision. For a 7B model, FP32 training uses 112GB. Mixed precision uses 84GB. That is a 25% reduction, not 50%. The optimizer dominates.
+대부분의 사람에게 가장 놀라운 점은 mixed precision이 memory를 절반으로 줄이지 않는다는 것입니다. optimizer state(Adam의 m과 v)는 precision과 무관하게 FP32에 머뭅니다. 7B 모델에서 FP32 training은 112GB를 사용합니다. mixed precision은 84GB를 사용합니다. 50%가 아니라 25% 절감입니다. optimizer가 지배합니다.
 
-## Use It
+## 활용하기
 
-### Run All Simulations
+### 모든 Simulation 실행
 
 ```python
 def run_all_demos():
@@ -531,42 +531,42 @@ def run_all_demos():
               f"Savings={result['savings_vs_fp32']:.0%}")
 ```
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/prompt-distributed-training-planner.md` -- a prompt that takes a model size and available hardware, then produces a complete distributed training plan: parallelism strategy, memory budget, communication overhead, and expected throughput.
+이 lesson은 `outputs/prompt-distributed-training-planner.md`를 산출합니다. model size와 available hardware를 받아 parallelism strategy, memory budget, communication overhead, expected throughput을 포함한 완전한 distributed training plan을 만드는 prompt입니다.
 
-## Exercises
+## 연습문제
 
-1. Modify the memory calculator to include activation checkpointing. With checkpointing, only store activations at every K-th layer (typical K=1, meaning recompute all). Show the memory-compute tradeoff: how much memory does checkpointing save, and how much does it slow down training (roughly 33% more compute for full checkpointing)?
+1. activation checkpointing을 포함하도록 memory calculator를 수정하세요. checkpointing에서는 매 K번째 layer의 activation만 저장합니다(일반적인 K=1은 모두 재계산한다는 뜻). memory-compute tradeoff를 보여주세요. checkpointing은 memory를 얼마나 절약하고, training을 얼마나 느리게 하나요(full checkpointing은 대략 33% 더 많은 compute)?
 
-2. Extend the pipeline parallelism simulation to implement the 1F1B (one forward, one backward) schedule used by PipeDream. Compare the bubble fraction against the naive schedule for 4 stages and 8 micro-batches. The 1F1B schedule should have a smaller peak memory because it starts backward passes earlier.
+2. pipeline parallelism simulation을 확장해 PipeDream이 사용하는 1F1B(one forward, one backward) schedule을 구현하세요. 4 stage와 8 micro-batch에서 naive schedule과 bubble fraction을 비교하세요. 1F1B schedule은 backward pass를 더 일찍 시작하므로 peak memory가 더 작아야 합니다.
 
-3. Implement a gradient accumulation simulator. Instead of all-reducing after every micro-batch, accumulate gradients locally for K steps, then all-reduce. Show how this reduces communication by K times but produces identical final gradients (and thus identical training).
+3. gradient accumulation simulator를 구현하세요. 모든 micro-batch 뒤에 all-reduce하는 대신, K step 동안 local로 gradient를 accumulate한 뒤 all-reduce합니다. 이것이 communication을 K배 줄이면서도 동일한 final gradient, 따라서 동일한 training을 만드는 방식을 보여주세요.
 
-4. Build a cost estimator. Given a model size, target token count, GPU type (A100 at $2/hr, H100 at $3.50/hr), and parallelism strategy, estimate the total training cost in dollars. Validate against known costs: Llama 3 405B reportedly cost ~$100M, DeepSeek V3 cost ~$5.6M.
+4. cost estimator를 만드세요. model size, target token count, GPU type(A100 $2/hr, H100 $3.50/hr), parallelism strategy가 주어졌을 때 총 training cost를 달러로 추정하세요. 알려진 비용으로 검증하세요. Llama 3 405B는 약 $100M, DeepSeek V3는 약 $5.6M으로 보고되었습니다.
 
-5. Add ZeRO-Offload to the memory calculator. Assume CPU RAM is 512GB per node and NVMe is 2TB. Show how offloading optimizer states to CPU allows a 70B model to train on 4 GPUs instead of 16, at the cost of 30-50% slower optimizer steps.
+5. memory calculator에 ZeRO-Offload를 추가하세요. CPU RAM은 node당 512GB, NVMe는 2TB라고 가정합니다. optimizer state를 CPU로 offload하면 optimizer step이 30-50% 느려지는 대신 70B 모델을 16개가 아니라 4개 GPU에서 학습할 수 있음을 보여주세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Data parallelism | "Copy the model to every GPU" | Each GPU processes a different data shard; gradients are averaged via all-reduce after each step |
-| Tensor parallelism | "Split a layer across GPUs" | Partition weight matrices so each GPU computes part of the matmul; requires fast NVLink interconnect |
-| Pipeline parallelism | "Split layers across GPUs" | Each GPU runs a different group of layers; data flows through the pipeline with micro-batches to reduce bubbles |
-| FSDP | "Shard everything" | Fully Sharded Data Parallel -- each GPU holds 1/N of weights, gradients, and optimizer states; all-gather before compute |
-| ZeRO | "DeepSpeed's version of FSDP" | Zero Redundancy Optimizer with 3 stages: shard optimizer (Stage 1), + gradients (Stage 2), + parameters (Stage 3) |
-| All-reduce | "Average across GPUs" | Collective operation where every GPU ends with the sum (or average) of all GPUs' inputs -- typically implemented as ring all-reduce |
-| All-gather | "Collect from all GPUs" | Collective operation where every GPU ends with the concatenation of all GPUs' data -- used in FSDP to reconstruct full parameters |
-| Reduce-scatter | "Sum and distribute" | Collective operation that reduces (sums) data and scatters different chunks to different GPUs -- used in FSDP for gradient sharding |
-| Mixed precision | "Train in half precision" | Use FP16/BF16 for forward/backward and FP32 for optimizer states -- saves ~25% memory, not 50%, because the optimizer dominates |
-| Pipeline bubble | "Idle time in the pipeline" | Fraction of time GPUs sit idle waiting for data from the previous stage -- reduced by using more micro-batches |
+| Data parallelism | "모델을 모든 GPU에 복사" | 각 GPU가 다른 data shard를 처리하고, 각 step 뒤 gradient를 all-reduce로 평균냅니다 |
+| Tensor parallelism | "layer를 GPU에 나눔" | 각 GPU가 matmul의 일부를 계산하도록 weight matrix를 분할합니다. 빠른 NVLink interconnect가 필요합니다 |
+| Pipeline parallelism | "layer를 GPU에 나눔" | 각 GPU가 서로 다른 layer group을 실행합니다. data는 micro-batch와 함께 pipeline을 흘러 bubble을 줄입니다 |
+| FSDP | "모든 것을 shard" | Fully Sharded Data Parallel입니다. 각 GPU가 weight, gradient, optimizer state의 1/N을 보유하고 compute 전에 all-gather합니다 |
+| ZeRO | "DeepSpeed의 FSDP 버전" | 3 stage의 Zero Redundancy Optimizer입니다. optimizer shard(Stage 1), + gradient(Stage 2), + parameter(Stage 3) |
+| All-reduce | "GPU 간 평균" | 모든 GPU가 모든 GPU 입력의 sum 또는 average를 갖게 되는 collective operation입니다. 보통 ring all-reduce로 구현됩니다 |
+| All-gather | "모든 GPU에서 수집" | 모든 GPU가 모든 GPU data의 concatenation을 갖게 되는 collective operation입니다. FSDP에서 full parameter 재구성에 사용됩니다 |
+| Reduce-scatter | "합산 후 분배" | data를 reduce(sum)하고 서로 다른 chunk를 서로 다른 GPU에 scatter하는 collective operation입니다. FSDP의 gradient sharding에 사용됩니다 |
+| Mixed precision | "half precision으로 학습" | forward/backward에는 FP16/BF16을, optimizer state에는 FP32를 사용합니다. optimizer가 지배하므로 50%가 아니라 약 25% memory를 절약합니다 |
+| Pipeline bubble | "pipeline의 idle time" | GPU가 이전 stage의 data를 기다리며 idle인 시간 비율입니다. 더 많은 micro-batch로 줄입니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Rajbhandari et al., 2020 -- "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models"](https://arxiv.org/abs/1910.02054) -- the DeepSpeed ZeRO paper that defined the three sharding stages
-- [Shoeybi et al., 2020 -- "Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism"](https://arxiv.org/abs/1909.08053) -- NVIDIA's tensor parallelism for transformers
-- [Narayanan et al., 2021 -- "Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM"](https://arxiv.org/abs/2104.04473) -- 3D parallelism combining data, tensor, and pipeline
-- [Zhao et al., 2023 -- "PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel"](https://arxiv.org/abs/2304.11277) -- PyTorch's native FSDP implementation
-- [Llama 3 Technical Report](https://arxiv.org/abs/2407.21783) -- 16,384 GPU training with 3D parallelism details
-- [DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437) -- how MoE architecture reduces training cost by an order of magnitude
+- [Rajbhandari et al., 2020 -- "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models"](https://arxiv.org/abs/1910.02054) -- 세 sharding stage를 정의한 DeepSpeed ZeRO 논문
+- [Shoeybi et al., 2020 -- "Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism"](https://arxiv.org/abs/1909.08053) -- transformer를 위한 NVIDIA의 tensor parallelism
+- [Narayanan et al., 2021 -- "Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM"](https://arxiv.org/abs/2104.04473) -- data, tensor, pipeline을 결합한 3D parallelism
+- [Zhao et al., 2023 -- "PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel"](https://arxiv.org/abs/2304.11277) -- PyTorch의 native FSDP implementation
+- [Llama 3 Technical Report](https://arxiv.org/abs/2407.21783) -- 3D parallelism을 사용한 16,384 GPU training 세부사항
+- [DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437) -- MoE architecture가 training cost를 한 자릿수 규모로 줄이는 방법

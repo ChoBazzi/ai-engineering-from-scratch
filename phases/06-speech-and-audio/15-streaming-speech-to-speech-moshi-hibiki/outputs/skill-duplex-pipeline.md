@@ -1,27 +1,27 @@
 ---
 name: duplex-pipeline
-description: Pick full-duplex (Moshi) vs pipeline (VAD + STT + LLM + TTS) architecture for a voice-agent workload.
+description: 음성 에이전트 워크로드에 맞는 full-duplex(Moshi)와 pipeline(VAD + STT + LLM + TTS) 아키텍처 중 하나를 고른다.
 version: 1.0.0
 phase: 6
 lesson: 15
 tags: [moshi, hibiki, full-duplex, voice-agent, streaming]
 ---
 
-Given the workload (latency target, tool-calling needs, language coverage, hardware budget, cloud vs edge), output:
+워크로드(지연 시간 목표, 도구 호출 필요성, 언어 범위, 하드웨어 예산, cloud vs edge)가 주어지면 다음을 출력하라.
 
-1. Architecture. Full-duplex (Moshi / GPT-4o Realtime / Gemini Live) vs pipeline (LiveKit + STT + LLM + TTS, Lesson 12). One-sentence reason.
-2. Model. Moshi · Hibiki · Hibiki-Zero · Sesame CSM · GPT-4o Realtime · Gemini 2.5 Live · traditional pipeline. Reason.
-3. Scale. Per-session GPU cost (Moshi holds a slot), max concurrent sessions, cold-start impact.
-4. Tool-calling path. If needed — hybrid pipeline (duplex + external LLM for tool calls) or pure pipeline. Explain trade-off.
-5. Language coverage. Full-duplex models have narrow language support; pipelines inherit LLM's multilingual capability.
+1. 아키텍처. Full-duplex(Moshi / GPT-4o Realtime / Gemini Live) vs pipeline(LiveKit + STT + LLM + TTS, Lesson 12). 한 문장 이유.
+2. 모델. Moshi · Hibiki · Hibiki-Zero · Sesame CSM · GPT-4o Realtime · Gemini 2.5 Live · traditional pipeline. 이유.
+3. 규모. 세션당 GPU 비용(Moshi는 slot을 점유), 최대 동시 세션, cold-start 영향.
+4. 도구 호출 경로. 필요하다면 hybrid pipeline(duplex + 도구 호출용 외부 LLM) 또는 pure pipeline. trade-off 설명.
+5. 언어 범위. Full-duplex 모델은 언어 지원이 좁다. pipeline은 LLM의 다국어 능력을 물려받는다.
 
-Refuse full-duplex-only architecture for enterprise agents that need tool-calling / retrieval — Moshi is a dialogue model, not an agent framework. Refuse pipeline-only for sub-250 ms conversational agents — the stages add up. Refuse Moshi for &gt; 4 concurrent sessions on one GPU — hits contention.
+도구 호출/retrieval이 필요한 엔터프라이즈 에이전트에 full-duplex-only 아키텍처를 쓰는 것은 거부하라. Moshi는 대화 모델이지 에이전트 프레임워크가 아니다. 250ms 미만 대화형 에이전트에 pipeline-only를 쓰는 것도 거부하라. 단계별 지연이 누적된다. GPU 하나에서 동시 세션 &gt; 4개에 Moshi를 쓰는 것도 거부하라. contention에 걸린다.
 
-Example input: "Voice companion for language learning — conversational fluency practice. English + French. &lt; 250 ms responsiveness. 10k daily actives."
+예시 입력: "언어 학습용 voice companion — 회화 유창성 연습. 영어 + 프랑스어. &lt; 250 ms responsiveness. 일간 활성 사용자 1만 명."
 
-Example output:
-- Architecture: full-duplex (Moshi). Sub-250 ms latency requirement + conversational fluency fit Moshi's strengths.
-- Model: Moshi. EN + FR both well-supported. CC-BY 4.0 license.
-- Scale: one L4 GPU per 4-6 concurrent sessions → ~1500 GPUs at peak for 10k DAU at 10% concurrency. Plan for on-device light mode using Kyutai Pocket TTS + local Whisper for the quiet path.
-- Tool calling: minimal — "reveal grammar hint" and "translate this phrase" can be routed via a tiny LLM sidecar; most of the interaction is open-ended dialogue where Moshi shines.
-- Language coverage: EN + FR (native); ES / DE / JP via Hibiki-Zero adaptation (1000 h of audio required per new language).
+예시 출력:
+- 아키텍처: full-duplex(Moshi). 250ms 미만 지연 요구사항 + 회화 유창성 연습은 Moshi의 강점에 맞는다.
+- 모델: Moshi. EN + FR 모두 잘 지원된다. CC-BY 4.0 license.
+- 규모: 동시 세션 4-6개당 L4 GPU 하나 → 10% concurrency인 10k DAU의 peak에는 약 1500 GPUs. 조용한 경로에는 Kyutai Pocket TTS + local Whisper를 쓰는 on-device light mode를 계획한다.
+- 도구 호출: 최소화. "문법 힌트 보여주기"와 "이 문구 번역하기"는 작은 LLM sidecar로 라우팅할 수 있다. 대부분의 상호작용은 Moshi가 강한 open-ended dialogue다.
+- 언어 범위: EN + FR(native). ES / DE / JP는 Hibiki-Zero adaptation으로 지원(새 언어마다 1000h 오디오 필요).

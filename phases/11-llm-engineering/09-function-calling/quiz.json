@@ -1,37 +1,37 @@
 [
   {
-    "question": "Can LLMs actually execute functions or access external systems?",
-    "options": ["Yes, LLMs can call APIs directly", "No -- LLMs only generate text (typically JSON) describing which function to call; your code must execute it", "Only GPT-4 can execute functions", "LLMs execute functions through embeddings"],
+    "question": "LLM이 실제로 함수를 실행하거나 외부 시스템에 접근할 수 있는가?",
+    "options": ["예, LLM은 API를 직접 호출할 수 있다", "아니요 -- LLM은 어떤 함수를 호출할지 설명하는 텍스트(보통 JSON)만 생성하며, 실행은 여러분의 코드가 해야 한다", "GPT-4만 함수를 실행할 수 있다", "LLM은 임베딩을 통해 함수를 실행한다"],
     "correct": 1,
-    "explanation": "LLMs generate tokens. When 'calling a function,' the model outputs JSON specifying the function name and arguments. Your application code parses this JSON, executes the actual function, and sends the result back to the model.",
+    "explanation": "LLM은 토큰을 생성한다. '함수를 호출'할 때 모델은 함수 이름과 인수를 지정하는 JSON을 출력한다. 애플리케이션 코드는 이 JSON을 파싱하고 실제 함수를 실행한 뒤 결과를 모델에 다시 보낸다.",
     "stage": "pre"
   },
   {
-    "question": "What is a tool schema in the context of function calling?",
-    "options": ["The model's architecture diagram", "A JSON description of a function's name, parameters, types, and purpose that tells the model what tools are available", "A database schema", "The API endpoint URL"],
+    "question": "함수 호출 맥락에서 도구 스키마란 무엇인가?",
+    "options": ["모델의 아키텍처 다이어그램", "모델에 어떤 도구가 사용 가능한지 알려 주는 함수 이름, 매개변수, 타입, 목적에 대한 JSON 설명", "데이터베이스 스키마", "API 엔드포인트 URL"],
     "correct": 1,
-    "explanation": "Tool schemas describe available functions to the model: function name, parameter names and types, descriptions of what each parameter does, and what the function returns. The model uses these to decide when and how to call tools.",
+    "explanation": "도구 스키마는 사용 가능한 함수를 모델에 설명한다. 함수 이름, 매개변수 이름과 타입, 각 매개변수가 하는 일, 함수가 반환하는 내용을 담는다. 모델은 이를 사용해 도구를 언제 어떻게 호출할지 결정한다.",
     "stage": "pre"
   },
   {
-    "question": "What is the standard pattern for a multi-turn function calling loop?",
-    "options": ["Call all functions at once", "Send message -> model requests tool call -> execute function -> send result back -> model generates final response (repeat if needed)", "The model executes functions internally", "Parse the entire conversation as a batch"],
+    "question": "멀티턴 함수 호출 루프의 표준 패턴은 무엇인가?",
+    "options": ["모든 함수를 한 번에 호출한다", "메시지 전송 -> 모델이 도구 호출 요청 -> 함수 실행 -> 결과를 다시 전송 -> 모델이 최종 응답 생성(필요하면 반복)", "모델이 내부적으로 함수를 실행한다", "전체 대화를 배치로 파싱한다"],
     "correct": 1,
-    "explanation": "The loop: (1) send user message + tool schemas, (2) model responds with a tool call request, (3) execute the function, (4) send the result back as a tool response, (5) model generates the next response or another tool call.",
+    "explanation": "루프는 다음과 같다. (1) 사용자 메시지와 도구 스키마를 보낸다. (2) 모델이 도구 호출 요청으로 응답한다. (3) 함수를 실행한다. (4) 결과를 도구 응답으로 다시 보낸다. (5) 모델이 다음 응답이나 또 다른 도구 호출을 생성한다.",
     "stage": "post"
   },
   {
-    "question": "How do you prevent infinite tool calling loops?",
-    "options": ["Use a faster model", "Set a maximum number of tool call iterations and implement a timeout, breaking the loop if the limit is reached", "Infinite loops can't happen with function calling", "Remove all tool schemas after the first call"],
+    "question": "무한 도구 호출 루프를 어떻게 방지하는가?",
+    "options": ["더 빠른 모델을 사용한다", "도구 호출 반복의 최대 횟수를 설정하고 타임아웃을 구현해, 한계에 도달하면 루프를 중단한다", "함수 호출에서는 무한 루프가 발생할 수 없다", "첫 호출 이후 모든 도구 스키마를 제거한다"],
     "correct": 1,
-    "explanation": "Without limits, a model could repeatedly call tools (e.g., searching for information it can never find). A max iteration count (e.g., 10 rounds) and total timeout prevent runaway loops in production.",
+    "explanation": "제한이 없으면 모델은 도구를 반복해서 호출할 수 있다(예: 절대 찾을 수 없는 정보를 계속 검색). 최대 반복 횟수(예: 10라운드)와 전체 타임아웃은 프로덕션에서 폭주 루프를 막는다.",
     "stage": "post"
   },
   {
-    "question": "Why are clear, descriptive parameter names and descriptions important in tool schemas?",
-    "options": ["They make the code more readable", "The model uses descriptions to decide which tool to call and how to fill in parameters -- vague descriptions lead to wrong tool selections and incorrect arguments", "They are required by the API", "They improve response time"],
+    "question": "도구 스키마에서 명확하고 설명적인 매개변수 이름과 설명이 중요한 이유는 무엇인가?",
+    "options": ["코드를 더 읽기 쉽게 만들기 때문이다", "모델이 설명을 사용해 어떤 도구를 호출하고 매개변수를 어떻게 채울지 결정하기 때문이다. 모호한 설명은 잘못된 도구 선택과 부정확한 인수로 이어진다", "API에서 필수로 요구하기 때문이다", "응답 시간을 개선하기 때문이다"],
     "correct": 1,
-    "explanation": "The model reads tool descriptions to decide what to call and how. A parameter described as 'q' vs 'search_query: The user's search terms to look up in the knowledge base' gives vastly different results.",
+    "explanation": "모델은 도구 설명을 읽고 무엇을 어떻게 호출할지 결정한다. 'q'라고 설명된 매개변수와 'search_query: 지식 베이스에서 조회할 사용자의 검색어'라고 설명된 매개변수는 매우 다른 결과를 낸다.",
     "stage": "post"
   }
 ]

@@ -1,17 +1,17 @@
 ---
 name: multilingual-picker
-description: Pick source language, target model, and evaluation plan for a multilingual NLP task.
+description: multilingual NLP task의 source language, target model, evaluation plan을 고른다.
 version: 1.0.0
 phase: 5
 lesson: 18
 tags: [nlp, multilingual, cross-lingual]
 ---
 
-Given requirements (target languages, task type, available labeled data per language), output:
+requirement(target language, task type, language별 available labeled data)가 주어지면 다음을 output하라:
 
-1. Source language for fine-tuning. Default English; check LANGRANK or qWALS if target language has a typologically close high-resource language.
-2. Base model. XLM-R (classification), mT5 (generation), NLLB (translation), Aya-23 (generative LLM).
-3. Few-shot budget. Start with 100-500 target-language examples if available. Zero-shot only if labeling is infeasible.
-4. Evaluation plan. Per-language accuracy (not aggregate), cross-lingual consistency, entity-level F1 on non-Latin scripts.
+1. fine-tuning을 위한 source language. default는 English다. target language에 typologically close한 high-resource language가 있으면 LANGRANK 또는 qWALS를 check한다.
+2. Base model. XLM-R(classification), mT5(generation), NLLB(translation), Aya-23(generative LLM).
+3. Few-shot budget. 가능하다면 target-language example 100-500개로 시작한다. labeling이 infeasible할 때만 zero-shot을 사용한다.
+4. Evaluation 계획. per-language accuracy(aggregate 아님), cross-lingual consistency, non-Latin script의 entity-level F1.
 
-Refuse to ship a multilingual model without per-language evaluation — aggregate metrics hide long-tail failures. Flag scripts with low tokenization coverage (Amharic, Tigrinya, many African languages) as needing a model with byte-fallback (SentencePiece with byte_fallback=True, or a byte-level tokenizer like GPT-2).
+per-language evaluation 없이 multilingual model을 ship하는 것을 거부하라. aggregate metric은 long-tail failure를 숨긴다. tokenization coverage가 낮은 script(Amharic, Tigrinya, 여러 African language)는 byte-fallback을 갖춘 model(SentencePiece with byte_fallback=True, 또는 GPT-2 같은 byte-level tokenizer)이 필요하다고 flag하라.

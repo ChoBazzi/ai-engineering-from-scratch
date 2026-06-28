@@ -1,31 +1,31 @@
 ---
 name: skill-cmer-monitor
-description: Instrument a production VLM endpoint with Cross-Modal Error Rate monitoring, dashboards, and alerts
+description: Cross-Modal Error Rate monitoring, dashboards, alerts로 프로덕션 VLM endpoint를 계측합니다
 version: 1.0.0
 phase: 4
 lesson: 25
 tags: [vlm, production, monitoring, hallucination]
 ---
 
-# CMER Monitor
+# CMER 모니터
 
-Treat cross-modal alignment as a first-class production KPI.
+cross-modal alignment를 일급 프로덕션 KPI로 다루세요.
 
-## When to use
+## 언제 사용할까
 
-- Deploying any VLM endpoint that produces text grounded on images.
-- Investigating reports of hallucinated responses.
-- Tracking whether an input distribution shift degrades model grounding.
+- 이미지에 grounded된 텍스트를 생성하는 VLM endpoint를 배포할 때.
+- 환각된 응답 보고를 조사할 때.
+- 입력 분포 변화가 모델 grounding을 악화시키는지 추적할 때.
 
-## Inputs
+## 입력
 
-- `vlm_output`: generated text.
-- `text_confidence`: mean per-token probability after softmax, in `[0, 1]`. Compute as `exp(mean(log_probs))`. Do not pass raw logits; raw logits are unbounded and `conf_threshold` assumes a probability.
-- `image_embedding`: CLIP-family embedding of the image (DINOv3, SigLIP, CLIP).
-- `text_embedding`: CLIP-family embedding of the generated text.
-- Optional `prompt_type`: label for grouping (vqa / ocr / captioning / agent).
+- `vlm_output`: 생성된 텍스트.
+- `text_confidence`: softmax 이후 평균 per-token probability, `[0, 1]` 범위. `exp(mean(log_probs))`로 계산합니다. raw logits를 넘기지 마세요. raw logits는 unbounded이고 `conf_threshold`는 probability를 가정합니다.
+- `image_embedding`: 이미지의 CLIP 계열 embedding(DINOv3, SigLIP, CLIP).
+- `text_embedding`: 생성된 텍스트의 CLIP 계열 embedding.
+- 선택적 `prompt_type`: 그룹화를 위한 label(vqa / ocr / captioning / agent).
 
-## Per-request computation
+## 요청별 계산
 
 ```python
 import torch
@@ -40,42 +40,42 @@ def cmer_flag(image_emb, text_emb, text_conf, sim_thr=0.25, conf_thr=0.8):
     return {"sim": sim, "flagged": flagged}
 ```
 
-Embeddings are 1-D PyTorch tensors (`torch.float32`) from an independent CLIP-family encoder. If you use NumPy arrays, swap `.norm()` for `np.linalg.norm(...)` and cast the output accordingly.
+Embeddings는 독립적인 CLIP 계열 encoder에서 나온 1-D PyTorch tensors(`torch.float32`)입니다. NumPy arrays를 사용한다면 `.norm()`을 `np.linalg.norm(...)`으로 바꾸고 output을 그에 맞게 cast합니다.
 
-Store `sim`, `text_conf`, `flagged`, `prompt_type`, `timestamp`, `model_version`, `request_id` to your monitoring pipeline (Prometheus, DataDog, OpenTelemetry).
+`sim`, `text_conf`, `flagged`, `prompt_type`, `timestamp`, `model_version`, `request_id`를 monitoring pipeline(Prometheus, DataDog, OpenTelemetry)에 저장합니다.
 
-## Aggregate metric
+## 집계 지표
 
-```
+```text
 CMER = (flagged requests in window) / (total requests in window)
 ```
 
-Report per endpoint, per prompt_type, per model version.
+endpoint별, prompt_type별, model version별로 보고합니다.
 
-## Alert thresholds
+## 알림 threshold
 
-- Baseline CMER: establish over 7 days of normal traffic.
-- Warning: CMER >= 1.5x baseline for 1 hour.
-- Critical: CMER >= 2x baseline for 30 minutes or > 15% absolute for any window.
+- Baseline CMER: 정상 트래픽 7일 동안 설정합니다.
+- Warning: 1시간 동안 CMER >= baseline의 1.5배.
+- Critical: 30분 동안 CMER >= baseline의 2배 또는 어떤 window든 절대값 > 15%.
 
-## Dashboard panels
+## 대시보드 패널
 
-1. CMER over time (5-minute bucket, 7-day window).
-2. CMER by prompt_type (stacked bar).
-3. Distribution of `sim` per hour (histogram).
-4. Top hallucinated outputs (sample 20 flagged responses per day for human review).
+1. 시간에 따른 CMER(5분 bucket, 7일 window).
+2. prompt_type별 CMER(stacked bar).
+3. 시간별 `sim` 분포(histogram).
+4. 최상위 hallucinated outputs(사람 검토를 위해 하루에 flagged responses 20개 샘플링).
 
-## Actions when CMER spikes
+## CMER가 급등할 때의 조치
 
-1. Sample the flagged requests.
-2. Verify the model version has not changed inadvertently.
-3. Check the input distribution (new file format? new image source? compressed differently?).
-4. Route the affected traffic to human review until the spike resolves.
-5. If the spike is persistent, fine-tune or replace the model; do not suppress the alert.
+1. flagged requests를 샘플링합니다.
+2. model version이 의도치 않게 바뀌지 않았는지 확인합니다.
+3. input distribution을 확인합니다(new file format? new image source? differently compressed?).
+4. spike가 해결될 때까지 영향을 받는 traffic을 human review로 라우팅합니다.
+5. spike가 지속되면 모델을 파인튜닝하거나 교체합니다. alert를 억누르지 마세요.
 
-## Rules
+## 규칙
 
-- Never compute CMER using the VLM's own embeddings; use an independent encoder (DINOv3, SigLIP, or CLIP-L/14). Otherwise you are measuring the model's self-consistency, not alignment.
-- Always log the raw `sim` value, not just the `flagged` bit; distribution shifts show up in the lower quartile before the flag rate changes.
-- Do not ship a VLM endpoint without CMER monitoring; hallucinations are the dominant production failure mode and silent without this metric.
-- For sensitive domains (medical, legal, financial), raise `sim_threshold` to 0.35 or higher; the flag condition is `sim < sim_threshold`, so a higher threshold catches more outputs as potentially ungrounded — the right default for high-stakes use.
+- VLM 자체 embeddings로 CMER를 계산하지 마세요. 독립적인 encoder(DINOv3, SigLIP 또는 CLIP-L/14)를 사용합니다. 그렇지 않으면 alignment가 아니라 모델의 self-consistency를 측정하게 됩니다.
+- `flagged` bit만이 아니라 raw `sim` 값을 항상 log합니다. distribution shift는 flag rate가 바뀌기 전에 lower quartile에서 먼저 나타납니다.
+- CMER monitoring 없이 VLM endpoint를 출하하지 마세요. 환각은 지배적인 프로덕션 실패 모드이며 이 지표 없이는 조용히 발생합니다.
+- 민감한 도메인(medical, legal, financial)에서는 `sim_threshold`를 0.35 이상으로 올립니다. flag 조건은 `sim < sim_threshold`이므로 threshold가 높을수록 잠재적으로 ungrounded인 output을 더 많이 잡습니다. high-stakes 사용 사례에 맞는 기본값입니다.

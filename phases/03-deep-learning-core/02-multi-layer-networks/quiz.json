@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the purpose of a hidden layer in a multi-layer network?",
-    "options": ["To store the training data", "To transform inputs into new feature representations that enable nonlinear decision boundaries", "To reduce the number of parameters", "To apply the loss function"],
+    "question": "다층 네트워크에서 은닉층의 목적은 무엇인가요?",
+    "options": ["훈련 데이터를 저장하는 것", "입력을 비선형 결정 경계를 가능하게 하는 새 feature representation으로 변환하는 것", "parameter 수를 줄이는 것", "loss function을 적용하는 것"],
     "correct": 1,
-    "explanation": "Hidden layers apply weights, biases, and activation functions to create new feature representations. These intermediate features allow the network to learn nonlinear mappings that a single layer cannot.",
+    "explanation": "은닉층은 weights, biases, activation functions를 적용해 새 feature representation을 만듭니다. 이러한 중간 feature 덕분에 네트워크는 단일 layer로는 불가능한 nonlinear mapping을 학습할 수 있습니다.",
     "stage": "pre"
   },
   {
-    "question": "What does the forward pass do in a neural network?",
-    "options": ["Updates the weights using gradients", "Computes gradients for backpropagation", "Pushes input through each layer to produce an output", "Shuffles the training data"],
+    "question": "신경망에서 forward pass는 무엇을 하나요?",
+    "options": ["gradient를 사용해 weights를 update한다", "backpropagation을 위한 gradients를 계산한다", "input을 각 layer에 통과시켜 output을 만든다", "training data를 shuffle한다"],
     "correct": 2,
-    "explanation": "The forward pass is pure computation: for each layer, multiply by weights, add bias, apply activation, and pass the result to the next layer. No learning happens during the forward pass.",
+    "explanation": "forward pass는 순수 계산입니다. 각 layer에서 weights를 곱하고, bias를 더하고, activation을 적용한 뒤, 그 결과를 다음 layer로 넘깁니다. forward pass 중에는 학습이 일어나지 않습니다.",
     "stage": "pre"
   },
   {
-    "question": "For a layer with 3 neurons receiving input from 2 neurons, what is the shape of the weight matrix?",
+    "question": "2개의 뉴런에서 입력을 받는 3개 뉴런 layer의 weight matrix shape은 무엇인가요?",
     "options": ["(2, 3)", "(3, 2)", "(3, 3)", "(2, 2)"],
     "correct": 1,
-    "explanation": "The weight matrix has shape (neurons_in_current_layer, neurons_in_previous_layer) = (3, 2). Each row contains one neuron's weights across all inputs.",
+    "explanation": "weight matrix의 shape은 (neurons_in_current_layer, neurons_in_previous_layer) = (3, 2)입니다. 각 row는 모든 input에 대한 한 neuron의 weights를 담습니다.",
     "stage": "post"
   },
   {
-    "question": "What does the Universal Approximation Theorem guarantee?",
-    "options": ["Any network can be trained in polynomial time", "A single hidden layer with enough neurons can approximate any continuous function", "Deeper networks always outperform shallow ones", "Neural networks can solve any computational problem"],
+    "question": "Universal Approximation Theorem은 무엇을 보장하나요?",
+    "options": ["어떤 network든 polynomial time에 훈련할 수 있다", "충분한 neuron이 있는 단일 hidden layer는 어떤 continuous function이든 approximate할 수 있다", "deeper network는 항상 shallow network보다 성능이 좋다", "neural network는 어떤 computational problem이든 풀 수 있다"],
     "correct": 1,
-    "explanation": "Cybenko (1989) proved that a network with one hidden layer and sufficient neurons can approximate any continuous function to any desired accuracy. In practice, deeper networks achieve the same with fewer total parameters.",
+    "explanation": "Cybenko (1989)는 하나의 hidden layer와 충분한 neuron을 가진 network가 어떤 continuous function이든 원하는 정확도까지 approximate할 수 있음을 증명했습니다. 실제로는 deeper network가 더 적은 total parameter로 같은 일을 해냅니다.",
     "stage": "post"
   },
   {
-    "question": "Why does the sigmoid activation function make learning possible, unlike the step function used in perceptrons?",
-    "options": ["Sigmoid outputs larger values", "Sigmoid is faster to compute", "Sigmoid is smooth and differentiable everywhere, so gradients exist for backpropagation", "Sigmoid outputs negative values"],
+    "question": "퍼셉트론에서 사용하는 계단 함수와 달리 sigmoid activation function이 학습을 가능하게 하는 이유는 무엇인가요?",
+    "options": ["Sigmoid가 더 큰 값을 출력한다", "Sigmoid가 계산하기 더 빠르다", "Sigmoid는 모든 곳에서 smooth하고 differentiable하므로 backpropagation을 위한 gradients가 존재한다", "Sigmoid가 음수 값을 출력한다"],
     "correct": 2,
-    "explanation": "The step function has zero gradient almost everywhere and undefined gradient at the threshold. Sigmoid is smooth with a well-defined derivative (s*(1-s)) at every point, which is essential for gradient-based learning.",
+    "explanation": "계단 함수는 거의 모든 곳에서 gradient가 0이고 threshold에서는 gradient가 정의되지 않습니다. Sigmoid는 모든 지점에서 well-defined derivative인 s*(1-s)를 갖는 smooth function이며, 이는 gradient-based learning에 필수입니다.",
     "stage": "post"
   }
 ]

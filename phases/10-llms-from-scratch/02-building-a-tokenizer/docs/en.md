@@ -1,40 +1,40 @@
-# Building a Tokenizer from Scratch
+# 처음부터 Tokenizer 만들기
 
-> Lesson 01 gave you a toy. This lesson gives you a weapon.
+> Lesson 01은 장난감을 주었습니다. 이 lesson은 실전 도구를 줍니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 10, Lesson 01 (Tokenizers: BPE, WordPiece, SentencePiece)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Build a production-grade BPE tokenizer that handles Unicode, whitespace normalization, and special tokens
-- Implement byte-level fallback so the tokenizer can encode any input (including emoji, CJK, and code) without unknown tokens
-- Add pre-tokenization regex patterns that split text at word boundaries before applying BPE merges
-- Train a custom tokenizer on a corpus and evaluate its compression ratio against tiktoken on multilingual text
+- Unicode, whitespace normalization, special token을 처리하는 production-grade BPE tokenizer를 만듭니다
+- tokenizer가 emoji, CJK, code를 포함한 모든 입력을 unknown token 없이 encode할 수 있도록 byte-level fallback을 구현합니다
+- BPE merge를 적용하기 전에 텍스트를 단어 경계에서 나누는 pre-tokenization regex pattern을 추가합니다
+- corpus에서 custom tokenizer를 학습하고 multilingual text에서 tiktoken과 compression ratio를 비교 평가합니다
 
-## The Problem
+## 문제
 
-Your BPE tokenizer from Lesson 01 works on English text. Now throw Japanese at it. Or emoji. Or Python code with mixed tabs and spaces.
+Lesson 01의 BPE tokenizer는 영어 텍스트에서 작동합니다. 이제 일본어를 던져보세요. emoji도요. tab과 space가 섞인 Python code도요.
 
-It breaks.
+깨집니다.
 
-Not because BPE is wrong -- because the implementation is incomplete. A production tokenizer handles raw bytes in any encoding, normalizes Unicode before splitting, manages special tokens that never get merged, chains pre-tokenization with subword splitting, and does all of this fast enough to not bottleneck a training pipeline processing 15 trillion tokens.
+BPE가 틀려서가 아닙니다. 구현이 불완전하기 때문입니다. production tokenizer는 어떤 encoding의 raw byte든 처리하고, 분리 전에 Unicode를 정규화하고, 절대 merge되지 않는 special token을 관리하고, pre-tokenization과 subword splitting을 연결하며, 15조 token을 처리하는 training pipeline의 병목이 되지 않을 만큼 빠르게 이 모든 일을 합니다.
 
-GPT-2's tokenizer has 50,257 tokens. Llama 3 has 128,256. GPT-4 has roughly 100,000. These are not toy numbers. The merge tables behind those vocabularies were trained on hundreds of gigabytes of text, and the surrounding machinery -- normalization, pre-tokenization, special token injection, chat template formatting -- is what separates a tokenizer that handles "hello world" from one that handles the entire internet.
+GPT-2 tokenizer는 50,257 token을 가집니다. Llama 3는 128,256입니다. GPT-4는 대략 100,000입니다. 장난감 숫자가 아닙니다. 그 vocabulary 뒤의 merge table은 수백 GB 텍스트로 학습되었고, 주변 장치인 normalization, pre-tokenization, special token injection, chat template formatting이 "hello world"만 처리하는 tokenizer와 인터넷 전체를 처리하는 tokenizer를 가릅니다.
 
-You are going to build that machinery.
+이제 그 장치를 만들 것입니다.
 
-## The Concept
+## 개념
 
-### The Full Pipeline
+### 전체 Pipeline
 
-A production tokenizer is not one algorithm. It is a pipeline of five stages, each solving a different problem.
+production tokenizer는 하나의 algorithm이 아닙니다. 서로 다른 문제를 해결하는 다섯 단계의 pipeline입니다.
 
 ```mermaid
 graph LR
-    A[Raw Text] --> B[Normalize]
+    A[Raw Text] --> B[정규화]
     B --> C[Pre-Tokenize]
     C --> D[BPE Merge]
     D --> E[Special Tokens]
@@ -48,66 +48,66 @@ graph LR
     style F fill:#1a1a2e,stroke:#e94560,color:#fff
 ```
 
-Each stage has a specific job:
+각 단계에는 구체적인 역할이 있습니다.
 
-| Stage | What It Does | Why It Matters |
+| Stage | 하는 일 | 중요한 이유 |
 |-------|-------------|----------------|
-| Normalize | NFKC Unicode, lowercase optional, strip accents optional | "fi" ligature (U+FB01) becomes "fi" (two chars). Without this, same word gets different tokens. |
-| Pre-Tokenize | Split text into chunks before BPE | Prevents BPE from merging across word boundaries. "the cat" should never produce a token "e c". |
-| BPE Merge | Apply learned merge rules to byte sequences | The core compression. Turns raw bytes into subword tokens. |
-| Special Tokens | Inject [BOS], [EOS], [PAD], chat template markers | These tokens have fixed IDs. They never participate in BPE merges. The model needs them for structure. |
-| ID Mapping | Convert token strings to integer IDs | The model sees integers, not strings. |
+| Normalize | NFKC Unicode, optional lowercase, optional accent stripping | "fi" ligature(U+FB01)가 "fi"(두 문자)가 됩니다. 이 과정이 없으면 같은 단어도 다른 token이 됩니다. |
+| Pre-Tokenize | BPE 전에 텍스트를 chunk로 나눔 | BPE가 단어 경계를 가로질러 merge하지 못하게 합니다. "the cat"이 "e c" token을 만들면 안 됩니다. |
+| BPE Merge | 학습된 merge rule을 byte sequence에 적용 | 핵심 compression입니다. raw byte를 subword token으로 바꿉니다. |
+| Special Tokens | [BOS], [EOS], [PAD], chat template marker 삽입 | 이 token들은 고정 ID를 가집니다. BPE merge에 절대 참여하지 않습니다. 모델은 구조를 위해 이들이 필요합니다. |
+| ID Mapping | token string을 integer ID로 변환 | 모델은 string이 아니라 integer를 봅니다. |
 
-### Byte-Level BPE
+### Byte-level BPE
 
-Lesson 01's tokenizer operated on UTF-8 bytes. That was the right call. But we skipped something important: what happens when those bytes are not valid UTF-8?
+Lesson 01의 tokenizer는 UTF-8 byte에서 작동했습니다. 올바른 선택이었습니다. 하지만 중요한 것을 건너뛰었습니다. 그 byte가 유효한 UTF-8이 아니면 어떻게 될까요?
 
-Byte-level BPE solves this by treating every possible byte value (0-255) as a valid token. Your base vocabulary is exactly 256 entries. Any file -- text, binary, corrupted -- can be tokenized without producing an unknown token.
+Byte-level BPE는 가능한 모든 byte 값(0-255)을 유효한 token으로 다뤄 이 문제를 해결합니다. base vocabulary는 정확히 256개 entry입니다. 텍스트, binary, 손상된 파일 등 어떤 파일도 unknown token 없이 tokenization할 수 있습니다.
 
-GPT-2 added a trick: map each byte to a printable Unicode character so the vocabulary stays human-readable. Byte 0x20 (space) becomes the character "G" in their mapping. This is purely cosmetic. The algorithm does not care.
+GPT-2는 한 가지 trick을 추가했습니다. vocabulary가 사람이 읽을 수 있게 각 byte를 printable Unicode 문자에 mapping합니다. byte 0x20(space)은 그들의 mapping에서 문자 "G"가 됩니다. 이는 순전히 표시용입니다. algorithm에는 중요하지 않습니다.
 
-The real power: byte-level BPE handles every language on earth. Chinese characters are 3 UTF-8 bytes each. Japanese can be 3-4 bytes. Arabic, Devanagari, emoji -- all just byte sequences. The BPE algorithm finds patterns in these byte sequences exactly the same way it finds patterns in English ASCII bytes.
+진짜 힘은 byte-level BPE가 지구상의 모든 언어를 처리한다는 점입니다. 중국어 문자는 각각 UTF-8 byte 3개입니다. 일본어는 3-4 byte일 수 있습니다. Arabic, Devanagari, emoji도 모두 byte sequence일 뿐입니다. BPE algorithm은 영어 ASCII byte에서 pattern을 찾는 것과 정확히 같은 방식으로 이 byte sequence에서 pattern을 찾습니다.
 
-### Pre-Tokenization
+### Pre-tokenization
 
-Before BPE touches your text, you need to split it into chunks. This prevents the merge algorithm from creating tokens that span word boundaries.
+BPE가 텍스트를 만지기 전에 chunk로 나눠야 합니다. 이는 merge algorithm이 단어 경계를 가로지르는 token을 만들지 못하게 합니다.
 
-GPT-2 uses a regex pattern to split text:
+GPT-2는 regex pattern으로 텍스트를 나눕니다.
 
-```
+```text
 '(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+
 ```
 
-This pattern splits on contractions ("don't" becomes "don" + "'t"), words with optional leading spaces, numbers, punctuation, and whitespace. The leading space is kept attached to the word -- so "the cat" becomes [" the", " cat"], not ["the", " ", "cat"].
+이 pattern은 contraction("don't"가 "don" + "'t"가 됨), optional leading space가 있는 단어, 숫자, 구두점, 공백을 기준으로 나눕니다. leading space는 단어에 붙은 채 유지됩니다. 그래서 "the cat"은 ["the", " ", "cat"]이 아니라 [" the", " cat"]이 됩니다.
 
-Llama uses SentencePiece, which skips regex entirely. It treats the raw byte stream as one long sequence and lets the BPE algorithm figure out the boundaries. This is simpler but gives BPE more freedom to create cross-word tokens.
+Llama는 regex를 완전히 건너뛰는 SentencePiece를 사용합니다. raw byte stream을 하나의 긴 sequence로 다루고 BPE algorithm이 경계를 알아내게 합니다. 더 단순하지만 BPE가 cross-word token을 만들 자유를 더 많이 줍니다.
 
-The choice matters. GPT-2's regex prevents the tokenizer from learning that "the" at the end of one word and "the" at the start of the next should merge. SentencePiece allows it, which sometimes produces more efficient compression but less interpretable tokens.
+이 선택은 중요합니다. GPT-2의 regex는 tokenizer가 한 단어 끝의 "the"와 다음 단어 시작의 "the"를 merge해야 한다고 학습하지 못하게 합니다. SentencePiece는 이를 허용하며, 때로 더 효율적인 compression을 만들지만 token 해석 가능성은 낮아집니다.
 
-### Special Tokens
+### Special token
 
-Every production tokenizer reserves token IDs for structural markers:
+모든 production tokenizer는 구조적 marker를 위해 token ID를 예약합니다.
 
-| Token | Purpose | Used By |
+| Token | 목적 | 사용 모델 |
 |-------|---------|---------|
-| `[BOS]` / `<s>` | Beginning of sequence | Llama 3, GPT |
-| `[EOS]` / `</s>` | End of sequence | All models |
-| `[PAD]` | Padding for batch alignment | BERT, T5 |
-| `[UNK]` | Unknown token (byte-level BPE eliminates this) | BERT, WordPiece |
-| `<\|im_start\|>` | Chat message boundary start | ChatGPT, Qwen |
-| `<\|im_end\|>` | Chat message boundary end | ChatGPT, Qwen |
-| `<\|user\|>` | User turn marker | Llama 3 |
-| `<\|assistant\|>` | Assistant turn marker | Llama 3 |
+| `[BOS]` / `<s>` | sequence 시작 | Llama 3, GPT |
+| `[EOS]` / `</s>` | sequence 끝 | 모든 모델 |
+| `[PAD]` | batch alignment용 padding | BERT, T5 |
+| `[UNK]` | unknown token(byte-level BPE는 이를 제거) | BERT, WordPiece |
+| `<\|im_start\|>` | chat message boundary 시작 | ChatGPT, Qwen |
+| `<\|im_end\|>` | chat message boundary 끝 | ChatGPT, Qwen |
+| `<\|user\|>` | user turn marker | Llama 3 |
+| `<\|assistant\|>` | assistant turn marker | Llama 3 |
 
-Special tokens are never split by BPE. They are matched exactly before the merge algorithm runs, replaced with their fixed ID, and the surrounding text is tokenized normally.
+special token은 BPE로 절대 분리되지 않습니다. merge algorithm이 실행되기 전에 정확히 match되어 고정 ID로 대체되고, 주변 텍스트는 일반적으로 tokenization됩니다.
 
-### Chat Templates
+### Chat template
 
-This is where most people get confused and most implementations break.
+대부분의 사람이 헷갈리고 대부분의 구현이 깨지는 지점입니다.
 
-When you send messages to a chat model, the API accepts a list of messages:
+chat model에 message를 보내면 API는 message list를 받습니다.
 
-```
+```json
 [
   {"role": "system", "content": "You are helpful."},
   {"role": "user", "content": "Hello"},
@@ -115,9 +115,9 @@ When you send messages to a chat model, the API accepts a list of messages:
 ]
 ```
 
-The model does not see JSON. It sees a flat token sequence. The chat template converts messages into that flat sequence using special tokens. Every model does this differently:
+모델은 JSON을 보지 않습니다. flat token sequence를 봅니다. chat template은 special token을 사용해 message를 그 flat sequence로 변환합니다. 모델마다 방식이 다릅니다.
 
-```
+```text
 Llama 3:
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
@@ -136,27 +136,27 @@ Hello<|im_end|>
 Hi there!<|im_end|>
 ```
 
-Get the template wrong and the model produces garbage. It was trained on one exact format. Any deviation -- a missing newline, a swapped token, an extra space -- puts the input outside the training distribution.
+template을 잘못 만들면 모델은 엉망인 출력을 냅니다. 모델은 정확히 하나의 형식으로 학습되었습니다. newline 하나 누락, token 순서 변경, extra space 같은 어떤 이탈도 입력을 training distribution 밖으로 보냅니다.
 
 ### Speed
 
-Python is too slow for production tokenization.
+Python은 production tokenization에 너무 느립니다.
 
-tiktoken (OpenAI) is written in Rust with Python bindings. HuggingFace tokenizers is also Rust. SentencePiece is C++. These achieve 10-100x speedups over pure Python.
+tiktoken(OpenAI)은 Rust로 작성되고 Python binding을 제공합니다. HuggingFace tokenizers도 Rust입니다. SentencePiece는 C++입니다. 이들은 순수 Python보다 10-100배 빠릅니다.
 
-For perspective: tokenizing 15 trillion tokens for Llama 3 pre-training at 1 million tokens per second (fast Python) would take 174 days. At 100 million tokens per second (Rust), it takes 1.7 days.
+감각을 잡아봅시다. Llama 3 pre-training용 15조 token을 초당 1백만 token(빠른 Python)로 tokenization하면 174일이 걸립니다. 초당 1억 token(Rust)이라면 1.7일입니다.
 
-You are building in Python to understand the algorithm. In production, you would use a compiled implementation and only touch the Python wrapper.
+여기서는 algorithm을 이해하기 위해 Python으로 만듭니다. production에서는 compiled implementation을 사용하고 Python wrapper만 다룹니다.
 
 ```figure
 weight-tying
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Byte-Level Encoding
+### 1단계: Byte-level encoding
 
-The foundation. Convert any string into a sequence of bytes, map each byte to a printable character for display, and reverse the process.
+기초입니다. 어떤 문자열이든 byte sequence로 변환하고, 표시를 위해 각 byte를 printable character에 mapping한 뒤, 이 과정을 되돌립니다.
 
 ```python
 def bytes_to_tokens(text):
@@ -166,7 +166,7 @@ def tokens_to_text(token_bytes):
     return bytes(token_bytes).decode("utf-8", errors="replace")
 ```
 
-Test on multilingual text to see the byte counts:
+multilingual text에서 테스트해 byte 수를 확인하세요.
 
 ```python
 texts = [
@@ -181,11 +181,11 @@ for label, text in texts:
     print(f"{label}: {len(text)} chars -> {len(b)} bytes -> {b}")
 ```
 
-"hello" is 5 bytes. "你好" is 6 bytes (3 per character). The fire emoji is 4 bytes. The byte-level tokenizer does not care what language it is. Bytes are bytes.
+"hello"는 5 byte입니다. "你好"는 6 byte입니다(문자당 3개). 불 emoji는 4 byte입니다. byte-level tokenizer는 언어가 무엇인지 신경 쓰지 않습니다. byte는 byte입니다.
 
-### Step 2: Pre-Tokenizer with Regex
+### Step 2: Regex 기반 Pre-Tokenizer
 
-Split text into chunks using the GPT-2 regex pattern. Each chunk gets tokenized independently by BPE.
+GPT-2 regex pattern으로 텍스트를 chunk로 나눕니다. 각 chunk는 BPE로 독립적으로 tokenization됩니다.
 
 ```python
 import re
@@ -204,20 +204,20 @@ def pre_tokenize(text):
     return [match.group() for match in GPT2_PATTERN.finditer(text)]
 ```
 
-The `regex` module supports Unicode property escapes (`\p{L}` for letters, `\p{N}` for numbers). The standard library `re` module does not, so we fall back to ASCII character classes. For production multilingual tokenizers, install `regex`.
+`regex` module은 Unicode property escape(문자는 `\p{L}`, 숫자는 `\p{N}`)를 지원합니다. standard library `re` module은 이를 지원하지 않으므로 ASCII character class로 fallback합니다. production multilingual tokenizer에는 `regex`를 설치하세요.
 
-Try it:
+실행해보세요.
 
 ```python
 print(pre_tokenize("Hello, world! Don't stop."))
 # [' Hello', ',', ' world', '!', " Don", "'t", ' stop', '.']
 ```
 
-The leading space stays attached to the word. Contractions split at the apostrophe. Punctuation becomes its own chunk. BPE will never merge tokens across these boundaries.
+leading space는 단어에 붙은 채 유지됩니다. contraction은 apostrophe에서 분리됩니다. 구두점은 자기 chunk가 됩니다. BPE는 이 경계를 가로질러 token을 merge하지 않습니다.
 
-### Step 3: BPE on Byte Sequences
+### Step 3: Byte Sequence 위의 BPE
 
-The core algorithm from Lesson 01, but now operating on pre-tokenized chunks independently.
+Lesson 01의 핵심 algorithm이지만 이제 pre-tokenized chunk 각각에서 독립적으로 작동합니다.
 
 ```python
 from collections import Counter
@@ -243,9 +243,9 @@ def apply_merge(byte_seq, pair, new_id):
     return merged
 ```
 
-### Step 4: Special Token Handling
+### Step 4: Special Token 처리
 
-Special tokens need exact matching and fixed IDs. They bypass BPE entirely.
+special token에는 exact matching과 fixed ID가 필요합니다. 이들은 BPE를 완전히 우회합니다.
 
 ```python
 class SpecialTokenHandler:
@@ -273,9 +273,9 @@ class SpecialTokenHandler:
         return parts
 ```
 
-### Step 5: Full Tokenizer Class
+### Step 5: 전체 Tokenizer Class
 
-Chain everything together: normalize, split on special tokens, pre-tokenize, BPE merge, map to IDs.
+모든 것을 연결합니다. normalize, special token 기준 분리, pre-tokenize, BPE merge, ID mapping 순서입니다.
 
 ```python
 import unicodedata
@@ -342,9 +342,9 @@ class ProductionTokenizer:
         return len(self.vocab)
 ```
 
-### Step 6: Multilingual Test
+### 6단계: Multilingual test
 
-The real test. Throw English, Chinese, emoji, and code at it.
+진짜 테스트입니다. 영어, 중국어, emoji, code를 던져봅니다.
 
 ```python
 corpus = (
@@ -379,13 +379,13 @@ for text in test_texts:
     print()
 ```
 
-Chinese characters produce 3 bytes each. The emoji produces 4 bytes. None of these crash the tokenizer. None produce unknown tokens. That is the power of byte-level BPE.
+중국어 문자는 각각 3 byte를 만듭니다. emoji는 4 byte를 만듭니다. 이 중 어떤 것도 tokenizer를 crash시키지 않습니다. unknown token도 만들지 않습니다. 이것이 byte-level BPE의 힘입니다.
 
-## Use It
+## 활용하기
 
-### Comparing Real Tokenizers
+### 실제 Tokenizer 비교
 
-Load the actual tokenizers from Llama 3, GPT-4, and Mistral. See how each handles the same multilingual paragraph.
+Llama 3, GPT-4, Mistral의 실제 tokenizer를 load합니다. 각각이 같은 multilingual paragraph를 어떻게 처리하는지 봅니다.
 
 ```python
 import tiktoken
@@ -411,37 +411,37 @@ for name, tok in [("Llama 3", llama_tok), ("Mistral", mistral_tok)]:
     print(f"{name} ({len(tokens)} tokens): {pieces[:20]}...")
 ```
 
-You will see different token counts for the same text. Llama 3 with 128K vocabulary is more aggressive at merging common patterns. GPT-4 with 100K sits in the middle. Mistral with 32K produces more tokens but has a smaller embedding layer.
+같은 텍스트에 대해 서로 다른 token count를 보게 될 것입니다. 128K vocabulary를 가진 Llama 3는 흔한 pattern을 더 공격적으로 merge합니다. 100K의 GPT-4는 중간에 있습니다. 32K의 Mistral은 더 많은 token을 만들지만 embedding layer가 더 작습니다.
 
-The tradeoff is always the same: larger vocabulary means shorter sequences but more parameters.
+tradeoff는 언제나 같습니다. vocabulary가 클수록 sequence는 짧아지지만 parameter는 많아집니다.
 
-## Ship It
+## 산출물
 
-This lesson produces a prompt for building and debugging production tokenizers. See `outputs/prompt-tokenizer-builder.md`.
+이 lesson은 production tokenizer를 구축하고 debug하기 위한 prompt를 산출합니다. `outputs/prompt-tokenizer-builder.md`를 참고하세요.
 
-## Exercises
+## 연습문제
 
-1. **Easy:** Add a `get_token_bytes(id)` method that shows the raw bytes for any token ID. Use it to inspect what your most common merged tokens actually represent.
-2. **Medium:** Implement the Llama-style pre-tokenizer that splits on whitespace and digits but keeps leading spaces. Compare its vocabulary with the GPT-2 regex approach on the same corpus.
-3. **Hard:** Add a chat template method that takes a list of `{"role": ..., "content": ...}` messages and produces the correct token sequence for the Llama 3 chat format. Test it against the HuggingFace implementation.
+1. **Easy:** 어떤 token ID에 대해서든 raw byte를 보여주는 `get_token_bytes(id)` method를 추가하세요. 가장 흔한 merged token이 실제로 무엇을 나타내는지 검사하는 데 사용하세요.
+2. **Medium:** 공백과 digit을 기준으로 나누되 leading space는 유지하는 Llama-style pre-tokenizer를 구현하세요. 같은 corpus에서 GPT-2 regex 접근의 vocabulary와 비교하세요.
+3. **Hard:** `{"role": ..., "content": ...}` message list를 받아 Llama 3 chat format에 맞는 올바른 token sequence를 만드는 chat template method를 추가하세요. HuggingFace implementation과 비교 테스트하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 흔히 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Byte-level BPE | "Tokenizer that works on bytes" | BPE with a base vocabulary of 256 byte values -- handles any input without unknown tokens |
-| Pre-tokenization | "Splitting before BPE" | Regex or rule-based splitting that prevents BPE from merging across word boundaries |
-| NFKC normalization | "Unicode cleanup" | Canonical decomposition followed by compatibility composition -- "fi" ligature becomes "fi", fullwidth "A" becomes "A" |
-| Chat template | "How messages become tokens" | The exact format for converting a list of role/content messages into a flat token sequence -- model-specific and must match training format |
-| Special tokens | "Control tokens" | Reserved token IDs that bypass BPE -- [BOS], [EOS], [PAD], chat markers -- matched exactly before merge |
-| Fertility | "Tokens per word" | Ratio of output tokens to input words -- 1.3 for English in GPT-4, 2-3 for Korean, higher means wasted context |
-| tiktoken | "OpenAI tokenizer" | Rust BPE implementation with Python bindings -- 10-100x faster than pure Python |
-| Merge table | "The vocabulary" | Ordered list of byte-pair merges learned during training -- this IS the tokenizer's learned knowledge |
+| Byte-level BPE | "byte에서 작동하는 tokenizer" | 256개 byte 값을 base vocabulary로 갖는 BPE입니다. unknown token 없이 모든 입력을 처리합니다 |
+| Pre-tokenization | "BPE 전 분리" | BPE가 단어 경계를 가로질러 merge하지 못하게 하는 regex 또는 rule-based splitting입니다 |
+| NFKC normalization | "Unicode cleanup" | canonical decomposition 뒤 compatibility composition을 적용합니다. "fi" ligature는 "fi"가 되고, fullwidth "A"는 "A"가 됩니다 |
+| Chat template | "message가 token이 되는 방식" | role/content message list를 flat token sequence로 변환하는 정확한 형식입니다. 모델별이며 training format과 일치해야 합니다 |
+| Special tokens | "control token" | BPE를 우회하는 예약 token ID입니다. [BOS], [EOS], [PAD], chat marker는 merge 전에 정확히 match됩니다 |
+| Fertility | "단어당 token 수" | 입력 단어 대비 출력 token 비율입니다. GPT-4의 영어는 1.3, 한국어는 2-3이며, 높을수록 context 낭비를 뜻합니다 |
+| tiktoken | "OpenAI tokenizer" | Python binding을 갖춘 Rust BPE implementation입니다. 순수 Python보다 10-100배 빠릅니다 |
+| Merge table | "vocabulary" | 학습 중 배운 byte-pair merge의 순서 있는 목록입니다. 이것이 tokenizer의 학습된 지식입니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [OpenAI tiktoken source](https://github.com/openai/tiktoken) -- Rust BPE implementation used by GPT-3.5/4
-- [HuggingFace tokenizers](https://github.com/huggingface/tokenizers) -- Rust tokenizer library supporting BPE, WordPiece, Unigram
-- [Llama 3 paper (Meta, 2024)](https://arxiv.org/abs/2407.21783) -- details on 128K vocabulary and tokenizer training
+- [OpenAI tiktoken source](https://github.com/openai/tiktoken) -- GPT-3.5/4에서 사용하는 Rust BPE implementation
+- [HuggingFace tokenizers](https://github.com/huggingface/tokenizers) -- BPE, WordPiece, Unigram을 지원하는 Rust tokenizer library
+- [Llama 3 paper (Meta, 2024)](https://arxiv.org/abs/2407.21783) -- 128K vocabulary와 tokenizer training 세부사항
 - [SentencePiece (Kudo & Richardson, 2018)](https://arxiv.org/abs/1808.06226) -- language-agnostic tokenization
-- [GPT-2 tokenizer source](https://github.com/openai/gpt-2/blob/master/src/encoder.py) -- the original byte-to-Unicode mapping
+- [GPT-2 tokenizer source](https://github.com/openai/gpt-2/blob/master/src/encoder.py) -- 원래의 byte-to-Unicode mapping

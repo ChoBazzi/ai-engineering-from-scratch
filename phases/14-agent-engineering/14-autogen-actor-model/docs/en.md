@@ -1,6 +1,6 @@
-# AutoGen v0.4: Actor Model and Agent Framework
+# AutoGen v0.4: Actor Model과 Agent Framework
 
-> AutoGen v0.4 (Microsoft Research, Jan 2025) redesigned agent orchestration around the actor model. Async message exchange, event-driven agents, fault isolation, natural concurrency. The framework is now in maintenance mode while Microsoft Agent Framework (public preview Oct 2025) becomes the successor.
+> AutoGen v0.4(Microsoft Research, 2025년 1월)는 agent orchestration을 actor model 중심으로 재설계했습니다. Async message exchange, event-driven agents, fault isolation, natural concurrency가 핵심입니다. Microsoft Agent Framework(public preview 2025년 10월)가 successor가 되면서 이 framework는 현재 maintenance mode입니다.
 
 **Type:** Learn + Build
 **Languages:** Python (stdlib)
@@ -9,109 +9,109 @@
 
 ## Learning Objectives
 
-- Describe the actor model: agents as actors, messages as the only IPC, failure isolation per actor.
-- Name AutoGen v0.4's three API layers — Core, AgentChat, Extensions — and what each is for.
-- Explain why decoupling message delivery from handling gives fault isolation and natural concurrency.
-- Implement a stdlib actor runtime in Python and port a two-agent code-review flow onto it.
+- Actor model을 설명할 수 있습니다. Agent는 actor이고, message가 유일한 IPC이며, failure isolation은 actor별로 일어납니다.
+- AutoGen v0.4의 세 API layer(Core, AgentChat, Extensions)와 각 용도를 말할 수 있습니다.
+- Message delivery를 handling과 decouple하면 fault isolation과 natural concurrency가 생기는 이유를 설명할 수 있습니다.
+- Python으로 stdlib actor runtime을 구현하고 two-agent code-review flow를 그 위에 port할 수 있습니다.
 
-## The Problem
+## 문제
 
-Most agent frameworks are synchronous: one agent produces, one agent consumes, in a call stack. Failures crash the stack. Concurrency is bolted on. Distribution requires rewriting.
+대부분의 agent framework는 synchronous합니다. 한 agent가 produce하고, 다른 agent가 call stack 안에서 consume합니다. Failure는 stack을 crash시킵니다. Concurrency는 나중에 덧붙습니다. Distribution은 rewrite를 요구합니다.
 
-AutoGen v0.4's answer: the actor model. Each agent is an actor with a private inbox. Messages are the only interaction. The runtime decouples delivery from handling. Failures isolate to one actor. Concurrency is native. Distribution is just different transport.
+AutoGen v0.4의 답은 actor model입니다. 각 agent는 private inbox를 가진 actor입니다. Message가 유일한 interaction입니다. Runtime은 delivery와 handling을 decouple합니다. Failure는 한 actor에 격리됩니다. Concurrency는 native입니다. Distribution은 transport만 다른 것입니다.
 
-## The Concept
+## 개념
 
-### Actors
+### Actor
 
-An actor has:
+Actor는 다음을 가집니다.
 
-- A private state (never directly touched from outside).
-- An inbox (message queue).
-- A handler: `receive(message) -> effects` where effects can be "reply," "send to other actor," "spawn new actor," "update state," "stop self."
+- Private state(외부에서 직접 건드리지 못함).
+- Inbox(message queue).
+- Handler: `receive(message) -> effects`. Effect는 "reply", "send to other actor", "spawn new actor", "update state", "stop self"일 수 있습니다.
 
-Two actors cannot share memory. They can only send messages.
+두 actor는 memory를 공유할 수 없습니다. Message를 보낼 수만 있습니다.
 
-### Three API layers in AutoGen v0.4
+### AutoGen v0.4의 세 API layer
 
-1. **Core.** Low-level actor framework. `AgentRuntime`, `Agent`, `Message`, `Topic`. Async message exchange, event-driven.
-2. **AgentChat.** Task-driven high-level API (replacement for v0.2's ConversableAgent). `AssistantAgent`, `UserProxyAgent`, `RoundRobinGroupChat`, `SelectorGroupChat`.
-3. **Extensions.** Integrations — OpenAI, Anthropic, Azure, tools, memory.
+1. **Core.** Low-level actor framework입니다. `AgentRuntime`, `Agent`, `Message`, `Topic`. Async message exchange, event-driven입니다.
+2. **AgentChat.** Task-driven high-level API입니다(v0.2의 ConversableAgent 대체). `AssistantAgent`, `UserProxyAgent`, `RoundRobinGroupChat`, `SelectorGroupChat`.
+3. **Extensions.** Integration입니다. OpenAI, Anthropic, Azure, tools, memory.
 
-### Why decoupling matters
+### Decoupling이 중요한 이유
 
-In the v0.2 model, calling `agent_a.chat(agent_b)` synchronously blocks agent_a until agent_b returns. In v0.4, `send(agent_b, msg)` puts the message in agent_b's inbox and returns. The runtime delivers later. Three consequences:
+v0.2 model에서 `agent_a.chat(agent_b)`를 synchronous하게 호출하면 agent_b가 반환할 때까지 agent_a가 block됩니다. v0.4에서 `send(agent_b, msg)`는 message를 agent_b의 inbox에 넣고 반환합니다. Runtime이 나중에 deliver합니다. 세 결과가 있습니다.
 
-- **Fault isolation.** Agent B crashing does not crash Agent A — the runtime catches the failure in B's handler and decides what to do (log, retry, dead-letter).
-- **Natural concurrency.** Many messages in flight at once; actors process their inbox concurrently.
-- **Distribution-ready.** Inbox + transport is the same abstraction whether the actor is in-process or on another host.
+- **Fault isolation.** Agent B가 crash해도 Agent A가 crash하지 않습니다. Runtime은 B의 handler failure를 catch하고 무엇을 할지 결정합니다(log, retry, dead-letter).
+- **Natural concurrency.** 여러 message가 동시에 in flight입니다. Actor들은 inbox를 concurrent하게 처리합니다.
+- **Distribution-ready.** Inbox + transport는 actor가 in-process이든 다른 host에 있든 같은 abstraction입니다.
 
 ### Topologies
 
-- **RoundRobinGroupChat.** Agents take turns in a fixed rotation.
-- **SelectorGroupChat.** A selector agent picks who goes next based on conversation context.
-- **Magentic-One.** Reference multi-agent team for web browsing, code execution, file handling. Built on AgentChat.
+- **RoundRobinGroupChat.** Agent들이 fixed rotation으로 turn을 가집니다.
+- **SelectorGroupChat.** Selector agent가 conversation context를 바탕으로 다음 순서를 고릅니다.
+- **Magentic-One.** Web browsing, code execution, file handling을 위한 reference multi-agent team입니다. AgentChat 위에 구축되었습니다.
 
 ### Observability
 
-OpenTelemetry support is built in. Every message emits a span; tool calls carry `gen_ai.*` attributes per the 2026 OTel GenAI semantic conventions (Lesson 23).
+OpenTelemetry support가 built in입니다. 모든 message는 span을 emit합니다. Tool call은 2026년 OTel GenAI semantic conventions(Lesson 23)에 따라 `gen_ai.*` attribute를 가집니다.
 
 ### Status: maintenance mode
 
-Early 2026: AutoGen v0.7.x is stable for research and prototyping. Microsoft has shifted active development to the Microsoft Agent Framework (public preview Oct 1 2025; 1.0 GA targeted end of Q1 2026). AutoGen patterns port forward cleanly — the actor model is the durable idea.
+2026년 초: AutoGen v0.7.x는 research와 prototyping에 안정적입니다. Microsoft는 active development를 Microsoft Agent Framework로 옮겼습니다(public preview 2025년 10월 1일, 1.0 GA 목표는 2026년 1분기 말). AutoGen pattern은 forward port가 깔끔합니다. Actor model이 durable idea입니다.
 
-## Build It
+## 직접 만들기
 
-`code/main.py` implements a stdlib actor runtime:
+`code/main.py`는 stdlib actor runtime을 구현합니다.
 
-- `Message` — typed payload with `sender`, `recipient`, `topic`, `body`.
-- `Actor` — abstract with `receive(message, runtime)`.
-- `Runtime` — event loop with a shared queue, delivery, failure isolation.
-- A two-actor demo: `ReviewerAgent` reviews code, `ChecklistAgent` runs a checklist; they exchange messages until consensus.
+- `Message` — `sender`, `recipient`, `topic`, `body`를 가진 typed payload.
+- `Actor` — `receive(message, runtime)`을 가진 abstract.
+- `Runtime` — shared queue, delivery, failure isolation을 갖춘 event loop.
+- Two-actor demo: `ReviewerAgent`가 code를 review하고 `ChecklistAgent`가 checklist를 실행합니다. 둘은 consensus가 날 때까지 message를 교환합니다.
 
-Run it:
+실행:
 
-```
+```bash
 python3 code/main.py
 ```
 
-The trace shows message delivery, a simulated failure in one actor that does not crash the other, and convergence on a shared verdict.
+Trace는 message delivery, 한 actor의 simulated failure가 다른 actor를 crash시키지 않는 모습, shared verdict로의 convergence를 보여 줍니다.
 
-## Use It
+## 활용하기
 
-- **AutoGen v0.4/v0.7** (maintenance) — stable for research, prototyping, multi-agent patterns.
-- **Microsoft Agent Framework** (public preview) — the forward path; same actor-model ideas in a refreshed API.
-- **LangGraph swarm topology** (Lesson 13) — similar pattern via shared-tool handoffs.
-- **Custom actor runtime** — when you need specific transport (NATS, RabbitMQ, gRPC).
+- **AutoGen v0.4/v0.7**(maintenance) — research, prototyping, multi-agent pattern에 안정적입니다.
+- **Microsoft Agent Framework**(public preview) — forward path입니다. 같은 actor-model idea가 refreshed API에 들어 있습니다.
+- **LangGraph swarm topology**(Lesson 13) — shared-tool handoff를 통한 유사 pattern입니다.
+- **Custom actor runtime** — 특정 transport(NATS, RabbitMQ, gRPC)가 필요할 때 사용합니다.
 
-## Ship It
+## 출시하기
 
-`outputs/skill-actor-runtime.md` generates a minimal actor runtime plus a team template (RoundRobin or Selector) for a given multi-agent task.
+`outputs/skill-actor-runtime.md`는 주어진 multi-agent task를 위한 minimal actor runtime과 team template(RoundRobin 또는 Selector)을 생성합니다.
 
-## Exercises
+## 연습 문제
 
-1. Add a dead-letter queue: when a handler raises, park the failing message for human inspection. How often does DLQ get hit in your toy?
-2. Implement `SelectorGroupChat`: a selector actor picks who processes the next message based on conversation state.
-3. Add distributed transport: swap the in-process queue for a JSON-over-HTTP server so actors can run in separate processes.
-4. Wire an OTel span per message (or a no-op stand-in). Emit `gen_ai.agent.name`, `gen_ai.operation.name` per Lesson 23.
-5. Read AutoGen v0.4's architecture post. Port your toy to the real `autogen_core` API. What did you skip that matters in production?
+1. Dead-letter queue를 추가하세요. Handler가 raise하면 failing message를 human inspection용으로 보관합니다. Toy에서 DLQ는 얼마나 자주 hit되나요?
+2. `SelectorGroupChat`을 구현하세요. Selector actor가 conversation state를 바탕으로 next message를 누가 처리할지 고릅니다.
+3. Distributed transport를 추가하세요. In-process queue를 JSON-over-HTTP server로 바꿔 actor가 별도 process에서 실행될 수 있게 하세요.
+4. Message마다 OTel span(또는 no-op stand-in)을 연결하세요. Lesson 23에 따라 `gen_ai.agent.name`, `gen_ai.operation.name`을 emit하세요.
+5. AutoGen v0.4 architecture post를 읽으세요. Toy를 실제 `autogen_core` API로 port하세요. Production에서 중요한 무엇을 생략했나요?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
-| Actor | "Agent" | Private state + inbox + handler; no shared memory |
-| Message | "Event" | Typed payload; the only way actors interact |
-| Inbox | "Mailbox" | Per-actor queue of pending messages |
-| Runtime | "Agent host" | Event loop that routes messages and isolates failures |
-| Topic | "Channel" | Named publish-subscribe route between actors |
-| Fault isolation | "Let it crash" | One actor failing does not crash others |
-| RoundRobinGroupChat | "Fixed-rotation team" | Agents take turns in order |
-| SelectorGroupChat | "Context-routed team" | Selector picks who goes next |
-| Magentic-One | "Reference team" | Multi-agent squad for web + code + files |
+| 용어 | 흔히 하는 말 | 실제 의미 |
+|------|--------------|-----------|
+| Actor | "Agent" | Private state + inbox + handler. Shared memory 없음 |
+| Message | "Event" | Typed payload. Actor가 interact하는 유일한 방법 |
+| Inbox | "Mailbox" | Actor별 pending message queue |
+| Runtime | "Agent host" | Message를 route하고 failure를 isolate하는 event loop |
+| Topic | "Channel" | Actor 사이의 named publish-subscribe route |
+| Fault isolation | "Let it crash" | 한 actor failure가 다른 actor를 crash시키지 않음 |
+| RoundRobinGroupChat | "Fixed-rotation team" | Agent가 순서대로 turn을 가짐 |
+| SelectorGroupChat | "Context-routed team" | Selector가 다음 순서를 고름 |
+| Magentic-One | "Reference team" | Web + code + file을 위한 multi-agent squad |
 
-## Further Reading
+## 더 읽기
 
-- [AutoGen v0.4, Microsoft Research](https://www.microsoft.com/en-us/research/articles/autogen-v0-4-reimagining-the-foundation-of-agentic-ai-for-scale-extensibility-and-robustness/) — the redesign post
+- [AutoGen v0.4, Microsoft Research](https://www.microsoft.com/en-us/research/articles/autogen-v0-4-reimagining-the-foundation-of-agentic-ai-for-scale-extensibility-and-robustness/) — redesign post
 - [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) — graph-shaped alternative
-- [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) — spans AutoGen emits by default
+- [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) — AutoGen이 기본 emit하는 span

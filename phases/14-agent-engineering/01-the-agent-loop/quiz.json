@@ -1,22 +1,22 @@
 {
   "lesson": "01-the-agent-loop",
-  "title": "The Agent Loop: Observe, Think, Act",
+  "title": "Agent Loop: 관찰하고, 생각하고, 행동하기",
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does an LLM on its own behave like an autocomplete rather than an agent?",
+      "question": "LLM만 있을 때 agent가 아니라 autocomplete처럼 동작하는 이유는 무엇인가요?",
       "options": [
-        "It cannot read files, run queries, or verify claims against the outside world",
-        "Its context window is too small to hold a question",
-        "It refuses to answer without a system prompt",
-        "It only emits one token at a time"
+        "파일을 읽거나, 쿼리를 실행하거나, 외부 세계에 대해 주장을 검증할 수 없기 때문",
+        "context window가 질문을 담기에는 너무 작기 때문",
+        "system prompt 없이는 답변을 거부하기 때문",
+        "한 번에 token 하나만 방출하기 때문"
       ],
       "correct": 0,
-      "explanation": "An LLM with no loop and no tools can only produce text from its weights; it cannot observe state or act on it."
+      "explanation": "loop와 tool이 없는 LLM은 weight에서 text만 생성할 수 있으며, state를 관찰하거나 그 위에서 행동할 수 없습니다."
     },
     {
       "stage": "pre",
-      "question": "Which three labels appear in the canonical ReAct trace from Yao et al. 2022?",
+      "question": "Yao et al. 2022의 표준 ReAct trace에 등장하는 세 label은 무엇인가요?",
       "options": [
         "Prompt, Response, Reward",
         "Thought, Action, Observation",
@@ -24,11 +24,11 @@
         "System, User, Assistant"
       ],
       "correct": 1,
-      "explanation": "ReAct interleaves Thought, Action, and Observation lines in a single stream."
+      "explanation": "ReAct는 하나의 stream 안에 Thought, Action, Observation line을 interleave합니다."
     },
     {
       "stage": "check",
-      "question": "Which item is NOT one of the five ingredients the lesson lists for an agent loop?",
+      "question": "lesson이 agent loop의 다섯 구성 요소로 나열한 것에 포함되지 않는 것은 무엇인가요?",
       "options": [
         "Message buffer",
         "Tool registry",
@@ -36,55 +36,55 @@
         "Gradient optimizer"
       ],
       "correct": 3,
-      "explanation": "The five ingredients are message buffer, tool registry, stop condition, turn budget, and observation formatter. Gradient optimizers belong to training, not the inference loop."
+      "explanation": "다섯 구성 요소는 message buffer, tool registry, stop condition, turn budget, observation formatter입니다. gradient optimizer는 training에 속하며 inference loop가 아닙니다."
     },
     {
       "stage": "check",
-      "question": "What is the role of a turn budget in the loop?",
+      "question": "loop에서 turn budget의 역할은 무엇인가요?",
       "options": [
-        "It caps the number of tokens per response",
-        "It hard-caps loop iterations to prevent runaway agents",
-        "It controls how many tools the registry exposes",
-        "It rate-limits the LLM provider"
+        "response당 token 수를 제한한다",
+        "runaway agent를 막기 위해 loop iteration에 hard cap을 둔다",
+        "registry가 노출하는 tool 수를 제어한다",
+        "LLM provider를 rate-limit한다"
       ],
       "correct": 1,
-      "explanation": "Turn budget is a cap on loop iterations; 2026 agents commonly run 40-400 steps and need a task-appropriate cap."
+      "explanation": "turn budget은 loop iteration cap입니다. 2026년 agent는 흔히 40-400 step을 실행하므로 task에 맞는 cap이 필요합니다."
     },
     {
       "stage": "check",
-      "question": "What changed in the 2025-2026 native-reasoning shift compared to prompt-based Thought tokens?",
+      "question": "prompt 기반 Thought token과 비교해 2025-2026년 native-reasoning 전환에서 무엇이 바뀌었나요?",
       "options": [
-        "The loop control flow was replaced with a DAG",
-        "Thought tokens are now emitted on a separate reasoning channel passed through turns",
-        "Models stopped using tool calls and rely on chain-of-thought only",
-        "Observations are removed from the prompt entirely"
+        "loop control flow가 DAG로 대체되었다",
+        "Thought token이 turn 사이를 통과하는 별도 reasoning channel에서 방출된다",
+        "model이 tool call을 중단하고 chain-of-thought에만 의존한다",
+        "Observation이 prompt에서 완전히 제거된다"
       ],
       "correct": 1,
-      "explanation": "Reasoning content moves to a dedicated channel (often encrypted across providers), but the observe-think-act control flow is unchanged."
+      "explanation": "reasoning content는 dedicated channel로 이동하지만(종종 provider 사이에서 encrypted), observe-think-act control flow는 변하지 않습니다."
     },
     {
       "stage": "post",
-      "question": "Why does the lesson say tool outputs are untrusted input?",
+      "question": "lesson에서 tool output을 untrusted input이라고 말하는 이유는 무엇인가요?",
       "options": [
-        "Tool runtimes are slow and unreliable",
-        "Retrieved content can carry hidden instructions like delete-the-repo and only direct user input counts as permission",
-        "Tool results are always larger than the model's context window",
-        "The provider strips tool output bytes by default"
+        "tool runtime이 느리고 unreliable하기 때문",
+        "retrieved content가 delete-the-repo 같은 hidden instruction을 담을 수 있고, direct user input만 permission으로 간주되기 때문",
+        "tool result가 항상 model의 context window보다 크기 때문",
+        "provider가 기본적으로 tool output byte를 제거하기 때문"
       ],
       "correct": 1,
-      "explanation": "OpenAI CUA docs state explicitly that only direct user instructions count as permission; tool outputs can carry adversarial instructions and must be treated as untrusted."
+      "explanation": "OpenAI CUA 문서는 direct user instruction만 permission으로 간주한다고 명시합니다. tool output은 adversarial instruction을 담을 수 있으므로 untrusted로 취급해야 합니다."
     },
     {
       "stage": "post",
-      "question": "Why does the lesson claim every 2026 framework still runs ReAct under the hood?",
+      "question": "lesson이 모든 2026년 framework가 여전히 내부적으로 ReAct를 실행한다고 주장하는 이유는 무엇인가요?",
       "options": [
-        "Because providers require the ReAct keywords in the prompt",
-        "Because the observe-think-act control flow is invariant; frameworks differ in checkpointing, actors, role templates, and tracing around it",
-        "Because Yao et al. own a patent on the loop",
-        "Because LangGraph forces all other frameworks to inherit from it"
+        "provider가 prompt에 ReAct keyword를 요구하기 때문",
+        "observe-think-act control flow가 불변이며, framework 차이는 그 주변의 checkpointing, actor, role template, tracing에 있기 때문",
+        "Yao et al.이 loop에 대한 patent를 소유하기 때문",
+        "LangGraph가 모든 다른 framework가 자신을 상속하도록 강제하기 때문"
       ],
       "correct": 1,
-      "explanation": "Differences across Claude Agent SDK, OpenAI Agents SDK, LangGraph, AutoGen, CrewAI, Agno, and Mastra are about what wraps the loop, not the loop itself."
+      "explanation": "Claude Agent SDK, OpenAI Agents SDK, LangGraph, AutoGen, CrewAI, Agno, Mastra의 차이는 loop 자체가 아니라 loop를 감싸는 것에 있습니다."
     }
   ]
 }

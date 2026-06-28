@@ -2,19 +2,19 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the 'shape' of a tensor describe?",
+      "question": "텐서의 'shape'는 무엇을 설명하나요?",
       "options": [
-        "A tuple listing the size along each axis",
-        "The total number of elements in the tensor",
-        "The data type of the tensor elements",
-        "The memory address of the tensor"
+        "각 축을 따라 크기를 나열한 튜플",
+        "텐서 안의 전체 원소 수",
+        "텐서 원소의 데이터 타입",
+        "텐서의 메모리 주소"
       ],
       "correct": 0,
-      "explanation": "The shape is a tuple listing the size along each axis. For example, a tensor with shape (2, 3, 4) has 2 elements along axis 0, 3 along axis 1, and 4 along axis 2."
+      "explanation": "shape는 각 축을 따라 크기를 나열한 튜플입니다. 예를 들어 shape가 (2, 3, 4)인 텐서는 axis 0에 원소 2개, axis 1에 원소 3개, axis 2에 원소 4개를 가집니다."
     },
     {
       "stage": "pre",
-      "question": "In PyTorch, what layout does an image batch tensor use by default?",
+      "question": "PyTorch에서 이미지 배치 텐서는 기본적으로 어떤 레이아웃을 사용하나요?",
       "options": [
         "NHWC (batch, height, width, channels)",
         "NCHW (batch, channels, height, width)",
@@ -22,43 +22,43 @@
         "WHCN (width, height, channels, batch)"
       ],
       "correct": 1,
-      "explanation": "PyTorch defaults to NCHW (channels-first) layout. TensorFlow defaults to NHWC (channels-last). Mismatched layouts cause silent errors or performance issues."
+      "explanation": "PyTorch는 기본적으로 NCHW(channels-first) 레이아웃을 사용합니다. TensorFlow는 기본적으로 NHWC(channels-last)를 사용합니다. 레이아웃 불일치는 조용한 오류나 성능 문제를 일으킵니다."
     },
     {
       "stage": "post",
-      "question": "What is the result shape when broadcasting tensors of shape (8, 1, 6, 1) and (7, 1, 5)?",
+      "question": "shape가 (8, 1, 6, 1)인 텐서와 (7, 1, 5)인 텐서를 브로드캐스팅하면 결과 shape는 무엇인가요?",
       "options": [
         "(8, 7, 6, 1)",
         "(8, 1, 6, 5)",
         "(8, 7, 6, 5)",
-        "Broadcasting fails — shapes are incompatible"
+        "브로드캐스팅이 실패한다. shape가 호환되지 않는다"
       ],
       "correct": 2,
-      "explanation": "Align shapes from the right: (8,1,6,1) and (1,7,1,5). Dimensions are compatible when equal or one is 1. The result takes the maximum along each axis: (8, 7, 6, 5)."
+      "explanation": "오른쪽부터 shape를 맞춥니다: (8,1,6,1)과 (1,7,1,5). 차원은 같거나 둘 중 하나가 1일 때 호환됩니다. 결과는 각 축에서 최댓값을 취하므로 (8, 7, 6, 5)입니다."
     },
     {
       "stage": "post",
-      "question": "In the einsum expression 'bhtd,bhsd->bhts', what happens to the index 'd'?",
+      "question": "einsum 표현식 'bhtd,bhsd->bhts'에서 인덱스 'd'는 어떻게 되나요?",
       "options": [
-        "It is kept in the output as a new axis",
-        "It is summed over (contracted) because it appears in both inputs but not the output",
-        "It is broadcast across both tensors",
-        "It is transposed between the two input tensors"
+        "출력에 새 축으로 유지된다",
+        "두 입력에는 나타나지만 출력에는 없으므로 합산(축약)된다",
+        "두 텐서 전체에 브로드캐스팅된다",
+        "두 입력 텐서 사이에서 전치된다"
       ],
       "correct": 1,
-      "explanation": "In einsum, any index that appears in the inputs but not the output is summed over. Index 'd' appears in both 'bhtd' and 'bhsd' but not in the output 'bhts', so it is contracted (multiplied and summed)."
+      "explanation": "einsum에서는 입력에는 있지만 출력에는 없는 인덱스가 모두 합산됩니다. 인덱스 'd'는 'bhtd'와 'bhsd' 양쪽에 나타나지만 출력 'bhts'에는 없으므로 축약됩니다(곱한 뒤 합산)."
     },
     {
       "stage": "post",
-      "question": "Why does calling .view() fail on a transposed tensor in PyTorch?",
+      "question": "PyTorch에서 전치된 텐서에 .view()를 호출하면 왜 실패하나요?",
       "options": [
-        "Transposed tensors have a different data type",
-        "The tensor is non-contiguous in memory after transpose, and view requires contiguous data",
-        "View only works on 2D tensors",
-        "Transpose changes the total number of elements"
+        "전치된 텐서는 데이터 타입이 다르다",
+        "전치 후 텐서가 메모리에서 non-contiguous가 되고, view는 contiguous 데이터를 요구한다",
+        "View는 2D 텐서에서만 작동한다",
+        "Transpose가 전체 원소 수를 바꾼다"
       ],
       "correct": 1,
-      "explanation": "Transpose swaps strides without moving data, making the tensor non-contiguous. The .view() operation requires contiguous memory layout. Use .reshape() or call .contiguous() first."
+      "explanation": "Transpose는 데이터를 옮기지 않고 stride를 바꾸므로 텐서를 non-contiguous로 만듭니다. .view() 연산은 contiguous 메모리 레이아웃을 요구합니다. .reshape()를 쓰거나 먼저 .contiguous()를 호출하세요."
     }
   ]
 }

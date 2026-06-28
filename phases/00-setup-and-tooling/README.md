@@ -1,5 +1,5 @@
-# Phase 0: Setup & Tooling
+# 0단계: 설정 및 도구
 
-> Get your environment ready for everything that follows.
+> 앞으로 이어질 모든 과정을 위한 환경을 준비합니다.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 수업 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

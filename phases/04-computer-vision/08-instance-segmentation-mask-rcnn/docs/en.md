@@ -1,30 +1,30 @@
-# Instance Segmentation — Mask R-CNN
+# 인스턴스 세그멘테이션 — Mask R-CNN
 
-> Add a tiny mask branch to a Faster R-CNN detector and you have instance segmentation. The hard part is RoIAlign, and it is harder than it looks.
+> Faster R-CNN 검출기에 작은 마스크 branch를 더하면 인스턴스 세그멘테이션이 됩니다. 어려운 부분은 RoIAlign이고, 보기보다 더 어렵습니다.
 
 **Type:** Build + Learn
 **Languages:** Python
 **Prerequisites:** Phase 4 Lesson 06 (YOLO), Phase 4 Lesson 07 (U-Net)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Trace the Mask R-CNN architecture end-to-end: backbone, FPN, RPN, RoIAlign, box head, mask head
-- Implement RoIAlign from scratch and explain why RoIPool is no longer used
-- Use the torchvision `maskrcnn_resnet50_fpn_v2` pretrained model for production-quality instance masks and read its output format correctly
-- Fine-tune Mask R-CNN on a small custom dataset by replacing the box and mask heads and keeping the backbone frozen
+- Mask R-CNN 아키텍처를 backbone, FPN, RPN, RoIAlign, box head, mask head까지 end-to-end로 추적하기
+- RoIAlign을 처음부터 구현하고 RoIPool이 더 이상 쓰이지 않는 이유를 설명하기
+- 프로덕션 품질의 인스턴스 마스크에 torchvision `maskrcnn_resnet50_fpn_v2` pretrained model을 사용하고 출력 형식을 정확히 읽기
+- box head와 mask head를 교체하고 backbone을 freeze해 작은 custom dataset에서 Mask R-CNN을 fine-tune하기
 
-## The Problem
+## 문제
 
-Semantic segmentation gives you one mask per class. Instance segmentation gives you one mask per object, even when two objects share a class. Counting individuals, tracking across frames, and measuring things (the bounding box of each brick in a wall, each cell in a microscope image) all demand instance segmentation.
+Semantic segmentation은 클래스마다 하나의 마스크를 제공합니다. Instance segmentation은 두 객체가 같은 클래스를 공유하더라도 객체마다 하나의 마스크를 제공합니다. 개체 수 세기, 프레임 간 추적, 사물 측정(벽에 있는 각 벽돌의 bounding box, 현미경 이미지의 각 세포)은 모두 instance segmentation을 요구합니다.
 
-Mask R-CNN (He et al., 2017) solved this by reframing instance segmentation as detection-plus-a-mask. The design was so clean that for the next five years almost every instance segmentation paper was a Mask R-CNN variant, and the torchvision implementation is still the production default for small to medium datasets.
+Mask R-CNN(He et al., 2017)은 instance segmentation을 detection-plus-a-mask로 재구성해 이 문제를 풀었습니다. 설계가 워낙 깔끔해서 이후 5년 동안 거의 모든 instance segmentation 논문은 Mask R-CNN 변형이었고, torchvision 구현은 아직도 small to medium dataset의 프로덕션 기본값입니다.
 
-The hard engineering problem is sampling: how do you crop a fixed-size feature region out of a proposal box whose corners do not align with pixel boundaries? Getting that wrong costs tenths of a mAP point everywhere. RoIAlign is the answer.
+어려운 엔지니어링 문제는 sampling입니다. 모서리가 픽셀 경계에 맞지 않는 proposal box에서 고정 크기 feature region을 어떻게 crop할까요? 여기서 틀리면 어디서나 mAP가 몇십 분의 1 point 떨어집니다. 답은 RoIAlign입니다.
 
-## The Concept
+## 개념
 
-### The architecture
+### 아키텍처
 
 ```mermaid
 flowchart LR
@@ -45,19 +45,19 @@ flowchart LR
     style OUT fill:#dcfce7,stroke:#16a34a
 ```
 
-Five pieces to understand:
+이해해야 할 조각은 다섯 가지입니다.
 
-1. **Backbone** — ResNet-50 or ResNet-101 trained on ImageNet. Produces a hierarchy of feature maps at strides 4, 8, 16, 32.
-2. **FPN (Feature Pyramid Network)** — top-down + lateral connections that give every level C channels of semantic-rich features. Detection queries the FPN level matching the object size.
-3. **RPN (Region Proposal Network)** — a small conv head that, at every anchor position, predicts "is there an object here?" and "how do I refine the box?". Produces ~1000 proposals per image.
-4. **RoIAlign** — samples a fixed-size (e.g. 7x7) feature patch from any box on any FPN level. Bilinear sampling, no quantisation.
-5. **Heads** — two-layer box head that refines the box and picks a class, plus a small conv head that outputs a `28x28` binary mask for each proposal.
+1. **Backbone** — ImageNet에서 훈련된 ResNet-50 또는 ResNet-101입니다. stride 4, 8, 16, 32의 특징 맵 계층을 만듭니다.
+2. **FPN(Feature Pyramid Network)** — top-down + lateral connection으로 모든 level에 semantic이 풍부한 C채널 특징을 줍니다. 검출은 객체 크기에 맞는 FPN level을 질의합니다.
+3. **RPN(Region Proposal Network)** — 모든 anchor 위치에서 "여기에 객체가 있는가?"와 "박스를 어떻게 보정할까?"를 예측하는 작은 conv head입니다. 이미지마다 약 1000개의 proposal을 만듭니다.
+4. **RoIAlign** — 어떤 FPN level의 어떤 box에서도 고정 크기(예: 7x7) feature patch를 sample합니다. Bilinear sampling을 사용하며 quantisation은 없습니다.
+5. **Heads** — box를 보정하고 클래스를 고르는 two-layer box head, 그리고 proposal마다 `28x28` 이진 마스크를 출력하는 작은 conv head입니다.
 
-### Why RoIAlign, not RoIPool
+### RoIPool이 아니라 RoIAlign인 이유
 
-The original Fast R-CNN used RoIPool, which splits a proposal box into a grid, takes the maximum feature in each cell, and rounds all coordinates to integers. That rounding misaligns the feature map from the input pixel coordinates by up to a full feature-map pixel — small on a 224x224 image, catastrophic when the feature map is stride 32.
+원래 Fast R-CNN은 RoIPool을 사용했습니다. RoIPool은 proposal box를 grid로 나누고 각 cell의 최대 feature를 취하며 모든 좌표를 정수로 반올림합니다. 이 반올림 때문에 feature map이 입력 픽셀 좌표에서 feature-map 픽셀 하나까지 어긋납니다. 224x224 이미지에서는 작지만 feature map stride가 32일 때는 치명적입니다.
 
-```
+```text
 RoIPool:
   box (34.7, 51.3, 98.2, 142.9)
   round -> (34, 51, 98, 142)
@@ -70,38 +70,38 @@ RoIAlign:
   no rounding anywhere
 ```
 
-RoIAlign lifts mask AP by 3-4 points on COCO for free. Every detector that cares about localisation now uses it — YOLOv7 seg, RT-DETR, Mask2Former alike.
+RoIAlign은 공짜로 COCO의 mask AP를 3-4 point 올립니다. localization을 신경 쓰는 모든 detector는 이제 이것을 사용합니다. YOLOv7 seg, RT-DETR, Mask2Former도 마찬가지입니다.
 
-### The RPN in one paragraph
+### RPN 한 문단 설명
 
-At every position of a feature map, place K anchor boxes of different sizes and shapes. Predict an objectness score for each anchor and a regression offset to turn the anchor into a better-fitting box. Keep the top ~1,000 boxes by score, apply NMS at IoU 0.7, and hand the survivors to the heads. The RPN is trained with its own mini-loss — the same structure as the YOLO loss from Lesson 6, just with two classes (object / no object).
+feature map의 모든 위치에 다양한 크기와 모양의 K개 anchor box를 놓습니다. 각 anchor에 대해 objectness score와 anchor를 더 잘 맞는 box로 바꿀 regression offset을 예측합니다. 점수 기준 상위 약 1,000개 box를 유지하고 IoU 0.7에서 NMS를 적용한 뒤 살아남은 proposal을 head로 넘깁니다. RPN은 자체 mini-loss로 훈련됩니다. 구조는 Lesson 6의 YOLO loss와 같고, 클래스만 두 개(object / no object)입니다.
 
-### The mask head
+### 마스크 head
 
-For each proposal (after RoIAlign) the mask head is a tiny FCN: four 3x3 convs, a 2x deconv, a final 1x1 conv that produces `num_classes` output channels at `28x28` resolution. Only the channel corresponding to the predicted class is kept; the others are ignored. This decouples mask prediction from classification.
+각 proposal(RoIAlign 이후)에 대해 mask head는 작은 FCN입니다. 네 개의 3x3 conv, 2x deconv, 그리고 `28x28` 해상도에서 `num_classes` 출력 채널을 만드는 마지막 1x1 conv입니다. 예측 클래스에 해당하는 채널만 유지하고 나머지는 무시합니다. 이렇게 하면 mask prediction이 classification과 분리됩니다.
 
-Upsample the 28x28 mask to the proposal's original pixel size to produce the final binary mask.
+최종 이진 마스크를 만들기 위해 28x28 마스크를 proposal의 원래 픽셀 크기로 upsample합니다.
 
-### Losses
+### 손실
 
-Mask R-CNN has four losses added together:
+Mask R-CNN에는 네 손실이 더해져 있습니다.
 
-```
+```text
 L = L_rpn_cls + L_rpn_box + L_box_cls + L_box_reg + L_mask
 ```
 
-- `L_rpn_cls`, `L_rpn_box` — objectness + box regression for the RPN proposals.
-- `L_box_cls` — cross-entropy over (C+1) classes (including background) on the head's classifier.
-- `L_box_reg` — smooth L1 on the head's box refinement.
-- `L_mask` — per-pixel binary cross-entropy on the 28x28 mask output.
+- `L_rpn_cls`, `L_rpn_box` — RPN proposal의 objectness + box regression입니다.
+- `L_box_cls` — head classifier의 (background 포함) (C+1) 클래스 cross-entropy입니다.
+- `L_box_reg` — head의 box refinement에 대한 smooth L1입니다.
+- `L_mask` — 28x28 mask output의 픽셀별 binary cross-entropy입니다.
 
-Each loss has its own default weight; the torchvision implementation exposes them as constructor arguments.
+각 손실은 자체 기본 weight를 가지며, torchvision 구현은 이것들을 constructor argument로 노출합니다.
 
-### Output format
+### 출력 형식
 
-`torchvision.models.detection.maskrcnn_resnet50_fpn_v2` returns a list of dicts, one per image:
+`torchvision.models.detection.maskrcnn_resnet50_fpn_v2`는 이미지마다 하나씩 dict의 list를 반환합니다.
 
-```
+```text
 {
     "boxes":  (N, 4) in (x1, y1, x2, y2) pixel coordinates,
     "labels": (N,) class IDs, 0 = background so indices are 1-based,
@@ -110,13 +110,13 @@ Each loss has its own default weight; the torchvision implementation exposes the
 }
 ```
 
-The mask is full image resolution already. The 28x28 head output has been upsampled internally.
+마스크는 이미 전체 이미지 해상도입니다. 28x28 head 출력은 내부에서 upsample되었습니다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: RoIAlign from scratch
+### Step 1: RoIAlign 처음부터 구현하기
 
-This is the one component of Mask R-CNN that is simpler to understand as code than as prose.
+이 컴포넌트는 prose보다 코드로 이해하는 편이 더 간단한 Mask R-CNN의 한 부분입니다.
 
 ```python
 import torch
@@ -146,9 +146,9 @@ def roi_align_single(feature, box, output_size=7, spatial_scale=1 / 16.0):
     return sampled.squeeze(0)
 ```
 
-Every number is at a bilinearly-sampled position. No rounding, no quantisation, no dropped gradients.
+모든 숫자는 bilinear sampling된 위치에 있습니다. 반올림도, quantisation도, 사라지는 gradient도 없습니다.
 
-### Step 2: Compare to torchvision's RoIAlign
+### Step 2: torchvision의 RoIAlign과 비교하기
 
 ```python
 from torchvision.ops import roi_align
@@ -164,9 +164,9 @@ print(f"shape theirs: {tuple(theirs.shape)}")
 print(f"max|diff|:    {(ours - theirs).abs().max().item():.3e}")
 ```
 
-With `sampling_ratio=1` and `aligned=True`, the two match to within `1e-5`.
+`sampling_ratio=1`과 `aligned=True`를 쓰면 둘은 `1e-5` 이내로 일치합니다.
 
-### Step 3: Load a pretrained Mask R-CNN
+### Step 3: pretrained Mask R-CNN 불러오기
 
 ```python
 import torch
@@ -178,9 +178,9 @@ print(f"params: {sum(p.numel() for p in model.parameters()):,}")
 print(f"classes (including background): {len(model.roi_heads.box_predictor.cls_score.out_features * [0])}")
 ```
 
-46M parameters, 91 classes (COCO). The first class (id 0) is background; everything the model actually detects starts at id 1.
+46M 파라미터, 91개 클래스(COCO)입니다. 첫 클래스(id 0)는 background입니다. 모델이 실제로 검출하는 모든 것은 id 1부터 시작합니다.
 
-### Step 4: Run inference
+### Step 4: inference 실행하기
 
 ```python
 with torch.no_grad():
@@ -193,15 +193,15 @@ print(f"scores: {tuple(p['scores'].shape)}")
 print(f"masks:  {tuple(p['masks'].shape)}")
 ```
 
-The mask tensor is shape `(N, 1, H, W)`. Threshold at 0.5 to get a binary mask per object:
+마스크 텐서는 shape `(N, 1, H, W)`입니다. 객체별 이진 마스크를 얻으려면 0.5에서 threshold합니다.
 
 ```python
 binary_masks = (p['masks'] > 0.5).squeeze(1)  # (N, H, W) boolean
 ```
 
-### Step 5: Swap the heads for a custom class count
+### Step 5: custom class count에 맞게 head 교체하기
 
-The common fine-tuning recipe: reuse the backbone, FPN, and RPN; replace the two classifier heads.
+흔한 fine-tuning recipe입니다. backbone, FPN, RPN은 재사용하고 두 classifier head를 교체합니다.
 
 ```python
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -220,11 +220,11 @@ custom = build_custom_maskrcnn(num_classes=5)
 print(f"custom cls_score.out_features: {custom.roi_heads.box_predictor.cls_score.out_features}")
 ```
 
-`num_classes` must include the background class, so a dataset with 4 object classes uses `num_classes=5`.
+`num_classes`에는 background class가 포함되어야 하므로, 객체 클래스가 4개인 데이터셋은 `num_classes=5`를 사용합니다.
 
-### Step 6: Freeze what does not need training
+### Step 6: 훈련할 필요가 없는 부분 freeze하기
 
-On small datasets, freeze the backbone and the FPN. Only the RPN objectness + regression and the two heads learn.
+작은 데이터셋에서는 backbone과 FPN을 freeze합니다. RPN objectness + regression과 두 head만 학습합니다.
 
 ```python
 def freeze_backbone_and_fpn(model):
@@ -240,11 +240,11 @@ trainable = sum(p.numel() for p in custom.parameters() if p.requires_grad)
 print(f"trainable after freeze: {trainable:,}")
 ```
 
-On 500-image datasets this is the difference between convergence and overfitting.
+500-image 데이터셋에서는 이것이 수렴과 overfitting을 가르는 차이입니다.
 
-## Use It
+## 사용하기
 
-The full training loop for Mask R-CNN in torchvision is 40 lines and does not change meaningfully between tasks — swap datasets and go.
+torchvision에서 Mask R-CNN의 전체 training loop는 40줄이며 작업이 바뀌어도 의미 있게 달라지지 않습니다. dataset만 바꾸고 실행하면 됩니다.
 
 ```python
 def train_step(model, images, targets, optimizer):
@@ -257,39 +257,39 @@ def train_step(model, images, targets, optimizer):
     return {k: v.item() for k, v in loss_dict.items()}
 ```
 
-The `targets` list must have per-image dicts with `boxes`, `labels`, and `masks` (as `(num_instances, H, W)` binary tensors). The model returns a dict of four losses during training and a list of predictions during eval, keyed on `model.training`.
+`targets` list에는 이미지별 dict가 있어야 하며, 각 dict는 `boxes`, `labels`, `masks`(`(num_instances, H, W)` 이진 텐서)를 포함해야 합니다. 모델은 훈련 중에는 네 손실의 dict를 반환하고 eval 중에는 예측 list를 반환합니다. 이는 `model.training`에 의해 결정됩니다.
 
-The `pycocotools` evaluator produces mAP@IoU=0.5:0.95 both for boxes and for masks; you need both numbers to know if the box head or the mask head is the bottleneck.
+`pycocotools` evaluator는 boxes와 masks 모두에 대해 mAP@IoU=0.5:0.95를 만듭니다. box head와 mask head 중 어느 쪽이 병목인지 알려면 두 숫자가 모두 필요합니다.
 
-## Ship It
+## 배포하기
 
-This lesson produces:
+이 수업의 산출물은 다음과 같습니다.
 
-- `outputs/prompt-instance-vs-semantic-router.md` — a prompt that asks three questions and picks instance vs semantic vs panoptic plus the exact model to start with.
-- `outputs/skill-mask-rcnn-head-swapper.md` — a skill that generates the 10 lines of code for swapping heads on any torchvision detection model, given the new `num_classes`.
+- `outputs/prompt-instance-vs-semantic-router.md` — 세 가지 질문을 하고 instance vs semantic vs panoptic과 시작할 정확한 모델을 고르는 프롬프트입니다.
+- `outputs/skill-mask-rcnn-head-swapper.md` — 새 `num_classes`가 주어졌을 때 어떤 torchvision detection model에서든 head를 교체하는 10줄 코드를 생성하는 스킬입니다.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Verify your RoIAlign against `torchvision.ops.roi_align` on 100 random boxes. Report the max absolute difference. Also run RoIPool (pre-2017 behaviour) and show it diverges by ~1-2 feature-map pixels on boxes near the border.
-2. **(Medium)** Fine-tune `maskrcnn_resnet50_fpn_v2` on a 50-image custom dataset (any two classes: balloons, fish, pothole, logos). Freeze the backbone, train for 20 epochs, report mask AP@0.5.
-3. **(Hard)** Replace Mask R-CNN's mask head with one that predicts at 56x56 instead of 28x28. Measure mAP@IoU=0.75 before and after. Explain why the gain (or lack of one) matches the expected boundary-precision / memory trade-off.
+1. **(쉬움)** 무작위 box 100개에서 RoIAlign을 `torchvision.ops.roi_align`과 비교 검증하세요. 최대 절댓값 차이를 보고하세요. RoIPool(2017년 이전 동작)도 실행해 경계 근처 box에서 약 1-2 feature-map pixel만큼 벌어지는 것을 보이세요.
+2. **(중간)** 50-image custom dataset(두 클래스 아무거나: balloons, fish, pothole, logos)에서 `maskrcnn_resnet50_fpn_v2`를 fine-tune하세요. backbone을 freeze하고 20 epoch 훈련한 뒤 mask AP@0.5를 보고하세요.
+3. **(어려움)** Mask R-CNN의 mask head를 28x28 대신 56x56을 예측하는 것으로 교체하세요. 전후의 mAP@IoU=0.75를 측정하세요. 향상(또는 향상 없음)이 예상되는 boundary-precision / memory trade-off와 왜 맞는지 설명하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Mask R-CNN | "Detection plus masks" | Faster R-CNN + a small FCN head that predicts a 28x28 mask per proposal per class |
-| FPN | "Feature pyramid" | Top-down + lateral connections that give every stride level C channels of semantic-rich features |
-| RPN | "Region proposer" | A small conv head that produces ~1000 object/no-object proposals per image |
-| RoIAlign | "No-rounding crop" | Bilinearly samples a fixed-size feature grid from any float-coordinate box |
-| RoIPool | "Pre-2017 crop" | Same purpose as RoIAlign but rounds box coordinates; obsolete |
-| Mask AP | "Instance mAP" | Average precision computed with mask IoU instead of box IoU; the COCO instance segmentation metric |
-| Binary mask head | "Per-class mask" | Predicts one binary mask per class for each proposal; only the predicted class's channel is kept |
-| Background class | "Class 0" | The catch-all "no object" class; indices for real classes start at 1 |
+| Mask R-CNN | "Detection plus masks" | Faster R-CNN + proposal마다 클래스별 28x28 마스크를 예측하는 작은 FCN head |
+| FPN | "Feature pyramid" | 모든 stride level에 semantic이 풍부한 C채널 특징을 주는 top-down + lateral connection |
+| RPN | "Region proposer" | 이미지마다 약 1000개의 object/no-object proposal을 만드는 작은 conv head |
+| RoIAlign | "No-rounding crop" | float-coordinate box에서 고정 크기 feature grid를 bilinear로 sample합니다 |
+| RoIPool | "Pre-2017 crop" | RoIAlign과 목적은 같지만 box 좌표를 반올림합니다. 이제 obsolete입니다 |
+| Mask AP | "Instance mAP" | box IoU 대신 mask IoU로 계산한 average precision입니다. COCO instance segmentation 지표입니다 |
+| Binary mask head | "Per-class mask" | 각 proposal마다 클래스별 이진 마스크 하나를 예측합니다. 예측 클래스의 채널만 유지합니다 |
+| Background class | "Class 0" | "객체 없음"을 모두 받는 클래스입니다. 실제 클래스 인덱스는 1부터 시작합니다 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Mask R-CNN (He et al., 2017)](https://arxiv.org/abs/1703.06870) — the paper; section 3 on RoIAlign is the critical read
-- [FPN: Feature Pyramid Networks (Lin et al., 2017)](https://arxiv.org/abs/1612.03144) — the FPN paper; every modern detector uses it
-- [torchvision Mask R-CNN tutorial](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html) — the reference for the fine-tuning loop
-- [Detectron2 model zoo](https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md) — production implementations with trained weights for nearly every detection and segmentation variant
+- [Mask R-CNN (He et al., 2017)](https://arxiv.org/abs/1703.06870) — 원 논문입니다. RoIAlign에 대한 section 3이 핵심입니다
+- [FPN: Feature Pyramid Networks (Lin et al., 2017)](https://arxiv.org/abs/1612.03144) — FPN 논문입니다. 모든 현대 detector가 사용합니다
+- [torchvision Mask R-CNN tutorial](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html) — fine-tuning loop의 기준입니다
+- [Detectron2 model zoo](https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md) — 거의 모든 detection 및 segmentation 변형의 훈련된 weight를 가진 프로덕션 구현입니다

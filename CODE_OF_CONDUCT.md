@@ -1,30 +1,30 @@
-# Code of Conduct
+# 행동 강령
 
-## Our Pledge
+## 우리의 약속
 
-We are committed to making participation in this project a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+우리는 나이, 체형, 장애, 민족성, 성 정체성과 표현, 경험 수준, 교육, 사회경제적 지위, 국적, 외모, 인종, 종교, 성적 정체성과 지향에 관계없이 누구나 괴롭힘 없이 이 프로젝트에 참여할 수 있도록 노력합니다.
 
-## Our Standards
+## 우리의 기준
 
-**Positive behavior:**
+**바람직한 행동:**
 
-- Using welcoming and inclusive language
-- Being respectful of differing viewpoints and experiences
-- Gracefully accepting constructive criticism
-- Focusing on what is best for the community
-- Showing empathy towards other community members
+- 환영하고 포용적인 언어 사용
+- 서로 다른 관점과 경험 존중
+- 건설적인 비판을 품위 있게 수용
+- 커뮤니티에 가장 좋은 것에 집중
+- 다른 커뮤니티 구성원에게 공감 표현
 
-**Unacceptable behavior:**
+**허용되지 않는 행동:**
 
-- Trolling, insulting/derogatory comments, and personal or political attacks
-- Public or private harassment
-- Publishing others' private information without explicit permission
-- Other conduct which could reasonably be considered inappropriate
+- 트롤링, 모욕적이거나 비하적인 발언, 개인적 또는 정치적 공격
+- 공개적 또는 사적인 괴롭힘
+- 명시적 허가 없이 타인의 개인정보 공개
+- 합리적으로 부적절하다고 볼 수 있는 기타 행동
 
-## Enforcement
+## 집행
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project maintainer at ghumare64@gmail.com. All complaints will be reviewed and investigated.
+학대적이거나 괴롭힘에 해당하거나 그 밖에 허용되지 않는 행동은 프로젝트 관리자 ghumare64@gmail.com 으로 연락해 신고할 수 있습니다. 모든 신고는 검토 및 조사됩니다.
 
-## Attribution
+## 출처
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
+이 행동 강령은 [Contributor Covenant](https://www.contributor-covenant.org) 2.1 버전을 바탕으로 조정했습니다.

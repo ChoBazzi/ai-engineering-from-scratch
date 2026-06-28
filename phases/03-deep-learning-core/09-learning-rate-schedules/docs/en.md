@@ -1,84 +1,84 @@
-# Learning Rate Schedules and Warmup
+# 학습률 스케줄과 워밍업
 
-> The learning rate is the single most important hyperparameter. Not the architecture. Not the dataset size. Not the activation function. The learning rate. If you tune nothing else, tune this.
+> 학습률은 단 하나의 가장 중요한 하이퍼파라미터입니다. 아키텍처도 아닙니다. 데이터셋 크기도 아닙니다. 활성화 함수도 아닙니다. 학습률입니다. 다른 것을 아무것도 튜닝하지 않는다면, 이것만은 튜닝하세요.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.06 (Optimizers), Lesson 03.08 (Weight Initialization)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement constant, step decay, cosine annealing, warmup + cosine, and 1cycle learning rate schedules from scratch
-- Demonstrate the three failure modes of learning rate selection: divergence (too high), stalling (too low), and oscillation (no decay)
-- Explain why warmup is necessary for Adam-based optimizers and how it stabilizes early training
-- Compare convergence speed across all five schedules on the same task and select the appropriate one for a given training budget
+- constant, step decay, cosine annealing, warmup + cosine, 1cycle 학습률 스케줄을 처음부터 구현합니다
+- 학습률 선택의 세 가지 실패 모드인 발산(너무 높음), 정체(너무 낮음), 진동(decay 없음)을 시연합니다
+- Adam 기반 옵티마이저에 warmup이 필요한 이유와 초기 학습을 안정화하는 방식을 설명합니다
+- 같은 과제에서 다섯 가지 스케줄의 수렴 속도를 비교하고, 주어진 학습 예산에 적절한 스케줄을 선택합니다
 
-## The Problem
+## 문제
 
-Set the learning rate to 0.1. Training diverges -- loss jumps to infinity in 3 steps. Set it to 0.0001. Training crawls -- after 100 epochs, the model has barely moved from random. Set it to 0.01. Training works for 50 epochs, then the loss oscillates around a minimum it can never reach because the steps are too large.
+학습률을 0.1로 설정합니다. 학습이 발산합니다. 손실이 3 step 만에 infinity로 튑니다. 0.0001로 설정합니다. 학습이 기어갑니다. 100 epoch 뒤에도 모델은 무작위 초기값에서 거의 움직이지 않았습니다. 0.01로 설정합니다. 50 epoch 동안은 학습이 되지만, 이후 step이 너무 커서 도달할 수 없는 최솟값 주변에서 손실이 진동합니다.
 
-The optimal learning rate is not a constant. It changes during training. Early on, you want large steps to cover ground quickly. Late in training, you want tiny steps to settle into a sharp minimum. The difference between a 90% accurate model and a 95% accurate model is often just the schedule.
+최적의 학습률은 상수가 아닙니다. 학습 중에 변합니다. 초반에는 큰 step으로 빠르게 영역을 이동하고 싶습니다. 후반에는 작은 step으로 날카로운 최솟값에 안착하고 싶습니다. 정확도 90% 모델과 95% 모델의 차이는 종종 스케줄 하나입니다.
 
-Every major model published in the last three years uses a learning rate schedule. Llama 3 used peak lr=3e-4 with 2000 warmup steps and cosine decay to 3e-5. GPT-3 used lr=6e-4 with warmup over 375 million tokens. These are not arbitrary choices. They are the result of extensive hyperparameter sweeps that cost millions of dollars.
+지난 3년 동안 발표된 거의 모든 주요 모델은 학습률 스케줄을 사용했습니다. Llama 3는 peak lr=3e-4, 2000 warmup steps, 3e-5까지의 cosine decay를 사용했습니다. GPT-3는 lr=6e-4와 375 million tokens 동안의 warmup을 사용했습니다. 이것들은 임의의 선택이 아닙니다. 수백만 달러가 드는 광범위한 하이퍼파라미터 sweep의 결과입니다.
 
-You need to understand schedules because the defaults will not work for your problem. When you fine-tune a pretrained model, the right schedule is different than training from scratch. When you increase batch size, the warmup period needs to change. When training breaks at step 10,000, you need to know whether it's a schedule problem or something else.
+스케줄을 이해해야 하는 이유는 기본값이 여러분의 문제에서 작동하지 않을 수 있기 때문입니다. 사전 학습된 모델을 fine-tune할 때의 올바른 스케줄은 처음부터 학습할 때와 다릅니다. batch size를 늘리면 warmup 기간도 바뀌어야 합니다. step 10,000에서 학습이 깨질 때, 그것이 스케줄 문제인지 다른 문제인지 알아야 합니다.
 
-## The Concept
+## 개념
 
 ### Constant Learning Rate
 
-The simplest approach. Pick a number, use it for every step.
+가장 단순한 접근입니다. 숫자 하나를 고르고 모든 step에서 사용합니다.
 
-```
+```text
 lr(t) = lr_0
 ```
 
-Rarely optimal. It's either too high for the end of training (oscillation around the minimum) or too low for the beginning (wasted compute on tiny steps). Works fine for small models and debugging. A terrible choice for anything that trains for more than an hour.
+거의 최적이 아닙니다. 학습 후반에는 너무 높거나(최솟값 주변 진동), 초반에는 너무 낮습니다(작은 step으로 계산 낭비). 작은 모델과 디버깅에는 괜찮습니다. 1시간 넘게 학습하는 거의 모든 것에는 끔찍한 선택입니다.
 
 ### Step Decay
 
-The old-school approach from the ResNet era. Cut the learning rate by a factor (usually 10x) at fixed epochs.
+ResNet 시대의 오래된 접근입니다. 고정 epoch마다 학습률을 일정 비율(보통 10x)로 줄입니다.
 
-```
+```text
 lr(t) = lr_0 * gamma^(floor(epoch / step_size))
 ```
 
-Where gamma = 0.1 and step_size = 30 means: lr drops by 10x every 30 epochs. ResNet-50 used this -- lr=0.1, drop by 10x at epochs 30, 60, and 90.
+gamma = 0.1, step_size = 30이라는 뜻은 lr이 30 epoch마다 10x씩 줄어든다는 뜻입니다. ResNet-50은 이것을 사용했습니다. lr=0.1에서 시작해 epoch 30, 60, 90에서 10x씩 낮췄습니다.
 
-The problem: the optimal decay points depend on the dataset and architecture. Move to a different problem and you need to re-tune when to drop. The transitions are abrupt -- loss can spike when the rate suddenly changes.
+문제는 최적의 decay 지점이 데이터셋과 아키텍처에 의존한다는 것입니다. 다른 문제로 옮기면 언제 낮출지 다시 튜닝해야 합니다. 전환도 갑작스럽습니다. 학습률이 갑자기 바뀔 때 손실이 튈 수 있습니다.
 
 ### Cosine Annealing
 
-Smooth decay from the maximum learning rate to a minimum, following a cosine curve:
+cosine 곡선을 따라 최대 학습률에서 최소 학습률까지 부드럽게 감소합니다.
 
-```
+```text
 lr(t) = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(pi * t / T))
 ```
 
-Where t is the current step and T is the total number of steps.
+여기서 t는 현재 step이고 T는 전체 step 수입니다.
 
-At t=0, the cosine term is 1, so lr = lr_max. At t=T, the cosine term is -1, so lr = lr_min. The decay is gentle at first, accelerates in the middle, and becomes gentle again near the end.
+t=0이면 cosine 항이 1이므로 lr = lr_max입니다. t=T이면 cosine 항이 -1이므로 lr = lr_min입니다. decay는 처음에는 완만하고, 중간에서 빨라지고, 끝에 가까워지면 다시 완만해집니다.
 
-This is the default for most modern training runs. No hyperparameters to tune beyond lr_max and lr_min. The cosine shape matches the empirical observation that most learning happens in the middle of training -- you want reasonable step sizes during that critical period.
+이것은 대부분의 현대 학습 run에서 기본값입니다. lr_max와 lr_min 외에 튜닝할 하이퍼파라미터가 없습니다. cosine 형태는 대부분의 학습이 중간 구간에서 일어난다는 경험적 관찰과 잘 맞습니다. 그 중요한 기간에는 적절한 step size가 필요합니다.
 
-### Warmup: Why You Start Small
+### Warmup: 작게 시작하는 이유
 
-Adam and other adaptive optimizers maintain running estimates of gradient mean and variance. At step 0, these estimates are initialized to zero. The first few gradient updates are based on garbage statistics. If your learning rate is large during this period, the model takes huge, poorly-directed steps.
+Adam과 다른 adaptive optimizer는 gradient mean과 variance의 running estimate를 유지합니다. step 0에서 이 estimate들은 0으로 초기화됩니다. 처음 몇 번의 gradient update는 쓰레기 통계에 기반합니다. 이 기간에 학습률이 크면 모델은 방향이 나쁜 거대한 step을 밟습니다.
 
-Warmup fixes this. Start with a tiny learning rate (often lr_max / warmup_steps or even zero) and linearly ramp up to lr_max over the first N steps. By the time you reach the full learning rate, Adam's statistics have stabilized.
+Warmup은 이것을 고칩니다. 아주 작은 학습률(종종 lr_max / warmup_steps 또는 0)로 시작해 처음 N step 동안 lr_max까지 선형으로 올립니다. 전체 학습률에 도달할 때쯤 Adam의 통계는 안정화되어 있습니다.
 
-```
+```text
 lr(t) = lr_max * (t / warmup_steps)     for t < warmup_steps
 ```
 
-Typical warmup: 1-5% of total training steps. Llama 3 trained for ~1.8 trillion tokens and warmed up for 2000 steps. GPT-3 warmed up over 375 million tokens.
+일반적인 warmup은 전체 학습 step의 1-5%입니다. Llama 3는 약 1.8 trillion tokens로 학습했고 2000 step 동안 warmup했습니다. GPT-3는 375 million tokens 동안 warmup했습니다.
 
 ### Linear Warmup + Cosine Decay
 
-The modern default. Ramp up linearly, then decay with cosine:
+현대적인 기본값입니다. 선형으로 올린 다음 cosine으로 감소시킵니다.
 
-```
+```text
 if t < warmup_steps:
     lr(t) = lr_max * (t / warmup_steps)
 else:
@@ -86,22 +86,22 @@ else:
     lr(t) = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(pi * progress))
 ```
 
-This is what Llama, GPT, PaLM, and most modern transformers use. The warmup prevents early instability. The cosine decay settles the model into a good minimum.
+Llama, GPT, PaLM, 그리고 대부분의 현대 transformer가 이것을 사용합니다. warmup은 초기 불안정을 막습니다. cosine decay는 모델이 좋은 최솟값에 안착하도록 합니다.
 
 ### 1cycle Policy
 
-Leslie Smith's discovery (2018): ramp the learning rate up from a low value to a high value in the first half of training, then ramp it back down in the second half. Counterintuitive -- why would you *increase* the learning rate midway through?
+Leslie Smith의 발견(2018): 학습 초반 절반에는 학습률을 낮은 값에서 높은 값으로 올리고, 후반 절반에는 다시 낮춥니다. 직관에 어긋납니다. 왜 학습 중간에 학습률을 *올릴까요*?
 
-The theory: a high learning rate acts as regularization by adding noise to the optimization trajectory. The model explores more of the loss landscape during the ramp-up phase, finding better basins. The ramp-down phase then refines within the best basin found.
+이론은 이렇습니다. 높은 학습률은 최적화 궤적에 노이즈를 더해 regularization처럼 작동합니다. ramp-up 단계에서 모델은 loss landscape를 더 넓게 탐색하고 더 좋은 basin을 찾습니다. ramp-down 단계는 찾은 가장 좋은 basin 안에서 정교하게 조정합니다.
 
-```
+```text
 Phase 1 (0 to T/2):    lr ramps from lr_max/25 to lr_max
 Phase 2 (T/2 to T):    lr ramps from lr_max to lr_max/10000
 ```
 
-1cycle often trains faster than cosine annealing for a fixed compute budget. The tradeoff: you must know the total number of steps in advance.
+1cycle은 고정된 계산 예산에서 cosine annealing보다 더 빠르게 학습하는 경우가 많습니다. tradeoff는 전체 step 수를 미리 알아야 한다는 것입니다.
 
-### Schedule Shapes
+### 스케줄 형태
 
 ```mermaid
 graph LR
@@ -114,7 +114,7 @@ graph LR
     end
 
     subgraph "Cosine Annealing"
-        CS1["lr_max"] --> CS2["gradual"] --> CS3["steep"] --> CS4["lr_min"]
+        CS1["lr_max"] --> CS2["점진적"] --> CS3["가파름"] --> CS4["lr_min"]
     end
 
     subgraph "Warmup + Cosine"
@@ -122,25 +122,25 @@ graph LR
     end
 ```
 
-### Decision Flowchart
+### 결정 흐름도
 
 ```mermaid
 flowchart TD
-    Start["Choosing a LR schedule"] --> Know{"Know total<br/>training steps?"}
+    Start["LR 스케줄 선택"] --> Know{"전체<br/>학습 step을 아는가?"}
 
-    Know -->|"Yes"| Budget{"Compute budget?"}
-    Know -->|"No"| Constant["Use constant LR<br/>with manual decay"]
+    Know -->|"예"| Budget{"계산 예산?"}
+    Know -->|"아니요"| Constant["수동 decay와 함께<br/>constant LR 사용"]
 
-    Budget -->|"Large (days/weeks)"| WarmCos["Warmup + Cosine Decay<br/>(Llama/GPT default)"]
-    Budget -->|"Small (hours)"| OneCycle["1cycle Policy<br/>(fastest convergence)"]
-    Budget -->|"Moderate"| Cosine["Cosine Annealing<br/>(safe default)"]
+    Budget -->|"큼(days/weeks)"| WarmCos["Warmup + Cosine Decay<br/>(Llama/GPT 기본값)"]
+    Budget -->|"작음(hours)"| OneCycle["1cycle Policy<br/>(가장 빠른 수렴)"]
+    Budget -->|"중간"| Cosine["Cosine Annealing<br/>(안전한 기본값)"]
 
-    WarmCos --> Warmup["Warmup = 1-5% of steps"]
-    OneCycle --> FindLR["Find lr_max with LR range test"]
-    Cosine --> MinLR["Set lr_min = lr_max / 10"]
+    WarmCos --> Warmup["Warmup = step의 1-5%"]
+    OneCycle --> FindLR["LR range test로 lr_max 찾기"]
+    Cosine --> MinLR["lr_min = lr_max / 10으로 설정"]
 ```
 
-### Real Numbers from Published Models
+### 발표된 모델의 실제 숫자
 
 ```mermaid
 graph TD
@@ -156,11 +156,11 @@ graph TD
 lr-schedule
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Schedule Functions
+### 1단계: 스케줄 함수
 
-Each function takes the current step and returns the learning rate at that step.
+각 함수는 현재 step을 받아 그 step의 학습률을 반환합니다.
 
 ```python
 import math
@@ -198,9 +198,9 @@ def one_cycle_schedule(step, lr=0.01, total_steps=1000, **kwargs):
         return lr * (1 - progress) + (lr / 10000) * progress
 ```
 
-### Step 2: Visualize All Schedules
+### 2단계: 모든 스케줄 시각화
 
-Print a text-based plot showing how each schedule evolves over training.
+각 스케줄이 학습 중 어떻게 변하는지 보여주는 텍스트 기반 plot을 출력합니다.
 
 ```python
 def visualize_schedule(name, schedule_fn, total_steps=500, **kwargs):
@@ -218,9 +218,9 @@ def visualize_schedule(name, schedule_fn, total_steps=500, **kwargs):
         print(f"  Step {s:4d}: lr={lr_val:.6f} {bar}")
 ```
 
-### Step 3: Training Network
+### 3단계: 네트워크 학습
 
-A simple two-layer network on the circle dataset, same as previous lessons, but now we vary the schedule.
+이전 lesson과 같은 circle dataset의 간단한 2층 네트워크입니다. 이번에는 스케줄을 바꿔 봅니다.
 
 ```python
 import random
@@ -304,9 +304,9 @@ def train_with_schedule(schedule_fn, schedule_name, data, epochs=300, base_lr=0.
     return epoch_losses
 ```
 
-### Step 4: Compare All Schedules
+### 4단계: 모든 스케줄 비교
 
-Train the same network with each schedule and compare final loss and convergence behavior.
+같은 네트워크를 각 스케줄로 학습하고 최종 손실과 수렴 동작을 비교합니다.
 
 ```python
 def compare_schedules(data):
@@ -328,9 +328,9 @@ def compare_schedules(data):
         print(f"{name:<20} {losses[0]:>12.6f} {losses[mid_idx]:>12.6f} {losses[-1]:>12.6f} {best:>12.6f}")
 ```
 
-### Step 5: LR Too High vs Too Low
+### 5단계: 너무 높은 LR vs 너무 낮은 LR
 
-Demonstrate the three failure modes: too high (divergence), too low (crawling), and just right.
+세 가지 실패 모드인 너무 높음(발산), 너무 낮음(느린 이동), 적절함을 시연합니다.
 
 ```python
 def lr_sensitivity(data):
@@ -358,9 +358,9 @@ def lr_sensitivity(data):
         print(f"  {lr:>10.4f} {start:>12.6f} {end_str:>12} {status:>15}")
 ```
 
-## Use It
+## 사용하기
 
-PyTorch provides schedulers in `torch.optim.lr_scheduler`:
+PyTorch는 `torch.optim.lr_scheduler`에서 scheduler를 제공합니다.
 
 ```python
 import torch
@@ -377,7 +377,7 @@ for step in range(1000):
     scheduler.step()
 ```
 
-For warmup + cosine, use a lambda scheduler or the `get_cosine_schedule_with_warmup` from HuggingFace:
+warmup + cosine에는 lambda scheduler를 쓰거나 HuggingFace의 `get_cosine_schedule_with_warmup`을 사용합니다.
 
 ```python
 from transformers import get_cosine_schedule_with_warmup
@@ -389,43 +389,43 @@ scheduler = get_cosine_schedule_with_warmup(
 )
 ```
 
-The HuggingFace function is what most Llama and GPT fine-tuning scripts use. When in doubt, use warmup + cosine with warmup = 3-5% of total steps. It works for almost everything.
+HuggingFace 함수는 대부분의 Llama 및 GPT fine-tuning script가 사용하는 것입니다. 확신이 없으면 warmup = 전체 step의 3-5%인 warmup + cosine을 사용하세요. 거의 모든 것에 작동합니다.
 
-## Ship It
+## 산출물
 
-This lesson produces:
-- `outputs/prompt-lr-schedule-advisor.md` -- a prompt that recommends the right learning rate schedule and hyperparameters for your training setup
+이 lesson은 다음을 만듭니다.
+- `outputs/prompt-lr-schedule-advisor.md` -- 학습 설정에 맞는 올바른 학습률 스케줄과 하이퍼파라미터를 추천하는 prompt
 
-## Exercises
+## 연습 문제
 
-1. Implement exponential decay: lr(t) = lr_0 * gamma^t where gamma = 0.999. Compare to cosine annealing on the circle dataset.
+1. exponential decay를 구현하세요: gamma = 0.999일 때 lr(t) = lr_0 * gamma^t입니다. circle dataset에서 cosine annealing과 비교하세요.
 
-2. Implement the learning rate range test (Leslie Smith): train for a few hundred steps while exponentially increasing the LR from 1e-7 to 1. Plot loss vs LR. The optimal max LR is just before the loss starts increasing.
+2. learning rate range test(Leslie Smith)를 구현하세요. LR을 1e-7에서 1까지 지수적으로 올리면서 몇백 step 동안 학습합니다. loss vs LR을 plot하세요. 최적의 max LR은 손실이 증가하기 시작하기 직전입니다.
 
-3. Train with warmup + cosine but vary the warmup length: 0%, 1%, 5%, 10%, 20% of total steps. Find the sweet spot where training is most stable.
+3. warmup + cosine으로 학습하되 warmup 길이를 전체 step의 0%, 1%, 5%, 10%, 20%로 바꿔 보세요. 학습이 가장 안정적인 sweet spot을 찾으세요.
 
-4. Implement cosine annealing with warm restarts (SGDR): reset the learning rate to lr_max every T steps and decay again. Compare to standard cosine on a longer training run.
+4. warm restarts가 있는 cosine annealing(SGDR)을 구현하세요. T step마다 학습률을 lr_max로 reset하고 다시 decay합니다. 더 긴 학습 run에서 표준 cosine과 비교하세요.
 
-5. Build a "schedule surgeon" that monitors training loss and automatically switches from warmup to cosine when the loss stabilizes, and reduces lr if the loss plateaus for too long.
+5. 학습 손실을 모니터링하고 손실이 안정화되면 warmup에서 cosine으로 자동 전환하며, 손실이 너무 오래 plateau에 머물면 lr을 줄이는 "schedule surgeon"을 만드세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Learning rate | "How fast the model learns" | The scalar that multiplies the gradient to determine the parameter update size |
-| Schedule | "Change the LR over time" | A function that maps training step to learning rate, designed to optimize convergence |
-| Warmup | "Start with a small LR" | Linearly ramping the LR from near-zero to the target value over the first N steps to stabilize optimizer statistics |
-| Cosine annealing | "Smooth LR decay" | Decreasing the LR following a cosine curve from lr_max to lr_min over training |
-| Step decay | "Drop LR at milestones" | Multiplying the LR by a factor (usually 0.1) at fixed epoch intervals |
-| 1cycle policy | "Up then down" | Leslie Smith's method of ramping LR up then down in a single cycle for faster convergence |
-| LR range test | "Find the best learning rate" | Training briefly while increasing LR to find the value where loss starts diverging |
-| Cosine with warm restarts | "Reset and repeat" | Periodically resetting the LR to lr_max and decaying again (SGDR) |
-| Eta min | "The floor for the LR" | The minimum learning rate that the schedule decays to |
-| Peak learning rate | "The maximum LR" | The highest LR reached during training, typically after warmup |
+| Learning rate | "모델이 얼마나 빨리 학습하는가" | parameter update 크기를 결정하기 위해 gradient에 곱하는 scalar |
+| Schedule | "시간에 따라 LR을 바꾸기" | 수렴을 최적화하도록 설계된, 학습 step을 학습률에 매핑하는 함수 |
+| Warmup | "작은 LR로 시작하기" | optimizer 통계를 안정화하기 위해 처음 N step 동안 LR을 거의 0에서 목표값까지 선형으로 올리는 것 |
+| Cosine annealing | "부드러운 LR decay" | 학습 동안 cosine 곡선을 따라 lr_max에서 lr_min까지 LR을 낮추는 것 |
+| Step decay | "milestone에서 LR 낮추기" | 고정 epoch 간격마다 LR에 factor(보통 0.1)를 곱하는 것 |
+| 1cycle policy | "올렸다가 내리기" | 더 빠른 수렴을 위해 단일 cycle에서 LR을 올린 뒤 내리는 Leslie Smith의 방법 |
+| LR range test | "최적 학습률 찾기" | loss가 발산하기 시작하는 값을 찾기 위해 LR을 증가시키며 짧게 학습하는 것 |
+| Cosine with warm restarts | "reset하고 반복하기" | 주기적으로 LR을 lr_max로 reset하고 다시 decay하는 것(SGDR) |
+| Eta min | "LR의 바닥값" | schedule이 decay하는 최소 학습률 |
+| Peak learning rate | "최대 LR" | 일반적으로 warmup 이후 도달하는, 학습 중 가장 높은 LR |
 
-## Further Reading
+## 더 읽을거리
 
-- Loshchilov & Hutter, "SGDR: Stochastic Gradient Descent with Warm Restarts" (2017) -- introduced cosine annealing and warm restarts
-- Smith, "Super-Convergence: Very Fast Training of Neural Networks Using Large Learning Rates" (2018) -- the 1cycle policy paper
-- Touvron et al., "Llama 2: Open Foundation and Fine-Tuned Chat Models" (2023) -- documents the warmup + cosine schedule used at scale
-- Goyal et al., "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour" (2017) -- linear scaling rule and warmup for large batch training
+- Loshchilov & Hutter, "SGDR: Stochastic Gradient Descent with Warm Restarts" (2017) -- cosine annealing과 warm restarts를 소개한 논문
+- Smith, "Super-Convergence: Very Fast Training of Neural Networks Using Large Learning Rates" (2018) -- 1cycle policy 논문
+- Touvron et al., "Llama 2: Open Foundation and Fine-Tuned Chat Models" (2023) -- scale에서 사용한 warmup + cosine schedule을 문서화합니다
+- Goyal et al., "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour" (2017) -- large batch training을 위한 linear scaling rule과 warmup

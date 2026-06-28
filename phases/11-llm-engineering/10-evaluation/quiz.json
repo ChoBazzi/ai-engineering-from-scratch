@@ -1,37 +1,37 @@
 [
   {
-    "question": "Why is manually reading a few LLM outputs not a reliable evaluation method?",
-    "options": ["It takes too long", "Small samples miss failure modes that only appear at scale, and human judgment is inconsistent across reviewers and sessions", "Manual review is too expensive", "LLM outputs are always correct"],
+    "question": "LLM 출력 몇 개를 사람이 직접 읽는 방식이 신뢰할 수 있는 평가 방법이 아닌 이유는 무엇인가?",
+    "options": ["시간이 너무 오래 걸리기 때문이다", "작은 샘플은 규모가 커질 때만 나타나는 실패 모드를 놓치며, 인간 판단은 검토자와 세션에 따라 일관되지 않기 때문이다", "수동 검토가 너무 비싸기 때문이다", "LLM 출력은 항상 정확하기 때문이다"],
     "correct": 1,
-    "explanation": "Reading 10 outputs shows you 10 points in a distribution. A prompt change might improve 90% of outputs but break 10% of edge cases. Without systematic evaluation, you'll miss the regression until users report it.",
+    "explanation": "출력 10개를 읽는 것은 분포 위의 점 10개를 보는 것에 불과하다. 프롬프트 변경이 출력의 90%를 개선하면서도 엣지 케이스 10%를 망가뜨릴 수 있다. 체계적 평가가 없으면 사용자가 보고할 때까지 회귀를 놓치게 된다.",
     "stage": "pre"
   },
   {
-    "question": "What is regression testing in the context of LLM applications?",
-    "options": ["Testing linear regression models", "Running a fixed set of test cases after every change (prompt, model, parameters) to ensure quality hasn't degraded", "Testing on the training data", "Measuring model loss during training"],
+    "question": "LLM 애플리케이션 맥락에서 회귀 테스트란 무엇인가?",
+    "options": ["선형 회귀 모델을 테스트하는 것", "모든 변경(프롬프트, 모델, 파라미터) 후 고정된 테스트 케이스 세트를 실행해 품질이 저하되지 않았는지 확인하는 것", "훈련 데이터로 테스트하는 것", "훈련 중 모델 손실을 측정하는 것"],
     "correct": 1,
-    "explanation": "Every prompt change, model swap, or temperature tweak changes the output distribution. Regression tests catch cases where a change that improves one area silently degrades another.",
+    "explanation": "프롬프트 변경, 모델 교체, temperature 조정은 모두 출력 분포를 바꾼다. 회귀 테스트는 한 영역을 개선한 변경이 다른 영역을 조용히 악화시키는 경우를 잡아낸다.",
     "stage": "pre"
   },
   {
-    "question": "What is the LLM-as-judge evaluation approach?",
-    "options": ["Having the model evaluate its own training loss", "Using a strong LLM to score outputs against rubrics, replacing expensive human evaluation while scaling to thousands of test cases", "Using the model's confidence scores", "Comparing two models' parameter counts"],
+    "question": "LLM-as-judge 평가 접근법은 무엇인가?",
+    "options": ["모델이 자신의 훈련 손실을 평가하게 하는 것", "강력한 LLM을 사용해 루브릭에 따라 출력을 채점함으로써, 비싼 인간 평가를 대체하면서 수천 개 테스트 케이스로 확장하는 것", "모델의 confidence score를 사용하는 것", "두 모델의 파라미터 수를 비교하는 것"],
     "correct": 1,
-    "explanation": "LLM-as-judge sends (input, output, rubric) to a strong model (e.g., GPT-4) which scores the output. It's cheaper and faster than human evaluation, though it has known biases (e.g., preferring verbose responses).",
+    "explanation": "LLM-as-judge는 (입력, 출력, 루브릭)을 강력한 모델(예: GPT-4)에 보내 출력을 채점하게 한다. 장황한 응답을 선호하는 등 알려진 편향은 있지만, 인간 평가보다 저렴하고 빠르다.",
     "stage": "post"
   },
   {
-    "question": "What makes a good evaluation dataset for an LLM application?",
-    "options": ["As many examples as possible", "Diverse inputs covering common cases, edge cases, adversarial inputs, and expected outputs with clear rubrics", "Only the hardest examples", "Random samples from the internet"],
+    "question": "LLM 애플리케이션을 위한 좋은 평가 데이터셋은 무엇으로 만들어지는가?",
+    "options": ["가능한 한 많은 예시", "일반 케이스, 엣지 케이스, 적대적 입력, 명확한 루브릭이 있는 기대 출력을 포괄하는 다양한 입력", "가장 어려운 예시만", "인터넷에서 가져온 무작위 샘플"],
     "correct": 1,
-    "explanation": "A good eval set covers the distribution: happy path cases, edge cases (empty input, very long input), adversarial inputs (prompt injection), and ambiguous queries. Each example has a clear expected output or scoring rubric.",
+    "explanation": "좋은 eval 세트는 정상 경로 케이스, 엣지 케이스(빈 입력, 매우 긴 입력), 적대적 입력(프롬프트 인젝션), 모호한 질의 등 분포를 포괄한다. 각 예시에는 명확한 기대 출력이나 채점 루브릭이 있다.",
     "stage": "post"
   },
   {
-    "question": "How should you handle non-deterministic LLM outputs in evaluation?",
-    "options": ["Set temperature to 0 for all evaluations", "Run each test case multiple times and use aggregate metrics (pass rate, average score) to account for output variance", "Non-determinism doesn't affect evaluation", "Only evaluate the first output"],
+    "question": "평가에서 비결정적 LLM 출력을 어떻게 다뤄야 하는가?",
+    "options": ["모든 평가에서 temperature를 0으로 설정한다", "출력 분산을 반영하기 위해 각 테스트 케이스를 여러 번 실행하고 집계 지표(pass rate, 평균 점수)를 사용한다", "비결정성은 평가에 영향을 주지 않는다", "첫 번째 출력만 평가한다"],
     "correct": 1,
-    "explanation": "Even at temperature 0, some providers introduce sampling variation. Running each test 3-5 times and measuring pass rate or average score gives a more reliable picture than a single run that might hit a lucky/unlucky sample.",
+    "explanation": "temperature 0에서도 일부 provider는 샘플링 변동을 도입한다. 각 테스트를 3-5번 실행하고 pass rate나 평균 점수를 측정하면 운 좋거나 나쁜 단일 샘플보다 더 신뢰할 수 있는 그림을 얻을 수 있다.",
     "stage": "post"
   }
 ]

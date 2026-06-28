@@ -1,102 +1,102 @@
 {
   "lesson": "12-text-summarization",
-  "title": "Text Summarization",
+  "title": "텍스트 요약",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the key behavioral difference between extractive and abstractive summarization?",
+      "question": "Extractive summarization과 abstractive summarization의 핵심 행동 차이는 무엇인가?",
       "options": [
-        "Extractive uses TF-IDF; abstractive uses Word2Vec",
-        "Extractive returns sentences verbatim from the source; abstractive generates new text and can hallucinate",
-        "Extractive is multilingual only",
-        "Extractive is slower than abstractive"
+        "Extractive는 TF-IDF를 사용하고 abstractive는 Word2Vec을 사용한다",
+        "Extractive는 source의 sentence를 그대로 반환하고, abstractive는 새 text를 생성하며 hallucinate할 수 있다",
+        "Extractive는 multilingual 전용이다",
+        "Extractive는 abstractive보다 느리다"
       ],
       "correct": 1,
-      "explanation": "Extractive lifts sentences verbatim; abstractive rewrites and risks hallucination."
+      "explanation": "Extractive는 sentence를 그대로 들어 올린다. Abstractive는 다시 쓰며 hallucination 위험이 있다."
     },
     {
       "stage": "pre",
-      "question": "What does ROUGE measure?",
+      "question": "ROUGE는 무엇을 측정하는가?",
       "options": [
         "Embedding similarity",
-        "N-gram and longest-common-subsequence overlap between system and reference summaries",
+        "System summary와 reference summary 사이의 N-gram 및 longest-common-subsequence overlap",
         "Reading time",
         "Token-level perplexity"
       ],
       "correct": 1,
-      "explanation": "ROUGE-1/2/L measure unigram, bigram, and LCS overlap with references."
+      "explanation": "ROUGE-1/2/L은 reference와의 unigram, bigram, LCS overlap을 측정한다."
     },
     {
       "stage": "check",
-      "question": "How does TextRank score sentences in extractive summarization?",
+      "question": "TextRank는 extractive summarization에서 sentence에 어떻게 점수를 매기는가?",
       "options": [
-        "By raw word count",
-        "By comparing to a reference summary",
-        "By running a PageRank-style iteration over a graph where edges are sentence-similarity weights",
-        "By embedding cosine to the question"
+        "Raw word count로",
+        "Reference summary와 비교해서",
+        "Edge가 sentence-similarity weight인 graph 위에서 PageRank-style iteration을 실행해서",
+        "Question과의 embedding cosine으로"
       ],
       "correct": 2,
-      "explanation": "TextRank uses PageRank over a sentence-similarity graph; highly connected sentences score highest."
+      "explanation": "TextRank는 sentence-similarity graph 위에서 PageRank를 사용한다. 연결성이 높은 sentence가 가장 높은 점수를 얻는다."
     },
     {
       "stage": "check",
-      "question": "Why enable stemming when computing ROUGE?",
+      "question": "ROUGE 계산에서 stemming을 활성화하는 이유는 무엇인가?",
       "options": [
-        "Without stemming, 'running' and 'run' count as different tokens and ROUGE undercounts true overlap",
-        "To speed up ROUGE",
-        "Stemming normalizes case",
-        "Stemming is required by the rouge-score package"
+        "Stemming이 없으면 'running'과 'run'이 서로 다른 token으로 계산되어 ROUGE가 실제 overlap을 과소계산하기 때문이다",
+        "ROUGE 속도를 높이기 위해서",
+        "Stemming이 case를 정규화하기 때문에",
+        "rouge-score package가 stemming을 필수로 요구하기 때문에"
       ],
       "correct": 0,
-      "explanation": "Stemming merges morphological variants so ROUGE credits semantically equivalent forms."
+      "explanation": "Stemming은 morphological variant를 합쳐 ROUGE가 의미적으로 동등한 form에 credit을 주게 한다."
     },
     {
       "stage": "check",
-      "question": "Which 2026 metric is purpose-built to detect summary hallucinations via NLI entailment?",
+      "question": "NLI entailment를 통해 summary hallucination을 감지하도록 만들어진 2026년 metric은 무엇인가?",
       "options": [
         "BLEU",
         "ROUGE-L",
-        "Faithfulness checks (e.g. FactCC or RAGAS faithfulness) using NLI between source and summary claims",
+        "Source와 summary claim 사이의 NLI를 사용하는 faithfulness check(예: FactCC 또는 RAGAS faithfulness)",
         "chrF"
       ],
       "correct": 2,
-      "explanation": "NLI-based faithfulness scoring flags claims in the summary not entailed by the source."
+      "explanation": "NLI-based faithfulness scoring은 source가 entail하지 않는 summary claim을 flag한다."
     },
     {
       "stage": "post",
-      "question": "Why is extractive summarization preferred for compliance-adjacent content?",
+      "question": "Compliance-adjacent content에 extractive summarization이 선호되는 이유는 무엇인가?",
       "options": [
-        "Outputs are lifted verbatim from the source, eliminating the abstractive hallucination class",
-        "It is faster",
-        "Extractive supports longer outputs",
-        "ROUGE scores are higher"
+        "Output이 source에서 그대로 들어 올려져 abstractive hallucination class를 제거하기 때문이다",
+        "더 빠르기 때문이다",
+        "Extractive가 더 긴 output을 지원하기 때문이다",
+        "ROUGE score가 더 높기 때문이다"
       ],
       "correct": 0,
-      "explanation": "Verbatim extraction cannot invent content, which matters where factuality is regulated."
+      "explanation": "Verbatim extraction은 content를 만들어 낼 수 없으며, 이는 factuality가 규제되는 곳에서 중요하다."
     },
     {
       "stage": "post",
-      "question": "Which of these is an abstractive hallucination type to monitor for?",
+      "question": "다음 중 모니터링해야 할 abstractive hallucination type은 무엇인가?",
       "options": [
         "Punctuation drift",
         "Stopword removal",
-        "Long sentences",
-        "Entity swap (e.g. 'John Smith' rendered as 'John Brown'), number drift, polarity flip, or fact invention"
+        "긴 sentence",
+        "Entity swap(예: 'John Smith'가 'John Brown'으로 렌더링됨), number drift, polarity flip, 또는 fact invention"
       ],
       "correct": 3,
-      "explanation": "Entity swaps, numeric drift, polarity flips, and invented facts are the canonical abstractive failure modes."
+      "explanation": "Entity swap, numeric drift, polarity flip, invented fact는 표준적인 abstractive failure mode다."
     },
     {
       "stage": "post",
-      "question": "When would you reach for a Pegasus checkpoint over BART-large-CNN?",
+      "question": "BART-large-CNN보다 Pegasus checkpoint를 선택할 때는 언제인가?",
       "options": [
-        "When evaluating BLEU",
-        "When the input is short",
-        "When you need extractive output",
-        "For domains like scientific abstracts where Pegasus's gap-sentence pretraining objective is a closer fit"
+        "BLEU를 평가할 때",
+        "Input이 짧을 때",
+        "Extractive output이 필요할 때",
+        "Pegasus의 gap-sentence pretraining objective가 더 잘 맞는 scientific abstract 같은 domain에서"
       ],
       "correct": 3,
-      "explanation": "Pegasus's gap-sentence objective excels at long-form domain summarization (e.g. pubmed)."
+      "explanation": "Pegasus의 gap-sentence objective는 long-form domain summarization(예: pubmed)에 강하다."
     }
   ]
 }

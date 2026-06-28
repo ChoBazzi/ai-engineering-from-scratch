@@ -1,5 +1,5 @@
-# Phase 2: ML Fundamentals
+# 2단계: 머신러닝 기초
 
-> Classical machine learning — still the backbone of most production AI.
+> 고전적 머신러닝은 여전히 대부분의 프로덕션 AI를 떠받치는 핵심입니다.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 수업 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

@@ -1,22 +1,22 @@
 {
   "lesson": "02-rewoo-plan-and-execute",
-  "title": "ReWOO and Plan-and-Execute: Decoupled Planning",
+  "title": "ReWOO와 Plan-and-Execute: 분리된 계획",
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does ReAct's prompt grow quadratically with depth?",
+      "question": "ReAct의 prompt가 depth에 대해 quadratic하게 커지는 이유는 무엇인가요?",
       "options": [
-        "The model re-tokenizes itself on every step",
-        "Each step carries the full prior context including every previous thought and observation",
-        "Tool schemas are duplicated per call",
-        "The provider charges per byte rather than per token"
+        "model이 매 step마다 자기 자신을 다시 tokenize하기 때문",
+        "각 step이 이전의 모든 thought와 observation을 포함한 full prior context를 들고 다니기 때문",
+        "tool schema가 call마다 duplicate되기 때문",
+        "provider가 token이 아니라 byte 단위로 과금하기 때문"
       ],
       "correct": 1,
-      "explanation": "ReAct re-includes prior thoughts and observations on each step, making total prompt length grow with the square of the depth."
+      "explanation": "ReAct는 각 step에서 prior thought와 observation을 다시 포함하므로 total prompt length가 depth의 제곱에 비례해 증가합니다."
     },
     {
       "stage": "pre",
-      "question": "What is the three-role split that defines ReWOO?",
+      "question": "ReWOO를 정의하는 세 역할 분리는 무엇인가요?",
       "options": [
         "Reader, Writer, Reviewer",
         "Planner, Workers, Solver",
@@ -24,67 +24,67 @@
         "Generator, Critic, Optimizer"
       ],
       "correct": 1,
-      "explanation": "ReWOO separates a Planner that emits a DAG, Workers that fetch evidence, and a Solver that composes the final answer."
+      "explanation": "ReWOO는 DAG를 내는 Planner, evidence를 가져오는 Workers, final answer를 조합하는 Solver를 분리합니다."
     },
     {
       "stage": "check",
-      "question": "What headline numbers does the paper report for ReWOO vs ReAct on HotpotQA?",
+      "question": "논문이 HotpotQA에서 ReWOO와 ReAct를 비교해 보고한 headline number는 무엇인가요?",
       "options": [
-        "~5x fewer tokens and +4 absolute accuracy",
-        "~2x more tokens and +10 accuracy",
-        "Same tokens and +1 accuracy",
-        "10x fewer tokens and -2 accuracy"
+        "token 약 5배 감소와 absolute accuracy +4",
+        "token 약 2배 증가와 accuracy +10",
+        "같은 token과 accuracy +1",
+        "token 10배 감소와 accuracy -2"
       ],
       "correct": 0,
-      "explanation": "ReWOO reports about a 5x token reduction and +4 absolute accuracy on HotpotQA compared to ReAct."
+      "explanation": "ReWOO는 HotpotQA에서 ReAct 대비 token을 약 5배 줄이고 absolute accuracy +4를 보고합니다."
     },
     {
       "stage": "check",
-      "question": "What does a placeholder like #E1 inside a ReWOO plan node mean?",
+      "question": "ReWOO plan node 안의 #E1 같은 placeholder는 무엇을 의미하나요?",
       "options": [
-        "An error code returned by worker 1",
-        "A reference substituted at dispatch time with the output of an earlier worker node",
-        "A retry counter for evidence fetching",
-        "A planner version identifier"
+        "worker 1이 반환한 error code",
+        "dispatch 시 earlier worker node의 output으로 대체되는 reference",
+        "evidence fetching retry counter",
+        "planner version identifier"
       ],
       "correct": 1,
-      "explanation": "Plan nodes use evidence references like #E1, #E2 that the executor substitutes with the output of upstream workers."
+      "explanation": "plan node는 #E1, #E2 같은 evidence reference를 사용하며 executor가 upstream worker의 output으로 substitute합니다."
     },
     {
       "stage": "check",
-      "question": "Why does ReWOO localize failures better than ReAct?",
+      "question": "ReWOO가 ReAct보다 failure를 더 잘 localize하는 이유는 무엇인가요?",
       "options": [
-        "Workers crash the run on any error",
-        "An error in a worker becomes a string the Solver sees alongside the original plan, so degradation is per-node not per-step",
-        "ReWOO retries every failed call up to ten times",
-        "The Planner re-emits a fresh DAG after every error"
+        "worker가 error가 나면 run을 crash시키기 때문",
+        "worker error가 Solver가 original plan과 함께 보는 string이 되므로 degradation이 per-step이 아니라 per-node로 일어나기 때문",
+        "ReWOO가 모든 failed call을 최대 열 번 retry하기 때문",
+        "Planner가 error마다 fresh DAG를 다시 방출하기 때문"
       ],
       "correct": 1,
-      "explanation": "Per-node failure with the original plan in context lets the Solver degrade gracefully rather than reasoning mid-stream out of an error."
+      "explanation": "original plan이 context에 있는 per-node failure는 Solver가 error에서 mid-stream으로 추론하는 대신 graceful하게 degrade할 수 있게 합니다."
     },
     {
       "stage": "post",
-      "question": "Which task shape best fits Plan-and-Act over plain ReWOO?",
+      "question": "plain ReWOO보다 Plan-and-Act에 가장 잘 맞는 task shape는 무엇인가요?",
       "options": [
-        "A two-step factoid lookup",
-        "A 40-step web or mobile navigation trajectory",
-        "A single-turn classification",
-        "A pure arithmetic question"
+        "두 step factoid lookup",
+        "40-step web 또는 mobile navigation trajectory",
+        "single-turn classification",
+        "pure arithmetic question"
       ],
       "correct": 1,
-      "explanation": "Plan-and-Act is built for long-horizon (over 30 steps) web and mobile agents where a single ReAct trajectory loses coherence."
+      "explanation": "Plan-and-Act는 단일 ReAct trajectory가 coherence를 잃는 long-horizon(30 step 초과) web 및 mobile agent를 위해 만들어졌습니다."
     },
     {
       "stage": "post",
-      "question": "What does ReWOO's planner distillation result imply for production agents?",
+      "question": "ReWOO의 planner distillation 결과가 production agent에 시사하는 바는 무엇인가요?",
       "options": [
-        "Frontier models must be used at every step",
-        "A small planner (around 7B) can match a large teacher because the planner never sees observations",
-        "Planning quality drops below 7B parameters",
-        "Distillation requires gradient-based RL data"
+        "frontier model을 모든 step에서 사용해야 한다",
+        "planner가 observation을 보지 않기 때문에 작은 planner(약 7B)가 large teacher를 match할 수 있다",
+        "planning quality는 7B parameter 아래로 떨어진다",
+        "distillation에는 gradient-based RL data가 필요하다"
       ],
       "correct": 1,
-      "explanation": "Because the planner does not see observations, plan traces from a large teacher transfer cleanly to a small fine-tuned planner."
+      "explanation": "planner는 observation을 보지 않으므로 large teacher의 plan trace가 작은 fine-tuned planner로 깔끔하게 transfer됩니다."
     }
   ]
 }

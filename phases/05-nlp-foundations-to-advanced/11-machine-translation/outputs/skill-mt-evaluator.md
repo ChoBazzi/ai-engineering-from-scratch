@@ -1,17 +1,17 @@
 ---
 name: mt-evaluator
-description: Evaluate a machine translation output for shipping.
+description: shipping 가능한 machine translation output인지 평가합니다.
 version: 1.0.0
 phase: 5
 lesson: 11
 tags: [nlp, translation, evaluation]
 ---
 
-Given a source text and a candidate translation, output:
+source text와 candidate translation이 주어지면 다음을 출력하라.
 
-1. Automatic score estimate. BLEU and chrF ranges you would expect. State whether a reference is available.
-2. Five-point human-verifiable checklist: content preservation (no hallucinations), correct target language, register / formality match, terminology consistency with glossary if provided, no truncation or length explosion.
-3. One domain-specific issue to probe. Legal: named entities, statute citations. Medical: drug names, dosages. UI: placeholder variables like `{name}`.
-4. Confidence flag. "Ship" / "Ship with review" / "Do not ship". Tie to severity of issues found.
+1. 자동 점수 추정. 예상되는 BLEU와 chrF 범위. Reference 사용 가능 여부를 명시한다.
+2. 인간이 검증할 수 있는 checklist 5개: content preservation(no hallucinations), correct target language, register / formality match, glossary가 제공된 경우 terminology consistency, truncation 또는 length explosion 없음.
+3. 조사할 domain-specific issue 하나. Legal: named entities, statute citations. Medical: drug names, dosages. UI: `{name}` 같은 placeholder variables.
+4. 신뢰도 flag. "Ship" / "Ship with review" / "Do not ship". 발견한 issue의 severity에 연결한다.
 
-Refuse to ship without a language-ID check on output. Refuse to evaluate without a reference unless the user explicitly opts in to reference-free scoring (COMET-QE, BLEURT-QE). Flag any content over 1000 tokens as likely needing chunked translation.
+Output에 language-ID check가 없으면 배포를 거부하라. 사용자가 reference-free scoring(COMET-QE, BLEURT-QE)을 명시적으로 선택하지 않는 한 reference 없이 평가하지 말라. 1000 token을 넘는 content는 chunked translation이 필요할 가능성이 높다고 표시하라.

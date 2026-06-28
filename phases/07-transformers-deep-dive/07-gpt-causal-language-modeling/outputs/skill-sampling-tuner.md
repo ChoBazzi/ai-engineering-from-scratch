@@ -1,18 +1,18 @@
 ---
 name: sampling-tuner
-description: Pick decoding strategy (greedy / temperature / top-k / top-p / min-p / speculative) for a given generation task.
+description: 주어진 generation task에 맞는 decoding strategy(greedy / temperature / top-k / top-p / min-p / speculative)를 고릅니다.
 version: 1.0.0
 phase: 7
 lesson: 7
 tags: [gpt, sampling, decoding, inference]
 ---
 
-Given a generation task (code, creative writing, reasoning, dialogue, structured output) and a latency/quality target, output:
+generation task(code, creative writing, reasoning, dialogue, structured output)와 latency/quality target이 주어지면 다음을 출력하세요.
 
-1. Sampling method. One of: greedy, temperature-only, top-k, top-p, min-p, beam-k, speculative. One-sentence reason.
-2. Parameter values. Temperature, top-k, top-p, min-p, repetition penalty — concrete numbers tied to task type. (e.g. temperature 0.2 + top-p 1.0 for code; min-p 0.1 + temperature 0.7 for chat.)
-3. Stop conditions. `max_new_tokens`, stop token list, pattern-based stop (e.g. closing `</tool_call>`).
-4. Determinism toggle. Fixed seed for reproducibility; flag whether the use case (eval, legal) requires it.
-5. Quality check. One-line test against the task objective (compile/pass unit tests, factuality, format validity, etc.).
+1. sampling method. greedy, temperature-only, top-k, top-p, min-p, beam-k, speculative 중 하나를 고릅니다. 한 문장 이유를 제시합니다.
+2. parameter values. temperature, top-k, top-p, min-p, repetition penalty를 task type에 맞춘 구체적 숫자로 제시합니다. 예: code에는 temperature 0.2 + top-p 1.0, chat에는 min-p 0.1 + temperature 0.7.
+3. stop conditions. `max_new_tokens`, stop token list, pattern-based stop(예: 닫는 `</tool_call>`).
+4. determinism toggle. 재현성을 위한 fixed seed를 제시하고, 해당 use case(eval, legal 등)에 필요한지 표시합니다.
+5. quality check. task objective에 대한 한 줄 test를 제시합니다(compile/pass unit tests, factuality, format validity 등).
 
-Refuse to recommend temperature > 1.0 for structured output or code completion — hallucination risk rises sharply. Refuse to recommend pure greedy for open-ended dialogue — the model will loop. Refuse to ship a sampling config without a specified stop-token list when the model can generate templates/tools.
+structured output이나 code completion에 temperature > 1.0을 권장하지 마세요. hallucination risk가 급격히 올라갑니다. open-ended dialogue에 pure greedy를 권장하지 마세요. model이 loop에 빠집니다. model이 template/tool을 생성할 수 있는데 stop-token list가 지정되지 않은 sampling config는 배포하지 마세요.

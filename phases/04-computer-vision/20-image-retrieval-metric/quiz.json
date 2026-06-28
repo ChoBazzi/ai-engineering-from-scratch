@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "For a visual search product where queries are text and gallery items are images, which backbone do you pick first?",
-      "options": ["A supervised ResNet-50", "A CLIP or SigLIP model — they learn a shared text-image embedding space so cosine similarity between text query and image gallery is meaningful out of the box", "A self-supervised DINOv2 model", "A handcrafted ORB descriptor"],
+      "question": "query는 text이고 gallery item은 image인 visual search product에서는 어떤 backbone을 먼저 고르나요?",
+      "options": ["supervised ResNet-50", "CLIP 또는 SigLIP model입니다. 이들은 shared text-image embedding space를 학습하므로 text query와 image gallery 사이의 cosine similarity가 바로 의미를 갖습니다", "self-supervised DINOv2 model", "handcrafted ORB descriptor"],
       "correct": 1,
-      "explanation": "Retrieval with text queries requires embeddings where text and image end up in the same space. CLIP/SigLIP train exactly this with the contrastive loss in Lesson 18. Supervised ImageNet features are image-only. DINOv2 is strong but image-only. Text queries demand a vision-language encoder."
+      "explanation": "text query를 쓰는 retrieval에는 text와 image가 같은 space에 놓이는 embedding이 필요합니다. CLIP/SigLIP은 Lesson 18의 contrastive loss로 정확히 이것을 train합니다. supervised ImageNet feature는 image-only입니다. DINOv2는 강력하지만 image-only입니다. text query에는 vision-language encoder가 필요합니다."
     },
     {
       "stage": "pre",
-      "question": "What does 'semi-hard mining' mean in triplet-loss training?",
-      "options": ["Picking random triplets", "For each anchor, select a negative that is further than the positive but still within the margin; easy negatives contribute no gradient and hardest negatives can destabilise training, so semi-hard is the sweet spot", "Using only the hardest possible negatives", "Mining cryptocurrency for training examples"],
+      "question": "triplet-loss training에서 'semi-hard mining'은 무엇을 뜻하나요?",
+      "options": ["random triplet을 고르는 것입니다", "각 anchor에 대해 positive보다 멀지만 여전히 margin 안에 있는 negative를 선택합니다. easy negative는 gradient를 주지 않고 hardest negative는 training을 destabilise할 수 있으므로 semi-hard가 sweet spot입니다", "가능한 가장 hard한 negative만 사용하는 것입니다", "training example을 얻기 위해 cryptocurrency를 mining하는 것입니다"],
       "correct": 1,
-      "explanation": "Triplet loss gradient is non-zero only when d(a, n) < d(a, p) + margin. Easy negatives (already far) give zero gradient. Hardest negatives can collapse training. Semi-hard — d(a, p) < d(a, n) < d(a, p) + margin — is where the loss is informative without being unstable. FaceNet introduced this recipe in 2015 and it is still the default for triplet fine-tuning."
+      "explanation": "Triplet loss gradient는 d(a, n) < d(a, p) + margin일 때만 non-zero입니다. easy negative(이미 멀리 있음)는 zero gradient를 줍니다. hardest negative는 training을 collapse시킬 수 있습니다. Semi-hard, 즉 d(a, p) < d(a, n) < d(a, p) + margin인 구간은 loss가 informative하면서도 unstable하지 않은 곳입니다. FaceNet이 2015년에 이 recipe를 도입했고, 지금도 triplet fine-tuning의 default입니다."
     },
     {
       "stage": "post",
-      "question": "Your retrieval system reports recall@10 = 0.95 but recall@1 = 0.42. What should you conclude?",
-      "options": ["The evaluation is broken", "The embedding space has the correct structure — relevant items are usually in the top 10 — but ranking within the top 10 is noisy; a re-ranking model (cross-encoder, second-stage scorer) or longer metric-learning fine-tune will fix recall@1 without damaging recall@10", "The model is overfitting", "Data is leaking from gallery to queries"],
+      "question": "retrieval system이 recall@10 = 0.95이지만 recall@1 = 0.42라고 report합니다. 무엇을 결론내려야 하나요?",
+      "options": ["evaluation이 깨졌습니다", "embedding space는 올바른 structure를 갖고 있습니다. relevant item이 보통 top 10 안에 있습니다. 하지만 top 10 내부 ranking이 noisy합니다. re-ranking model(cross-encoder, second-stage scorer)이나 더 긴 metric-learning fine-tune은 recall@10을 망치지 않고 recall@1을 고칠 수 있습니다", "model이 overfitting하고 있습니다", "gallery에서 query로 data가 leak되고 있습니다"],
       "correct": 1,
-      "explanation": "recall@K vs @1 tells you where the information sits. A high recall@10 with low recall@1 means retrieval is approximately right but the model is not confident about ordering the top few. Re-ranking — a separate model that scores every top-K candidate against the query — is the production fix and is what search engines like Pinterest and Google Photos use."
+      "explanation": "recall@K vs @1은 information이 어디에 있는지 알려줍니다. recall@10이 높고 recall@1이 낮으면 retrieval은 대략 맞지만 model이 상위 몇 개의 ordering에 confident하지 않다는 뜻입니다. re-ranking, 즉 top-K candidate 각각을 query와 비교해 score하는 별도 model이 production fix이며 Pinterest와 Google Photos 같은 search engine이 사용하는 방식입니다."
     },
     {
       "stage": "post",
-      "question": "Cosine similarity on unnormalised embeddings is not cosine similarity — what goes wrong?",
-      "options": ["Nothing, it is fine", "It mixes direction with magnitude; cos(a, b) is only correct when both vectors are L2-normalised. On unnormalised embeddings, large-norm items dominate regardless of direction, skewing ranks toward vectors with big magnitudes", "PyTorch raises an error", "The matmul overflows"],
+      "question": "unnormalised embedding에서의 cosine similarity는 cosine similarity가 아닙니다. 무엇이 잘못되나요?",
+      "options": ["아무 문제 없습니다", "direction과 magnitude를 섞습니다. cos(a, b)는 두 vector가 모두 L2-normalised일 때만 올바릅니다. unnormalised embedding에서는 large-norm item이 direction과 상관없이 dominate하여 rank가 큰 magnitude의 vector 쪽으로 skew됩니다", "PyTorch가 error를 냅니다", "matmul이 overflow합니다"],
       "correct": 1,
-      "explanation": "cos(a, b) = (a . b) / (||a|| * ||b||). Skipping the normalisation gives you raw inner product, which ranks by direction weighted by magnitude. On typical neural embeddings magnitudes vary 2-3x across samples, and that alone dominates the ranking. Always L2-normalise before computing cosine or before indexing in FAISS IndexFlatIP."
+      "explanation": "cos(a, b) = (a . b) / (||a|| * ||b||)입니다. normalisation을 건너뛰면 raw inner product가 되고, 이는 magnitude로 weight된 direction에 따라 rank합니다. 일반적인 neural embedding에서는 sample별 magnitude가 2-3x씩 달라지며, 이것만으로도 ranking을 dominate합니다. cosine을 계산하거나 FAISS IndexFlatIP에 indexing하기 전에 항상 L2-normalise하세요."
     },
     {
       "stage": "post",
-      "question": "Between instance-level retrieval (find this exact car) and category-level retrieval (find cars), which requires metric-learning fine-tuning?",
-      "options": ["Neither", "Instance-level. Off-the-shelf DINOv2 and CLIP embeddings discriminate between categories well but not between visually similar instances of the same category. A triplet or contrastive fine-tune on (same instance, different instance) pairs tightens the embedding around each instance", "Category-level", "Both require the same amount of fine-tuning"],
+      "question": "instance-level retrieval(이 정확한 car 찾기)과 category-level retrieval(car 찾기) 중 metric-learning fine-tuning이 필요한 것은 무엇인가요?",
+      "options": ["둘 다 아닙니다", "Instance-level입니다. off-the-shelf DINOv2와 CLIP embedding은 category 사이를 잘 구분하지만, 같은 category의 visually similar instance 사이는 잘 구분하지 못합니다. (same instance, different instance) pair에 대한 triplet 또는 contrastive fine-tune은 각 instance 주변으로 embedding을 조입니다", "Category-level입니다", "둘 다 같은 양의 fine-tuning이 필요합니다"],
       "correct": 1,
-      "explanation": "Category-level retrieval is what pretrained models already do: cats cluster near cats, dogs near dogs. Instance-level — same car, same face, same product SKU — needs metric learning because two instances of the same product look very similar in the general embedding space. Fine-tuning with triplet or InfoNCE on instance-labelled pairs shrinks intra-instance distance and grows inter-instance distance."
+      "explanation": "Category-level retrieval은 pretrained model이 이미 하는 일입니다. cat은 cat 근처에, dog는 dog 근처에 cluster됩니다. Instance-level, 즉 same car, same face, same product SKU는 metric learning이 필요합니다. 같은 product의 두 instance가 general embedding space에서 매우 비슷하게 보이기 때문입니다. instance-labelled pair에 triplet 또는 InfoNCE로 fine-tuning하면 intra-instance distance는 줄고 inter-instance distance는 커집니다."
     }
   ]
 }

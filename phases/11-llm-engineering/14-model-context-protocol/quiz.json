@@ -4,31 +4,31 @@
   "questions": [
     {
       "stage": "post",
-      "question": "What three primitives does an MCP server expose?",
+      "question": "MCP server가 노출하는 세 가지 primitive는 무엇인가요?",
       "options": [
-        "Functions, types, classes",
+        "Functions, types, classes(함수, 타입, 클래스)",
         "Tools, resources, prompts",
-        "Endpoints, webhooks, queues",
-        "Agents, skills, workflows"
+        "Endpoints, webhooks, queues(엔드포인트, 웹훅, 큐)",
+        "Agents, skills, workflows(에이전트, 스킬, 워크플로)"
       ],
       "correct": 1,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "What wire format does MCP use?",
+      "question": "MCP는 어떤 wire format을 사용하나요?",
       "options": [
-        "GraphQL over HTTP",
-        "gRPC with protobuf",
+        "HTTP 위의 GraphQL",
+        "protobuf를 쓰는 gRPC",
         "JSON-RPC 2.0",
-        "REST with OpenAPI"
+        "OpenAPI를 쓰는 REST"
       ],
       "correct": 2,
       "explanation": ""
     },
     {
       "stage": "post",
-      "question": "Which metadata field signals a tool mutates state and should require human approval?",
+      "question": "Tool이 state를 변경하므로 human approval이 필요하다는 것을 알리는 metadata field는 무엇인가요?",
       "options": [
         "readonly: false",
         "mutating: true",
@@ -40,7 +40,7 @@
     },
     {
       "stage": "post",
-      "question": "What is the 2025-06-18 transport that replaced the earlier SSE-only remote transport?",
+      "question": "이전 SSE-only remote transport를 대체한 2025-06-18 transport는 무엇인가요?",
       "options": [
         "WebTransport",
         "Streamable HTTP",
@@ -52,12 +52,12 @@
     },
     {
       "stage": "post",
-      "question": "When should a tool be split into its own MCP server instead of staying inline?",
+      "question": "Tool을 inline으로 두지 않고 자체 MCP server로 분리해야 하는 때는 언제인가요?",
       "options": [
-        "When it is called fewer than 10 times per day",
-        "When it is called from two or more hosts and is read-only/cacheable",
-        "When it returns more than 1KB of data",
-        "Never; MCP is only for local dev"
+        "하루 10회 미만 호출될 때",
+        "두 개 이상의 host에서 호출되고 읽기 전용/cacheable일 때",
+        "1KB가 넘는 데이터를 반환할 때",
+        "절대 아니다. MCP는 local dev 전용이다"
       ],
       "correct": 1,
       "explanation": ""

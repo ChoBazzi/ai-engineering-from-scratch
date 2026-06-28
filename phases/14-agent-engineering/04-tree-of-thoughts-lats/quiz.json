@@ -1,46 +1,46 @@
 {
   "lesson": "04-tree-of-thoughts-lats",
-  "title": "Tree of Thoughts and LATS: Deliberate Search",
+  "title": "Tree of Thoughts와 LATS: 의도적 탐색",
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does chain-of-thought struggle on Game of 24?",
+      "question": "chain-of-thought가 Game of 24에서 어려움을 겪는 이유는 무엇인가요?",
       "options": [
-        "The model cannot multiply integers",
-        "A linear walk cannot backtrack when an early step is wrong, so later steps compound the error",
-        "The prompt is too short",
-        "CoT requires a calculator tool that GPT-4 lacks"
+        "model이 integer multiplication을 할 수 없기 때문",
+        "linear walk는 early step이 틀렸을 때 backtrack할 수 없어 이후 step이 error를 키우기 때문",
+        "prompt가 너무 짧기 때문",
+        "CoT에는 GPT-4에 없는 calculator tool이 필요하기 때문"
       ],
       "correct": 1,
-      "explanation": "Without branching, a wrong early subexpression poisons the rest of the chain; the paper measures only 4 percent for CoT."
+      "explanation": "branching이 없으면 잘못된 early subexpression이 chain의 나머지를 오염시킵니다. 논문은 CoT가 4 percent에 그친다고 측정합니다."
     },
     {
       "stage": "pre",
-      "question": "What is a node in a Tree of Thoughts search?",
+      "question": "Tree of Thoughts search에서 node는 무엇인가요?",
       "options": [
-        "A token produced by the model",
-        "A coherent intermediate step or thought, with K possible child expansions",
-        "A weight update during fine-tuning",
-        "A tool registered with the runtime"
+        "model이 생성한 token",
+        "K개의 가능한 child expansion을 가진 coherent intermediate step 또는 thought",
+        "fine-tuning 중 weight update",
+        "runtime에 등록된 tool"
       ],
       "correct": 1,
-      "explanation": "ToT treats reasoning as a tree where each node is an intermediate thought that can expand into K children."
+      "explanation": "ToT는 reasoning을 tree로 취급하며 각 node는 K개 child로 expand될 수 있는 intermediate thought입니다."
     },
     {
       "stage": "check",
-      "question": "Which of these three is NOT one of LATS's roles for the LLM?",
+      "question": "다음 중 LATS가 LLM에 맡기는 세 역할에 포함되지 않는 것은 무엇인가요?",
       "options": [
-        "Policy that proposes next actions",
-        "Value function that scores partial trajectories",
-        "Self-reflector that writes reflections on failure",
-        "Optimizer that updates model weights between rollouts"
+        "next action을 제안하는 Policy",
+        "partial trajectory를 score하는 Value function",
+        "failure에 대한 reflection을 쓰는 Self-reflector",
+        "rollout 사이에 model weight를 update하는 Optimizer"
       ],
       "correct": 3,
-      "explanation": "LATS is gradient-free; the three LLM roles are policy, value, and self-reflector. There are no weight updates."
+      "explanation": "LATS는 gradient-free입니다. 세 LLM role은 policy, value, self-reflector이며 weight update는 없습니다."
     },
     {
       "stage": "check",
-      "question": "Name the four MCTS phases the lesson lists.",
+      "question": "lesson이 나열한 네 MCTS phase는 무엇인가요?",
       "options": [
         "Sample, Score, Sort, Submit",
         "Select, Expand, Simulate, Backpropagate",
@@ -48,43 +48,43 @@
         "Search, Synthesize, Synthesize-Again, Stop"
       ],
       "correct": 1,
-      "explanation": "MCTS proceeds in select, expand, simulate, backpropagate per iteration."
+      "explanation": "MCTS는 iteration마다 select, expand, simulate, backpropagate로 진행됩니다."
     },
     {
       "stage": "check",
-      "question": "In UCT, what is the role of the exploration constant c?",
+      "question": "UCT에서 exploration constant c의 역할은 무엇인가요?",
       "options": [
-        "It scales the value estimate Q",
-        "It weights the exploration term sqrt(ln N / n) against the exploitation term Q",
-        "It sets the maximum tree depth",
-        "It controls the number of rollouts"
+        "value estimate Q를 scale한다",
+        "exploration term sqrt(ln N / n)을 exploitation term Q에 대해 weighting한다",
+        "maximum tree depth를 설정한다",
+        "rollout 수를 제어한다"
       ],
       "correct": 1,
-      "explanation": "c balances exploitation (Q) against the exploration term; tune per task."
+      "explanation": "c는 exploitation(Q)과 exploration term 사이의 균형을 맞춥니다. task별로 tune합니다."
     },
     {
       "stage": "post",
-      "question": "When is search actively harmful compared to a single trajectory?",
+      "question": "단일 trajectory와 비교해 search가 오히려 해로운 때는 언제인가요?",
       "options": [
-        "When the evaluator is noisy and there is a single right answer, so the search converges on a good-scoring wrong answer",
-        "When the task involves multiple correct answers",
-        "Whenever tokens are cheap",
-        "When the task is code generation"
+        "evaluator가 noisy하고 정답이 하나뿐이라 search가 good-scoring wrong answer에 수렴할 때",
+        "task에 multiple correct answer가 있을 때",
+        "token이 저렴할 때마다",
+        "task가 code generation일 때"
       ],
       "correct": 0,
-      "explanation": "A noisy value function plus a single correct answer is exactly when search overfits to the noise."
+      "explanation": "noisy value function과 단일 correct answer의 조합은 search가 noise에 overfit하는 정확한 상황입니다."
     },
     {
       "stage": "post",
-      "question": "Roughly how much more token usage should you budget for ToT on Game of 24 compared with CoT?",
+      "question": "Game of 24에서 ToT는 CoT 대비 대략 얼마나 더 많은 token 사용량을 budget해야 하나요?",
       "options": [
-        "About 2x",
-        "About 10x",
-        "100x to 1000x",
-        "Less than CoT because of pruning"
+        "약 2배",
+        "약 10배",
+        "100배에서 1000배",
+        "pruning 때문에 CoT보다 적음"
       ],
       "correct": 2,
-      "explanation": "The lesson cites 100-1000x token cost for ToT on Game of 24 versus CoT."
+      "explanation": "lesson은 Game of 24에서 ToT가 CoT 대비 100-1000배 token cost를 가진다고 인용합니다."
     }
   ]
 }

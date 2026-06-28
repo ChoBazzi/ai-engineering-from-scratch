@@ -1,28 +1,28 @@
-# Docker for AI
+# AI를 위한 Docker
 
-> Containers make "works on my machine" a thing of the past.
+> 컨테이너는 "내 컴퓨터에서는 되는데"라는 말을 과거의 일로 만든다.
 
 **Type:** Build
 **Languages:** Docker
 **Prerequisites:** Phase 0, Lessons 01 and 03
 **Time:** ~60 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Build a GPU-enabled Docker image with CUDA, PyTorch, and AI libraries from a Dockerfile
-- Mount host directories as volumes to persist models, datasets, and code across container rebuilds
-- Configure the NVIDIA Container Toolkit to expose GPUs inside containers
-- Orchestrate multi-service AI applications (inference server + vector database) using Docker Compose
+- Dockerfile에서 CUDA, PyTorch, AI 라이브러리를 포함한 GPU 지원 Docker 이미지를 빌드한다
+- 호스트 디렉터리를 볼륨으로 마운트해 컨테이너를 다시 빌드해도 모델, 데이터셋, 코드가 유지되게 한다
+- NVIDIA Container Toolkit을 구성해 컨테이너 내부에서 GPU를 노출한다
+- Docker Compose로 여러 서비스로 구성된 AI 애플리케이션(추론 서버 + 벡터 데이터베이스)을 오케스트레이션한다
 
-## The Problem
+## 문제
 
-You trained a model on your laptop with PyTorch 2.3, CUDA 12.4, and Python 3.12. Your colleague has PyTorch 2.1, CUDA 11.8, and Python 3.10. Your model crashes on their machine. Your Dockerfile works on both.
+노트북에서 PyTorch 2.3, CUDA 12.4, Python 3.12로 모델을 학습했다. 동료는 PyTorch 2.1, CUDA 11.8, Python 3.10을 사용한다. 동료의 컴퓨터에서는 모델이 충돌한다. Dockerfile은 두 환경 모두에서 동작한다.
 
-AI projects are dependency nightmares. A typical stack includes Python, PyTorch, CUDA drivers, cuDNN, system-level C libraries, and specialized packages like flash-attn that need exact compiler versions. Docker packages all of this into a single image that runs identically everywhere.
+AI 프로젝트는 의존성 악몽이 되기 쉽다. 일반적인 스택에는 Python, PyTorch, CUDA 드라이버, cuDNN, 시스템 수준 C 라이브러리, 정확한 컴파일러 버전이 필요한 flash-attn 같은 특수 패키지가 포함된다. Docker는 이 모든 것을 어디서나 동일하게 실행되는 하나의 이미지로 패키징한다.
 
-## The Concept
+## 개념
 
-Docker wraps your code, runtime, libraries, and system tools into an isolated unit called a container. Think of it as a lightweight virtual machine, except it shares the host OS kernel instead of running its own, so it starts in seconds instead of minutes.
+Docker는 코드, 런타임, 라이브러리, 시스템 도구를 컨테이너라는 격리된 단위로 감싼다. 가벼운 가상 머신이라고 생각하면 된다. 다만 자체 OS 커널을 실행하는 대신 호스트 OS 커널을 공유하므로 몇 분이 아니라 몇 초 만에 시작된다.
 
 ```mermaid
 graph TD
@@ -39,25 +39,25 @@ graph TD
     end
 ```
 
-### Why AI projects need Docker more than most
+### AI 프로젝트에 Docker가 특히 더 필요한 이유
 
-1. **GPU drivers are fragile.** CUDA 12.4 code does not run on CUDA 11.8. Docker isolates the CUDA toolkit inside the container while sharing the host GPU driver through the NVIDIA Container Toolkit.
+1. **GPU 드라이버는 취약하다.** CUDA 12.4 코드는 CUDA 11.8에서 실행되지 않는다. Docker는 컨테이너 내부의 CUDA 툴킷을 격리하면서 NVIDIA Container Toolkit을 통해 호스트 GPU 드라이버를 공유한다.
 
-2. **Model weights are large.** A 7B parameter model is 14 GB in fp16. You do not want to re-download it every time you rebuild. Docker volumes let you mount a models directory from the host.
+2. **모델 가중치는 크다.** 7B 파라미터 모델은 fp16에서 14 GB다. 다시 빌드할 때마다 다운로드하고 싶지는 않을 것이다. Docker 볼륨을 사용하면 호스트의 models 디렉터리를 마운트할 수 있다.
 
-3. **Multi-service architectures are common.** A real AI application is not just a Python script. It is an inference server, a vector database for RAG, maybe a web frontend. Docker Compose orchestrates all of these with one command.
+3. **다중 서비스 아키텍처가 흔하다.** 실제 AI 애플리케이션은 Python 스크립트 하나가 아니다. 추론 서버, RAG용 벡터 데이터베이스, 어쩌면 웹 프런트엔드까지 포함된다. Docker Compose는 이 모든 것을 명령 하나로 오케스트레이션한다.
 
-### Key vocabulary
+### 핵심 어휘
 
-| Term | What it means |
-|------|---------------|
-| Image | A read-only template. Your recipe. Built from a Dockerfile. |
-| Container | A running instance of an image. Your kitchen. |
-| Dockerfile | Instructions to build an image. Layer by layer. |
-| Volume | Persistent storage that survives container restarts. |
-| docker-compose | A tool for defining multi-container applications in YAML. |
+| 용어 | 의미 |
+|------|------|
+| Image | 읽기 전용 템플릿. 레시피. Dockerfile에서 빌드된다. |
+| Container | 이미지의 실행 중인 인스턴스. 주방. |
+| Dockerfile | 이미지를 빌드하기 위한 지시문. 레이어 단위로 구성된다. |
+| Volume | 컨테이너를 다시 시작해도 유지되는 영구 스토리지. |
+| docker-compose | YAML로 다중 컨테이너 애플리케이션을 정의하는 도구. |
 
-### Common container patterns in AI
+### AI에서 흔한 컨테이너 패턴
 
 ```
 Dev Container
@@ -73,9 +73,9 @@ Inference Container
   Runs behind a load balancer in production.
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Install Docker
+### Step 1: Docker 설치
 
 ```bash
 # macOS
@@ -88,16 +88,16 @@ sudo usermod -aG docker $USER
 # Log out and back in for group change to take effect
 ```
 
-Verify:
+확인:
 
 ```bash
 docker --version
 docker run hello-world
 ```
 
-### Step 2: Install NVIDIA Container Toolkit (Linux with NVIDIA GPU)
+### Step 2: NVIDIA Container Toolkit 설치(Linux + NVIDIA GPU)
 
-This lets Docker containers access your GPU. macOS and Windows (WSL2) users can skip this; Docker Desktop handles GPU passthrough differently on those platforms.
+이 도구를 사용하면 Docker 컨테이너가 GPU에 접근할 수 있다. macOS와 Windows(WSL2) 사용자는 건너뛰어도 된다. 해당 플랫폼에서는 Docker Desktop이 GPU passthrough를 다르게 처리한다.
 
 ```bash
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
@@ -112,17 +112,17 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-Test GPU access inside a container:
+컨테이너 내부에서 GPU 접근을 테스트한다:
 
 ```bash
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
-If you see your GPU info, the toolkit is working.
+GPU 정보가 보이면 툴킷이 동작하는 것이다.
 
-### Step 3: Understand base images
+### Step 3: 베이스 이미지 이해하기
 
-Choosing the right base image saves hours of debugging.
+올바른 베이스 이미지를 고르면 디버깅 시간을 몇 시간 줄일 수 있다.
 
 ```
 nvidia/cuda:12.4.1-devel-ubuntu22.04
@@ -146,9 +146,9 @@ python:3.12-slim
   Size: ~150 MB
 ```
 
-### Step 4: Write a Dockerfile for AI development
+### Step 4: AI 개발용 Dockerfile 작성
 
-Here is the Dockerfile in `code/Dockerfile`. Walk through it:
+`code/Dockerfile`에 있는 Dockerfile이다. 차례대로 살펴보자:
 
 ```dockerfile
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
@@ -196,15 +196,15 @@ EXPOSE 8888
 CMD ["python"]
 ```
 
-Build it:
+빌드한다:
 
 ```bash
 docker build -t ai-dev -f phases/00-setup-and-tooling/07-docker-for-ai/code/Dockerfile .
 ```
 
-This takes a while the first time (downloading CUDA base image + PyTorch). Subsequent builds use cached layers.
+처음에는 시간이 걸린다(CUDA 베이스 이미지 + PyTorch 다운로드). 이후 빌드는 캐시된 레이어를 사용한다.
 
-Run it:
+실행한다:
 
 ```bash
 docker run --rm -it --gpus all \
@@ -213,7 +213,7 @@ docker run --rm -it --gpus all \
     ai-dev python -c "import torch; print(f'PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
 ```
 
-Run Jupyter inside the container:
+컨테이너 안에서 Jupyter를 실행한다:
 
 ```bash
 docker run --rm -it --gpus all \
@@ -223,9 +223,9 @@ docker run --rm -it --gpus all \
     ai-dev jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
 ```
 
-### Step 5: Volume mounts for data and models
+### Step 5: 데이터와 모델을 위한 볼륨 마운트
 
-Volume mounts are critical for AI work. Without them, your 14 GB model downloads vanish when the container stops.
+볼륨 마운트는 AI 작업에서 매우 중요하다. 볼륨이 없으면 컨테이너가 멈출 때 14 GB 모델 다운로드도 사라진다.
 
 ```bash
 # Mount your code
@@ -238,7 +238,7 @@ Volume mounts are critical for AI work. Without them, your 14 GB model downloads
 -v ~/datasets:/data
 ```
 
-Inside your training script, load from the mounted path:
+학습 스크립트 안에서는 마운트된 경로에서 로드한다:
 
 ```python
 from transformers import AutoModel
@@ -246,13 +246,13 @@ from transformers import AutoModel
 model = AutoModel.from_pretrained("/models/llama-7b")
 ```
 
-The model lives on your host filesystem. Rebuild the container as often as you want without re-downloading.
+모델은 호스트 파일시스템에 존재한다. 다시 다운로드하지 않고 컨테이너를 원하는 만큼 다시 빌드할 수 있다.
 
-### Step 6: Docker Compose for multi-service AI apps
+### Step 6: 다중 서비스 AI 앱을 위한 Docker Compose
 
-A real RAG application needs an inference server and a vector database. Docker Compose runs both with one command.
+실제 RAG 애플리케이션에는 추론 서버와 벡터 데이터베이스가 필요하다. Docker Compose는 두 서비스를 명령 하나로 실행한다.
 
-See `code/docker-compose.yml`:
+`code/docker-compose.yml`을 보자:
 
 ```yaml
 services:
@@ -289,16 +289,16 @@ volumes:
   qdrant_data:
 ```
 
-Start everything:
+모든 것을 시작한다:
 
 ```bash
 cd phases/00-setup-and-tooling/07-docker-for-ai/code
 docker compose up -d
 ```
 
-Now your AI dev container can reach the vector database at `http://qdrant:6333` by service name. Docker Compose creates a shared network automatically.
+이제 AI 개발 컨테이너는 서비스 이름으로 `http://qdrant:6333`의 벡터 데이터베이스에 접근할 수 있다. Docker Compose는 공유 네트워크를 자동으로 만든다.
 
-Test the connection from inside the AI container:
+AI 컨테이너 안에서 연결을 테스트한다:
 
 ```python
 from qdrant_client import QdrantClient
@@ -307,19 +307,19 @@ client = QdrantClient(host="qdrant", port=6333)
 print(client.get_collections())
 ```
 
-Stop everything:
+모든 것을 중지한다:
 
 ```bash
 docker compose down
 ```
 
-Add `-v` to also delete the qdrant volume:
+qdrant 볼륨도 함께 삭제하려면 `-v`를 추가한다:
 
 ```bash
 docker compose down -v
 ```
 
-### Step 7: Useful Docker commands for AI work
+### Step 7: AI 작업에 유용한 Docker 명령
 
 ```bash
 # List running containers
@@ -341,32 +341,32 @@ docker cp <container_id>:/workspace/results.csv ./results.csv
 docker logs -f <container_id>
 ```
 
-## Use It
+## 사용하기
 
-You now have a reproducible AI development environment. For the rest of this course:
+이제 재현 가능한 AI 개발 환경이 생겼다. 이 과정의 나머지 부분에서는:
 
-- Use `docker compose up` to start your dev environment and vector database together
-- Mount your code, models, and data as volumes so nothing is lost between rebuilds
-- When a lesson requires a new Python package, add it to the Dockerfile and rebuild
-- Share your Dockerfile with teammates. They get the exact same environment.
+- `docker compose up`으로 개발 환경과 벡터 데이터베이스를 함께 시작한다
+- 코드, 모델, 데이터를 볼륨으로 마운트해 다시 빌드해도 아무것도 잃지 않게 한다
+- 새 Python 패키지가 필요한 lesson에서는 Dockerfile에 추가하고 다시 빌드한다
+- 팀원과 Dockerfile을 공유한다. 팀원도 정확히 같은 환경을 얻게 된다.
 
-### No GPU?
+### GPU가 없다면?
 
-Remove the `--gpus all` flag and the NVIDIA deploy block. The container still works for CPU-based lessons. PyTorch detects the absence of CUDA and falls back to CPU automatically.
+`--gpus all` 플래그와 NVIDIA deploy 블록을 제거한다. CPU 기반 lesson에서는 컨테이너가 여전히 동작한다. PyTorch는 CUDA가 없음을 감지하고 자동으로 CPU로 fallback한다.
 
-## Exercises
+## 연습 문제
 
-1. Build the Dockerfile and run `python -c "import torch; print(torch.__version__)"` inside the container
-2. Start the docker-compose stack and verify Qdrant is accessible from the AI container at `http://qdrant:6333/collections`
-3. Add `flask` to the Dockerfile, rebuild, and run a simple API server on port 5000. Map the port with `-p 5000:5000`
-4. Measure the image size with `docker images`. Try switching the base image from `devel` to `runtime` and compare sizes
+1. Dockerfile을 빌드하고 컨테이너 안에서 `python -c "import torch; print(torch.__version__)"`를 실행한다
+2. docker-compose 스택을 시작하고 AI 컨테이너에서 `http://qdrant:6333/collections`로 Qdrant에 접근할 수 있는지 확인한다
+3. Dockerfile에 `flask`를 추가하고 다시 빌드한 뒤 포트 5000에서 간단한 API 서버를 실행한다. `-p 5000:5000`으로 포트를 매핑한다
+4. `docker images`로 이미지 크기를 측정한다. 베이스 이미지를 `devel`에서 `runtime`으로 바꿔 보고 크기를 비교한다
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| Container | "Lightweight VM" | An isolated process using the host kernel, with its own filesystem and network |
-| Image layer | "Cached step" | Each Dockerfile instruction creates a layer. Unchanged layers are cached, so rebuilds are fast. |
-| NVIDIA Container Toolkit | "GPU in Docker" | A runtime hook that exposes host GPUs to containers via `--gpus` flag |
-| Volume mount | "Shared folder" | A directory on the host mapped into the container. Changes persist after the container stops. |
-| Base image | "Starting point" | The `FROM` image your Dockerfile builds on top of. Determines what is pre-installed. |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
+|------|------------------|-----------|
+| Container | "가벼운 VM" | 호스트 커널을 사용하면서 자체 파일시스템과 네트워크를 가진 격리된 프로세스 |
+| Image layer | "캐시된 단계" | 각 Dockerfile 지시문은 레이어를 만든다. 변경되지 않은 레이어는 캐시되므로 재빌드가 빠르다. |
+| NVIDIA Container Toolkit | "Docker 안의 GPU" | `--gpus` 플래그를 통해 호스트 GPU를 컨테이너에 노출하는 런타임 hook |
+| Volume mount | "공유 폴더" | 호스트의 디렉터리를 컨테이너 안으로 매핑한 것. 컨테이너가 멈춘 뒤에도 변경 사항이 유지된다. |
+| Base image | "시작점" | Dockerfile이 기반으로 삼는 `FROM` 이미지. 무엇이 미리 설치되어 있는지를 결정한다. |

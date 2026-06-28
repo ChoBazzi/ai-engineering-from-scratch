@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the primary purpose of a tokenizer in an LLM pipeline?",
-    "options": ["To remove stop words from text", "To convert text into a sequence of integers that the model can process", "To translate text between languages", "To compress text for storage"],
+    "question": "LLM 파이프라인에서 tokenizer의 주된 목적은 무엇인가요?",
+    "options": ["텍스트에서 불용어를 제거하는 것", "모델이 처리할 수 있도록 텍스트를 정수 시퀀스로 변환하는 것", "언어 간 텍스트를 번역하는 것", "저장을 위해 텍스트를 압축하는 것"],
     "correct": 1,
-    "explanation": "LLMs process numbers, not text. The tokenizer converts every character, word, and symbol into integer IDs from a fixed vocabulary. This conversion is not neutral -- it determines how the model 'sees' language.",
+    "explanation": "LLM은 텍스트가 아니라 숫자를 처리합니다. tokenizer는 모든 문자, 단어, 기호를 고정 vocabulary의 정수 ID로 변환합니다. 이 변환은 중립적이지 않으며, 모델이 언어를 '보는' 방식을 결정합니다.",
     "stage": "pre"
   },
   {
-    "question": "What does BPE (Byte Pair Encoding) do to build its vocabulary?",
-    "options": ["Splits text into individual characters only", "Iteratively merges the most frequent adjacent pair of tokens until reaching the target vocabulary size", "Uses a dictionary lookup for whole words", "Randomly assigns IDs to substrings"],
+    "question": "BPE(Byte Pair Encoding)는 vocabulary를 만들기 위해 무엇을 하나요?",
+    "options": ["텍스트를 개별 문자로만 나눈다", "목표 vocabulary 크기에 도달할 때까지 가장 빈번한 인접 token 쌍을 반복적으로 병합한다", "전체 단어에 대해 사전 조회를 사용한다", "부분 문자열에 ID를 무작위로 할당한다"],
     "correct": 1,
-    "explanation": "BPE starts with individual bytes/characters and repeatedly merges the most common adjacent pair. 'th' + 'e' becomes 'the'. After thousands of merges, common words become single tokens while rare words are split into subword pieces.",
+    "explanation": "BPE는 개별 byte/문자에서 시작해 가장 흔한 인접 쌍을 반복해서 병합합니다. 'th' + 'e'가 'the'가 됩니다. 수천 번의 병합 뒤에는 흔한 단어는 단일 token이 되고, 드문 단어는 subword 조각으로 나뉩니다.",
     "stage": "pre"
   },
   {
-    "question": "Why does vocabulary size create a tradeoff in LLM design?",
-    "options": ["Larger vocabularies always perform better", "Too small creates long sequences (more computation); too large wastes embedding parameters on rare tokens", "Vocabulary size doesn't affect model performance", "Smaller vocabularies are always more efficient"],
+    "question": "LLM 설계에서 vocabulary 크기가 tradeoff를 만드는 이유는 무엇인가요?",
+    "options": ["vocabulary가 클수록 항상 성능이 더 좋다", "너무 작으면 시퀀스가 길어지고(계산 증가), 너무 크면 드문 token에 embedding 파라미터를 낭비한다", "vocabulary 크기는 모델 성능에 영향을 주지 않는다", "작은 vocabulary가 항상 더 효율적이다"],
     "correct": 1,
-    "explanation": "Small vocabulary (e.g., character-level) means every word is many tokens, increasing sequence length and computation. Large vocabulary wastes parameters on tokens that rarely appear in training data. Most LLMs use 32K-100K tokens.",
+    "explanation": "작은 vocabulary(예: 문자 수준)는 모든 단어가 많은 token이 된다는 뜻이므로 시퀀스 길이와 계산량이 증가합니다. 큰 vocabulary는 학습 데이터에 거의 나오지 않는 token에 파라미터를 낭비합니다. 대부분의 LLM은 32K-100K token을 사용합니다.",
     "stage": "post"
   },
   {
-    "question": "What problem does byte-level fallback solve in tokenization?",
-    "options": ["It speeds up tokenization", "It ensures any input (emoji, rare scripts, binary data) can be encoded without 'unknown' tokens", "It reduces vocabulary size", "It improves model accuracy"],
+    "question": "tokenization에서 byte-level fallback은 어떤 문제를 해결하나요?",
+    "options": ["tokenization 속도를 높인다", "모든 입력(emoji, 희귀 문자 체계, binary data)을 'unknown' token 없이 인코딩할 수 있게 보장한다", "vocabulary 크기를 줄인다", "모델 정확도를 높인다"],
     "correct": 1,
-    "explanation": "With byte-level fallback, the tokenizer can fall back to raw byte values (256 possible) for any character not in the vocabulary. This guarantees complete coverage -- no input is ever 'unknown.'",
+    "explanation": "byte-level fallback을 쓰면 tokenizer는 vocabulary에 없는 어떤 문자에 대해서도 raw byte 값(256개 가능)으로 되돌아갈 수 있습니다. 이는 완전한 coverage를 보장하므로 어떤 입력도 'unknown'이 되지 않습니다.",
     "stage": "post"
   },
   {
-    "question": "How does the tokenizer affect non-English language performance in LLMs?",
-    "options": ["Tokenizers work equally well for all languages", "Languages underrepresented in training data get worse token merges, requiring more tokens per word and wasting context window", "Non-English text is always character-tokenized", "Tokenization doesn't affect language performance"],
+    "question": "tokenizer는 LLM의 비영어 언어 성능에 어떤 영향을 주나요?",
+    "options": ["tokenizer는 모든 언어에서 똑같이 잘 작동한다", "학습 데이터에서 적게 대표된 언어는 token 병합 품질이 낮아 단어당 더 많은 token이 필요하고 context window를 낭비한다", "비영어 텍스트는 항상 문자 단위로 tokenization된다", "tokenization은 언어 성능에 영향을 주지 않는다"],
     "correct": 1,
-    "explanation": "BPE merges are learned from training data. If Japanese text is 5% of the corpus, Japanese characters get fewer merges, requiring 2-5x more tokens per word than English. This effectively shrinks the context window for non-English text.",
+    "explanation": "BPE 병합은 학습 데이터에서 학습됩니다. 일본어 텍스트가 corpus의 5%라면 일본어 문자는 더 적은 병합을 얻어 영어보다 단어당 2-5배 많은 token이 필요합니다. 이는 비영어 텍스트의 context window를 사실상 줄입니다.",
     "stage": "post"
   }
 ]

@@ -1,45 +1,45 @@
-# CNNs — LeNet to ResNet
+# CNN — LeNet에서 ResNet까지
 
-> Every major CNN of the last thirty years is the same conv–nonlinearity–downsample recipe with one new idea bolted on. Learn the ideas in order.
+> 지난 30년의 주요 CNN은 모두 conv-nonlinearity-downsample 레시피에 새로운 아이디어 하나를 붙인 형태입니다. 그 아이디어들을 순서대로 배웁니다.
 
 **Type:** Learn + Build
 **Languages:** Python
 **Prerequisites:** Phase 3 Lesson 11 (PyTorch), Phase 4 Lesson 01 (Image Fundamentals), Phase 4 Lesson 02 (Convolutions from Scratch)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Trace the architectural lineage LeNet-5 -> AlexNet -> VGG -> Inception -> ResNet and state the single new idea each family contributed
-- Implement LeNet-5, a VGG-style block, and a ResNet BasicBlock in PyTorch, each under 40 lines
-- Explain why residual connections turn a 1,000-layer network from untrainable into state-of-the-art
-- Read a modern backbone (ResNet-18, ResNet-50) and predict its output shape, receptive field, and parameter count before looking at the source
+- LeNet-5 -> AlexNet -> VGG -> Inception -> ResNet의 아키텍처 계보를 추적하고 각 계열이 기여한 단일 새 아이디어를 말한다
+- PyTorch로 LeNet-5, VGG-style block, ResNet BasicBlock을 각각 40줄 미만으로 구현한다
+- 잔차 연결이 1,000층 네트워크를 학습 불가능한 모델에서 state-of-the-art로 바꾸는 이유를 설명한다
+- 최신 backbone(ResNet-18, ResNet-50)을 읽고 source를 보기 전에 output shape, receptive field, parameter count를 예측한다
 
-## The Problem
+## 문제
 
-In 2011, the best ImageNet classifier scored around 74% top-5 accuracy. In 2012 AlexNet scored 85%. In 2015 ResNet scored 96%. No new data. No new GPU generation. The gains came from architecture ideas. A working vision engineer has to know which idea came from which paper because every production backbone you ship in 2026 is a recombination of those same pieces — and because the ideas keep transferring: grouped convs went from CNNs to transformers, residual connections went from ResNet to every LLM in existence, batch normalisation lives in diffusion models.
+2011년 최고의 ImageNet classifier는 top-5 accuracy가 약 74%였습니다. 2012년 AlexNet은 85%를 기록했습니다. 2015년 ResNet은 96%를 기록했습니다. 새 데이터도 없었고, 새 GPU 세대도 없었습니다. 향상은 아키텍처 아이디어에서 나왔습니다. 실무 비전 엔지니어는 어떤 아이디어가 어떤 논문에서 왔는지 알아야 합니다. 2026년에 production에 배포하는 모든 backbone은 같은 조각들의 재조합이기 때문이며, 그 아이디어들이 계속 다른 곳으로 옮겨가기 때문입니다. grouped convs는 CNN에서 transformer로 갔고, residual connections는 ResNet에서 존재하는 모든 LLM으로 갔으며, batch normalisation은 diffusion model 안에 살아 있습니다.
 
-Studying these networks in order also immunises you against a common mistake: reaching for the biggest available model when a LeNet-sized network would solve the problem. MNIST does not need a ResNet. Knowing the scaling curve of each family tells you where to sit on it.
+이 네트워크들을 순서대로 공부하면 흔한 실수도 피할 수 있습니다. LeNet 크기의 네트워크로도 해결될 문제에 가장 큰 가용 모델을 집어 드는 실수입니다. 각 계열의 scaling curve를 알면 그 곡선의 어디에 앉아야 하는지 알 수 있습니다.
 
-## The Concept
+## 개념
 
-### The four ideas that changed vision
+### 비전을 바꾼 네 가지 아이디어
 
 ```mermaid
 timeline
-    title Four ideas, four families
+    title 네 가지 아이디어, 네 계열
     1998 : LeNet-5 : Conv + pool + FC for digits, trained on CPU, 60k params
     2012 : AlexNet : Deeper + ReLU + dropout + two GPUs, won ImageNet by 10 points
     2014 : VGG / Inception : 3x3 stacks (VGG), parallel filter sizes (Inception)
     2015 : ResNet : Identity skip connections unlock 100+ layer training
 ```
 
-Nothing else in classical vision mattered as much as these four jumps.
+고전 비전에서 이 네 번의 도약만큼 중요했던 것은 없습니다.
 
 ### LeNet-5 (1998)
 
-Yann LeCun's digit recogniser. 60,000 parameters. Two conv-pool blocks, two fully connected layers, tanh activations. It defined the template every CNN inherits:
+Yann LeCun의 digit recogniser입니다. 60,000개 파라미터. 두 개의 conv-pool block, 두 개의 fully connected layer, tanh activation. 모든 CNN이 물려받는 template을 정의했습니다.
 
-```
+```text
 input (1, 32, 32)
   conv 5x5 -> (6, 28, 28)
   avg pool 2x2 -> (6, 14, 14)
@@ -51,34 +51,34 @@ input (1, 32, 32)
   dense -> 10
 ```
 
-Everything the modern world calls a CNN — alternating convolutions and downsampling feeding a small classifier head — is LeNet with more layers, bigger channels, and better activations.
+현대 세계가 CNN이라고 부르는 모든 것, 즉 convolution과 downsampling을 번갈아 적용해 작은 classifier head로 넘기는 구조는 layer가 더 많고 channel이 더 크고 activation이 더 나은 LeNet입니다.
 
 ### AlexNet (2012)
 
-Three changes that together broke ImageNet:
+세 가지 변화가 합쳐져 ImageNet을 깼습니다.
 
-1. **ReLU** instead of tanh. Gradients stop vanishing. Training speeds up by a factor of six.
-2. **Dropout** in the fully connected head. Regularisation becomes a layer, not a trick.
-3. **Depth and width**. Five conv layers, three dense layers, 60M parameters, trained on two GPUs with the model split across them.
+1. tanh 대신 **ReLU**. 그래디언트가 사라지는 일이 줄었습니다. 학습이 여섯 배 빨라졌습니다.
+2. fully connected head의 **Dropout**. 정규화가 trick이 아니라 layer가 되었습니다.
+3. **Depth와 width**. 다섯 conv layer, 세 dense layer, 60M 파라미터를 두 GPU에 model을 나눠 학습했습니다.
 
-The paper's Figure 2 still shows the GPU split as two parallel streams. That parallelism was a hardware workaround, not an architectural insight — but the three ideas above are still in every model you use.
+논문의 Figure 2는 여전히 GPU split을 두 개의 parallel stream으로 보여줍니다. 그 병렬성은 하드웨어 workaround였지 아키텍처 통찰은 아니었습니다. 하지만 위의 세 아이디어는 여전히 당신이 쓰는 모든 모델 안에 있습니다.
 
 ### VGG (2014)
 
-VGG asked: what happens if you only use 3x3 convolutions and you go deep?
+VGG는 이렇게 물었습니다. 3x3 convolution만 쓰고 깊게 가면 어떻게 될까?
 
-```
+```text
 stack:   conv 3x3 -> conv 3x3 -> pool 2x2
 repeat:  16 or 19 conv layers
 ```
 
-Two 3x3 convs see the same 5x5 input area as one 5x5 conv but with fewer parameters (2*9*C^2 = 18C^2 vs 25*C^2) and an extra ReLU in between. VGG turned this observation into an entire architecture. The simplicity — one block type, repeated — made it the reference point for everything that came after.
+두 개의 3x3 conv는 하나의 5x5 conv와 같은 5x5 입력 영역을 보지만 파라미터는 더 적고(2*9*C^2 = 18C^2 vs 25*C^2), 중간에 ReLU가 하나 더 있습니다. VGG는 이 관찰을 전체 아키텍처로 바꾸었습니다. 하나의 block type을 반복하는 단순함 덕분에 이후 모든 것의 기준점이 되었습니다.
 
-Cost: 138M parameters, slow to train, expensive at inference.
+비용: 138M 파라미터, 느린 학습, 비싼 inference.
 
-### Inception (2014, same year)
+### Inception (2014, 같은 해)
 
-Google's answer to "what kernel size should I use?" was: all of them, in parallel.
+"어떤 kernel size를 써야 하지?"에 대한 Google의 답은 "전부, 병렬로"였습니다.
 
 ```mermaid
 flowchart LR
@@ -97,13 +97,13 @@ flowchart LR
     style OUT fill:#dcfce7,stroke:#16a34a
 ```
 
-Each branch specialises — 1x1 for channel mixing, 3x3 for local texture, 5x5 for larger patterns, pooling for shift-invariant features — and the concat lets the next layer pick whichever branch is useful. Inception v1 used 1x1 convolutions inside each branch as a bottleneck to keep parameter counts sane.
+각 branch는 특화됩니다. 1x1은 channel mixing, 3x3은 local texture, 5x5는 더 큰 pattern, pooling은 shift-invariant features를 맡습니다. concat은 다음 layer가 유용한 branch를 고르게 합니다. Inception v1은 parameter count를 정상 범위로 유지하기 위해 각 branch 안에 bottleneck으로 1x1 convolution을 사용했습니다.
 
-### The degradation problem
+### 열화 문제
 
-By 2015, VGG-19 worked and VGG-32 did not. Depth was supposed to help, but past ~20 layers both training and test loss got worse. That is not overfitting. That is the optimiser failing to find useful weights because gradients shrink multiplicatively through every layer.
+2015년에는 VGG-19는 작동했지만 VGG-32는 작동하지 않았습니다. 깊이는 도움이 되어야 했지만, ~20층을 넘으면 training loss와 test loss가 모두 나빠졌습니다. 이것은 overfitting이 아닙니다. 그래디언트가 모든 layer를 지나며 곱셈으로 줄어들기 때문에 optimizer가 유용한 weight를 찾지 못하는 것입니다.
 
-```
+```text
 Plain deep network:
   y = f_L( f_{L-1}( ... f_1(x) ... ) )
 
@@ -114,18 +114,18 @@ Each multiplicative term has magnitude roughly (weight magnitude) * (activation 
 Stack 100 of them with gains < 1 and the gradient is effectively zero.
 ```
 
-VGG worked at 19 layers because batch norm (published simultaneously) kept activations well-scaled. But even batch norm could not rescue depth beyond 30-ish layers.
+VGG가 19층에서 작동한 이유는 동시에 발표된 batch norm이 activation을 잘 scale된 상태로 유지했기 때문입니다. 하지만 batch norm조차도 30층 남짓을 넘어서는 깊이는 구하지 못했습니다.
 
 ### ResNet (2015)
 
-He, Zhang, Ren, Sun proposed one change that fixed everything:
+He, Zhang, Ren, Sun은 모든 것을 고친 하나의 변화를 제안했습니다.
 
-```
+```text
 standard block:   y = F(x)
 residual block:   y = F(x) + x
 ```
 
-The `+ x` means the layer can always choose to do nothing by driving `F(x)` to zero. A 1,000-layer ResNet is now at most as bad as a 1-layer network, because every extra block has a trivial escape hatch. With that guarantee, the optimiser is willing to make every block *slightly* useful — and slightly useful, stacked 100 times, is state-of-the-art.
+`+ x`는 layer가 `F(x)`를 0으로 몰아 언제든 아무것도 하지 않도록 선택할 수 있음을 뜻합니다. 이제 1,000층 ResNet도 최악의 경우 1층 네트워크만큼만 나쁩니다. 모든 추가 block에 사소한 탈출구가 있기 때문입니다. 이 보장이 있으면 optimizer는 모든 block을 *조금씩* 유용하게 만들려 합니다. 그리고 조금씩 유용한 block을 100번 쌓으면 state-of-the-art가 됩니다.
 
 ```mermaid
 flowchart LR
@@ -140,26 +140,26 @@ flowchart LR
     style OUT fill:#dcfce7,stroke:#16a34a
 ```
 
-Two variants of the block show up everywhere:
+block의 두 변형은 어디서나 보입니다.
 
-- **BasicBlock** (ResNet-18, ResNet-34): two 3x3 convs, skip around both.
-- **Bottleneck** (ResNet-50, -101, -152): 1x1 down, 3x3 middle, 1x1 up, skip around the trio. Cheaper when channel counts are high.
+- **BasicBlock** (ResNet-18, ResNet-34): 두 개의 3x3 conv, 둘을 감싸는 skip.
+- **Bottleneck** (ResNet-50, -101, -152): 1x1 down, 3x3 middle, 1x1 up, 세 개를 감싸는 skip. channel count가 클 때 더 저렴합니다.
 
-When the skip has to cross a downsample (stride=2), the identity path is replaced with a 1x1 stride=2 conv to match shapes.
+skip이 downsample(stride=2)을 건너야 할 때 identity path는 shape를 맞추기 위해 1x1 stride=2 conv로 대체됩니다.
 
-### Why residuals matter beyond vision
+### 잔차가 비전 너머에서 중요한 이유
 
-The idea was not really about image classification. It was about turning deep networks from "cross-your-fingers and hope gradients survive" into a reliable, scalable engineering tool. Every transformer you will read about next phase has the exact same skip connection in every block. Without ResNet, there is no GPT.
+이 아이디어는 사실 image classification에 관한 것이 아니었습니다. 깊은 네트워크를 "그래디언트가 살아남기를 바라며 손가락을 꼬는" 대상에서 신뢰할 수 있고 확장 가능한 엔지니어링 도구로 바꾸는 것이었습니다. 다음 phase에서 읽을 모든 transformer는 모든 block에 정확히 같은 skip connection을 갖고 있습니다. ResNet이 없었다면 GPT도 없습니다.
 
 ```figure
 pooling
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: LeNet-5
+### 1단계: LeNet-5
 
-A minimal, faithful LeNet. Tanh activations, average pooling. The only concession to modernity is that we use `nn.CrossEntropyLoss` downstream instead of the original Gaussian connections.
+최소한의 충실한 LeNet입니다. Tanh activation, average pooling. 현대성을 위해 양보한 유일한 점은 원래 Gaussian connections 대신 downstream에서 `nn.CrossEntropyLoss`를 쓴다는 것입니다.
 
 ```python
 import torch
@@ -190,11 +190,11 @@ print(f"output: {net(x).shape}")
 print(f"params: {sum(p.numel() for p in net.parameters()):,}")
 ```
 
-Expected output: `output: torch.Size([1, 10])`, `params: 61,706`. That is the entire digit classifier that started modern vision.
+예상 출력: `output: torch.Size([1, 10])`, `params: 61,706`. 이것이 현대 비전을 시작한 전체 digit classifier입니다.
 
-### Step 2: A VGG block
+### 2단계: VGG block
 
-One reusable block: two 3x3 convs, ReLU, batch norm, max pool.
+하나의 재사용 가능한 block: 두 개의 3x3 conv, ReLU, batch norm, max pool.
 
 ```python
 class VGGBlock(nn.Module):
@@ -234,11 +234,11 @@ print(f"output: {net(x).shape}")
 print(f"params: {sum(p.numel() for p in net.parameters()):,}")
 ```
 
-Three VGG blocks on CIFAR-sized input, an adaptive pool, one linear layer. ~290k parameters. Plenty for CIFAR-10.
+CIFAR 크기 입력에 VGG block 세 개, adaptive pool 하나, linear layer 하나. 약 290k 파라미터. CIFAR-10에는 충분합니다.
 
-### Step 3: A ResNet BasicBlock
+### 3단계: ResNet BasicBlock
 
-The core building block of ResNet-18 and ResNet-34.
+ResNet-18과 ResNet-34의 핵심 building block입니다.
 
 ```python
 class BasicBlock(nn.Module):
@@ -263,11 +263,11 @@ class BasicBlock(nn.Module):
         return F.relu(out)
 ```
 
-`bias=False` on conv layers is a batch-norm convention — BN's beta parameter already handles the bias, so carrying conv bias as well is a waste. The `shortcut` only needs a real conv when stride or channel count changes; otherwise it is a no-op identity.
+conv layer의 `bias=False`는 batch-norm convention입니다. BN의 beta parameter가 이미 bias를 처리하므로 conv bias까지 들고 있는 것은 낭비입니다. `shortcut`은 stride나 channel count가 바뀔 때만 실제 conv가 필요합니다. 그렇지 않으면 no-op identity입니다.
 
-### Step 4: A tiny ResNet
+### 4단계: 작은 ResNet
 
-Stack four groups of BasicBlocks to get a working ResNet for CIFAR-sized inputs.
+BasicBlock group 네 개를 쌓아 CIFAR 크기 입력에서 작동하는 ResNet을 만듭니다.
 
 ```python
 class TinyResNet(nn.Module):
@@ -308,11 +308,11 @@ print(f"output: {net(x).shape}")
 print(f"params: {sum(p.numel() for p in net.parameters()):,}")
 ```
 
-Four groups of two blocks each. Stride 2 at the start of groups 2, 3, 4. Channel count doubles at every downsample. Roughly 2.8M parameters. That is the standard recipe that scales cleanly up to ResNet-152.
+각각 두 block으로 된 group 네 개입니다. group 2, 3, 4의 시작에서 stride 2를 사용합니다. downsample마다 channel count가 두 배가 됩니다. 대략 2.8M 파라미터. 이것이 ResNet-152까지 깔끔하게 확장되는 표준 recipe입니다.
 
-### Step 5: Compare parameter-to-feature efficiency
+### 5단계: Parameter-to-feature efficiency 비교
 
-Run the same input through all three networks and compare parameter counts.
+같은 input을 세 network에 통과시키고 parameter count를 비교합니다.
 
 ```python
 def summary(name, net, x):
@@ -326,11 +326,11 @@ summary("MiniVGG",    MiniVGG(),      x)
 summary("TinyResNet", TinyResNet(),   x)
 ```
 
-Three models, three eras, three orders of magnitude in parameter count. For CIFAR-10 accuracy, you need roughly: LeNet 60%, MiniVGG 89%, TinyResNet 93% after a few epochs of training.
+세 모델, 세 시대, parameter count 세 자릿수 차이. CIFAR-10 accuracy 기준으로 몇 epoch 학습 후 대략 LeNet 60%, MiniVGG 89%, TinyResNet 93%가 필요합니다.
 
-## Use It
+## 사용하기
 
-`torchvision.models` gives you pretrained versions of all of the above. The call signature is identical across families, which is exactly the point of the backbone abstraction.
+`torchvision.models`는 위 모든 모델의 pretrained version을 제공합니다. 계열이 달라도 call signature가 동일한데, 이것이 바로 backbone abstraction의 핵심입니다.
 
 ```python
 from torchvision.models import resnet18, ResNet18_Weights, vgg16, VGG16_Weights
@@ -347,9 +347,9 @@ v16.eval()
 print(f"VGG-16   params: {sum(p.numel() for p in v16.parameters()):,}")
 ```
 
-ResNet-18 has 11.7M parameters. VGG-16 has 138M. Similar ImageNet top-1 accuracy (69.8% vs 71.6%). Residual connections buy you a 12x parameter efficiency win. That is why ResNet variants dominated from 2016 until ViT arrived in 2021 — and still dominate real-world deployments where compute is the constraint.
+ResNet-18은 11.7M 파라미터를 가집니다. VGG-16은 138M입니다. ImageNet top-1 accuracy는 비슷합니다(69.8% vs 71.6%). 잔차 연결은 12배의 parameter efficiency 이득을 줍니다. 그래서 ResNet variant가 ViT가 2021년에 등장하기 전까지 2016년부터 지배했고, compute가 제약인 real-world deployment에서는 여전히 지배합니다.
 
-For transfer learning, the recipe is always the same: load pretrained, freeze the backbone, replace the classifier head.
+Transfer learning의 recipe는 항상 같습니다. pretrained를 load하고, backbone을 freeze하고, classifier head를 교체합니다.
 
 ```python
 for p in r18.parameters():
@@ -357,37 +357,37 @@ for p in r18.parameters():
 r18.fc = nn.Linear(r18.fc.in_features, 10)
 ```
 
-Three lines. You now have a 10-class CIFAR classifier that inherits the representations ImageNet paid for.
+세 줄입니다. 이제 ImageNet이 값을 치른 representation을 물려받은 10-class CIFAR classifier가 생겼습니다.
 
-## Ship It
+## 출시하기
 
-This lesson produces:
+이 lesson은 다음을 만듭니다.
 
-- `outputs/prompt-backbone-selector.md` — a prompt that picks the right CNN family (LeNet/VGG/ResNet/MobileNet/ConvNeXt) given task, dataset size, and compute budget.
-- `outputs/skill-residual-block-reviewer.md` — a skill that reads a PyTorch module and flags skip-connection mistakes (missing shortcut on stride change, shortcut activation order, BN placement relative to addition).
+- `outputs/prompt-backbone-selector.md` — task, dataset size, compute budget이 주어졌을 때 올바른 CNN family(LeNet/VGG/ResNet/MobileNet/ConvNeXt)를 고르는 prompt.
+- `outputs/skill-residual-block-reviewer.md` — PyTorch module을 읽고 skip-connection mistakes(stride change에서 shortcut 누락, shortcut activation order, addition 대비 BN placement)를 flag하는 skill.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Count parameters by hand for `TinyResNet` layer by layer. Compare against `sum(p.numel() for p in net.parameters())`. Where does the majority of the parameter budget go — convs, BN, or the classifier head?
-2. **(Medium)** Implement the Bottleneck block (1x1 -> 3x3 -> 1x1 with skip) and use it to build a ResNet-50-style network for CIFAR. Compare params against `TinyResNet`.
-3. **(Hard)** Remove the skip connection from `BasicBlock`, train a 34-block "plain" network and a 34-block ResNet on CIFAR-10 for 10 epochs each. Plot training loss vs epoch for both. Reproduce the He et al. Figure 1 result where the plain deep network converges to higher loss than its shallower twin.
+1. **(Easy)** `TinyResNet`의 parameter를 layer별로 손으로 세어 보세요. `sum(p.numel() for p in net.parameters())`와 비교하세요. parameter budget의 대부분은 어디로 가나요? conv, BN, classifier head 중 무엇인가요?
+2. **(Medium)** Bottleneck block(1x1 -> 3x3 -> 1x1 with skip)을 구현하고 CIFAR용 ResNet-50-style network를 만드는 데 사용하세요. `TinyResNet`과 params를 비교하세요.
+3. **(Hard)** `BasicBlock`에서 skip connection을 제거하고, 34-block "plain" network와 34-block ResNet을 CIFAR-10에서 각각 10 epoch 학습하세요. 둘의 training loss vs epoch를 plot하세요. plain deep network가 더 얕은 twin보다 높은 loss로 수렴하는 He et al. Figure 1 결과를 재현하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| Backbone | "The model" | The stack of convolutional blocks that produces the feature map fed to the task head |
-| Residual connection | "Skip connection" | `y = F(x) + x`; lets the optimiser learn identity by setting F to zero, which makes arbitrary depth trainable |
-| BasicBlock | "Two 3x3 convs with a skip" | The ResNet-18/34 building block: conv-BN-ReLU-conv-BN-add-ReLU |
-| Bottleneck | "1x1 down, 3x3, 1x1 up" | The ResNet-50/101/152 block; cheap at high channel counts because the 3x3 runs on a reduced width |
-| Degradation problem | "Deeper is worse" | Past ~20 plain conv layers, both training and test error increase; solved by residual connections, not by more data |
-| Stem | "The first layer" | The initial conv that converts 3-channel input into the base feature width; usually 7x7 stride 2 for ImageNet, 3x3 stride 1 for CIFAR |
-| Head | "The classifier" | The layers after the final backbone block: adaptive pool, flatten, linear(s) |
-| Transfer learning | "Pretrained weights" | Loading a backbone trained on ImageNet and fine-tuning only the head on your task |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
+|------|----------------|-----------|
+| Backbone | "The model" | task head에 공급되는 feature map을 만드는 convolutional block stack |
+| Residual connection | "Skip connection" | `y = F(x) + x`; F를 0으로 설정해 optimizer가 identity를 학습할 수 있게 하므로 임의의 깊이를 학습 가능하게 만듦 |
+| BasicBlock | "Two 3x3 convs with a skip" | ResNet-18/34 building block: conv-BN-ReLU-conv-BN-add-ReLU |
+| Bottleneck | "1x1 down, 3x3, 1x1 up" | ResNet-50/101/152 block; 3x3이 줄어든 width에서 실행되므로 channel count가 높을 때 저렴함 |
+| Degradation problem | "Deeper is worse" | ~20개의 plain conv layer를 넘으면 training error와 test error가 모두 증가하는 현상. 더 많은 data가 아니라 residual connections로 해결됨 |
+| Stem | "The first layer" | 3-channel input을 base feature width로 바꾸는 initial conv. 보통 ImageNet은 7x7 stride 2, CIFAR는 3x3 stride 1 |
+| Head | "The classifier" | final backbone block 뒤의 layers: adaptive pool, flatten, linear(s) |
+| Transfer learning | "Pretrained weights" | ImageNet에서 학습된 backbone을 load하고 내 task에서는 head만 fine-tuning하는 것 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Deep Residual Learning for Image Recognition (He et al., 2015)](https://arxiv.org/abs/1512.03385) — the ResNet paper; every figure is worth studying
-- [Very Deep Convolutional Networks (Simonyan & Zisserman, 2014)](https://arxiv.org/abs/1409.1556) — the VGG paper; still the best reference for "why 3x3"
-- [ImageNet Classification with Deep CNNs (Krizhevsky et al., 2012)](https://papers.nips.cc/paper_files/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html) — AlexNet; the paper that ended the hand-crafted-feature era
-- [Going Deeper with Convolutions (Szegedy et al., 2014)](https://arxiv.org/abs/1409.4842) — Inception v1; the parallel-filter idea that still shows up in vision transformers
+- [Deep Residual Learning for Image Recognition (He et al., 2015)](https://arxiv.org/abs/1512.03385) — ResNet 논문. 모든 figure를 공부할 가치가 있습니다
+- [Very Deep Convolutional Networks (Simonyan & Zisserman, 2014)](https://arxiv.org/abs/1409.1556) — VGG 논문. "why 3x3"에 대한 여전히 최고의 reference입니다
+- [ImageNet Classification with Deep CNNs (Krizhevsky et al., 2012)](https://papers.nips.cc/paper_files/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html) — AlexNet. hand-crafted-feature 시대를 끝낸 논문입니다
+- [Going Deeper with Convolutions (Szegedy et al., 2014)](https://arxiv.org/abs/1409.4842) — Inception v1. vision transformer에도 여전히 나타나는 parallel-filter idea입니다

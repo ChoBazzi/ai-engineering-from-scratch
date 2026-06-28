@@ -1,22 +1,22 @@
 {
   "lesson": "22-voice-agents-pipecat-livekit",
-  "title": "Voice Agents: Pipecat and LiveKit",
+  "title": "음성 에이전트: Pipecat과 LiveKit",
   "questions": [
     {
       "stage": "pre",
-      "question": "Which two flow directions does a Pipecat pipeline use?",
+      "question": "Pipecat 파이프라인은 어떤 두 흐름 방향을 사용하는가?",
       "options": [
-        "Read and write",
-        "DOWNSTREAM (source to sink) and UPSTREAM (feedback, cancel, barge-in)",
-        "Inbound and outbound",
-        "Hot and cold"
+        "읽기와 쓰기",
+        "DOWNSTREAM(source에서 sink로)과 UPSTREAM(feedback, cancel, barge-in)",
+        "Inbound와 outbound",
+        "Hot과 cold"
       ],
       "correct": 1,
-      "explanation": "Frames flow downstream source-to-sink and upstream for control and cancellation."
+      "explanation": "Frame은 source-to-sink 방향으로 downstream 흐르고, 제어와 취소를 위해 upstream 흐른다."
     },
     {
       "stage": "pre",
-      "question": "What is the canonical Pipecat voice pipeline?",
+      "question": "표준 Pipecat 음성 파이프라인은 무엇인가?",
       "options": [
         "VAD -> STT -> LLM -> TTS -> transport",
         "TTS -> STT -> LLM -> VAD",
@@ -24,67 +24,67 @@
         "Audio -> JSON -> SQL -> response"
       ],
       "correct": 0,
-      "explanation": "VAD detects voice activity, STT transcribes, LLM responds, TTS speaks, transport delivers."
+      "explanation": "VAD가 음성 활동을 감지하고, STT가 전사하며, LLM이 응답하고, TTS가 말하며, transport가 전달한다."
     },
     {
       "stage": "check",
-      "question": "Which two voice agent classes does LiveKit Agents ship?",
+      "question": "LiveKit Agents는 어떤 두 음성 에이전트 클래스를 제공하는가?",
       "options": [
-        "MultimodalAgent (direct audio) and VoicePipelineAgent (STT/LLM/TTS cascade)",
+        "MultimodalAgent(direct audio)와 VoicePipelineAgent(STT/LLM/TTS cascade)",
         "BatchAgent and StreamAgent",
         "TextAgent and SpeechAgent",
         "LocalAgent and CloudAgent"
       ],
       "correct": 0,
-      "explanation": "MultimodalAgent uses direct audio (Realtime-style); VoicePipelineAgent uses STT->LLM->TTS for text-level control."
+      "explanation": "MultimodalAgent는 direct audio(Realtime 방식)를 사용하고, VoicePipelineAgent는 텍스트 수준 제어를 위해 STT->LLM->TTS를 사용한다."
     },
     {
       "stage": "check",
-      "question": "What is barge-in and how is it handled?",
+      "question": "barge-in은 무엇이며 어떻게 처리하는가?",
       "options": [
-        "An LLM cost spike; reduce tokens",
-        "The user interrupts while the agent is speaking; UPSTREAM cancel frames stop TTS mid-utterance",
-        "A provider outage; switch regions",
-        "Captcha failure; retry"
+        "LLM 비용 급증; token을 줄인다",
+        "에이전트가 말하는 중 사용자가 끼어드는 것; UPSTREAM cancel frame이 TTS를 발화 중간에 멈춘다",
+        "provider 장애; region을 전환한다",
+        "Captcha 실패; 재시도한다"
       ],
       "correct": 1,
-      "explanation": "Barge-in is user interruption; UPSTREAM cancellation is how Pipecat handles it cleanly."
+      "explanation": "Barge-in은 사용자 끼어들기다. Pipecat은 UPSTREAM cancellation으로 이를 깔끔하게 처리한다."
     },
     {
       "stage": "check",
-      "question": "What end-to-end latency does the lesson describe as premium?",
+      "question": "이 lesson은 어떤 end-to-end latency를 프리미엄 수준으로 설명하는가?",
       "options": [
-        "About 50 ms",
-        "About 450-600 ms",
-        "About 1500 ms",
-        "About 5000 ms"
+        "약 50 ms",
+        "약 450-600 ms",
+        "약 1500 ms",
+        "약 5000 ms"
       ],
       "correct": 1,
-      "explanation": "Premium stacks land around 450-600 ms; 800-1200 ms is common; over 1500 ms feels broken."
+      "explanation": "프리미엄 스택은 약 450-600 ms에 도달한다. 800-1200 ms는 흔하고, 1500 ms를 넘으면 망가진 것처럼 느껴진다."
     },
     {
       "stage": "post",
-      "question": "What goes wrong if STT confidence is ignored?",
+      "question": "STT confidence를 무시하면 무엇이 잘못되는가?",
       "options": [
-        "Latency improves",
-        "Low-confidence transcripts feed the LLM as if gospel, producing wrong answers; gate on confidence or ask for confirmation",
-        "TTS gets faster",
-        "Calls get cheaper"
+        "Latency가 개선된다",
+        "신뢰도 낮은 transcript가 절대적 사실처럼 LLM에 들어가 잘못된 답을 만든다. confidence로 gate하거나 확인을 요청한다",
+        "TTS가 더 빨라진다",
+        "호출이 더 저렴해진다"
       ],
       "correct": 1,
-      "explanation": "Treating low-confidence STT as truth is a top voice-agent failure mode."
+      "explanation": "신뢰도 낮은 STT를 진실로 취급하는 것은 대표적인 음성 에이전트 실패 모드다."
     },
     {
       "stage": "post",
-      "question": "Why does the lesson recommend summing component latencies before shipping?",
+      "question": "이 lesson이 출시 전에 구성요소 latency를 합산하라고 권하는 이유는 무엇인가?",
       "options": [
-        "Providers bill by latency",
-        "Every component adds 50-200 ms; the sum determines whether the experience feels broken",
-        "It satisfies a compliance requirement",
-        "Latency is required by WebRTC"
+        "provider가 latency 기준으로 과금하기 때문이다",
+        "모든 구성요소가 50-200 ms를 더하며, 그 합계가 경험이 망가진 것처럼 느껴지는지를 결정하기 때문이다",
+        "compliance 요구사항을 만족하기 때문이다",
+        "WebRTC가 latency를 요구하기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Sum the chain (VAD + STT + LLM + TTS + transport) before shipping; targets are tight."
+      "explanation": "출시 전에 체인(VAD + STT + LLM + TTS + transport)을 합산하라. 목표치는 빡빡하다."
     }
   ]
 }

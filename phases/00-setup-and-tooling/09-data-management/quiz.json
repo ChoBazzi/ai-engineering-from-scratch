@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why is it important to have separate train, validation, and test splits in machine learning?",
-      "options": ["To make the dataset smaller so training is faster", "To evaluate model performance on unseen data and prevent overfitting", "To ensure each split uses a different file format", "To distribute data across multiple GPUs"],
+      "question": "머신러닝에서 train, validation, test split을 분리하는 것이 중요한 이유는 무엇인가?",
+      "options": [
+        "데이터셋을 더 작게 만들어 학습을 빠르게 하기 위해",
+        "보지 않은 데이터에서 모델 성능을 평가하고 overfitting을 막기 위해",
+        "각 split이 서로 다른 파일 형식을 사용하도록 보장하기 위해",
+        "여러 GPU에 데이터를 분산하기 위해"
+      ],
       "correct": 1,
-      "explanation": "The training set teaches the model, the validation set tunes hyperparameters during training, and the test set provides a final unbiased evaluation on data the model has never seen."
+      "explanation": "training set은 모델을 학습시키고, validation set은 학습 중 hyperparameter 조정에 사용되며, test set은 모델이 한 번도 본 적 없는 데이터에 대한 최종 unbiased 평가를 제공한다."
     },
     {
       "stage": "pre",
-      "question": "What is the Hugging Face Hub primarily used for in AI/ML workflows?",
-      "options": ["Hosting and sharing datasets, models, and ML artifacts", "Running GPU training jobs in the cloud", "Managing Python virtual environments", "Version controlling source code like GitHub"],
+      "question": "AI/ML 워크플로에서 Hugging Face Hub는 주로 무엇에 사용되는가?",
+      "options": [
+        "데이터셋, 모델, ML artifact를 호스팅하고 공유하기",
+        "cloud에서 GPU training job 실행하기",
+        "Python virtual environment 관리하기",
+        "GitHub처럼 source code를 version control하기"
+      ],
       "correct": 0,
-      "explanation": "Hugging Face Hub is a platform for hosting and sharing pre-trained models, datasets, and ML demos. The 'datasets' library provides a standard way to load data from it."
+      "explanation": "Hugging Face Hub는 pre-trained model, dataset, ML demo를 호스팅하고 공유하는 플랫폼이다. 'datasets' 라이브러리는 여기에서 데이터를 로드하는 표준적인 방법을 제공한다."
     },
     {
       "stage": "post",
-      "question": "What advantage does the Parquet format have over CSV for storing ML datasets?",
-      "options": ["Parquet files are human-readable in any text editor", "Parquet uses columnar storage for smaller file sizes and faster read speeds", "Parquet supports more data types than CSV", "Parquet files can be edited in spreadsheet applications"],
+      "question": "ML 데이터셋 저장에서 Parquet 형식이 CSV보다 가지는 장점은 무엇인가?",
+      "options": [
+        "Parquet 파일은 어떤 텍스트 에디터에서도 사람이 읽을 수 있다",
+        "Parquet은 columnar storage를 사용해 파일 크기가 더 작고 읽기 속도가 더 빠르다",
+        "Parquet은 CSV보다 더 많은 데이터 타입을 지원한다",
+        "Parquet 파일은 spreadsheet 애플리케이션에서 편집할 수 있다"
+      ],
       "correct": 1,
-      "explanation": "Parquet is a columnar binary format that compresses better than CSV and enables fast column-level reads. It is the preferred storage format for ML datasets."
+      "explanation": "Parquet은 CSV보다 더 잘 압축되고 빠른 column-level read를 가능하게 하는 columnar binary format이다. ML 데이터셋에 선호되는 저장 형식이다."
     },
     {
       "stage": "post",
-      "question": "What does 'streaming=True' do when loading a dataset with the Hugging Face datasets library?",
-      "options": ["Downloads the dataset faster using parallel connections", "Loads data row by row without downloading the full dataset to disk", "Converts the dataset to a streaming video format", "Enables real-time updates as new data is added to the Hub"],
+      "question": "Hugging Face datasets 라이브러리로 데이터셋을 로드할 때 'streaming=True'는 무엇을 하는가?",
+      "options": [
+        "병렬 연결을 사용해 데이터셋을 더 빠르게 다운로드한다",
+        "전체 데이터셋을 디스크에 다운로드하지 않고 행 단위로 데이터를 로드한다",
+        "데이터셋을 streaming video format으로 변환한다",
+        "Hub에 새 데이터가 추가될 때 real-time update를 활성화한다"
+      ],
       "correct": 1,
-      "explanation": "Streaming mode creates an IterableDataset that fetches rows on demand. Memory usage stays constant regardless of dataset size, which is essential for datasets too large to fit on disk."
+      "explanation": "Streaming mode는 필요할 때 행을 가져오는 IterableDataset을 만든다. 데이터셋 크기와 관계없이 메모리 사용량이 일정하게 유지되므로 디스크에 담기 너무 큰 데이터셋에 필수적이다."
     },
     {
       "stage": "post",
-      "question": "When should you use DVC (Data Version Control) instead of just .gitignore for large files?",
-      "options": ["When your dataset is smaller than 1 MB", "When you need to reproduce exact experiments across machines with versioned data", "When you are working alone on a personal project", "When you only have CSV files in your project"],
+      "question": "큰 파일에 대해 단순히 .gitignore만 사용하는 대신 DVC(Data Version Control)를 사용해야 하는 경우는 언제인가?",
+      "options": [
+        "데이터셋이 1 MB보다 작을 때",
+        "versioned data로 여러 머신에서 정확한 실험을 재현해야 할 때",
+        "개인 프로젝트를 혼자 작업할 때",
+        "프로젝트에 CSV 파일만 있을 때"
+      ],
       "correct": 1,
-      "explanation": "DVC tracks data versions with small pointer files in git while storing the actual data in remote storage (S3, GCS). It ensures anyone can reproduce your exact experiment with the same data."
+      "explanation": "DVC는 실제 데이터는 remote storage(S3, GCS)에 저장하면서 git에는 작은 pointer file로 데이터 버전을 추적한다. 누구나 같은 데이터로 정확한 실험을 재현할 수 있게 해 준다."
     }
   ]
 }

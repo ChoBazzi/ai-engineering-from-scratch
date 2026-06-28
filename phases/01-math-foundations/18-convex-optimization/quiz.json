@@ -2,63 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the defining property of a convex function?",
+      "question": "convex function의 정의적 성질은 무엇인가요?",
       "options": [
-        "It has exactly one critical point",
-        "The line segment between any two points on its graph lies above or on the graph",
-        "Its derivative is always positive",
-        "It can only be defined on positive real numbers"
+        "critical point가 정확히 하나 있습니다",
+        "graph 위의 임의의 두 점을 잇는 line segment가 graph 위에 있거나 그보다 위에 있습니다",
+        "derivative가 항상 양수입니다",
+        "positive real numbers에서만 정의될 수 있습니다"
       ],
       "correct": 1,
-      "explanation": "A function is convex if for any two points x, y and any t in [0,1]: f(tx + (1-t)y) <= t*f(x) + (1-t)*f(y). Geometrically, the chord between any two points on the graph never dips below the graph itself."
+      "explanation": "임의의 두 점 x, y와 임의의 t in [0,1]에 대해 f(tx + (1-t)y) <= t*f(x) + (1-t)*f(y)이면 함수는 convex입니다. 기하학적으로 graph 위의 임의의 두 점을 잇는 chord가 graph 자체 아래로 내려가지 않는다는 뜻입니다."
     },
     {
       "stage": "pre",
-      "question": "Which of these ML problems has a convex loss landscape?",
+      "question": "다음 ML 문제 중 convex loss landscape를 갖는 것은 무엇인가요?",
       "options": [
-        "Training a 3-layer neural network with ReLU activations",
-        "Logistic regression with cross-entropy loss",
+        "ReLU activations를 쓰는 3-layer neural network 학습",
+        "cross-entropy loss를 쓰는 Logistic regression",
         "k-means clustering",
-        "Matrix factorization for recommendation"
+        "추천을 위한 Matrix factorization"
       ],
       "correct": 1,
-      "explanation": "Logistic regression has a convex loss (log-loss is convex in the weights). Neural networks, k-means, and matrix factorization are all non-convex. For convex problems, any local minimum is the global minimum."
+      "explanation": "Logistic regression은 convex loss를 갖습니다(log-loss는 weights에 대해 convex입니다). Neural networks, k-means, matrix factorization은 모두 non-convex입니다. Convex problems에서는 어떤 local minimum도 global minimum입니다."
     },
     {
       "stage": "post",
-      "question": "Newton's method converges to the minimum of f(x) = 5x^2 + 3x + 1 in how many steps?",
+      "question": "Newton's method는 f(x) = 5x^2 + 3x + 1의 minimum에 몇 step 만에 수렴하나요?",
       "options": [
-        "1 step (it is exact for quadratic functions)",
-        "About 10 steps",
-        "About 100 steps",
-        "It depends on the learning rate"
+        "1 step (quadratic functions에서는 정확합니다)",
+        "약 10 steps",
+        "약 100 steps",
+        "learning rate에 따라 달라집니다"
       ],
       "correct": 0,
-      "explanation": "Newton's method fits a local quadratic approximation and jumps to its minimum. For an actual quadratic function, the approximation is exact, so Newton's method converges in a single step regardless of the starting point."
+      "explanation": "Newton's method는 local quadratic approximation을 맞추고 그 minimum으로 바로 이동합니다. 실제 quadratic function에서는 approximation이 정확하므로, 시작점과 관계없이 Newton's method는 한 step 만에 수렴합니다."
     },
     {
       "stage": "post",
-      "question": "In the KKT conditions, what does 'complementary slackness' (lambda_i * g_i(x) = 0) mean?",
+      "question": "KKT conditions에서 'complementary slackness'(lambda_i * g_i(x) = 0)는 무엇을 의미하나요?",
       "options": [
-        "All constraints must be active at the optimum",
-        "Either a constraint is active (g_i = 0) or its multiplier is zero (lambda_i = 0) — an inactive constraint has no effect",
-        "The gradients of all constraints must be orthogonal",
-        "The Lagrangian is always zero at the optimum"
+        "optimum에서 모든 constraints가 active여야 합니다",
+        "constraint가 active(g_i = 0)이거나 multiplier가 zero(lambda_i = 0)입니다 — inactive constraint는 영향이 없습니다",
+        "모든 constraints의 gradients가 orthogonal이어야 합니다",
+        "optimum에서 Lagrangian은 항상 zero입니다"
       ],
       "correct": 1,
-      "explanation": "Complementary slackness means each constraint is either binding (g_i = 0, sitting on the boundary) or irrelevant (lambda_i = 0, not affecting the solution). In SVMs, this is why only support vectors (active constraints with lambda_i > 0) determine the decision boundary."
+      "explanation": "Complementary slackness는 각 constraint가 binding(g_i = 0, boundary 위에 있음)이거나 irrelevant(lambda_i = 0, solution에 영향 없음)임을 뜻합니다. SVMs에서 support vectors(lambda_i > 0인 active constraints)만 decision boundary를 결정하는 이유가 이것입니다."
     },
     {
       "stage": "post",
-      "question": "Why does SGD find good solutions in non-convex neural network landscapes despite the lack of convexity guarantees?",
+      "question": "convexity guarantees가 없는데도 SGD가 non-convex neural network landscapes에서 좋은 해를 찾는 이유는 무엇인가요?",
       "options": [
-        "Neural networks are secretly convex in high dimensions",
-        "SGD always finds the global minimum",
-        "In high dimensions, most critical points are saddle points (not bad local minima), and SGD noise helps escape them",
-        "The loss function is irrelevant to model performance"
+        "Neural networks는 고차원에서 사실 convex입니다",
+        "SGD는 항상 global minimum을 찾습니다",
+        "고차원에서는 대부분의 critical points가 나쁜 local minima가 아니라 saddle points이고, SGD noise가 그곳을 빠져나오게 돕습니다",
+        "loss function은 model performance와 무관합니다"
       ],
       "correct": 2,
-      "explanation": "In high-dimensional parameter spaces, random critical points are overwhelmingly saddle points. The few local minima that exist tend to have loss values close to the global minimum. SGD's stochastic noise helps escape saddle points, and overparameterization smooths the landscape."
+      "explanation": "고차원 parameter spaces에서 무작위 critical points의 압도적 다수는 saddle points입니다. 존재하는 소수의 local minima는 global minimum에 가까운 loss values를 갖는 경향이 있습니다. SGD의 stochastic noise는 saddle points를 빠져나오게 돕고, overparameterization은 landscape를 매끄럽게 만듭니다."
     }
   ]
 }

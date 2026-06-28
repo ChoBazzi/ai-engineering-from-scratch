@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why did 2024+ SOTA text-to-image models (SD3, FLUX, Z-Image) replace the U-Net denoiser with a Diffusion Transformer (DiT)?",
-      "options": ["Transformers are easier to write", "DiT scales more predictably than U-Net (same scaling-law regime as LLMs), handles long-range spatial dependencies better for prompt-accurate generation, and pairs naturally with text encoders via cross or joint attention", "U-Net is not supported on GPUs anymore", "DiT has fewer parameters"],
+      "question": "2024년 이후의 SOTA 텍스트-이미지 모델(SD3, FLUX, Z-Image)은 왜 U-Net 디노이저를 Diffusion Transformer(DiT)로 대체했나요?",
+      "options": ["트랜스포머가 작성하기 더 쉽기 때문에", "DiT는 U-Net보다 더 예측 가능하게 스케일하고(LLM과 같은 scaling-law 체제), 프롬프트에 정확한 생성을 위해 장거리 공간 의존성을 더 잘 처리하며, cross 또는 joint attention을 통해 텍스트 인코더와 자연스럽게 결합되기 때문에", "U-Net은 더 이상 GPU에서 지원되지 않기 때문에", "DiT의 파라미터가 더 적기 때문에"],
       "correct": 1,
-      "explanation": "DiT treats diffusion as just another sequence-modelling task. It scales like language models, avoids the fixed inductive bias of convolutions that can bottleneck long-range structure, and integrates cleanly with transformer text encoders. Every 2026 SOTA model — SD3, FLUX.1, FLUX.2, SD4, Z-Image, Qwen-Image — is a DiT."
+      "explanation": "DiT는 디퓨전을 또 하나의 sequence-modelling task로 다룹니다. 언어 모델처럼 스케일하고, 장거리 구조를 병목으로 만들 수 있는 convolution의 고정 inductive bias를 피하며, 트랜스포머 텍스트 인코더와 깔끔하게 통합됩니다. 2026년의 모든 SOTA 모델(SD3, FLUX.1, FLUX.2, SD4, Z-Image, Qwen-Image)은 DiT입니다."
     },
     {
       "stage": "pre",
-      "question": "Rectified flow trains the model to predict velocity `v = epsilon - x_0` along a straight-line interpolation between data and noise. Why does this enable 20-step sampling instead of 1000?",
-      "options": ["It does not; rectified flow also needs 1000 steps", "The learned ODE is closer to a straight line than DDPM's curved SDE, so few-step Euler integration produces accurate samples; combined with distillation you get 1-4 step variants like FLUX schnell", "Euler is strictly better than DDIM", "It requires a bigger model"],
+      "question": "Rectified flow는 데이터와 노이즈 사이의 직선 보간을 따라 velocity `v = epsilon - x_0`를 예측하도록 모델을 학습합니다. 이것이 왜 1000단계 대신 20단계 샘플링을 가능하게 하나요?",
+      "options": ["그렇지 않습니다. rectified flow도 1000단계가 필요합니다", "학습된 ODE가 DDPM의 곡선 SDE보다 직선에 가까워서 few-step Euler integration만으로도 정확한 샘플을 만들 수 있습니다. distillation과 결합하면 FLUX schnell 같은 1-4단계 변형을 얻습니다", "Euler가 DDIM보다 엄격하게 더 좋기 때문에", "더 큰 모델이 필요하기 때문에"],
       "correct": 1,
-      "explanation": "DDPM's reverse process is a stochastic curved path that needs many small steps. Rectified flow defines a straight-line interpolation; the learned velocity is approximately constant along the trajectory. Integrating a near-straight ODE takes few steps. SD3 and FLUX sample at 20-30 steps full quality; schnell/turbo/LCM distil this further to 1-4 steps."
+      "explanation": "DDPM의 reverse process는 많은 작은 단계가 필요한 확률적 곡선 경로입니다. Rectified flow는 직선 보간을 정의합니다. 학습된 velocity는 궤적을 따라 거의 일정합니다. 거의 직선인 ODE를 적분하는 데는 적은 단계면 됩니다. SD3와 FLUX는 full quality에서 20-30단계로 샘플링하며, schnell/turbo/LCM은 이를 1-4단계까지 더 증류합니다."
     },
     {
       "stage": "post",
-      "question": "MMDiT (SD3) uses two sets of weights, one for text tokens and one for image tokens, that share a single joint attention layer. Why?",
-      "options": ["To save memory", "Text and image embeddings are conceptually different distributions; separate weights let each modality process its own representation while the joint attention lets them interact; the result is better text-image alignment and prompt following than a single shared stream", "It is a legacy design", "Only image tokens actually go through the attention"],
+      "question": "MMDiT(SD3)는 text token용 가중치와 image token용 가중치라는 두 세트를 사용하고, 하나의 joint attention layer를 공유합니다. 왜 이렇게 하나요?",
+      "options": ["메모리를 절약하기 위해", "텍스트와 이미지 임베딩은 개념적으로 다른 분포입니다. 별도 가중치는 각 모달리티가 자기 표현을 처리하게 하고, joint attention은 둘이 상호작용하게 합니다. 결과적으로 단일 공유 스트림보다 text-image alignment와 prompt following이 좋아집니다", "레거시 설계이기 때문에", "실제로는 image token만 attention을 통과하기 때문에"],
       "correct": 1,
-      "explanation": "Stable Diffusion 3's MMDiT keeps per-modality weight streams to preserve the different statistics of text and image tokens while a joint self-attention layer lets them fuse. This is structurally more expressive than concatenate-and-share (which SD1/2 used), and empirically lifts prompt adherence and text rendering. FLUX extends this to alternating double-stream / single-stream blocks for efficiency."
+      "explanation": "Stable Diffusion 3의 MMDiT는 text token과 image token의 서로 다른 통계를 보존하기 위해 모달리티별 weight stream을 유지하면서, joint self-attention layer로 둘을 융합합니다. 이는 concatenate-and-share(SD1/2가 사용한 방식)보다 구조적으로 더 표현력이 높고, 경험적으로 prompt adherence와 text rendering을 끌어올립니다. FLUX는 효율을 위해 이를 alternating double-stream / single-stream blocks로 확장합니다."
     },
     {
       "stage": "post",
-      "question": "What does AdaLN-Zero mean in a DiT block, and why does it help?",
-      "options": ["A layer norm with zero epsilon", "Adaptive LayerNorm whose modulation MLP is initialised to zero so the block starts as identity; training then learns the scale/shift/gate, which stabilises very deep diffusion transformers", "A LayerNorm that is only applied 50% of the time", "A LayerNorm with zero mean"],
+      "question": "DiT 블록에서 AdaLN-Zero는 무엇을 뜻하며, 왜 도움이 되나요?",
+      "options": ["epsilon이 0인 layer norm", "modulation MLP가 0으로 초기화되어 블록이 identity로 시작하는 Adaptive LayerNorm입니다. 학습이 scale/shift/gate를 배우면서 매우 깊은 diffusion transformer를 안정화합니다", "50%의 시간에만 적용되는 LayerNorm", "평균이 0인 LayerNorm"],
       "correct": 1,
-      "explanation": "AdaLN predicts scale, shift, and gate from the conditioning vector. 'Zero' means the MLP is initialised to zero, so the gate starts at 0 and the block acts as identity. Gradients slowly nudge the modulation away from zero, which prevents the deep stack from diverging early in training. It is the DiT-equivalent of ResNet's residual zero-init and is used in every modern diffusion transformer."
+      "explanation": "AdaLN은 conditioning vector에서 scale, shift, gate를 예측합니다. 'Zero'는 MLP가 0으로 초기화되어 gate가 0에서 시작하고 블록이 identity처럼 동작한다는 뜻입니다. gradient가 modulation을 천천히 0에서 벗어나게 하므로, 깊은 stack이 학습 초기에 발산하는 것을 막습니다. 이는 DiT에서 ResNet의 residual zero-init에 해당하며 모든 현대 diffusion transformer에서 사용됩니다."
     },
     {
       "stage": "post",
-      "question": "FLUX.1-schnell can produce an image in 4 steps. Which technique lets it do that?",
-      "options": ["A different base architecture than FLUX.1-dev", "Distillation — schnell is trained from a slow many-step teacher using adversarial / consistency-style objectives so that 1-4 denoising steps match the teacher's 20-30 step output", "Lower precision weights", "Smaller parameter count"],
+      "question": "FLUX.1-schnell은 4단계로 이미지를 만들 수 있습니다. 어떤 기법이 이것을 가능하게 하나요?",
+      "options": ["FLUX.1-dev와 다른 base architecture", "Distillation입니다. schnell은 slow many-step teacher로부터 adversarial / consistency-style objective를 사용해 학습되어 1-4 denoising steps가 teacher의 20-30 step output과 맞도록 합니다", "더 낮은 precision weights", "더 작은 parameter count"],
       "correct": 1,
-      "explanation": "Schnell / Turbo / LCM variants use step distillation. A small-step student learns to match the many-step teacher's output. The base architecture and parameter count are often identical (FLUX.1-dev and schnell are both 12B). Distillation is what makes sub-1-second inference practical. This is the same idea as SDXL Turbo, SD Turbo, and Latent Consistency Models."
+      "explanation": "Schnell / Turbo / LCM 변형은 step distillation을 사용합니다. small-step student가 many-step teacher의 출력을 맞추도록 학습합니다. base architecture와 parameter count는 종종 동일합니다(FLUX.1-dev와 schnell은 모두 12B). 1초 미만 추론을 실용적으로 만드는 것은 distillation입니다. SDXL Turbo, SD Turbo, Latent Consistency Models와 같은 아이디어입니다."
     }
   ]
 }

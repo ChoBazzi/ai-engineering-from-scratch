@@ -1,22 +1,22 @@
 {
   "lesson": "03-reflexion-verbal-rl",
-  "title": "Reflexion: Verbal Reinforcement Learning",
+  "title": "Reflexion: 언어적 강화학습",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does Reflexion replace in standard reinforcement learning?",
+      "question": "Reflexion은 표준 reinforcement learning의 무엇을 대체하나요?",
       "options": [
-        "Reward shaping with a constant reward",
-        "Gradient updates with natural-language reflections stored between trials",
-        "Policy networks with random search",
-        "Episodic memory with parametric memory"
+        "reward shaping을 constant reward로 대체한다",
+        "gradient update를 trial 사이에 저장되는 natural-language reflection으로 대체한다",
+        "policy network를 random search로 대체한다",
+        "episodic memory를 parametric memory로 대체한다"
       ],
       "correct": 1,
-      "explanation": "Reflexion uses natural-language reflections in episodic memory instead of weight updates."
+      "explanation": "Reflexion은 weight update 대신 episodic memory의 natural-language reflection을 사용합니다."
     },
     {
       "stage": "pre",
-      "question": "What three components define a Reflexion system?",
+      "question": "Reflexion system을 정의하는 세 component는 무엇인가요?",
       "options": [
         "Planner, Worker, Solver",
         "Actor, Evaluator, Self-Reflector",
@@ -24,11 +24,11 @@
         "Selector, Expander, Backpropagator"
       ],
       "correct": 1,
-      "explanation": "Reflexion factors the agent into an Actor that runs trajectories, an Evaluator that scores them, and a Self-Reflector that writes lessons."
+      "explanation": "Reflexion은 trajectory를 실행하는 Actor, 이를 score하는 Evaluator, lesson을 쓰는 Self-Reflector로 agent를 나눕니다."
     },
     {
       "stage": "check",
-      "question": "Which evaluator type uses an external binary signal like a unit test or a known correct answer?",
+      "question": "unit test나 알려진 correct answer 같은 external binary signal을 사용하는 evaluator type은 무엇인가요?",
       "options": [
         "Heuristic",
         "Scalar",
@@ -36,55 +36,55 @@
         "Vote-based"
       ],
       "correct": 1,
-      "explanation": "Scalar evaluators read pass/fail signals from ground truth (ALFWorld success, HumanEval tests)."
+      "explanation": "Scalar evaluator는 ground truth에서 온 pass/fail signal(ALFWorld success, HumanEval tests)을 읽습니다."
     },
     {
       "stage": "check",
-      "question": "Why is self-evaluation a weaker signal than scalar feedback?",
+      "question": "self-evaluation이 scalar feedback보다 약한 signal인 이유는 무엇인가요?",
       "options": [
-        "It is slower to compute",
-        "The model judging itself has no external grounding so it can rubber-stamp its own answer",
-        "It always requires a larger model",
-        "It cannot run on tools"
+        "계산이 더 느리기 때문",
+        "자기 자신을 judge하는 model은 external grounding이 없어 자기 answer를 rubber-stamp할 수 있기 때문",
+        "항상 더 큰 model이 필요하기 때문",
+        "tool에서 실행될 수 없기 때문"
       ],
       "correct": 1,
-      "explanation": "Self-eval lacks an external check, so a confident hallucination scores well; pair it with tool-grounded verification."
+      "explanation": "self-eval에는 external check가 없으므로 confident hallucination도 좋은 score를 받을 수 있습니다. tool-grounded verification과 함께 쓰세요."
     },
     {
       "stage": "check",
-      "question": "Which case does the lesson list as a place where Reflexion does NOT help?",
+      "question": "lesson이 Reflexion이 도움이 되지 않는 경우로 나열한 것은 무엇인가요?",
       "options": [
-        "Code generation where tests can score",
-        "An external transient failure like the network being down",
-        "ALFWorld navigation tasks",
-        "HotpotQA multi-hop questions"
+        "test로 score할 수 있는 code generation",
+        "network down 같은 external transient failure",
+        "ALFWorld navigation task",
+        "HotpotQA multi-hop question"
       ],
       "correct": 1,
-      "explanation": "Reflecting on a transient external outage produces a reflection that does not help future runs."
+      "explanation": "transient external outage를 reflect해도 future run에 도움이 되는 reflection이 나오지 않습니다."
     },
     {
       "stage": "post",
-      "question": "What is memory rot in the Reflexion pattern?",
+      "question": "Reflexion pattern에서 memory rot은 무엇인가요?",
       "options": [
-        "Losing reflections when the process restarts",
-        "Episodic buffer fills with obsolete or wrong reflections and slows or biases future trials",
-        "Reflections get encrypted by the provider",
-        "The reflection prompt exceeds the context window"
+        "process restart 시 reflection을 잃는 것",
+        "episodic buffer가 obsolete하거나 wrong reflection으로 채워져 future trial을 느리게 하거나 bias하는 것",
+        "provider가 reflection을 encrypt하는 것",
+        "reflection prompt가 context window를 넘는 것"
       ],
       "correct": 1,
-      "explanation": "Accumulated stale or wrong reflections degrade behavior; mitigate with compaction or TTL."
+      "explanation": "쌓인 stale 또는 wrong reflection은 behavior를 degrade합니다. compaction 또는 TTL로 완화합니다."
     },
     {
       "stage": "post",
-      "question": "Which production pattern is the lesson's clearest match for Reflexion?",
+      "question": "lesson이 Reflexion과 가장 명확히 match한다고 보는 production pattern은 무엇인가요?",
       "options": [
-        "Cursor's apply-edits flow",
-        "Claude Code's CLAUDE.md learnings prepended to future sessions",
-        "OpenAI's batch API",
-        "Anthropic's prompt caching"
+        "Cursor의 apply-edits flow",
+        "Claude Code의 CLAUDE.md learning을 future session 앞에 붙이는 방식",
+        "OpenAI의 batch API",
+        "Anthropic의 prompt caching"
       ],
       "correct": 1,
-      "explanation": "CLAUDE.md learnings, pro-workflow's learn-rule, and Letta's sleep-time compute all externalize the episodic reflection buffer."
+      "explanation": "CLAUDE.md learnings, pro-workflow의 learn-rule, Letta의 sleep-time compute는 모두 episodic reflection buffer를 externalize합니다."
     }
   ]
 }

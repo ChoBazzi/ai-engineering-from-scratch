@@ -2,38 +2,63 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the primary difference between a Docker container and a virtual machine?",
-      "options": ["Containers are slower but more secure than VMs", "Containers share the host OS kernel while VMs run their own full OS", "Containers can only run Linux while VMs support any OS", "There is no practical difference"],
+      "question": "Docker 컨테이너와 가상 머신의 주요 차이는 무엇인가?",
+      "options": [
+        "컨테이너는 VM보다 느리지만 더 안전하다",
+        "컨테이너는 호스트 OS 커널을 공유하지만 VM은 자체 전체 OS를 실행한다",
+        "컨테이너는 Linux만 실행할 수 있지만 VM은 모든 OS를 지원한다",
+        "실질적인 차이는 없다"
+      ],
       "correct": 1,
-      "explanation": "Containers share the host kernel and isolate at the process level, making them start in seconds. VMs run a complete guest OS with its own kernel, requiring more resources and slower startup."
+      "explanation": "컨테이너는 호스트 커널을 공유하고 프로세스 수준에서 격리되므로 몇 초 만에 시작된다. VM은 자체 커널을 가진 완전한 게스트 OS를 실행하므로 더 많은 리소스가 필요하고 시작이 느리다."
     },
     {
       "stage": "pre",
-      "question": "What is a Dockerfile?",
-      "options": ["A configuration file for the Docker daemon", "A set of instructions for building a Docker image layer by layer", "A log file that records container activity", "A file that lists running containers"],
+      "question": "Dockerfile이란 무엇인가?",
+      "options": [
+        "Docker daemon을 위한 구성 파일",
+        "Docker 이미지를 레이어 단위로 빌드하기 위한 지시문 모음",
+        "컨테이너 활동을 기록하는 로그 파일",
+        "실행 중인 컨테이너 목록을 담은 파일"
+      ],
       "correct": 1,
-      "explanation": "A Dockerfile contains sequential instructions (FROM, RUN, COPY, etc.) that Docker executes to build an image. Each instruction creates a cached layer."
+      "explanation": "Dockerfile에는 Docker가 이미지를 빌드하기 위해 실행하는 순차 지시문(FROM, RUN, COPY 등)이 들어 있다. 각 지시문은 캐시되는 레이어를 만든다."
     },
     {
       "stage": "post",
-      "question": "Why are volume mounts critical for AI development with Docker?",
-      "options": ["Volumes make containers run faster by using host disk speed", "Volumes persist data (models, datasets, code) across container rebuilds so you don't re-download gigabytes each time", "Volumes are required for Python packages to install correctly", "Volumes allow multiple containers to share the same GPU"],
+      "question": "Docker를 사용하는 AI 개발에서 볼륨 마운트가 중요한 이유는 무엇인가?",
+      "options": [
+        "볼륨은 호스트 디스크 속도를 사용해 컨테이너를 더 빠르게 실행한다",
+        "볼륨은 컨테이너 재빌드 사이에서도 데이터(모델, 데이터셋, 코드)를 유지하므로 매번 수 GB를 다시 다운로드하지 않아도 된다",
+        "볼륨은 Python 패키지를 올바르게 설치하는 데 필수다",
+        "볼륨은 여러 컨테이너가 같은 GPU를 공유하게 해 준다"
+      ],
       "correct": 1,
-      "explanation": "Without volumes, everything inside a container is lost when it stops. Volume mounts map host directories into the container, so model weights (14+ GB) and datasets survive rebuilds."
+      "explanation": "볼륨이 없으면 컨테이너 안의 모든 것은 컨테이너가 멈출 때 사라진다. 볼륨 마운트는 호스트 디렉터리를 컨테이너 안에 매핑하므로 모델 가중치(14 GB 이상)와 데이터셋이 재빌드 후에도 유지된다."
     },
     {
       "stage": "post",
-      "question": "What does the NVIDIA Container Toolkit enable?",
-      "options": ["Installing CUDA drivers inside the container", "Exposing host GPUs to Docker containers via the --gpus flag", "Running NVIDIA GPU containers on AMD hardware", "Compiling CUDA code during the Docker build process"],
+      "question": "NVIDIA Container Toolkit은 무엇을 가능하게 하는가?",
+      "options": [
+        "컨테이너 안에 CUDA 드라이버 설치",
+        "--gpus 플래그를 통해 호스트 GPU를 Docker 컨테이너에 노출",
+        "AMD 하드웨어에서 NVIDIA GPU 컨테이너 실행",
+        "Docker 빌드 과정에서 CUDA 코드 컴파일"
+      ],
       "correct": 1,
-      "explanation": "The NVIDIA Container Toolkit is a runtime hook that exposes host GPUs to containers. The CUDA toolkit lives inside the container, but the GPU driver is shared from the host."
+      "explanation": "NVIDIA Container Toolkit은 호스트 GPU를 컨테이너에 노출하는 런타임 hook이다. CUDA 툴킷은 컨테이너 안에 있지만 GPU 드라이버는 호스트에서 공유된다."
     },
     {
       "stage": "post",
-      "question": "In a Docker Compose file for AI, how does the 'ai-dev' service reach the 'qdrant' vector database?",
-      "options": ["By using the host machine's IP address and port", "By using the service name 'qdrant' as the hostname, since Compose creates a shared network", "By mounting a shared volume between the two containers", "By configuring a VPN between the containers"],
+      "question": "AI용 Docker Compose 파일에서 'ai-dev' 서비스는 'qdrant' 벡터 데이터베이스에 어떻게 접근하는가?",
+      "options": [
+        "호스트 머신의 IP 주소와 포트를 사용한다",
+        "Compose가 공유 네트워크를 만들기 때문에 서비스 이름 'qdrant'를 hostname으로 사용한다",
+        "두 컨테이너 사이에 공유 볼륨을 마운트한다",
+        "컨테이너 사이에 VPN을 구성한다"
+      ],
       "correct": 1,
-      "explanation": "Docker Compose automatically creates a shared network where services can reach each other by name. The ai-dev container connects to 'http://qdrant:6333' using the service name as hostname."
+      "explanation": "Docker Compose는 서비스가 이름으로 서로 접근할 수 있는 공유 네트워크를 자동으로 만든다. ai-dev 컨테이너는 서비스 이름을 hostname으로 사용해 'http://qdrant:6333'에 연결한다."
     }
   ]
 }

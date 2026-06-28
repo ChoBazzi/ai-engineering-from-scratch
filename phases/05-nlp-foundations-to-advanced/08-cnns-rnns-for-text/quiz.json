@@ -1,102 +1,102 @@
 {
   "lesson": "08-cnns-rnns-for-text",
-  "title": "CNNs and RNNs for Text",
+  "title": "텍스트용 CNN과 RNN",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is a 1D convolutional filter of width 3 over word embeddings effectively learning?",
+      "question": "Word embedding 위의 width 3 1D convolutional filter는 사실상 무엇을 학습하나요?",
       "options": [
-        "A learnable bigram detector",
-        "A position embedding",
-        "A learnable trigram (n-gram) detector",
-        "A unigram count"
+        "학습 가능한 bigram detector",
+        "Position embedding",
+        "학습 가능한 trigram(n-gram) detector",
+        "Unigram count"
       ],
       "correct": 2,
-      "explanation": "A width-3 filter spans three consecutive tokens, acting as a learnable trigram detector."
+      "explanation": "Width-3 filter는 연속된 token 세 개를 가로지르므로 학습 가능한 trigram detector처럼 동작합니다."
     },
     {
       "stage": "pre",
-      "question": "Why does an LSTM use a cell state with mostly additive interactions?",
+      "question": "LSTM이 mostly additive interaction을 가진 cell state를 사용하는 이유는 무엇인가요?",
       "options": [
-        "Additive flow lets gradients propagate through long sequences without vanishing or exploding",
-        "Faster softmax",
-        "It saves memory",
-        "To avoid matrix inversion"
+        "Additive flow는 gradient가 사라지거나 폭발하지 않고 long sequence를 통해 전파되게 한다",
+        "Softmax를 더 빠르게 만든다",
+        "Memory를 절약한다",
+        "Matrix inversion을 피하기 위해서다"
       ],
       "correct": 0,
-      "explanation": "The cell-state highway keeps gradients stable across hundreds of steps, fixing vanishing-gradient issues."
+      "explanation": "Cell-state highway는 수백 step에 걸쳐 gradient를 안정적으로 유지해 vanishing-gradient 문제를 해결합니다."
     },
     {
       "stage": "check",
-      "question": "Why does TextCNN use global max-pooling after the convolutional layer?",
+      "question": "TextCNN은 convolutional layer 뒤에 왜 global max-pooling을 사용하나요?",
       "options": [
-        "To enable backpropagation",
-        "To remove embeddings",
-        "To reduce vocabulary",
-        "Max-pool gives a fixed-size, position-invariant representation by selecting the strongest activation per filter"
+        "Backpropagation을 가능하게 하기 위해",
+        "Embedding을 제거하기 위해",
+        "Vocabulary를 줄이기 위해",
+        "Max-pool은 filter별 가장 강한 activation을 골라 fixed-size이면서 position-invariant인 representation을 만든다"
       ],
       "correct": 3,
-      "explanation": "Global max-pool produces a fixed-size feature vector regardless of input length, with position invariance."
+      "explanation": "Global max-pool은 input length와 관계없이 fixed-size feature vector를 만들고 position invariance를 제공합니다."
     },
     {
       "stage": "check",
-      "question": "What is the main advantage of a bidirectional RNN over a one-way RNN for sequence labeling?",
+      "question": "Sequence labeling에서 bidirectional RNN이 one-way RNN보다 가지는 주요 장점은 무엇인가요?",
       "options": [
-        "Faster training",
-        "Each token's representation sees both left and right context, which is essential for tagging",
-        "Avoids embeddings",
-        "Cheaper memory"
+        "Training이 더 빠르다",
+        "각 token representation이 left context와 right context를 모두 보며, 이는 tagging에 필수적이다",
+        "Embedding을 피한다",
+        "Memory가 더 싸다"
       ],
       "correct": 1,
-      "explanation": "Bidirectional networks concatenate forward + backward hidden states so labels can use full context."
+      "explanation": "Bidirectional network는 forward + backward hidden state를 concatenate하므로 label이 full context를 사용할 수 있습니다."
     },
     {
       "stage": "check",
-      "question": "Why does max-pooling over an LSTM's outputs often beat using just the last hidden state for classification?",
+      "question": "Classification에서 LSTM output 위의 max-pooling이 last hidden state만 쓰는 것보다 나은 경우가 많은 이유는 무엇인가요?",
       "options": [
-        "Max-pool is differentiable; last-state is not",
-        "Information at the end of a long sequence tends to dominate the last state, hiding earlier evidence",
-        "Max-pool removes capitalization",
-        "Last-state pool ignores padding"
+        "Max-pool은 differentiable이지만 last-state는 아니다",
+        "긴 sequence의 끝부분 정보가 last state를 지배해 앞쪽 evidence를 숨길 수 있다",
+        "Max-pool은 capitalization을 제거한다",
+        "Last-state pool은 padding을 무시한다"
       ],
       "correct": 1,
-      "explanation": "Max-pool aggregates strongest signal across positions; last-state can lose earlier evidence."
+      "explanation": "Max-pool은 position 전체에서 가장 강한 signal을 aggregate합니다. Last-state는 앞쪽 evidence를 잃을 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "Which limitation of LSTM/RNN encoder-decoders motivated attention?",
+      "question": "Attention을 동기부여한 LSTM/RNN encoder-decoder의 limitation은 무엇인가요?",
       "options": [
-        "They require subword tokenizers",
-        "They cannot use embeddings",
-        "The decoder sees only a fixed-size encoder state, losing detail on long inputs; recurrence also serializes training",
-        "They cannot embed tokens"
+        "Subword tokenizer가 필요하다",
+        "Embedding을 사용할 수 없다",
+        "Decoder가 fixed-size encoder state만 보므로 긴 input에서 detail이 손실된다. 또한 recurrence는 training을 serial하게 만든다",
+        "Token을 embed할 수 없다"
       ],
       "correct": 2,
-      "explanation": "Fixed-size summarization plus serial training were two failures attention removed."
+      "explanation": "Fixed-size summarization과 serial training은 attention이 제거한 두 failure였습니다."
     },
     {
       "stage": "post",
-      "question": "When does a TextCNN or BiLSTM still beat a transformer in 2026?",
+      "question": "2026년에 TextCNN이나 BiLSTM이 transformer보다 여전히 나은 경우는 언제인가요?",
       "options": [
-        "On image inputs",
-        "Edge / on-device, streaming token-by-token inputs, or tiny-data baselines",
-        "Whenever the dataset is multilingual",
-        "When latency requirements are extremely loose"
+        "Image input에서",
+        "Edge / on-device, token-by-token streaming input, 또는 tiny-data baseline에서",
+        "Dataset이 multilingual일 때마다",
+        "Latency requirement가 매우 느슨할 때"
       ],
       "correct": 1,
-      "explanation": "Small architectures still win on edge inference, streaming inputs, and rapid baselines."
+      "explanation": "작은 architecture는 edge inference, streaming input, 빠른 baseline에서 여전히 이깁니다."
     },
     {
       "stage": "post",
-      "question": "What is the vanishing gradient problem in plain RNNs?",
+      "question": "Plain RNN의 vanishing gradient problem은 무엇인가요?",
       "options": [
-        "Repeated multiplication by recurrent weights smaller than 1 makes gradients toward early steps shrink toward zero",
-        "Embedding matrix becomes singular",
-        "Inputs become zero",
-        "Loss becomes negative"
+        "1보다 작은 recurrent weight가 반복해서 곱해져 early step 쪽 gradient가 0에 가까워진다",
+        "Embedding matrix가 singular해진다",
+        "Input이 0이 된다",
+        "Loss가 negative가 된다"
       ],
       "correct": 0,
-      "explanation": "Long-product gradients vanish (or explode) without gating; this is why LSTMs and GRUs exist."
+      "explanation": "Gating이 없으면 긴 product gradient가 사라지거나 폭발합니다. 그래서 LSTM과 GRU가 존재합니다."
     }
   ]
 }

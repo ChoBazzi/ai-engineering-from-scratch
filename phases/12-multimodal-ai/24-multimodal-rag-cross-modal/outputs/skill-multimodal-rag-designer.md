@@ -1,31 +1,31 @@
 ---
 name: multimodal-rag-designer
-description: Design a production multimodal RAG across text, images, audio, video with retrievers, fusion strategy, and grounded generator.
+description: text, image, audio, video를 가로지르는 production multimodal RAG를 retriever, fusion strategy, grounded generator와 함께 설계한다.
 version: 1.0.0
 phase: 12
 lesson: 24
 tags: [multimodal-rag, cross-modal-retrieval, fusion, grounded-generation]
 ---
 
-Given a multimodal product query flow (which modalities in the query, which in the corpus), design retrievers, fusion, and generation.
+multimodal product query flow(query에 어떤 modality가 있는지, corpus에 어떤 modality가 있는지)가 주어지면 retriever, fusion, generation을 설계한다.
 
-Produce:
+생성할 것:
 
-1. Per-modality retrievers. CLIP / SigLIP 2 for text+image, CLAP for text+audio, VLM hidden states for anything else.
-2. Fusion pick. Score fusion default; MoE fusion if per-query routing is needed; attention fusion at scale.
-3. Grounded generator. Qwen2.5-VL or Claude 4.7 with training on source-tagged outputs.
-4. Evaluation. Recall@k per modality + fused top-k accuracy + human-judged end-to-end.
-5. Agentic multi-hop. When to re-query; confidence threshold to trigger.
-6. Storage estimate. Per-modality vector counts and compression.
+1. modality별 retriever. text+image에는 CLIP / SigLIP 2, text+audio에는 CLAP, 그 외에는 VLM hidden states.
+2. Fusion 선택. 기본은 score fusion; query별 routing이 필요하면 MoE fusion; 규모가 커지면 attention fusion.
+3. Grounded generator. Source-tagged output으로 학습한 Qwen2.5-VL 또는 Claude 4.7.
+4. Evaluation. modality별 Recall@k + fused top-k accuracy + 사람 평가 end-to-end.
+5. Agentic multi-hop. 언제 다시 query할지, trigger할 confidence threshold.
+6. Storage estimate. modality별 vector 수와 compression.
 
-Hard rejects:
-- Using bi-encoder retrieval across modalities without a shared space (CLIP / CLAP). Scores are meaningless.
-- Proposing MoE fusion without training data. MoE needs supervision to route correctly.
-- Claiming score-fusion weights transfer across domains. They do not.
+강한 거부:
+- 공유 공간(CLIP / CLAP) 없이 modality 간 bi-encoder retrieval을 사용하는 것. Score는 의미가 없다.
+- 학습 데이터 없이 MoE fusion을 제안하는 것. MoE는 올바른 routing을 위해 supervision이 필요하다.
+- score-fusion weight가 domain을 넘어 전이된다고 주장하는 것. 그렇지 않다.
 
-Refusal rules:
-- If the corpus has no image-caption pair data for training retrievers, refuse custom fine-tune and recommend off-the-shelf CLIP / SigLIP 2.
-- If the query latency budget is <200ms and multi-hop is required, refuse; propose single-shot with better retrievers.
-- If grounded citations are a regulatory requirement and no generator supports them, refuse and propose Anthropic / OpenAI citation APIs or an explicit post-processing citation layer.
+거부 규칙:
+- corpus에 retriever 학습용 image-caption pair data가 없으면 custom fine-tune을 거부하고 off-the-shelf CLIP / SigLIP 2를 추천한다.
+- query latency budget이 200ms 미만이고 multi-hop이 필요하면 거부한다. 더 나은 retriever를 쓰는 single-shot을 제안한다.
+- grounded citation이 규제 요구사항인데 이를 지원하는 generator가 없다면 거부하고 Anthropic / OpenAI citation API 또는 명시적 post-processing citation layer를 제안한다.
 
-Output: one-page RAG design with retrievers, fusion, generator, evaluation, agentic strategy, storage. End with arXiv 2502.08826, 2504.08748, 2503.18016.
+출력: retriever, fusion, generator, evaluation, agentic strategy, storage를 포함한 한 페이지 RAG 설계. arXiv 2502.08826, 2504.08748, 2503.18016으로 끝낸다.

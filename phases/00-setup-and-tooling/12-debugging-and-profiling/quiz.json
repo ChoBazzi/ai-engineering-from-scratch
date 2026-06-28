@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What makes debugging AI/ML code fundamentally different from debugging a typical web application?",
-      "options": ["AI code uses different programming languages", "AI bugs often don't crash -- they silently produce incorrect results with no error messages", "AI code cannot be debugged with standard tools like print statements", "AI code always requires a GPU to debug"],
+      "question": "AI/ML 코드 디버깅이 일반적인 웹 애플리케이션 디버깅과 근본적으로 다른 점은 무엇인가요?",
+      "options": ["AI 코드는 다른 프로그래밍 언어를 사용한다", "AI 버그는 종종 크래시를 내지 않고 오류 메시지 없이 조용히 잘못된 결과를 만든다", "AI 코드는 print statement 같은 표준 도구로 디버깅할 수 없다", "AI 코드를 디버깅하려면 항상 GPU가 필요하다"],
       "correct": 1,
-      "explanation": "The worst AI bugs produce valid-looking output. A misconfigured training loop might run for hours without errors while the model learns nothing useful, unlike web apps that crash with stack traces."
+      "explanation": "최악의 AI 버그는 그럴듯해 보이는 출력을 만듭니다. 잘못 설정된 학습 루프는 오류 없이 몇 시간 동안 실행되면서도 모델이 유용한 것을 전혀 배우지 못할 수 있습니다. 이는 stack trace와 함께 크래시하는 웹 앱과 다릅니다."
     },
     {
       "stage": "pre",
-      "question": "What does a profiler measure?",
-      "options": ["Whether the code produces correct output", "How much time and memory each part of the code consumes", "How many bugs exist in the codebase", "The code coverage of unit tests"],
+      "question": "Profiler는 무엇을 측정하나요?",
+      "options": ["코드가 올바른 출력을 만드는지 여부", "코드의 각 부분이 소비하는 시간과 메모리", "코드베이스에 존재하는 버그 수", "Unit test의 code coverage"],
       "correct": 1,
-      "explanation": "Profilers measure resource consumption -- execution time per function, memory allocation, and GPU utilization -- helping you find bottlenecks and optimize performance."
+      "explanation": "Profiler는 함수별 실행 시간, 메모리 할당, GPU utilization 같은 resource consumption을 측정합니다. 이를 통해 병목을 찾고 성능을 최적화할 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "Your model achieves 99% accuracy on the test set. What AI-specific bug should you suspect first?",
-      "options": ["The model has too many parameters", "Data leakage -- test samples may have leaked into the training set", "The learning rate is too high", "The batch size is too large"],
+      "question": "모델이 test set에서 99% accuracy를 달성했습니다. 가장 먼저 의심해야 할 AI-specific bug는 무엇인가요?",
+      "options": ["모델의 parameter가 너무 많다", "Data leakage -- test sample이 training set에 새어 들어갔을 수 있다", "Learning rate가 너무 높다", "Batch size가 너무 크다"],
       "correct": 1,
-      "explanation": "Suspiciously high accuracy often indicates data leakage -- overlap between training and test data, or features that contain the target label. Always check for train/test overlap."
+      "explanation": "비정상적으로 높은 accuracy는 training data와 test data의 overlap 또는 target label을 포함한 feature 같은 data leakage를 나타내는 경우가 많습니다. 항상 train/test overlap을 확인하세요."
     },
     {
       "stage": "post",
-      "question": "What is the most common finding when profiling a training loop's time breakdown?",
-      "options": ["The backward pass takes 90% of the time", "Data loading takes more time than the forward and backward passes combined", "Writing logs takes the most time", "GPU memory allocation is the bottleneck"],
+      "question": "Training loop의 시간 breakdown을 profiling할 때 가장 흔히 발견되는 것은 무엇인가요?",
+      "options": ["Backward pass가 시간의 90%를 차지한다", "Data loading이 forward pass와 backward pass를 합친 것보다 더 오래 걸린다", "Log 작성이 가장 오래 걸린다", "GPU memory allocation이 병목이다"],
       "correct": 1,
-      "explanation": "Data loading often takes 60%+ of training time when num_workers=0 in the DataLoader. The fix is setting num_workers > 0 to load data in parallel with GPU computation."
+      "explanation": "DataLoader에서 num_workers=0이면 data loading이 학습 시간의 60% 이상을 차지하는 경우가 많습니다. 해결책은 num_workers > 0으로 설정해 GPU computation과 병렬로 데이터를 로드하는 것입니다."
     },
     {
       "stage": "post",
-      "question": "You see NaN loss at step 500. Which approach will help you find the root cause?",
-      "options": ["Restart training from scratch with a different random seed", "Use detect_nan to check for NaN/Inf in gradients and add breakpoint() at the failure point", "Increase the batch size to stabilize gradients", "Switch from Adam to SGD optimizer"],
+      "question": "Step 500에서 NaN loss가 보입니다. root cause를 찾는 데 도움이 되는 접근은 무엇인가요?",
+      "options": ["다른 random seed로 처음부터 다시 학습을 시작한다", "detect_nan을 사용해 gradient의 NaN/Inf를 확인하고 실패 지점에 breakpoint()를 추가한다", "Gradient를 안정화하기 위해 batch size를 늘린다", "Adam에서 SGD optimizer로 바꾼다"],
       "correct": 1,
-      "explanation": "First identify WHERE the NaN originates by checking gradients for each parameter. A conditional breakpoint at the NaN step lets you inspect tensor values interactively. Common causes: learning rate too high, log(0), or division by zero."
+      "explanation": "먼저 각 parameter의 gradient를 확인해 NaN이 어디에서 시작되는지 식별하세요. NaN step의 conditional breakpoint를 사용하면 tensor 값을 상호작용식으로 검사할 수 있습니다. 흔한 원인은 너무 높은 learning rate, log(0), 0으로 나누기입니다."
     }
   ]
 }

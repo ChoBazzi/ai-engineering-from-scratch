@@ -1,5 +1,5 @@
-# Phase 13: Tools & Protocols
+# Phase 13: 도구와 프로토콜
 
-> The interfaces between AI and the real world.
+> AI와 실제 세계 사이의 인터페이스.
 
-See [ROADMAP.md](../../ROADMAP.md) for the full lesson plan.
+전체 레슨 계획은 [ROADMAP.md](../../ROADMAP.md)를 참고하세요.

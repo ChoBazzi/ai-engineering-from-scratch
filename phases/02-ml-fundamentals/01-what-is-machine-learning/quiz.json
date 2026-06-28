@@ -2,46 +2,46 @@
   {
     "id": "ml-intro-pre-1",
     "stage": "pre",
-    "question": "In supervised learning, what does the model receive during training?",
+    "question": "supervised learning에서 model은 training 중 무엇을 받나요?",
     "options": [
-      "Only input data with no labels",
-      "Input-output pairs where the correct answer is provided",
-      "A reward signal for each action taken",
-      "A set of rules written by a human expert"
+      "labels가 없는 input data만 받는다",
+      "정답이 제공된 input-output pairs를 받는다",
+      "수행한 각 action에 대한 reward signal을 받는다",
+      "human expert가 작성한 rules 집합을 받는다"
     ],
     "correct": 1,
-    "explanation": "Supervised learning trains on input-output pairs (labeled data). The model learns to map inputs to known correct outputs."
+    "explanation": "Supervised learning은 input-output pairs(labeled data)로 train합니다. model은 inputs를 알려진 correct outputs에 mapping하는 법을 배웁니다."
   },
   {
     "id": "ml-intro-pre-2",
     "stage": "pre",
-    "question": "What is the purpose of splitting data into training and test sets?",
+    "question": "data를 training set과 test set으로 나누는 목적은 무엇인가요?",
     "options": [
-      "To make training faster by using less data",
-      "To have backup data in case the training data is lost",
-      "To evaluate whether the model generalizes to data it has never seen during training",
-      "To balance the classes in the dataset"
+      "더 적은 data를 사용해 training을 빠르게 만들기 위해",
+      "training data를 잃어버릴 경우를 대비해 backup data를 두기 위해",
+      "model이 training 중 본 적 없는 data에 generalize하는지 evaluate하기 위해",
+      "dataset의 classes를 balance하기 위해"
     ],
     "correct": 2,
-    "explanation": "The test set measures generalization. If you evaluate on training data, you measure memorization, not learning."
+    "explanation": "test set은 generalization을 측정합니다. training data에서 evaluate하면 learning이 아니라 memorization을 측정하게 됩니다."
   },
   {
     "id": "ml-intro-post-1",
     "stage": "post",
-    "question": "A model gets 98% accuracy on training data but 55% on test data. What is this an example of?",
+    "question": "어떤 model이 training data에서는 98% accuracy를 얻지만 test data에서는 55%를 얻습니다. 이것은 무엇의 예인가요?",
     "options": [
-      "Underfitting: the model is too simple",
-      "Overfitting: the model memorized training noise instead of learning general patterns",
-      "Data drift: the test distribution changed",
-      "Good generalization: the model learned the true patterns"
+      "Underfitting: model이 너무 단순하다",
+      "Overfitting: model이 일반적인 patterns를 배우는 대신 training noise를 memorized했다",
+      "Data drift: test distribution이 바뀌었다",
+      "Good generalization: model이 true patterns를 배웠다"
     ],
     "correct": 1,
-    "explanation": "A large gap between training accuracy (high) and test accuracy (low) is the hallmark of overfitting. The model memorized the training data."
+    "explanation": "training accuracy가 높고 test accuracy가 낮은 큰 gap은 overfitting의 특징입니다. model이 training data를 memorized한 것입니다."
   },
   {
     "id": "ml-intro-post-2",
     "stage": "post",
-    "question": "An e-commerce site wants to group customers into segments based on purchase behavior without any predefined labels. Which type of ML is this?",
+    "question": "한 e-commerce site가 predefined labels 없이 purchase behavior를 기반으로 customers를 segments로 묶으려 합니다. 이것은 어떤 ML 유형인가요?",
     "options": [
       "Supervised learning (classification)",
       "Supervised learning (regression)",
@@ -49,19 +49,19 @@
       "Reinforcement learning"
     ],
     "correct": 2,
-    "explanation": "Finding natural groupings in data without predefined labels is clustering, which is a form of unsupervised learning."
+    "explanation": "predefined labels 없이 data에서 자연스러운 groupings를 찾는 것은 clustering이며, unsupervised learning의 한 형태입니다."
   },
   {
     "id": "ml-intro-post-3",
     "stage": "post",
-    "question": "Which scenario is NOT a good use case for machine learning?",
+    "question": "machine learning을 사용하기에 좋지 않은 scenario는 무엇인가요?",
     "options": [
-      "Predicting customer churn from historical behavior data",
-      "Detecting fraudulent transactions in a stream of millions of payments",
-      "Converting temperatures from Celsius to Fahrenheit",
-      "Classifying images of skin lesions as benign or malignant"
+      "historical behavior data로 customer churn 예측하기",
+      "수백만 건의 payments stream에서 fraudulent transactions 감지하기",
+      "섭씨를 화씨로 변환하기",
+      "skin lesions 이미지를 benign 또는 malignant로 분류하기"
     ],
     "correct": 2,
-    "explanation": "Celsius to Fahrenheit is a fixed formula (F = 9/5 * C + 32). Simple, well-defined rules do not need ML. ML adds complexity with no benefit."
+    "explanation": "섭씨를 화씨로 바꾸는 것은 fixed formula(F = 9/5 * C + 32)입니다. 단순하고 잘 정의된 rules에는 ML이 필요 없습니다. ML은 이득 없이 complexity만 더합니다."
   }
 ]

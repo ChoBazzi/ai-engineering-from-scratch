@@ -1,10 +1,10 @@
 {
   "lesson": "16-openai-agents-sdk",
-  "title": "OpenAI Agents SDK: Handoffs, Guardrails, Tracing",
+  "title": "OpenAI Agents SDK: 핸드오프, 가드레일, 트레이싱",
   "questions": [
     {
       "stage": "pre",
-      "question": "What are the five primitives of the OpenAI Agents SDK?",
+      "question": "OpenAI Agents SDK의 다섯 가지 primitive는 무엇인가?",
       "options": [
         "Agent, Handoff, Guardrail, Session, Tracing",
         "Node, Edge, Reducer, Checkpointer, Subgraph",
@@ -12,79 +12,79 @@
         "Tool, Prompt, Model, Memory, Trace"
       ],
       "correct": 0,
-      "explanation": "The SDK ships these five primitives."
+      "explanation": "SDK는 이 다섯 가지 primitive를 제공한다."
     },
     {
       "stage": "pre",
-      "question": "How does the model see a handoff?",
+      "question": "모델은 handoff를 어떻게 보는가?",
       "options": [
-        "As a custom HTTP endpoint",
-        "As a tool named transfer_to_<agent_name>",
-        "As a system message",
-        "As a special token"
+        "custom HTTP endpoint로 본다",
+        "transfer_to_<agent_name>이라는 이름의 도구로 본다",
+        "system message로 본다",
+        "special token으로 본다"
       ],
       "correct": 1,
-      "explanation": "Handoffs are exposed as tools with the transfer_to_<agent> name shape."
+      "explanation": "handoff는 transfer_to_<agent> 이름 형태의 도구로 노출된다."
     },
     {
       "stage": "check",
-      "question": "Which three guardrail types does the SDK ship?",
+      "question": "SDK가 제공하는 세 가지 guardrail type은 무엇인가?",
       "options": [
-        "Input, output, and tool guardrails",
-        "Pre, post, and inline guardrails",
-        "Hard, soft, and best-effort guardrails",
-        "Static, dynamic, and federated guardrails"
+        "Input, output, tool guardrail",
+        "Pre, post, inline guardrail",
+        "Hard, soft, best-effort guardrail",
+        "Static, dynamic, federated guardrail"
       ],
       "correct": 0,
-      "explanation": "Input (first agent), output (last agent), and tool (per function tool) guardrails."
+      "explanation": "입력(첫 agent), 출력(마지막 agent), 도구(function tool별) guardrail이다."
     },
     {
       "stage": "check",
-      "question": "What is the difference between parallel and blocking guardrails?",
+      "question": "parallel guardrail과 blocking guardrail의 차이는 무엇인가?",
       "options": [
-        "Parallel runs alongside the main LLM (lower latency, wastes tokens on trip); blocking runs first (no wasted tokens on trip)",
-        "Blocking is asynchronous; parallel is synchronous",
-        "Parallel costs more money always",
-        "Blocking only works on output"
+        "Parallel은 main LLM과 함께 실행된다(낮은 latency, 발동 시 token 낭비). blocking은 먼저 실행된다(발동 시 token 낭비 없음)",
+        "Blocking은 asynchronous이고 parallel은 synchronous다",
+        "Parallel은 항상 돈이 더 든다",
+        "Blocking은 output에서만 작동한다"
       ],
       "correct": 0,
-      "explanation": "Parallel optimizes latency at the cost of wasted tokens when tripped; blocking saves tokens but adds latency."
+      "explanation": "Parallel은 latency를 최적화하지만 발동 시 token을 낭비한다. blocking은 token을 아끼지만 latency를 추가한다."
     },
     {
       "stage": "check",
-      "question": "How is tracing enabled in the SDK?",
+      "question": "SDK에서 tracing은 어떻게 활성화되는가?",
       "options": [
-        "Off by default; enable per agent",
-        "On by default; OPENAI_AGENTS_DISABLE_TRACING=1 opts out",
-        "Only via OpenTelemetry collector",
-        "Only on the hosted dashboard"
+        "기본으로 꺼져 있으며 agent마다 켠다",
+        "기본으로 켜져 있으며 OPENAI_AGENTS_DISABLE_TRACING=1로 끈다",
+        "OpenTelemetry collector를 통해서만 가능하다",
+        "hosted dashboard에서만 가능하다"
       ],
       "correct": 1,
-      "explanation": "Spans for LLM, tool, handoff, and guardrail emit by default; an env var disables them."
+      "explanation": "LLM, 도구, handoff, guardrail용 span은 기본으로 emit된다. env var로 비활성화한다."
     },
     {
       "stage": "post",
-      "question": "What is handoff drift and how does the lesson recommend mitigating it?",
+      "question": "handoff drift란 무엇이며 lesson은 어떻게 완화하라고 권장하는가?",
       "options": [
-        "Tracing falls behind; reduce span volume",
-        "Agent A hands off to B which hands back to A in a loop; add a hop counter",
-        "Sessions overflow; archive old ones",
-        "Guardrails desync; retrain"
+        "tracing이 뒤처지는 것. span volume을 줄인다",
+        "Agent A가 B로 넘기고 B가 다시 A로 넘기는 loop. hop counter를 추가한다",
+        "session이 overflow되는 것. 오래된 것을 archive한다",
+        "guardrail이 desync되는 것. 다시 학습한다"
       ],
       "correct": 1,
-      "explanation": "A hop counter caps transfer chains before they loop indefinitely."
+      "explanation": "hop counter는 transfer chain이 무한 loop에 빠지기 전에 제한한다."
     },
     {
       "stage": "post",
-      "question": "Why are built-in tools a guardrail gap?",
+      "question": "built-in tool이 guardrail gap인 이유는 무엇인가?",
       "options": [
-        "They are slower than function tools",
-        "Tool guardrails only fire on function tools; built-in tools (file reader, web fetch) need separate policy",
-        "They cannot be traced",
-        "They do not support handoffs"
+        "function tool보다 느리다",
+        "tool guardrail은 function tool에서만 발동한다. built-in tool(file reader, web fetch)에는 별도 policy가 필요하다",
+        "trace할 수 없다",
+        "handoff를 지원하지 않는다"
       ],
       "correct": 1,
-      "explanation": "Per-tool guardrails cover function tools; built-in tools require a separate policy layer."
+      "explanation": "per-tool guardrail은 function tool을 다룬다. built-in tool에는 별도의 policy layer가 필요하다."
     }
   ]
 }

@@ -1,45 +1,45 @@
 ---
 name: crew-or-flow
-description: Pick CrewAI Crew or Flow for a given task, and scaffold the minimal implementation.
+description: 주어진 task에 대해 CrewAI Crew 또는 Flow를 고르고 최소 구현을 scaffold한다.
 version: 1.0.0
 phase: 14
 lesson: 15
 tags: [crewai, crews, flows, multi-agent, role-based]
 ---
 
-Given a task description, pick Crew (autonomous) or Flow (deterministic), then scaffold.
+task description이 주어지면 Crew(autonomous) 또는 Flow(deterministic)를 고른 뒤 scaffold한다.
 
-Decision:
+결정:
 
-1. Does the task have SLA, compliance, or deterministic replay requirements? -> Flow.
-2. Is the task exploratory (research, first draft, brainstorm)? -> Crew.
-3. Does the task have 4+ specialists with LLM-picked ordering? -> Hierarchical Crew.
-4. Does the task have <=3 specialists in a fixed order? -> Sequential Crew or Flow — prefer Flow.
+1. task에 SLA, compliance, deterministic replay 요구가 있는가? -> Flow.
+2. task가 exploratory한가(research, first draft, brainstorm)? -> Crew.
+3. task에 LLM이 순서를 고르는 specialist가 4명 이상 있는가? -> Hierarchical Crew.
+4. task에 고정 순서의 specialist가 3명 이하인가? -> Sequential Crew 또는 Flow. Flow를 선호한다.
 
-For Crews, produce:
+Crew의 경우 다음을 만든다.
 
-1. Agent definitions: role, goal, backstory (tight, <=200 words), tools.
-2. Task definitions: description, expected_output, agent.
-3. Crew with the right Process (Sequential | Hierarchical).
-4. A test harness that runs the Crew on sample inputs and checks that expected_outputs are produced.
+1. Agent definition: role, goal, backstory(타이트하게, 200단어 이하), tools.
+2. Task definition: description, expected_output, agent.
+3. 올바른 Process(Sequential | Hierarchical)를 가진 Crew.
+4. sample input에서 Crew를 실행하고 expected_output이 생성되는지 확인하는 test harness.
 
-For Flows, produce:
+Flow의 경우 다음을 만든다.
 
 1. `@start` entry function.
-2. `@listen(topic)` steps forming a DAG.
-3. Explicit event topics; no magical broadcast.
-4. A replay harness: given a kickoff payload, rerun deterministically.
+2. DAG를 이루는 `@listen(topic)` step.
+3. 명시적 event topic. magical broadcast 없음.
+4. replay harness: kickoff payload가 주어지면 deterministic하게 다시 실행한다.
 
-Hard rejects:
+Hard reject:
 
-- Crews without backstories. Backstories are load-bearing.
-- Flows without explicit topic names. "Implicit chaining" defeats the audit purpose.
-- Hierarchical Crews with 2 specialists. The manager overhead is not earning cost.
+- backstory 없는 Crew. backstory는 load-bearing이다.
+- 명시적 topic name 없는 Flow. "Implicit chaining"은 audit 목적을 무너뜨린다.
+- specialist가 2명인 Hierarchical Crew. manager overhead가 비용을 정당화하지 못한다.
 
-Refusal rules:
+거부 규칙:
 
-- If the user asks for a Crew on a prod-only compliance task, refuse and migrate to Flow.
-- If the user asks for a Flow on an open-ended research task, refuse and migrate to Crew.
-- If the backstory exceeds 200 words, refuse and require a trim. Context budget is finite.
+- 사용자가 prod-only compliance task에 Crew를 요구하면 거부하고 Flow로 migrate한다.
+- 사용자가 open-ended research task에 Flow를 요구하면 거부하고 Crew로 migrate한다.
+- backstory가 200단어를 넘으면 거부하고 줄이도록 요구한다. context budget은 유한하다.
 
-Output: `agents.py`, `tasks.py`, `crew.py` or `flow.py`, plus `README.md` with the decision rationale. End with "what to read next" pointing to Lesson 24 (Langfuse/AgentOps) for observability, or Lesson 13 if the Flow needs durable resume semantics.
+출력: `agents.py`, `tasks.py`, `crew.py` 또는 `flow.py`, 그리고 결정 근거가 담긴 `README.md`. 마지막에는 observability를 위해 Lesson 24(Langfuse/AgentOps)를, Flow에 durable resume semantics가 필요하면 Lesson 13을 가리키는 "what to read next"로 끝낸다.

@@ -1,40 +1,40 @@
-# MCP Auth in Production — Enrollment, JWKS Refresh, Audience-Pinned Tokens
+# Production MCP Auth — Enrollment, JWKS Refresh, Audience-Pinned Token
 
-> Lesson 16 stood up the OAuth 2.1 state machine in memory. By 2026, every MCP server you ship to a real org sits behind production auth: client enrollment that scales to an unbounded client population (Client ID Metadata Documents first, dynamic client registration as a backwards-compatible fallback), authorization-server metadata discovery (RFC 8414 *or* OpenID Connect Discovery), JWKS cache refresh that does not break a 3 a.m. token validation, and audience-pinned tokens that refuse cross-resource replay. This lesson models the full surface with three roles — an authorization server, a resource server (the MCP server), and a client — so you can trace every hop from discovery to a validated tool call.
+> Lesson 16은 OAuth 2.1 state machine을 memory 안에 세웠습니다. 2026년에는 실제 조직에 ship하는 모든 MCP server가 production auth 뒤에 있습니다. 무한한 client population으로 scale되는 client enrollment(Client ID Metadata Documents 우선, backwards-compatible fallback으로 dynamic client registration), authorization-server metadata discovery(RFC 8414 *또는* OpenID Connect Discovery), 새벽 3시 token validation을 깨지 않는 JWKS cache refresh, cross-resource replay를 거부하는 audience-pinned token이 필요합니다. 이 lesson은 authorization server, resource server(MCP server), client라는 세 role로 전체 surface를 모델링해 discovery부터 validated tool call까지 모든 hop을 추적할 수 있게 합니다.
 >
-> **Spec note (2025-11-25):** the November 2025 MCP authorization spec demoted Dynamic Client Registration from `SHOULD` to `MAY` and made **Client ID Metadata Documents (CIMD)** the recommended default enrollment mechanism. This lesson teaches both, in the spec's priority order, and the code keeps DCR for the walk-through because it is fully self-contained in one process.
+> **Spec note (2025-11-25):** 2025년 11월 MCP authorization spec은 Dynamic Client Registration을 `SHOULD`에서 `MAY`로 낮추고 **Client ID Metadata Documents (CIMD)**를 권장 기본 enrollment mechanism으로 삼았습니다. 이 lesson은 스펙의 priority order대로 둘 다 가르치며, code는 한 process 안에서 완전히 self-contained인 walk-through를 위해 DCR을 유지합니다.
 
 **Type:** Build
 **Languages:** Python (stdlib)
 **Prerequisites:** Phase 13 · 16 (OAuth 2.1 state machine), Phase 13 · 17 (gateways)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Discover an authorization server through RFC 8414 metadata and verify the contract.
-- Implement RFC 7591 dynamic client registration so MCP clients enroll without admin intervention.
-- Cache and refresh JWKS keys on a schedule so signature verification survives key roll-over.
-- Pin tokens to a single MCP resource using RFC 8707 resource indicators and refuse confused-deputy reuse.
-- Separate the three roles cleanly — authorization server, resource server, client — so each enforces only the checks that belong to it.
-- Read an IdP capability matrix and refuse to deploy when the IdP cannot satisfy MCP's auth profile.
+- RFC 8414 metadata를 통해 authorization server를 discovery하고 contract를 verify합니다.
+- RFC 7591 dynamic client registration을 구현해 MCP client가 admin intervention 없이 enroll하게 합니다.
+- key roll-over 중에도 signature verification이 살아남도록 JWKS key를 schedule에 맞춰 cache하고 refresh합니다.
+- RFC 8707 resource indicator를 사용해 token을 단일 MCP resource에 pin하고 confused-deputy reuse를 거부합니다.
+- 세 role(authorization server, resource server, client)을 깔끔하게 분리해 각자가 자기에게 속한 check만 enforce하게 합니다.
+- IdP capability matrix를 읽고 IdP가 MCP auth profile을 만족하지 못하면 deploy를 거절합니다.
 
-## The Problem
+## 문제
 
-The Lesson 16 simulator runs OAuth 2.1 in memory. Production has three operational gaps that a memory-only simulator does not see.
+Lesson 16 simulator는 memory에서 OAuth 2.1을 실행합니다. Production에는 memory-only simulator가 보지 못하는 세 가지 operational gap이 있습니다.
 
-The first gap is enrollment. A real org runs hundreds of MCP servers and thousands of MCP clients. Operators do not hand-register every Cursor user as an OAuth client. The 2025-11-25 spec gives clients a priority order for solving this: use a pre-registered `client_id` if you have one, else use a **Client ID Metadata Document** (the client identifies itself with an HTTPS URL it controls and the authorization server *pulls* the metadata), else fall back to **RFC 7591 dynamic client registration** (the client *pushes* a `POST /register` and receives a `client_id` on the spot), else prompt the user. CIMD is the recommended default because it removes per-server registration entirely while keeping a DNS-rooted trust model; DCR is retained for backwards compatibility. Both discover their entry points from the authorization server's metadata: `client_id_metadata_document_supported` for CIMD, `registration_endpoint` for DCR.
+첫 번째 gap은 enrollment입니다. 실제 조직은 수백 개 MCP server와 수천 개 MCP client를 운영합니다. operator가 모든 Cursor user를 OAuth client로 손수 등록하지 않습니다. 2025-11-25 spec은 이를 해결하는 client priority order를 제공합니다. pre-registered `client_id`가 있으면 사용하고, 아니면 **Client ID Metadata Document**를 사용합니다(client가 자신이 control하는 HTTPS URL로 자신을 식별하고 authorization server가 metadata를 *pull*합니다). 그다음 fallback으로 **RFC 7591 dynamic client registration**을 사용합니다(client가 `POST /register`를 *push*하고 즉시 `client_id`를 받습니다). 그것도 아니면 user에게 prompt합니다. CIMD는 per-server registration을 완전히 없애면서 DNS-rooted trust model을 유지하므로 권장 기본값입니다. DCR은 backwards compatibility를 위해 유지됩니다. 둘 다 authorization server metadata에서 entry point를 discovery합니다. CIMD는 `client_id_metadata_document_supported`, DCR은 `registration_endpoint`입니다.
 
-The second gap is key rotation. JWT validation depends on the authorization server's signing keys, published as a JSON Web Key Set (JWKS). The authorization server rotates these on a schedule (often hourly, sometimes faster under incident response). An MCP server that fetches JWKS once at boot validates fine until the rotation window — then every request fails until restart. Production wires JWKS as a cached value with a refresh job that overwrites the cache before the previous keys expire, plus a fall-back fetch on cache miss for the case where a token signed by a key newer than the cache arrives.
+두 번째 gap은 key rotation입니다. JWT validation은 authorization server의 signing key에 의존하며, 이는 JSON Web Key Set(JWKS)으로 게시됩니다. authorization server는 이를 schedule에 맞춰 rotate합니다(보통 hourly, incident response 중에는 더 빠를 수 있음). boot 때 JWKS를 한 번만 fetch하는 MCP server는 rotation window까지는 잘 validate하다가 이후 restart 전까지 모든 request가 실패합니다. Production은 JWKS를 cached value로 wiring하고, 이전 key가 expire되기 전에 cache를 overwrite하는 refresh job을 둡니다. 또한 cache보다 새로운 key로 서명된 token이 도착하는 경우를 위해 cache miss에서 fallback fetch를 수행합니다.
 
-The third gap is audience binding. Lesson 16 introduced RFC 8707 resource indicators. In production, that indicator becomes a hard claim check on every request. The MCP server compares `token.aud` against its own canonical resource URL and rejects mismatches with HTTP 401. This is the only defense against an upstream MCP server (or a malicious client holding a token meant for one server) replaying that token against another server in the same trust mesh.
+세 번째 gap은 audience binding입니다. Lesson 16은 RFC 8707 resource indicator를 소개했습니다. Production에서 이 indicator는 모든 request의 hard claim check가 됩니다. MCP server는 `token.aud`를 자신의 canonical resource URL과 비교하고 mismatch를 HTTP 401로 거절합니다. 이것은 upstream MCP server(또는 한 server용 token을 가진 악의적 client)가 같은 trust mesh의 다른 server에 token을 replay하는 것을 막는 유일한 defense입니다.
 
-This lesson maps each gap onto a concrete piece of the surface. The metadata document is an HTTP endpoint. JWKS cache refresh is a scheduled job plus a key-value cache. JWT validation is a routine the resource server runs before dispatching any tool. Keep the three roles separate and each one enforces only the checks it owns: the authorization server issues and rotates keys, the resource server caches and validates, the client discovers and enrolls.
+이 lesson은 각 gap을 surface의 concrete piece에 매핑합니다. metadata document는 HTTP endpoint입니다. JWKS cache refresh는 scheduled job과 key-value cache입니다. JWT validation은 resource server가 tool을 dispatch하기 전에 실행하는 routine입니다. 세 role을 분리하세요. authorization server는 key를 issue하고 rotate하고, resource server는 cache하고 validate하고, client는 discover하고 enroll합니다.
 
-## The Concept
+## 개념
 
 ### RFC 8414 — OAuth Authorization Server Metadata
 
-A document at `/.well-known/oauth-authorization-server` describes everything a client needs:
+`/.well-known/oauth-authorization-server`의 document는 client가 필요한 모든 것을 설명합니다.
 
 ```json
 {
@@ -51,20 +51,20 @@ A document at `/.well-known/oauth-authorization-server` describes everything a c
 }
 ```
 
-A client given an MCP resource URL chains discovery: `oauth-protected-resource` from RFC 9728 (the resource server's document) names the issuer, then `oauth-authorization-server` (this RFC) names every endpoint. The client never hard-codes an authorization URL.
+MCP resource URL을 받은 client는 discovery를 chain합니다. RFC 9728의 `oauth-protected-resource`(resource server의 document)가 issuer를 이름 붙이고, `oauth-authorization-server`(이 RFC)가 모든 endpoint를 이름 붙입니다. client는 authorization URL을 hard-code하지 않습니다.
 
-The contract you verify before trusting an IdP for MCP:
+MCP용 IdP를 신뢰하기 전에 verify해야 하는 contract:
 
-- `code_challenge_methods_supported` includes `S256` (PKCE per RFC 7636). The spec is explicit: if this field is **absent**, the authorization server does not support PKCE and the client **MUST** refuse to proceed.
-- `grant_types_supported` includes `authorization_code` and rejects `password` and `implicit`.
-- At least one enrollment path is advertised: `client_id_metadata_document_supported: true` (CIMD, preferred) **or** `registration_endpoint` (RFC 7591 DCR, fallback). Either satisfies the contract; you no longer hard-require DCR.
-- `response_types_supported` is exactly `["code"]` for OAuth 2.1.
+- `code_challenge_methods_supported`가 `S256`을 포함합니다(RFC 7636에 따른 PKCE). 스펙은 명시적입니다. 이 field가 **absent**이면 authorization server는 PKCE를 지원하지 않으며 client는 진행을 **MUST** refuse해야 합니다.
+- `grant_types_supported`가 `authorization_code`를 포함하고 `password`와 `implicit`을 거절합니다.
+- 최소 하나의 enrollment path가 advertise됩니다. `client_id_metadata_document_supported: true`(CIMD, preferred) **또는** `registration_endpoint`(RFC 7591 DCR, fallback). 둘 중 하나면 contract를 만족합니다. 더 이상 DCR을 hard-require하지 않습니다.
+- OAuth 2.1에서는 `response_types_supported`가 정확히 `["code"]`입니다.
 
-If `S256` is missing, the MCP server refuses to deploy against this IdP — there is no degraded mode for PKCE. If *neither* enrollment path is advertised and you have no pre-registered `client_id`, you also cannot enroll; the deployment manifest is wrong, not the code.
+`S256`이 빠져 있으면 MCP server는 이 IdP에 대해 deploy를 거절합니다. PKCE에는 degraded mode가 없습니다. enrollment path가 *둘 다* advertise되지 않았고 pre-registered `client_id`도 없다면 enroll할 수 없습니다. 이 경우 deployment manifest가 잘못된 것이지 code가 잘못된 것이 아닙니다.
 
 ### RFC 9728 (recap) — Protected Resource Metadata
 
-Lesson 16 covered RFC 9728. The delta in production: this document is the only place a client looks to find the authorization servers trusted by *this* MCP server. A single MCP server may accept tokens from multiple IdPs (one for staff, one for partners). RFC 9728 declares that set; RFC 8414 documents what each IdP supports.
+Lesson 16에서 RFC 9728을 다뤘습니다. production에서의 차이는 이 document가 client가 *이* MCP server가 신뢰하는 authorization server를 찾는 유일한 위치라는 점입니다. 단일 MCP server가 여러 IdP의 token을 받을 수 있습니다(staff용 하나, partner용 하나). RFC 9728은 그 집합을 선언하고, RFC 8414는 각 IdP가 무엇을 지원하는지 문서화합니다.
 
 ```json
 {
@@ -78,9 +78,9 @@ Lesson 16 covered RFC 9728. The delta in production: this document is the only p
 
 ### Client ID Metadata Documents (the recommended default)
 
-CIMD inverts registration from *push* to *pull*. Instead of asking the authorization server to mint a `client_id`, the client uses an HTTPS URL it controls **as** its `client_id`. The URL resolves to a JSON metadata document; the authorization server fetches it on demand during the OAuth flow. Trust is rooted in DNS: if the server operator trusts `app.example.com`, it trusts the client served from `https://app.example.com/client.json`. No registration round-trip, no `client_id` namespace to exhaust, no per-server state to keep in sync.
+CIMD는 registration을 *push*에서 *pull*로 뒤집습니다. authorization server에게 `client_id`를 mint해 달라고 요청하는 대신, client는 자신이 control하는 HTTPS URL을 `client_id` **로** 사용합니다. URL은 JSON metadata document로 resolve되고, authorization server는 OAuth flow 중 필요할 때 이를 fetch합니다. Trust는 DNS에 root를 둡니다. server operator가 `app.example.com`을 신뢰한다면 `https://app.example.com/client.json`에서 served되는 client를 신뢰합니다. registration round-trip이 없고, 고갈될 `client_id` namespace가 없으며, server별 state를 동기화할 필요가 없습니다.
 
-The metadata document the client hosts:
+client가 host하는 metadata document:
 
 ```json
 {
@@ -94,18 +94,18 @@ The metadata document the client hosts:
 }
 ```
 
-The `client_id` value in the document **MUST** equal the URL it is served from (the authorization server verifies this; mismatches are rejected). The authorization server advertises support with `client_id_metadata_document_supported: true` in its RFC 8414 metadata.
+document의 `client_id` 값은 served되는 URL과 같아야 **MUST** 합니다. authorization server가 이를 verify하고 mismatch를 reject합니다. authorization server는 RFC 8414 metadata에서 `client_id_metadata_document_supported: true`로 지원을 advertise합니다.
 
-Two security facts the spec is blunt about:
+스펙이 분명히 말하는 security fact 두 가지:
 
-- **SSRF.** The authorization server fetches an attacker-supplied URL. It must defend against server-side request forgery (no fetches to internal/admin endpoints).
-- **localhost impersonation.** CIMD alone cannot stop a local attacker from claiming a legitimate client's metadata URL and binding any `localhost` redirect. The authorization server **MUST** clearly display the redirect URI hostname during consent and **SHOULD** warn on `localhost`-only redirects.
+- **SSRF.** authorization server가 attacker-supplied URL을 fetch합니다. server-side request forgery를 방어해야 합니다(internal/admin endpoint로 fetch 금지).
+- **localhost impersonation.** CIMD만으로는 local attacker가 legitimate client's metadata URL을 claim하고 임의의 `localhost` redirect를 bind하는 것을 막을 수 없습니다. authorization server는 consent 중 redirect URI hostname을 명확히 표시해야 **MUST** 하며, `localhost`-only redirect에 warn해야 **SHOULD** 합니다.
 
-Because CIMD needs no server-side state, there is no registrar to stand up the way DCR requires. The client side is read-only: serve your metadata document from a static HTTPS endpoint and let the authorization server pull it.
+CIMD는 server-side state가 필요 없으므로 DCR처럼 registrar를 세울 필요가 없습니다. client side는 read-only입니다. static HTTPS endpoint에서 metadata document를 serve하고 authorization server가 pull하게 두세요.
 
 ### RFC 7591 — Dynamic Client Registration (fallback / backwards compatibility)
 
-DCR is now a `MAY`, kept for backwards compatibility with pre-2025-11-25 deployments and IdPs that do not yet support CIMD. Without it (and without CIMD or pre-registration), every MCP client (Cursor, Claude Desktop, a custom agent) needs an out-of-band exchange with the IdP admin. With DCR, the client posts:
+DCR은 이제 `MAY`이며, 2025-11-25 이전 deployment 및 아직 CIMD를 지원하지 않는 IdP와의 backwards compatibility를 위해 유지됩니다. DCR이 없고 CIMD나 pre-registration도 없으면 모든 MCP client(Cursor, Claude Desktop, custom agent)는 IdP admin과 out-of-band exchange가 필요합니다. DCR을 쓰면 client는 다음을 post합니다.
 
 ```json
 POST /register
@@ -123,7 +123,7 @@ Content-Type: application/json
 }
 ```
 
-The server responds with `client_id` and a `registration_access_token` for later updates:
+server는 `client_id`와 나중 update에 쓸 `registration_access_token`을 응답합니다.
 
 ```json
 {
@@ -136,63 +136,63 @@ The server responds with `client_id` and a `registration_access_token` for later
 }
 ```
 
-`token_endpoint_auth_method: none` is the right default for MCP clients that run on the user's device. They get a `client_id` only — no `client_secret` to exfiltrate. PKCE provides the proof-of-possession that public clients need.
+`token_endpoint_auth_method: none`은 사용자 device에서 실행되는 MCP client의 올바른 기본값입니다. 이들은 `client_id`만 받고 exfiltrate될 `client_secret`은 받지 않습니다. PKCE가 public client에 필요한 proof-of-possession을 제공합니다.
 
-Three production pitfalls:
+production pitfall 세 가지:
 
-- The registration endpoint must rate-limit by source IP. Without that, a hostile actor scripts millions of fake registrations and exhausts the `client_id` namespace. Run a rate-limit check before the registrar handles the request.
-- `software_statement` (a signed JWT vouching for the client) is required by some enterprise IdPs. The lesson's mock skips it; production wires a verification step that rejects unsigned registrations from anything other than localhost redirect URIs.
-- The `registration_access_token` must be stored as a hash, not plaintext. Theft of this token means the attacker can rewrite the client's redirect URIs.
+- registration endpoint는 source IP로 rate-limit해야 합니다. 그렇지 않으면 hostile actor가 수백만 개 fake registration을 script로 만들고 `client_id` namespace를 고갈시킵니다. registrar가 request를 처리하기 전에 rate-limit check를 실행하세요.
+- `software_statement`(client를 보증하는 signed JWT)가 일부 enterprise IdP에서 필요합니다. lesson의 mock은 이를 건너뜁니다. production은 localhost redirect URI가 아닌 모든 unsigned registration을 reject하는 verification step을 연결합니다.
+- `registration_access_token`은 plaintext가 아니라 hash로 저장해야 합니다. 이 token이 도난당하면 attacker가 client redirect URI를 rewrite할 수 있습니다.
 
 ### RFC 8707 (recap) — Resource Indicators
 
-Lesson 16 established the shape. The production rule: every token request includes `resource=<canonical-mcp-url>`, and the MCP server verifies `token.aud` matches its own resource URL on every call. The canonical URI is the *most specific* identifier for the server: it uses lowercase scheme and host, no fragment, and conventionally no trailing slash. The path component is **not** stripped by rule — the spec keeps it when it is needed to identify an individual MCP server. `https://mcp.example.com`, `https://mcp.example.com/mcp`, `https://mcp.example.com:8443`, and `https://mcp.example.com/server/mcp` are all valid canonical URIs. Pick one per server and pin `aud` to exactly that. (This lesson's mock uses bare-host audiences like `https://notes.example.com` for brevity; a deployment that co-hosts several MCP servers under one origin distinguishes them by path.)
+Lesson 16에서 shape를 세웠습니다. production rule은 다음입니다. 모든 token request는 `resource=<canonical-mcp-url>`을 포함하고, MCP server는 모든 call에서 `token.aud`가 자신의 resource URL과 일치하는지 verify합니다. canonical URI는 server의 *가장 구체적인* identifier입니다. lowercase scheme과 host를 사용하고 fragment가 없으며 convention상 trailing slash가 없습니다. path component는 rule로 strip되지 않습니다. individual MCP server를 식별하는 데 필요하면 spec은 path를 유지합니다. `https://mcp.example.com`, `https://mcp.example.com/mcp`, `https://mcp.example.com:8443`, `https://mcp.example.com/server/mcp`는 모두 valid canonical URI입니다. server마다 하나를 고르고 `aud`를 정확히 거기에 pin하세요. (이 lesson의 mock은 brevity를 위해 `https://notes.example.com` 같은 bare-host audience를 사용합니다. 하나의 origin에 여러 MCP server를 co-host하는 deployment는 path로 구분합니다.)
 
 ### RFC 7636 (recap) — PKCE
 
-PKCE is mandatory in OAuth 2.1. The lesson's authorization-code flow always carries `code_challenge` and `code_verifier`. The server rejects any token request without a verifier or with a verifier that does not hash to the stored challenge.
+PKCE는 OAuth 2.1에서 mandatory입니다. lesson의 authorization-code flow는 항상 `code_challenge`와 `code_verifier`를 운반합니다. server는 verifier가 없거나 verifier가 저장된 challenge로 hash되지 않는 token request를 reject합니다.
 
 ### MCP Spec 2025-11-25 Auth Profile
 
-The MCP spec (2025-11-25) is precise about what an MCP server's authorization layer must do:
+MCP spec(2025-11-25)은 MCP server의 authorization layer가 해야 할 일을 정확히 규정합니다.
 
-- Implement RFC 9728 protected-resource metadata, and provide its location either through the `WWW-Authenticate: Bearer resource_metadata="..."` header on a 401 **or** the well-known URI `/.well-known/oauth-protected-resource` (SEP-985 made the header optional with a well-known fallback). The metadata `authorization_servers` field **MUST** name at least one server.
-- Accept tokens only via `Authorization: Bearer ...` on **every** request — never in a query string, never validated only at session start.
-- Validate `aud`, `iss`, `exp`, and required scopes per request. The server **MUST** validate that the token was issued specifically for it (audience); a missing or mismatched `aud` is rejected, never treated as wildcard.
-- On 401/403, return `WWW-Authenticate: Bearer` carrying `error=...`, the `resource_metadata="<PRM-URL>"` parameter (the URL of the metadata document, *not* the bare resource), and `scope="..."` on `insufficient_scope` (403). Note: the parameter is `resource_metadata`, a discovery pointer — there is no `resource` parameter in the challenge.
-- Authorization-server discovery accepts **either** RFC 8414 OAuth metadata **or** OpenID Connect Discovery 1.0; clients must try both well-known suffixes in priority order.
-- The client (not the server) defends against **mix-up attacks**: it records the expected `issuer` before redirecting and validates the `iss` authorization-response parameter (RFC 9207) before redeeming the code. PKCE alone does not stop mix-up, because the client hands its `code_verifier` to whatever token endpoint it was steered to.
+- RFC 9728 protected-resource metadata를 구현하고, 401의 `WWW-Authenticate: Bearer resource_metadata="..."` header **또는** well-known URI `/.well-known/oauth-protected-resource`를 통해 위치를 제공합니다(SEP-985는 header를 optional로 만들고 well-known fallback을 둠). metadata `authorization_servers` field는 최소 하나의 server를 이름 붙여야 **MUST** 합니다.
+- **모든** request에서 `Authorization: Bearer ...`로만 token을 받습니다. query string에는 절대 넣지 않고, session start에서만 validate하지 않습니다.
+- request마다 `aud`, `iss`, `exp`, required scope를 validate합니다. server는 token이 자신을 위해 specifically issued되었는지(audience) validate해야 **MUST** 합니다. missing 또는 mismatched `aud`는 reject되며 wildcard로 취급되지 않습니다.
+- 401/403에서는 `error=...`, `resource_metadata="<PRM-URL>"` parameter(metadata document의 URL이지 bare resource가 아님), `insufficient_scope`(403)에서 `scope="..."`를 담은 `WWW-Authenticate: Bearer`를 반환합니다. 참고: parameter는 discovery pointer인 `resource_metadata`입니다. challenge에는 `resource` parameter가 없습니다.
+- Authorization-server discovery는 RFC 8414 OAuth metadata **또는** OpenID Connect Discovery 1.0을 받습니다. client는 두 well-known suffix를 priority order대로 시도해야 합니다.
+- **mix-up attack**은 server가 아니라 client가 방어합니다. client는 redirect 전 expected `issuer`를 record하고, code를 redeem하기 전에 `iss` authorization-response parameter(RFC 9207)를 validate합니다. PKCE만으로는 mix-up을 막지 못합니다. client가 steer된 token endpoint에 자기 `code_verifier`를 넘기기 때문입니다.
 
-The OAuth 2.1 draft is the substrate; RFC 8414/7591/8707/9728/9207 + RFC 7636 + CIMD are the surface; the MCP spec is the profile.
+OAuth 2.1 draft는 substrate입니다. RFC 8414/7591/8707/9728/9207 + RFC 7636 + CIMD가 surface입니다. MCP spec은 profile입니다.
 
 ### IdP capability matrix
 
-Not every IdP supports the full MCP profile. The matrix below documents factual capability statements as of the 2025-11-25 spec. It is a *deployment gate*, not a recommendation.
+모든 IdP가 full MCP profile을 지원하지는 않습니다. 아래 matrix는 2025-11-25 spec 기준의 factual capability statement를 문서화합니다. 이는 recommendation이 아니라 *deployment gate*입니다.
 
-CIMD shipped in the 2025-11-25 spec and the underlying OAuth draft was adopted only in October 2025, so vendor support is still arriving — treat "CIMD" below as "where it stands today, verify in your tenant," not a permanent statement.
+CIMD는 2025-11-25 spec에서 ship되었고 underlying OAuth draft는 2025년 10월에야 adopt되었으므로 vendor support는 아직 도착 중입니다. 아래의 "CIMD"는 permanent statement가 아니라 "현재 위치이며 tenant에서 verify하라"는 뜻으로 다루세요.
 
-| IdP category | AS metadata (8414/OIDC) | CIMD | RFC 7591 DCR | RFC 8707 resource | RFC 7636 S256 PKCE | Notes |
+| IdP 범주 | AS metadata(8414/OIDC) | CIMD | RFC 7591 DCR | RFC 8707 resource | RFC 7636 S256 PKCE | 참고 |
 |---|---|---|---|---|---|---|
-| Self-hosted (Keycloak) | yes | emerging | yes | yes (since 24.x) | yes | Reference IdP for the MCP profile in this lesson; full DCR path end-to-end, CIMD tracking the new spec. |
-| Enterprise SSO (Microsoft Entra ID) | yes | emerging | yes (premium tiers) | yes | yes | DCR availability differs by tenant tier; verify in target tenant before deploying. |
-| Enterprise SSO (Okta) | yes | emerging | yes (Okta CIC / Auth0) | yes | yes | DCR available on Auth0 (now Okta CIC); classic Okta orgs require admin pre-registration. |
-| Social login IdPs (generic) | varies | no | rarely | rarely | yes | Most social IdPs treat clients as static partners; no self-service enrollment. Use as identity source only, layer your own MCP-aware authorization server on top. |
-| Custom / homegrown | depends | depends | depends | depends | depends | If you ship your own, ship the full profile and prefer CIMD. Skipping PKCE or audience binding breaks the MCP auth contract. |
+| Self-hosted (Keycloak) | yes | emerging | yes | yes (since 24.x) | yes | 이 lesson의 MCP profile reference IdP. full DCR path end-to-end, CIMD는 새 spec을 추적 중. |
+| Enterprise SSO (Microsoft Entra ID) | yes | emerging | yes (premium tiers) | yes | yes | DCR availability는 tenant tier마다 다릅니다. deploy 전 target tenant에서 verify하세요. |
+| Enterprise SSO (Okta) | yes | emerging | yes (Okta CIC / Auth0) | yes | yes | DCR은 Auth0(현재 Okta CIC)에서 사용 가능. classic Okta org는 admin pre-registration 필요. |
+| Social login IdPs (generic) | varies | no | rarely | rarely | yes | 대부분 social IdP는 client를 static partner로 취급합니다. identity source로만 쓰고 MCP-aware authorization server를 위에 layer하세요. |
+| Custom / homegrown | depends | depends | depends | depends | depends | 직접 ship한다면 full profile을 ship하고 CIMD를 선호하세요. PKCE나 audience binding을 건너뛰면 MCP auth contract가 깨집니다. |
 
-Refusal rule for the deployment manifest: if the chosen IdP does not list `S256` in `code_challenge_methods_supported`, the MCP server refuses to start — PKCE has no degraded mode. Enrollment is a softer gate: you need *one* working path (a pre-registered `client_id`, `client_id_metadata_document_supported: true`, or a `registration_endpoint`). DCR's absence alone is no longer a refusal trigger, because CIMD or pre-registration can cover it.
+deployment manifest의 refusal rule: 선택한 IdP가 `code_challenge_methods_supported`에 `S256`을 list하지 않으면 MCP server는 start를 거절합니다. PKCE에는 degraded mode가 없습니다. Enrollment는 더 soft한 gate입니다. working path 하나가 필요합니다(pre-registered `client_id`, `client_id_metadata_document_supported: true`, 또는 `registration_endpoint`). CIMD나 pre-registration이 대신할 수 있으므로 DCR 부재만으로는 더 이상 refusal trigger가 아닙니다.
 
 ### JWKS refresh pattern (rotate at the AS, refresh at the resource server)
 
-Keep two verbs separate, because conflating them is a real production bug:
+두 verb를 분리하세요. 혼동하면 실제 production bug가 됩니다.
 
-- **Rotate** is what the *authorization server* does: mint a new signing key, publish it in the JWKS, retire the old one later. The resource server has no part in this and cannot do it — it does not hold the IdP's private keys.
-- **Refresh** is what the *resource server* does: re-`GET` the published JWKS into its cache. That is the only JWKS action a resource server ever performs.
+- **Rotate**는 *authorization server*가 하는 일입니다. 새 signing key를 mint하고 JWKS에 게시한 뒤 나중에 old key를 retire합니다. resource server는 이 작업에 관여하지 않고 할 수도 없습니다. IdP의 private key를 들고 있지 않기 때문입니다.
+- **Refresh**는 *resource server*가 하는 일입니다. published JWKS를 다시 `GET`해서 cache에 넣습니다. resource server가 JWKS에 대해 수행하는 유일한 action입니다.
 
-The production failure mode is a stale cache. Solve it with a scheduled refresh job plus a key-value cache. The resource server runs a job (cron, timer, whatever your runtime offers) that, on a fixed interval, fetches `<issuer>/.well-known/jwks.json` and overwrites `cache[issuer] = {keys, fetched_at}`. The validator reads from that cache. A token whose `kid` is missing from the cache triggers **one** synchronous refresh as a fall-back, then re-checks. This handles two cases at once: the scheduled refresh, and key-overlap windows where a token signed by a brand-new key arrives before the next scheduled refresh.
+production failure mode는 stale cache입니다. scheduled refresh job과 key-value cache로 해결하세요. resource server는 fixed interval로 `<issuer>/.well-known/jwks.json`을 fetch하고 `cache[issuer] = {keys, fetched_at}`를 overwrite하는 job(cron, timer, runtime이 제공하는 무엇이든)을 실행합니다. validator는 그 cache를 읽습니다. token의 `kid`가 cache에 없으면 fall-back으로 **한 번** synchronous refresh를 trigger한 뒤 다시 check합니다. 이렇게 하면 scheduled refresh와, 새 key로 서명된 token이 다음 scheduled refresh 전에 도착하는 key-overlap window를 동시에 처리합니다.
 
-The fall-back **must be a re-fetch, never a rotate**. If you wire the cache-miss path to a rotate-and-mint, two things break: (1) minting a fresh key produces a `kid` that *still* does not match the token, so the lookup fails anyway; and (2) an attacker who sprays tokens with random `kid` values forces an unbounded series of key creations — a self-inflicted DoS. A re-fetch is idempotent, so a bogus `kid` costs at most one wasted fetch.
+fall-back은 **반드시 re-fetch여야 하며 rotate가 아니어야 합니다**. cache-miss path를 rotate-and-mint에 연결하면 두 가지가 깨집니다. (1) fresh key를 mint해도 token과 맞는 `kid`가 아니므로 lookup은 어차피 실패합니다. (2) random `kid` 값을 가진 token을 뿌리는 attacker가 무제한 key creation을 강제합니다. self-inflicted DoS입니다. re-fetch는 idempotent이므로 bogus `kid`는 최대 한 번의 wasted fetch만 비용으로 듭니다.
 
-The cache shape:
+cache shape:
 
 ```json
 {
@@ -206,11 +206,11 @@ The cache shape:
 }
 ```
 
-Two keys at once is the steady state. Authorization servers rotate by introducing the next key (`k_2026_04`) before retiring the previous (`k_2026_03`), so tokens issued under the old key remain valid until they expire. The cache holds the union; the validator picks by `kid`.
+steady state에서는 key가 두 개입니다. Authorization server는 previous key(`k_2026_03`)를 retire하기 전에 next key(`k_2026_04`)를 introduce하는 방식으로 rotate하므로 old key로 발급된 token은 expire될 때까지 valid합니다. cache는 union을 보관하고 validator는 `kid`로 선택합니다.
 
 ### The validation routine
 
-The MCP server runs validation before dispatching any tool. The shape `code/main.py` uses:
+MCP server는 tool dispatch 전 validation을 실행합니다. `code/main.py`가 쓰는 shape:
 
 ```python
 result = server.validate(bearer_token, required_scope="mcp:tools.invoke")
@@ -218,108 +218,108 @@ if not result["valid"]:
     return {"status": result["status"], "WWW-Authenticate": result["www_authenticate"]}
 ```
 
-`validate` decodes the JWT, resolves the signing key from the JWKS cache (refreshing once on a miss), verifies the signature, then checks `iss` against the allow-list, `aud` against this server's canonical resource, `exp`, and the required scope — returning a `WWW-Authenticate` challenge on the first failure. Keeping it a single routine on the resource server means every entry point (every tool call, every transport) goes through the same checks; there is no path that reaches a tool without validating first.
+`validate`는 JWT를 decode하고, JWKS cache에서 signing key를 resolve하며(miss 시 한 번 refresh), signature를 verify한 뒤, `iss`를 allow-list와, `aud`를 이 server의 canonical resource와, `exp`와 required scope를 check합니다. 첫 failure에서 `WWW-Authenticate` challenge를 반환합니다. 이것을 resource server의 단일 routine으로 유지하면 모든 entry point(모든 tool call, 모든 transport)가 같은 check를 거칩니다. validation 없이 tool에 도달하는 path가 없습니다.
 
 ### Audience-replay walkthrough (access-token privilege restriction)
 
-Server A (`notes.example.com`) and Server B (`tasks.example.com`) both register against the same authorization server. Server A is compromised. The attacker takes a user's notes token and replays it against Server B.
+Server A(`notes.example.com`)와 Server B(`tasks.example.com`)가 같은 authorization server에 register되어 있습니다. Server A가 compromise되었습니다. attacker가 사용자의 notes token을 가져와 Server B에 replay합니다.
 
-Server B's validator:
+Server B의 validator:
 
-1. Decode JWT, fetch JWKS by `kid`, verify signature.
-2. Check `iss` against its protected-resource metadata's `authorization_servers`. (Pass — same IdP.)
-3. Check `aud == "https://tasks.example.com"`. (Fail — token's `aud` is `https://notes.example.com`.)
-4. Return 401 with `WWW-Authenticate: Bearer error="invalid_token", error_description="audience mismatch", resource_metadata="https://tasks.example.com/.well-known/oauth-protected-resource"`.
+1. JWT를 decode하고 `kid`로 JWKS를 fetch해 signature를 verify합니다.
+2. `iss`를 protected-resource metadata의 `authorization_servers`와 check합니다. (Pass — 같은 IdP.)
+3. `aud == "https://tasks.example.com"`를 check합니다. (Fail — token의 `aud`는 `https://notes.example.com`.)
+4. 401과 `WWW-Authenticate: Bearer error="invalid_token", error_description="audience mismatch", resource_metadata="https://tasks.example.com/.well-known/oauth-protected-resource"`를 반환합니다.
 
-The audience claim is the only defense against this attack at the protocol layer. Skipping it for performance is the most common production mistake; the validator must run on every request, not just at session start. The spec calls this **access-token privilege restriction**: an MCP server `MUST` reject any token that does not name it in the audience.
+audience claim은 protocol layer에서 이 attack에 대한 유일한 defense입니다. performance 때문에 건너뛰는 것이 가장 흔한 production mistake입니다. validator는 session start에서만이 아니라 모든 request에서 실행되어야 합니다. 스펙은 이를 **access-token privilege restriction**이라고 부릅니다. MCP server는 audience에 자신을 이름 붙이지 않은 token을 반드시 reject해야 **MUST** 합니다.
 
-> **Naming note.** The spec reserves the term *confused deputy* for a related-but-distinct problem: an MCP server acting as an OAuth **proxy** to a third-party API, using a static client ID, that forwards a token without obtaining per-client user consent. Audience binding fixes the replay above; the confused-deputy fix is per-client consent **plus** never passing the inbound token through to upstream APIs (the MCP server `MUST` get its own separate upstream token).
+> **Naming note.** spec은 *confused deputy*라는 용어를 관련 있지만 구별되는 문제에 예약합니다. MCP server가 static client ID를 사용해 third-party API에 대한 OAuth **proxy**로 동작하면서 per-client user consent 없이 token을 forward하는 문제입니다. Audience binding은 위 replay를 고칩니다. confused-deputy fix는 per-client consent **plus** inbound token을 upstream API로 pass through하지 않는 것입니다(MCP server는 자신의 별도 upstream token을 받아야 **MUST** 합니다).
 
 ### Mix-up attacks (a client-side defense the server cannot provide)
 
-A client talks to many authorization servers over its life. A malicious AS can try to make the client redeem an honest AS's authorization code at the attacker's token endpoint. Audience binding does not help here — the attack happens before any token exists. The defense lives in the client (RFC 9207):
+client는 생애 동안 많은 authorization server와 대화합니다. 악의적 AS는 client가 honest AS의 authorization code를 attacker의 token endpoint에서 redeem하게 만들 수 있습니다. audience binding은 여기서 도움이 되지 않습니다. attack은 token이 존재하기 전에 일어납니다. defense는 client에 있습니다(RFC 9207).
 
-1. Before redirecting, the client records the expected `issuer` from the validated AS metadata.
-2. On the authorization response, the client compares the returned `iss` parameter against that recorded issuer (simple string comparison, no normalization) before sending the code anywhere.
-3. Mismatch (or `iss` absent when the AS advertised `authorization_response_iss_parameter_supported`) → reject, and do not even display the `error` fields.
+1. redirect 전 client는 validated AS metadata에서 expected `issuer`를 record합니다.
+2. authorization response에서 client는 반환된 `iss` parameter를 record된 issuer와 비교합니다(normalization 없이 simple string comparison). code를 어디에도 보내기 전에 수행합니다.
+3. mismatch(또는 AS가 `authorization_response_iss_parameter_supported`를 advertise했는데 `iss`가 absent) → reject하고 `error` field도 표시하지 않습니다.
 
-PKCE alone does not stop mix-up, because the client hands its `code_verifier` to whatever token endpoint it was steered to. This is why the spec records the issuer per-request alongside the PKCE verifier and `state`.
+PKCE만으로는 mix-up을 막지 못합니다. client가 steer된 token endpoint에 자기 `code_verifier`를 넘기기 때문입니다. 그래서 spec은 issuer를 PKCE verifier 및 `state`와 함께 request별로 record합니다.
 
 ### Failure modes
 
-- **Stale JWKS.** The validator rejects valid tokens after the AS rotates a key. The fix is the cron-refresh + cache-miss-refetch pattern above. Never cache JWKS without a refresh job.
-- **Rotate-as-fall-back.** Wiring the cache-miss path to a rotate-and-mint instead of a re-fetch is a real bug: it never produces the missing `kid`, and it turns attacker-controlled `kid` values into a key-creation DoS. The fall-back must be the idempotent `refresh-jwks`.
-- **Missing `aud` claim.** Some IdPs default to omitting `aud` unless `resource` is present in the token request. The validator must reject tokens with missing `aud`, not treat absence as wildcard.
-- **Mix-up via missing `iss` check.** A client that does not validate the RFC 9207 `iss` authorization-response parameter against the issuer it recorded before redirecting can be steered into redeeming an honest AS's code at an attacker's token endpoint. This is a client-side failure; the resource server cannot compensate for it.
-- **Scope upgrade race.** Two concurrent step-up flows for the same user can both succeed and produce two access tokens with different scopes. The validator must use the token presented on the request, not look up "the user's current scope" — that creates a TOCTOU window.
-- **Registration token theft.** A leaked `registration_access_token` lets the attacker rewrite redirect URIs. Hash these at rest; require the client to present the cleartext on every update; rotate on suspicion.
-- **`iss` not pinned.** A validator that accepts any `iss` lets an attacker stand up their own authorization server, register a client for the target audience, and issue tokens. The protected-resource metadata's `authorization_servers` list is the allow-list; enforce it.
+- **Stale JWKS.** AS가 key를 rotate한 뒤 validator가 valid token을 reject합니다. fix는 위의 cron-refresh + cache-miss-refetch pattern입니다. refresh job 없이 JWKS를 cache하지 마세요.
+- **Rotate-as-fall-back.** cache-miss path를 re-fetch가 아니라 rotate-and-mint에 연결하는 것은 실제 bug입니다. missing `kid`를 만들지 못하고 attacker-controlled `kid` 값을 key-creation DoS로 바꿉니다. fall-back은 idempotent `refresh-jwks`여야 합니다.
+- **Missing `aud` claim.** 일부 IdP는 token request에 `resource`가 없으면 기본적으로 `aud`를 omit합니다. validator는 missing `aud` token을 reject해야 하며 absence를 wildcard로 취급하면 안 됩니다.
+- **Mix-up via missing `iss` check.** redirect 전에 record한 issuer와 RFC 9207 `iss` authorization-response parameter를 validate하지 않는 client는 honest AS의 code를 attacker의 token endpoint에서 redeem하도록 steer될 수 있습니다. 이는 client-side failure입니다. resource server는 보상할 수 없습니다.
+- **Scope upgrade race.** 같은 user에 대한 두 concurrent step-up flow가 모두 성공해 서로 다른 scope의 access token 두 개를 만들 수 있습니다. validator는 request에 제시된 token을 사용해야지 "user의 current scope"를 lookup하면 안 됩니다. 그렇게 하면 TOCTOU window가 생깁니다.
+- **Registration token theft.** leaked `registration_access_token`은 attacker가 redirect URI를 rewrite하게 합니다. 이를 at rest에서 hash하고, 모든 update에서 cleartext 제시를 요구하며, 의심 시 rotate하세요.
+- **`iss` not pinned.** 어떤 `iss`든 받아들이는 validator는 attacker가 자기 authorization server를 세우고 target audience용 client를 등록해 token을 issue하게 합니다. protected-resource metadata의 `authorization_servers` list가 allow-list입니다. enforce하세요.
 
-## Use It
+## 사용하기
 
-`code/main.py` walks the full production flow with stdlib Python and three roles — `AuthorizationServer`, `ResourceServer`, and `Client`. The flow:
+`code/main.py`는 stdlib Python과 세 role(`AuthorizationServer`, `ResourceServer`, `Client`)로 full production flow를 따라갑니다. flow:
 
-1. Authorization server publishes RFC 8414 metadata at `/.well-known/oauth-authorization-server`.
-2. MCP client calls the metadata endpoint and checks its enrollment options (`client_id_metadata_document_supported` for CIMD, `registration_endpoint` for DCR) and `S256` PKCE support.
-3. The walk-through takes the DCR fallback path: the client posts to `/register` (RFC 7591) and receives a `client_id`. (A CIMD client would instead present its own HTTPS `client_id` URL and skip this step.)
-4. MCP client runs PKCE-protected authorization code flow (RFC 7636) with `resource` indicator (RFC 8707).
-5. MCP client calls a tool on the MCP server with `Authorization: Bearer ...`.
-6. MCP server runs `validate`, resolving the signing key from the JWKS cache.
-7. The IdP rotates a key; the scheduled refresh re-pulls the JWKS into the cache.
-8. The next call validates against the refreshed keys without restart, and the previous token still validates during the overlap window.
-9. An audience-replay attempt against a different MCP resource gets 401 with `audience mismatch` and a `resource_metadata` pointer.
+1. Authorization server가 `/.well-known/oauth-authorization-server`에 RFC 8414 metadata를 게시합니다.
+2. MCP client가 metadata endpoint를 호출하고 enrollment option(`client_id_metadata_document_supported` for CIMD, `registration_endpoint` for DCR)과 `S256` PKCE support를 check합니다.
+3. walk-through는 DCR fallback path를 택합니다. client가 `/register`(RFC 7591)에 post하고 `client_id`를 받습니다. (CIMD client라면 대신 자신의 HTTPS `client_id` URL을 제시하고 이 step을 건너뜁니다.)
+4. MCP client가 `resource` indicator(RFC 8707)가 있는 PKCE-protected authorization code flow(RFC 7636)를 실행합니다.
+5. MCP client가 `Authorization: Bearer ...`로 MCP server의 tool을 호출합니다.
+6. MCP server가 JWKS cache에서 signing key를 resolve하며 `validate`를 실행합니다.
+7. IdP가 key를 rotate합니다. scheduled refresh가 JWKS를 cache로 다시 pull합니다.
+8. 다음 call은 restart 없이 refreshed key로 validate되고, 이전 token도 overlap window 동안 계속 validate됩니다.
+9. 다른 MCP resource에 대한 audience-replay attempt는 `audience mismatch`와 `resource_metadata` pointer가 있는 401을 받습니다.
 
-The JWT here uses HS256 with a shared secret (so the lesson runs on stdlib only). Production uses RS256 or EdDSA with the JWKS pattern above; the validation logic is otherwise identical. Because the IdP and resource server live in one process, `refresh_jwks` reads the authorization server's key list directly; over the wire it is an HTTP `GET` to `jwks_uri`.
+여기서 JWT는 HS256과 shared secret을 사용합니다(lesson이 stdlib only로 실행되도록). Production은 위 JWKS pattern과 함께 RS256 또는 EdDSA를 사용합니다. validation logic은 otherwise identical입니다. IdP와 resource server가 한 process 안에 있으므로 `refresh_jwks`는 authorization server의 key list를 직접 읽습니다. wire에서는 `jwks_uri`에 대한 HTTP `GET`입니다.
 
-## Ship It
+## 산출물
 
-This lesson produces `outputs/skill-mcp-auth.md`. Given an MCP server config and an IdP capability set, the skill emits the auth surface to stand up — the protected-resource metadata, the enrollment path to use (CIMD, pre-registration, or DCR fallback), the JWKS refresh schedule, the scope mapping, and the refusal rules to apply when the IdP does not support the full RFC profile.
+이 lesson은 `outputs/skill-mcp-auth.md`를 만듭니다. MCP server config와 IdP capability set이 주어지면 이 skill은 세워야 할 auth surface를 emit합니다. protected-resource metadata, 사용할 enrollment path(CIMD, pre-registration, DCR fallback), JWKS refresh schedule, scope mapping, IdP가 full RFC profile을 지원하지 않을 때 적용할 refusal rule을 포함합니다.
 
-## Exercises
+## 연습 문제
 
-1. Run `code/main.py`. Trace the flow. Note how the IdP rotates a key in step 6, the scheduled `refresh_jwks` re-pulls the published set, and both the old token (overlap window) and a fresh token validate without restart.
+1. `code/main.py`를 실행하세요. flow를 trace하세요. step 6에서 IdP가 key를 rotate하고, scheduled `refresh_jwks`가 published set을 다시 pull하며, old token(overlap window)과 fresh token이 restart 없이 모두 validate되는 방식을 기록하세요.
 
-2. Add a new IdP to the protected-resource metadata's `authorization_servers` list. Issue a token signed by the new IdP and confirm the validator accepts it. Issue a token signed by an unlisted IdP and confirm the validator rejects with `WWW-Authenticate: Bearer error="invalid_token", error_description="iss not allowed"`.
+2. protected-resource metadata의 `authorization_servers` list에 새 IdP를 추가하세요. 새 IdP가 서명한 token을 issue하고 validator가 accept하는지 확인하세요. list에 없는 IdP가 서명한 token을 issue하고 validator가 `WWW-Authenticate: Bearer error="invalid_token", error_description="iss not allowed"`로 reject하는지 확인하세요.
 
-3. Add a rate-limit check to `register_client` that runs before the registrar accepts a request. Use a token-bucket per source IP held in a small dict keyed by IP.
+3. registrar가 request를 accept하기 전에 실행되는 rate-limit check를 `register_client`에 추가하세요. source IP를 key로 하는 작은 dict에 token-bucket을 보관하세요.
 
-4. Read RFC 7591 and identify two fields the lesson's `/register` handler does not validate. Add the validation. (Hint: `software_statement` and `redirect_uris` URI scheme.)
+4. RFC 7591을 읽고 lesson의 `/register` handler가 validate하지 않는 field 두 개를 식별하세요. validation을 추가하세요. (힌트: `software_statement`와 `redirect_uris` URI scheme.)
 
-5. Add a Client ID Metadata Document path. Serve a `client.json` whose `client_id` equals its own URL, and have the authorization server fetch and verify it (reject if `client_id` ≠ URL). Confirm a CIMD client enrolls with no `register_client` call.
+5. Client ID Metadata Document path를 추가하세요. `client_id`가 자기 URL과 같은 `client.json`을 serve하고, authorization server가 fetch하고 verify하게 하세요(`client_id` ≠ URL이면 reject). CIMD client가 `register_client` call 없이 enroll되는지 확인하세요.
 
-6. Prove the DoS fix. Send the validator a token with a random `kid` and confirm `refresh_jwks` runs at most once and the authorization server's key count does not grow. Then deliberately re-wire the fall-back to a rotate-and-mint and watch the key count climb per bogus token — restore the re-fetch afterward.
+6. DoS fix를 증명하세요. random `kid`가 있는 token을 validator에 보내고 `refresh_jwks`가 최대 한 번 실행되며 authorization server의 key count가 늘지 않는지 확인하세요. 그런 다음 일부러 fall-back을 rotate-and-mint로 다시 wire하고 bogus token마다 key count가 증가하는 것을 관찰하세요. 이후 re-fetch를 복원하세요.
 
-7. Implement the client-side RFC 9207 `iss` check from the mix-up section: record the expected issuer before the authorization request, then reject an authorization response whose `iss` does not match.
+7. mix-up section의 client-side RFC 9207 `iss` check를 구현하세요. authorization request 전에 expected issuer를 record한 다음, `iss`가 일치하지 않는 authorization response를 reject하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|----------------|------------------------|
+| 용어 | 사람들이 하는 말 | 실제 의미 |
+|------|----------------|-----------|
 | ASM | "OAuth metadata document" | RFC 8414 `/.well-known/oauth-authorization-server` JSON |
-| CIMD | "Client metadata URL" | Client ID Metadata Document — an HTTPS URL used as the `client_id`; the AS pulls the JSON. Recommended default since 2025-11-25 |
-| DCR | "Self-service client registration" | RFC 7591 `POST /register` flow; demoted to a `MAY` fallback in 2025-11-25 |
-| JWKS | "Public keys for JWT validation" | JSON Web Key Set, fetched from `jwks_uri`, indexed by `kid` |
-| Rotate vs refresh | "Updating the keys" | *Rotate* = AS mints/retires signing keys; *refresh* = resource server re-fetches the published set. Resource servers only ever refresh |
-| Resource indicator | "Audience parameter" | RFC 8707 `resource` parameter pinning the token to one server |
-| `aud` claim | "Audience" | JWT claim the validator compares against the canonical resource URL |
-| Audience replay | "Token replay" | Token issued for Server A presented to Server B; defended by audience validation (spec: access-token privilege restriction) |
-| Confused deputy | "Proxy token misuse" | An MCP proxy with a static client ID forwarding a token without per-client consent; distinct from audience replay |
-| Mix-up attack | "Wrong token endpoint" | Client steered to redeem an honest AS's code at an attacker's endpoint; defended client-side via RFC 9207 `iss` |
-| `iss` allow-list | "Trusted authorization servers" | The set named in protected-resource metadata's `authorization_servers` |
-| `resource_metadata` | "Where to find the PRM doc" | `WWW-Authenticate` parameter naming the RFC 9728 metadata URL on a 401/403 |
-| Public client | "Native or browser client" | OAuth client with no `client_secret`; PKCE compensates |
-| `WWW-Authenticate` | "401/403 response header" | Carries `Bearer error=...` directives that drive client recovery |
+| CIMD | "Client metadata URL" | Client ID Metadata Document. `client_id`로 쓰이는 HTTPS URL이며 AS가 JSON을 pull함. 2025-11-25 이후 권장 기본값 |
+| DCR | "Self-service client registration" | RFC 7591 `POST /register` flow. 2025-11-25에서 `MAY` fallback으로 낮아짐 |
+| JWKS | "Public keys for JWT validation" | `jwks_uri`에서 fetch하고 `kid`로 index하는 JSON Web Key Set |
+| Rotate vs refresh | "Updating the keys" | *Rotate* = AS가 signing key를 mint/retire. *refresh* = resource server가 published set을 re-fetch. resource server는 refresh만 함 |
+| Resource indicator | "Audience parameter" | token을 한 server에 pin하는 RFC 8707 `resource` parameter |
+| `aud` claim | "Audience" | validator가 canonical resource URL과 비교하는 JWT claim |
+| Audience replay | "Token replay" | Server A용 token을 Server B에 제시. audience validation으로 방어(spec: access-token privilege restriction) |
+| Confused deputy | "Proxy token misuse" | static client ID가 있는 MCP proxy가 per-client consent 없이 token을 forward하는 문제. audience replay와 구별됨 |
+| Mix-up attack | "Wrong token endpoint" | client가 honest AS의 code를 attacker endpoint에서 redeem하도록 steer됨. RFC 9207 `iss`로 client-side 방어 |
+| `iss` allow-list | "Trusted authorization servers" | protected-resource metadata의 `authorization_servers`에 이름 붙은 집합 |
+| `resource_metadata` | "Where to find the PRM doc" | 401/403에서 RFC 9728 metadata URL을 이름 붙이는 `WWW-Authenticate` parameter |
+| Public client | "Native or browser client" | `client_secret`이 없는 OAuth client. PKCE가 보완 |
+| `WWW-Authenticate` | "401/403 response header" | client recovery를 drive하는 `Bearer error=...` directive를 운반 |
 
-## Further Reading
+## 더 읽을거리
 
-- [MCP — Authorization spec (2025-11-25)](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization) — the MCP auth profile this lesson implements
-- [MCP blog — One Year of MCP: November 2025 Spec Release](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/) — what changed in 2025-11-25 (CIMD, XAA, DCR demotion)
-- [Aaron Parecki — Client Registration in the November 2025 MCP Authorization Spec](https://aaronparecki.com/2025/11/25/1/mcp-authorization-spec-update) — the CIMD-over-DCR rationale
+- [MCP — Authorization spec (2025-11-25)](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization) — 이 lesson이 구현하는 MCP auth profile
+- [MCP blog — One Year of MCP: November 2025 Spec Release](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/) — 2025-11-25 변경 사항(CIMD, XAA, DCR demotion)
+- [Aaron Parecki — Client Registration in the November 2025 MCP Authorization Spec](https://aaronparecki.com/2025/11/25/1/mcp-authorization-spec-update) — CIMD-over-DCR rationale
 - [OAuth Client ID Metadata Document (draft-ietf-oauth-client-id-metadata-document-00)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00) — CIMD
 - [RFC 8414 — OAuth 2.0 Authorization Server Metadata](https://datatracker.ietf.org/doc/html/rfc8414) — discovery contract
-- [RFC 7591 — OAuth 2.0 Dynamic Client Registration Protocol](https://datatracker.ietf.org/doc/html/rfc7591) — DCR (fallback path)
+- [RFC 7591 — OAuth 2.0 Dynamic Client Registration Protocol](https://datatracker.ietf.org/doc/html/rfc7591) — DCR(fallback path)
 - [RFC 7636 — Proof Key for Code Exchange (PKCE)](https://datatracker.ietf.org/doc/html/rfc7636) — public-client proof-of-possession
 - [RFC 8707 — Resource Indicators for OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc8707) — audience pinning
 - [RFC 9728 — OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728) — resource server discovery
-- [RFC 9207 — OAuth 2.0 Authorization Server Issuer Identification](https://datatracker.ietf.org/doc/html/rfc9207) — the `iss` parameter that defends against mix-up attacks
-- [OAuth 2.1 draft](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) — the consolidated OAuth substrate
+- [RFC 9207 — OAuth 2.0 Authorization Server Issuer Identification](https://datatracker.ietf.org/doc/html/rfc9207) — mix-up attack을 방어하는 `iss` parameter
+- [OAuth 2.1 draft](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) — 통합 OAuth substrate

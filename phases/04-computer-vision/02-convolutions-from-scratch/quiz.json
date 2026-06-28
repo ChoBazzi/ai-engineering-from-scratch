@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "You feed a 224x224 RGB image to a conv with kernel_size=3, stride=1, padding=0. What is the output spatial size?",
+      "question": "224x224 RGB 이미지를 kernel_size=3, stride=1, padding=0인 conv에 넣습니다. 출력의 공간 크기는 얼마인가요?",
       "options": ["224x224", "222x222", "112x112", "74x74"],
       "correct": 1,
-      "explanation": "Output size = (H - K + 2P) / S + 1 = (224 - 3 + 0) / 1 + 1 = 222. Without padding, every 3x3 convolution shrinks the feature map by 2 pixels on each axis — one pixel off each border."
+      "explanation": "출력 크기 = (H - K + 2P) / S + 1 = (224 - 3 + 0) / 1 + 1 = 222입니다. padding이 없으면 모든 3x3 convolution은 feature map을 각 축에서 2픽셀씩 줄입니다. 즉 각 경계에서 한 픽셀씩 사라집니다."
     },
     {
       "stage": "pre",
-      "question": "A conv layer has in_channels=3, out_channels=64, kernel_size=3, with bias. How many learnable parameters?",
+      "question": "conv 레이어가 in_channels=3, out_channels=64, kernel_size=3이고 bias를 사용합니다. 학습 가능한 파라미터는 몇 개인가요?",
       "options": ["1,728", "1,792", "576", "192"],
       "correct": 1,
-      "explanation": "C_out * C_in * K * K + C_out = 64 * 3 * 3 * 3 + 64 = 1,728 + 64 = 1,792. The +C_out is one bias per output channel. Compare that to a dense layer on the same input (224*224*3 -> 64 = about 9.6M params) and you see why convolution is the right prior for images."
+      "explanation": "C_out * C_in * K * K + C_out = 64 * 3 * 3 * 3 + 64 = 1,728 + 64 = 1,792입니다. +C_out은 출력 채널마다 하나씩 있는 bias입니다. 같은 입력에 대한 dense layer(224*224*3 -> 64 = 약 9.6M params)와 비교하면 왜 convolution이 이미지에 맞는 prior인지 알 수 있습니다."
     },
     {
       "stage": "post",
-      "question": "Why do modern CNNs prefer stacks of 3x3 convolutions over a single 5x5 or 7x7 conv?",
-      "options": ["3x3 convolutions are hardware-accelerated; larger ones are not", "Two 3x3 convs cover the same 5x5 receptive field with fewer parameters (2 * 9 vs 25) and add an extra non-linearity between them", "Large kernels overflow GPU registers", "3x3 is the only kernel size that supports padding"],
+      "question": "현대 CNN은 왜 단일 5x5 또는 7x7 conv보다 3x3 convolution 스택을 선호하나요?",
+      "options": ["3x3 convolution은 하드웨어 가속이 되지만 더 큰 것은 그렇지 않기 때문입니다", "두 개의 3x3 conv가 같은 5x5 receptive field를 더 적은 파라미터(2 * 9 vs 25)로 덮고, 그 사이에 추가 비선형성을 넣기 때문입니다", "큰 kernel은 GPU 레지스터를 overflow시키기 때문입니다", "3x3이 padding을 지원하는 유일한 kernel size이기 때문입니다"],
       "correct": 1,
-      "explanation": "Stacking 3x3 convs gives the same receptive field as one large conv but with fewer parameters and more non-linearities, which increases expressive power. VGG proved this empirically and every modern family (ResNet, ConvNeXt) inherited the design."
+      "explanation": "3x3 conv를 쌓으면 하나의 큰 conv와 같은 receptive field를 얻으면서 파라미터는 더 적고 비선형성은 더 많아져 표현력이 커집니다. VGG가 이를 실험적으로 보였고 모든 현대 계열(ResNet, ConvNeXt)이 이 설계를 이어받았습니다."
     },
     {
       "stage": "post",
-      "question": "What does the im2col transformation actually do?",
-      "options": ["It compresses the image to fit in GPU cache", "It extracts every kernel-sized receptive window from the input and stacks them as columns so that convolution becomes a single matrix multiply", "It converts float32 pixels to int8 for faster arithmetic", "It concatenates all images in a batch into a single 2D matrix"],
+      "question": "im2col 변환은 실제로 무엇을 하나요?",
+      "options": ["이미지를 GPU cache에 맞게 압축합니다", "입력에서 kernel 크기의 모든 receptive window를 추출해 column으로 쌓아서 convolution을 하나의 matrix multiply로 바꿉니다", "더 빠른 산술을 위해 float32 픽셀을 int8로 변환합니다", "배치의 모든 이미지를 하나의 2D matrix로 이어 붙입니다"],
       "correct": 1,
-      "explanation": "im2col reshapes the input so that each column is one flattened receptive field. Flattening the kernel into a row reduces convolution to cols @ w_flat.T, a single GEMM call that GPUs execute thousands of times faster than a quadruple Python loop. Every production conv library is some variant of this."
+      "explanation": "im2col은 각 column이 펼쳐진 receptive field 하나가 되도록 입력을 재배열합니다. kernel을 row로 펼치면 convolution은 cols @ w_flat.T, 즉 단일 GEMM 호출로 줄어듭니다. GPU는 이를 네 겹 Python loop보다 수천 배 빠르게 실행합니다. 모든 production conv 라이브러리는 이 방식의 변형입니다."
     },
     {
       "stage": "post",
-      "question": "You stack four 3x3 convolutions (all stride 1, no pooling). What is the receptive field of a neuron in the final layer?",
-      "options": ["3x3 — each conv is 3x3", "5x5 — two convs give 5x5 and depth does not help", "9x9 — every conv adds 2 on each side: 1 + 4*(3-1) = 9", "15x15 — every conv triples the receptive field"],
+      "question": "3x3 convolution 네 개를 쌓습니다(모두 stride 1, pooling 없음). 마지막 레이어의 한 뉴런이 갖는 receptive field는 얼마인가요?",
+      "options": ["3x3 - 각 conv가 3x3이기 때문입니다", "5x5 - 두 conv가 5x5를 만들고 depth는 도움이 되지 않기 때문입니다", "9x9 - 각 conv가 양쪽으로 2씩 더합니다: 1 + 4*(3-1) = 9", "15x15 - 각 conv가 receptive field를 세 배로 늘리기 때문입니다"],
       "correct": 2,
-      "explanation": "For L stacked K x K convs with stride 1, receptive field = 1 + L * (K - 1). With L=4 and K=3 that is 1 + 4*2 = 9. The same formula generalises with stride: receptive field grows multiplicatively through strided layers, which is why a deep network with downsampling can cover the whole image in ten or fifteen blocks."
+      "explanation": "stride 1인 K x K conv를 L개 쌓으면 receptive field = 1 + L * (K - 1)입니다. L=4, K=3이면 1 + 4*2 = 9입니다. 같은 공식은 stride가 있을 때도 일반화됩니다. receptive field는 strided layer를 지나며 곱셈적으로 커지므로, downsampling이 있는 깊은 네트워크는 열 개나 열다섯 개 block만으로도 전체 이미지를 덮을 수 있습니다."
     }
   ]
 }

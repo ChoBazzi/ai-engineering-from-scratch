@@ -1,35 +1,35 @@
 ---
 name: agents-sdk-scaffold
-description: Scaffold an OpenAI Agents SDK app with a triage agent, handoffs, input/output/tool guardrails, session store, and a trace processor.
+description: triage agent, handoff, input/output/tool guardrail, session store, trace processor를 갖춘 OpenAI Agents SDK 앱을 scaffold한다.
 version: 1.0.0
 phase: 14
 lesson: 16
 tags: [openai, agents-sdk, handoffs, guardrails, tracing, session]
 ---
 
-Given a product domain and a list of specialist agents, scaffold an OpenAI Agents SDK app.
+product domain과 specialist agent 목록이 주어지면 OpenAI Agents SDK 앱을 scaffold한다.
 
-Produce:
+다음을 만든다.
 
-1. `Agent` per specialist plus one `triage` agent that only has handoffs (no domain tools).
-2. `FunctionTool` per domain tool with typed input schema, clear description (tells the model when to use it), and execution sandbox.
-3. `Handoff` from triage to each specialist. Verify tool names follow `transfer_to_<agent>` convention.
-4. `InputGuardrail` for PII, policy, scope. Default to parallel mode unless the guardrail LLM is large relative to the main model — then use blocking.
-5. `OutputGuardrail` for length, PII, policy. Always blocking on prod for safety-critical outputs.
-6. Per-tool guardrails on function tools that touch network or filesystem.
-7. `Session` store (SQLite default; Redis for prod).
-8. `add_trace_processor` wiring spans to your backend alongside OpenAI's trace UI.
+1. specialist마다 `Agent` 하나와, handoff만 가진 `triage` agent 하나(domain tool 없음).
+2. typed input schema, 명확한 description(모델에 언제 사용할지 알려 줌), execution sandbox를 가진 domain tool별 `FunctionTool`.
+3. triage에서 각 specialist로 가는 `Handoff`. tool name이 `transfer_to_<agent>` convention을 따르는지 확인한다.
+4. PII, policy, scope를 위한 `InputGuardrail`. guardrail LLM이 main model에 비해 크지 않다면 기본은 parallel mode다. 크면 blocking을 사용한다.
+5. length, PII, policy를 위한 `OutputGuardrail`. safety-critical output의 prod에서는 항상 blocking.
+6. network나 filesystem을 건드리는 function tool의 per-tool guardrail.
+7. `Session` store(SQLite 기본, prod는 Redis).
+8. span을 OpenAI trace UI와 함께 자체 backend로 보내는 `add_trace_processor` wiring.
 
-Hard rejects:
+Hard reject:
 
-- Triage agents with domain tools. Triage handoffs only; mixing dilutes the router's decision.
-- Guardrails that mutate the input/output. Guardrails approve or reject — they do not rewrite.
-- Silent handoff loops. Require a hop counter (default max 3).
+- domain tool을 가진 triage agent. triage는 handoff만 한다. 섞으면 router decision이 흐려진다.
+- input/output을 mutate하는 guardrail. guardrail은 승인하거나 거부한다. 다시 쓰지 않는다.
+- 조용한 handoff loop. hop counter가 필요하다(default max 3).
 
-Refusal rules:
+거부 규칙:
 
-- If the user wants "no guardrails, just move fast," refuse for any product that hits paying users or PII.
-- If the product has only 2 specialists, suggest routing via `Agents` with a direct classifier (Lesson 12) instead of triage+handoffs — less token cost.
-- If tracing is disabled in prod, refuse to ship. Multi-step failures are un-debuggable without traces.
+- 사용자가 "가드레일 없이 빠르게만"을 원하면, paying user나 PII를 다루는 모든 product에서는 거부한다.
+- product에 specialist가 2명뿐이면 triage+handoff 대신 direct classifier(Lesson 12)를 가진 `Agents` routing을 제안한다. token cost가 더 낮다.
+- prod에서 tracing이 꺼져 있으면 ship을 거부한다. multi-step failure는 trace 없이는 debug할 수 없다.
 
-Output: `agents.py`, `tools.py`, `guardrails.py`, `app.py`, `README.md` with the triage-agent rationale, guardrail modes, trace processor, and session backend. End with "what to read next" pointing to Lesson 23 (OTel GenAI), Lesson 24 (observability backends), or Lesson 17 for Claude Agent SDK translation.
+출력: `agents.py`, `tools.py`, `guardrails.py`, `app.py`, 그리고 triage-agent 근거, guardrail mode, trace processor, session backend를 설명하는 `README.md`. 마지막에는 Lesson 23(OTel GenAI), Lesson 24(observability backend), 또는 Claude Agent SDK translation을 위한 Lesson 17을 가리키는 "what to read next"로 끝낸다.

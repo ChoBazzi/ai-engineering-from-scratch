@@ -1,30 +1,30 @@
 ---
 name: token-gen-cost-analyzer
-description: Compute token counts, inference latency, and quality ceiling for Emu3-style next-token generation and pick between Emu3-family and diffusion.
+description: Emu3식 next-token generation의 token count, inference latency, quality ceiling을 계산하고 Emu3 계열과 diffusion 중 하나를 고른다.
 version: 1.0.0
 phase: 12
 lesson: 12
 tags: [emu3, next-token-prediction, video-gen, diffusion, cfg]
 ---
 
-Given a generation product spec (image or video, target resolution, quality tier, throughput requirement), compute token counts for Emu3-style next-token generation, estimate inference cost, and pick between Emu3-family and diffusion.
+Generation product spec(image 또는 video, target resolution, quality tier, throughput requirement)이 주어지면 Emu3식 next-token generation의 token count를 계산하고, inference cost를 추정하며, Emu3 계열과 diffusion 중 하나를 고르라.
 
-Produce:
+다음을 산출하라.
 
-1. Token count. Per-image tokens at chosen tokenizer reduction (typically 8x per dim for image). Per-video tokens with 3D VQ (typically 4x4x4 spatiotemporal).
-2. Inference latency. Tokens / throughput (tokens-per-second) for Emu3-family; denoise-steps * step-time for diffusion. Cite concrete A100 / H100 ranges.
-3. Quality ceiling. Tokenizer reconstruction PSNR (30-32 dB for IBQ-class), FID expectations on MJHQ-30K, FVD for video.
-4. CFG configuration. Recommended guidance weight (gamma) per task; typical 3.0 for standard gen, 5-7 for strong prompt adherence.
-5. Pick. Emu3-family if product needs unified understanding + generation or any-modality flexibility; diffusion (SDXL / SD3 / Flux) if product is image-gen-only with strict latency.
+1. Token count. 선택한 tokenizer reduction에서 image당 token(이미지는 보통 각 dim 8x). 3D VQ의 video당 token(보통 4x4x4 spatiotemporal).
+2. Inference latency. Emu3 계열은 tokens / throughput(tokens-per-second), diffusion은 denoise-steps * step-time. Concrete A100 / H100 range를 제시하라.
+3. Quality ceiling. Tokenizer reconstruction PSNR(IBQ 계열은 30-32 dB), MJHQ-30K의 FID expectation, video의 FVD.
+4. CFG configuration. Task별 recommended guidance weight(gamma). 표준 generation은 보통 3.0, 강한 prompt adherence는 5-7.
+5. Pick. Product가 unified understanding + generation 또는 any-modality flexibility를 필요로 하면 Emu3 계열, strict latency가 있는 image-gen-only product면 diffusion(SDXL / SD3 / Flux).
 
-Hard rejects:
-- Claiming Emu3 is faster than diffusion at inference. It is not; the autoregressive decode over thousands of image tokens is the standing cost.
-- Recommending Emu3-family without specifying CFG weight. Quality collapses without it.
-- Proposing Emu3 for strict 4K image generation. Token count at 2048+ resolution blows KV cache and takes minutes.
+강한 거절:
+- Emu3가 inference에서 diffusion보다 빠르다고 주장하는 것. 그렇지 않다. 수천 개 image token에 대한 autoregressive decode가 지속 비용이다.
+- CFG weight를 명시하지 않고 Emu3 계열을 추천하는 것. 없으면 품질이 무너진다.
+- Strict 4K image generation에 Emu3를 제안하는 것. 2048+ resolution의 token count는 KV cache를 터뜨리고 몇 분이 걸린다.
 
-Refusal rules:
-- If latency budget is <5s per image, refuse Emu3 and recommend SDXL or SD3.
-- If product must emit images AND describe them AND reason about third-party images, recommend Emu3-family (the unified loss is the point); diffusion cannot do this without a separate VLM.
-- If user wants open weights with permissive license for commercial use, refuse Emu3 — check its license first; some versions are research-only.
+거절 규칙:
+- Latency budget이 이미지당 <5s이면 Emu3를 거부하고 SDXL 또는 SD3를 추천하라.
+- Product가 이미지를 emit하고, 설명하고, third-party image에 대해 reason해야 한다면 Emu3 계열을 추천하라. Unified loss가 핵심이며 diffusion은 별도 VLM 없이는 이를 할 수 없다.
+- 사용자가 commercial use를 위한 permissive license open weights를 원하면 Emu3를 거부하라. 먼저 license를 확인해야 한다. 일부 version은 research-only다.
 
-Output: one-page analysis with token counts, latency estimates, quality ceiling, CFG config, and a pick with justification. End with arXiv 2409.18869 (Emu3) and 2408.11039 (Transfusion) for the alternative.
+출력: token count, latency estimate, quality ceiling, CFG config, 근거가 있는 pick을 담은 one-page analysis. 대안으로 arXiv 2409.18869(Emu3)와 2408.11039(Transfusion)를 끝에 붙여라.

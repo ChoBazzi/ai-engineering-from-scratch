@@ -1,102 +1,102 @@
 {
   "lesson": "13-question-answering",
-  "title": "Question Answering Systems",
+  "title": "질의응답 시스템",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does extractive QA predict?",
+      "question": "Extractive QA는 무엇을 예측하나요?",
       "options": [
-        "A generated natural-language answer",
-        "A confidence score only",
-        "Start and end token indices of the answer span within a given passage",
-        "A retrieved passage ID"
+        "생성된 natural-language answer",
+        "Confidence score만",
+        "주어진 passage 안 answer span의 start token index와 end token index",
+        "Retrieved passage ID"
       ],
       "correct": 2,
-      "explanation": "Extractive QA outputs the span of the passage that contains the answer."
+      "explanation": "Extractive QA는 answer가 들어 있는 passage span을 output합니다."
     },
     {
       "stage": "pre",
-      "question": "What two components define a basic RAG pipeline?",
+      "question": "Basic RAG pipeline을 정의하는 두 component는 무엇인가요?",
       "options": [
-        "An encoder and a decoder trained jointly",
-        "A reranker and a translator",
-        "Tokenizer and POS tagger",
-        "A retriever (find relevant passages) and a reader (extract or generate the answer)"
+        "Jointly train된 encoder와 decoder",
+        "Reranker와 translator",
+        "Tokenizer와 POS tagger",
+        "Retriever(relevant passage 찾기)와 reader(answer를 extract 또는 generate)"
       ],
       "correct": 3,
-      "explanation": "RAG = retriever (finds relevant context) plus reader (answers from it)."
+      "explanation": "RAG = relevant context를 찾는 retriever + 그 context에서 answer하는 reader입니다."
     },
     {
       "stage": "check",
-      "question": "On SQuAD, what does Exact Match (EM) measure?",
+      "question": "SQuAD에서 Exact Match (EM)는 무엇을 측정하나요?",
       "options": [
         "Edit distance",
-        "Per-word overlap",
-        "Whether the prediction matches the reference exactly after normalization (lowercase, strip punctuation, remove articles)",
+        "단어별 overlap",
+        "Normalization(lowercase, strip punctuation, remove articles) 후 prediction이 reference와 정확히 일치하는지",
         "Token-level F1"
       ],
       "correct": 2,
-      "explanation": "EM is strict equality after a defined normalization step; partial matches score zero."
+      "explanation": "EM은 정의된 normalization step 이후의 strict equality입니다. Partial match는 0점입니다."
     },
     {
       "stage": "check",
-      "question": "What does deepset/roberta-base-squad2 add over a SQuAD 1.1 model?",
+      "question": "deepset/roberta-base-squad2는 SQuAD 1.1 model보다 무엇을 추가하나요?",
       "options": [
         "Multilingual support",
-        "Training on unanswerable questions so the model can predict a null answer",
-        "Bigger context window",
+        "Model이 null answer를 예측할 수 있도록 answer할 수 없는 question으로 training",
+        "더 큰 context window",
         "Cross-lingual retrieval"
       ],
       "correct": 1,
-      "explanation": "SQuAD 2.0 includes unanswerable items; models trained on it can predict 'no answer'."
+      "explanation": "SQuAD 2.0은 answer할 수 없는 item을 포함합니다. 그것으로 train된 model은 'no answer'를 예측할 수 있습니다."
     },
     {
       "stage": "check",
-      "question": "Which RAGAS dimension targets hallucinations specifically?",
+      "question": "어떤 RAGAS dimension이 hallucination을 직접 겨냥하나요?",
       "options": [
         "Answer relevance",
         "Context recall",
-        "Faithfulness, measured by NLI entailment between answer claims and retrieved context",
+        "Faithfulness, answer claim과 retrieved context 사이의 NLI entailment로 측정",
         "Context precision"
       ],
       "correct": 2,
-      "explanation": "Faithfulness checks each answer claim against retrieved context via NLI entailment."
+      "explanation": "Faithfulness는 NLI entailment를 통해 각 answer claim을 retrieved context와 대조합니다."
     },
     {
       "stage": "post",
-      "question": "Why should you measure retrieval recall before evaluating reader accuracy?",
+      "question": "Reader accuracy를 evaluate하기 전에 retrieval recall을 측정해야 하는 이유는 무엇인가요?",
       "options": [
-        "Required by transformers",
-        "Recall determines ROUGE",
-        "Reader latency depends on it",
-        "If the correct passage is not in the top-k, the reader cannot succeed regardless of how good it is"
+        "Transformers가 요구하기 때문에",
+        "Recall이 ROUGE를 결정하기 때문에",
+        "Reader latency가 그것에 의존하기 때문에",
+        "Correct passage가 top-k에 없으면 reader가 아무리 좋아도 성공할 수 없기 때문에"
       ],
       "correct": 3,
-      "explanation": "A reader cannot answer when the right passage is missing; retrieval recall bounds reader performance."
+      "explanation": "Right passage가 없으면 reader는 answer할 수 없습니다. Retrieval recall은 reader performance의 상한을 정합니다."
     },
     {
       "stage": "post",
-      "question": "Which prompt pattern reduces hallucinations in RAG generation?",
+      "question": "RAG generation에서 어떤 prompt pattern이 hallucination을 줄이나요?",
       "options": [
-        "Telling the model to answer only from the provided context and to reply 'I don't know' when the context is insufficient",
-        "Including more passages",
-        "Asking the model to be creative",
-        "Removing the question"
+        "제공된 context에서만 answer하고 context가 부족하면 'I don't know'라고 답하라고 model에 지시하기",
+        "더 많은 passage 포함하기",
+        "Model에게 creative하게 답하라고 요청하기",
+        "Question 제거하기"
       ],
       "correct": 0,
-      "explanation": "Grounding + explicit refusal instructions cuts hallucination rates substantially."
+      "explanation": "Grounding과 explicit refusal instruction은 hallucination rate를 크게 낮춥니다."
     },
     {
       "stage": "post",
-      "question": "When is extractive QA still preferred over generative RAG in 2026?",
+      "question": "2026년에 extractive QA가 generative RAG보다 여전히 선호되는 경우는 언제인가요?",
       "options": [
         "Conversational QA",
-        "Regulated domains (legal, medical, audit) where literal quotation from authoritative sources is required",
+        "Authoritative source에서 literal quotation이 필요한 regulated domain(legal, medical, audit)",
         "Multilingual support",
         "Open-domain trivia"
       ],
       "correct": 1,
-      "explanation": "Extractive QA gives verbatim quotes from an authoritative corpus, which compliance contexts demand."
+      "explanation": "Extractive QA는 authoritative corpus에서 verbatim quote를 제공하며, compliance context는 이를 요구합니다."
     }
   ]
 }

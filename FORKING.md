@@ -1,46 +1,46 @@
-# Forking Guide
+# 포크 가이드
 
-This course is MIT licensed. You're free to fork it and adapt it for your needs. Here's how to do it well.
+이 과정은 MIT 라이선스를 따릅니다. 자유롭게 포크하고 필요에 맞게 조정할 수 있습니다. 잘 활용하는 방법은 다음과 같습니다.
 
-## For Teams
+## 팀을 위한 안내
 
-Want to use this as internal training? Fork and customize:
+이 자료를 내부 교육에 사용하고 싶나요? 포크한 뒤 맞춤화하세요.
 
-1. Fork the repository
-2. Remove phases your team doesn't need
-3. Add company-specific examples and data
-4. Add internal tool integrations to the outputs
-5. Keep the attribution — it helps the community grow
+1. 리포지터리를 포크합니다
+2. 팀에 필요 없는 phase를 제거합니다
+3. 회사별 예시와 데이터를 추가합니다
+4. outputs에 내부 도구 연동을 추가합니다
+5. 출처 표기를 유지합니다. 커뮤니티 성장에 도움이 됩니다
 
-## For Schools & Universities
+## 학교와 대학을 위한 안내
 
-Want to use this as course material?
+이 자료를 강의 자료로 사용하고 싶나요?
 
-1. Fork the repository
-2. Map phases to your semester schedule
-3. Add grading rubrics to exercises
-4. Add your own assignments and exams
-5. Consider contributing improvements back upstream
+1. 리포지터리를 포크합니다
+2. phase를 학기 일정에 맞게 배치합니다
+3. 연습 문제에 채점 기준표를 추가합니다
+4. 자체 과제와 시험을 추가합니다
+5. 개선 사항을 upstream에 다시 기여하는 것도 고려해 보세요
 
-## For Bootcamps
+## 부트캠프를 위한 안내
 
-Running a paid bootcamp? That's fine under MIT.
+유료 부트캠프를 운영하나요? MIT 라이선스에서는 괜찮습니다.
 
-1. Fork and structure for your cohort timeline
-2. Add video content, live sessions, mentorship
-3. The code and docs are yours to build on
-4. Consider sponsoring the project or contributing back
+1. 포크한 뒤 코호트 일정에 맞게 구조화합니다
+2. 비디오 콘텐츠, 라이브 세션, 멘토십을 추가합니다
+3. 코드와 문서는 자유롭게 확장해 사용할 수 있습니다
+4. 프로젝트 후원 또는 기여를 고려해 보세요
 
-## For Other Languages
+## 다른 언어를 위한 안내
 
-Want to teach this curriculum in a different programming language?
+이 커리큘럼을 다른 프로그래밍 언어로 가르치고 싶나요?
 
-1. Fork the repository
-2. Re-implement code examples in your language
-3. Keep the lesson structure and documentation
-4. Submit a PR to link your fork from the main README
+1. 리포지터리를 포크합니다
+2. 코드 예제를 해당 언어로 다시 구현합니다
+3. lesson 구조와 문서를 유지합니다
+4. main README에서 포크를 링크하도록 PR을 제출합니다
 
-## Keeping Your Fork Updated
+## 포크 최신 상태로 유지하기
 
 ```bash
 git remote add upstream https://github.com/rohitg00/ai-engineering-from-scratch.git
@@ -49,9 +49,9 @@ git fetch upstream
 git merge upstream/main
 ```
 
-## Attribution
+## 출처 표기
 
-Not required by MIT, but appreciated:
+MIT 라이선스상 필수는 아니지만, 표기해 주시면 감사합니다.
 
 ```
 Based on AI Engineering from Scratch

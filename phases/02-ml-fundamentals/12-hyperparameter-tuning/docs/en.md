@@ -1,45 +1,45 @@
-# Hyperparameter Tuning
+# 하이퍼파라미터 튜닝
 
-> Hyperparameters are the knobs you turn before training starts. Turning them well is the difference between a mediocre model and a great one.
+> Hyperparameter는 training이 시작되기 전에 조정하는 knob이다. 이것을 잘 조정하는 일이 평범한 model과 훌륭한 model의 차이를 만든다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 2, Lesson 11 (Ensemble Methods)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement grid search, random search, and Bayesian optimization from scratch and compare their sample efficiency
-- Explain why random search outperforms grid search when most hyperparameters have low effective dimensionality
-- Build a Bayesian optimization loop using a surrogate model and acquisition function to guide the search
-- Design a hyperparameter tuning strategy that avoids overfitting the validation set through proper cross-validation
+- grid search, random search, Bayesian optimization을 처음부터 구현하고 sample efficiency를 비교한다
+- 대부분의 hyperparameter가 낮은 effective dimensionality를 가질 때 random search가 grid search보다 나은 이유를 설명한다
+- surrogate model과 acquisition function을 사용해 search를 안내하는 Bayesian optimization loop를 만든다
+- 적절한 cross-validation을 통해 validation set 과대적합을 피하는 hyperparameter tuning strategy를 설계한다
 
-## The Problem
+## 문제
 
-Your gradient boosting model has a learning rate, number of trees, max depth, min samples per leaf, subsample ratio, and column sample ratio. That is six hyperparameters. If each has 5 reasonable values, the grid has 5^6 = 15,625 combinations. Training each takes 10 seconds. That is 43 hours of compute to try them all.
+gradient boosting model에는 learning rate, tree 수, max depth, leaf당 min sample 수, subsample ratio, column sample ratio가 있다. hyperparameter가 여섯 개다. 각각에 합리적인 값이 5개씩 있다면 grid에는 5^6 = 15,625개 combination이 있다. 각 training에 10초가 걸린다면 전부 시도하는 데 43시간의 compute가 든다.
 
-Grid search is the obvious approach and the worst one at scale. Random search does better with less compute. Bayesian optimization does even better by learning from past evaluations. Knowing which strategy to use, and which hyperparameters actually matter, saves days of wasted GPU time.
+Grid search는 가장 obvious한 접근이지만 scale이 커지면 최악의 접근이다. Random search는 더 적은 compute로 더 잘한다. Bayesian optimization은 과거 evaluation에서 학습해 더 잘한다. 어떤 strategy를 사용할지, 어떤 hyperparameter가 실제로 중요한지 알면 낭비되는 GPU time을 며칠씩 줄일 수 있다.
 
-## The Concept
+## 개념
 
-### Parameters vs Hyperparameters
+### Parameter와 hyperparameter
 
-Parameters are learned during training (weights, biases, split thresholds). Hyperparameters are set before training starts and control how learning happens.
+Parameter는 training 중에 학습된다(weights, biases, split thresholds). Hyperparameter는 training이 시작되기 전에 설정되며 learning이 어떻게 일어나는지 제어한다.
 
-| Hyperparameter | What it controls | Typical range |
+| Hyperparameter | 제어하는 것 | 일반적인 range |
 |---------------|-----------------|---------------|
-| Learning rate | Step size per update | 0.001 to 1.0 |
-| Number of trees/epochs | How long to train | 10 to 10,000 |
-| Max depth | Model complexity | 1 to 30 |
-| Regularization (lambda) | Overfitting prevention | 0.0001 to 100 |
-| Batch size | Gradient estimation noise | 16 to 512 |
-| Dropout rate | Fraction of neurons dropped | 0.0 to 0.5 |
+| Learning rate | update당 step size | 0.001 to 1.0 |
+| Number of trees/epochs | train을 얼마나 오래 할지 | 10 to 10,000 |
+| Max depth | model complexity | 1 to 30 |
+| Regularization (lambda) | overfitting prevention | 0.0001 to 100 |
+| Batch size | gradient estimation noise | 16 to 512 |
+| Dropout rate | drop되는 neuron fraction | 0.0 to 0.5 |
 
-### Grid Search
+### Grid search
 
-Grid search evaluates every combination of specified values. It is exhaustive and easy to understand, but scales exponentially with the number of hyperparameters.
+Grid search는 지정된 값의 모든 combination을 평가한다. exhaustive하고 이해하기 쉽지만, hyperparameter 수에 따라 exponentially scale된다.
 
-```
+```text
 Grid for 2 hyperparameters:
 
   learning_rate: [0.01, 0.1, 1.0]
@@ -52,11 +52,11 @@ Grid for 2 hyperparameters:
   (1.0,  3)  (1.0,  5)  (1.0,  7)
 ```
 
-Grid search has a fundamental flaw: if one hyperparameter matters and the other does not, most evaluations are wasted. You get only 3 unique values of the important parameter from 9 evaluations.
+Grid search에는 근본적인 결함이 있다. hyperparameter 하나만 중요하고 다른 하나가 중요하지 않다면 대부분의 evaluation이 낭비된다. evaluation 9번에서 중요한 parameter의 unique value는 3개밖에 얻지 못한다.
 
-### Random Search
+### Random search
 
-Random search samples hyperparameters from distributions instead of a grid. With the same budget of 9 evaluations, you get 9 unique values of each hyperparameter.
+Random search는 grid 대신 distribution에서 hyperparameter를 sample한다. 같은 budget인 9번의 evaluation으로 각 hyperparameter의 unique value를 9개 얻는다.
 
 ```mermaid
 flowchart LR
@@ -73,16 +73,16 @@ flowchart LR
     end
 ```
 
-Why random beats grid (Bergstra & Bengio, 2012):
+random이 grid를 이기는 이유(Bergstra & Bengio, 2012):
 
-- Most hyperparameters have low effective dimensionality. Only 1-2 of 6 hyperparameters usually matter for a given problem.
-- Grid search wastes evaluations on unimportant dimensions.
-- Random search covers the important dimensions more densely for the same budget.
-- At 60 random trials, you have a 95% chance of finding a point within 5% of the optimum (if one exists in the search space).
+- 대부분의 hyperparameter는 낮은 effective dimensionality를 가진다. 보통 주어진 문제에서 6개 hyperparameter 중 1-2개만 중요하다.
+- Grid search는 중요하지 않은 dimension에 evaluation을 낭비한다.
+- Random search는 같은 budget에서 중요한 dimension을 더 조밀하게 cover한다.
+- random trial 60번이면 optimum의 5% 이내에 있는 point를 찾을 확률이 95%다(search space 안에 그런 point가 있다면).
 
-### Bayesian Optimization
+### Bayesian optimization
 
-Random search ignores results. It does not learn that high learning rates cause divergence or that depth 3 consistently outperforms depth 10. Bayesian optimization uses past evaluations to decide where to search next.
+Random search는 결과를 무시한다. 높은 learning rate가 divergence를 일으킨다거나 depth 3이 depth 10보다 일관되게 낫다는 사실을 학습하지 않는다. Bayesian optimization은 과거 evaluation을 사용해 다음에 어디를 search할지 결정한다.
 
 ```mermaid
 flowchart TD
@@ -95,63 +95,63 @@ flowchart TD
     F -->|Yes| G[Return best hyperparameters found]
 ```
 
-The two key components:
+핵심 component는 두 가지다.
 
-**Surrogate model:** A cheap-to-evaluate model (usually a Gaussian process) that approximates the expensive objective function. It gives both a prediction and an uncertainty estimate at any point in the search space.
+**Surrogate model:** expensive objective function을 근사하는, evaluate하기 저렴한 model(보통 Gaussian process). search space의 임의 point에서 prediction과 uncertainty estimate를 모두 제공한다.
 
-**Acquisition function:** Decides where to evaluate next by balancing exploitation (search near known good points) and exploration (search where uncertainty is high). Common choices:
+**Acquisition function:** exploitation(알려진 좋은 point 근처 search)과 exploration(uncertainty가 높은 곳 search)의 균형을 맞춰 다음에 어디를 evaluate할지 결정한다. 흔한 선택지는 다음과 같다.
 
-- **Expected Improvement (EI):** How much improvement over the current best do we expect at this point?
-- **Upper Confidence Bound (UCB):** Prediction plus a multiple of uncertainty. Higher UCB means either promising or unexplored.
-- **Probability of Improvement (PI):** What is the probability this point beats the current best?
+- **Expected Improvement (EI):** 이 point에서 현재 best보다 얼마나 개선될 것으로 기대하는가?
+- **Upper Confidence Bound (UCB):** prediction에 uncertainty의 배수를 더한 값. UCB가 높다는 것은 promising하거나 unexplored라는 뜻이다.
+- **Probability of Improvement (PI):** 이 point가 현재 best를 이길 probability는 얼마인가?
 
-Bayesian optimization typically finds better hyperparameters than random search with 2-5x fewer evaluations. The overhead of fitting the surrogate model is negligible compared to training the actual model.
+Bayesian optimization은 보통 random search보다 2-5x 적은 evaluation으로 더 좋은 hyperparameter를 찾는다. surrogate model을 fit하는 overhead는 실제 model training에 비해 negligible하다.
 
-### Early Stopping
+### Early stopping
 
-Not every training run needs to finish. If a configuration is clearly bad after 10 epochs, stop it and move on. This is early stopping in the context of hyperparameter search.
+모든 training run을 끝까지 실행할 필요는 없다. 어떤 configuration이 10 epoch 후에 명백히 나쁘다면 멈추고 다음으로 넘어간다. 이것이 hyperparameter search 맥락의 early stopping이다.
 
-Strategies:
-- **Patience-based:** Stop if validation loss has not improved for N consecutive epochs
-- **Median pruning:** Stop if the trial's intermediate result is worse than the median of completed trials at the same step
-- **Hyperband:** Allocate small budgets to many configurations, then progressively increase budget for the best ones
+Strategy:
+- **Patience-based:** validation loss가 N consecutive epoch 동안 개선되지 않으면 stop
+- **Median pruning:** trial의 intermediate result가 같은 step에서 완료된 trial들의 median보다 나쁘면 stop
+- **Hyperband:** 많은 configuration에 작은 budget을 할당한 뒤, 가장 좋은 것들의 budget을 점진적으로 늘림
 
-Hyperband is particularly effective. It starts 81 configurations with 1 epoch each, keeps the top third, gives them 3 epochs, keeps the top third, and so on. This finds good configurations 10-50x faster than evaluating all configs for the full budget.
+Hyperband는 특히 효과적이다. 81개 configuration을 각각 1 epoch로 시작하고, 상위 1/3을 유지한 뒤, 이들에게 3 epoch를 주고, 다시 상위 1/3을 유지하는 식이다. 모든 config를 full budget으로 평가하는 것보다 10-50x 빠르게 좋은 configuration을 찾는다.
 
-### Learning Rate Schedulers
+### Learning rate scheduler
 
-The learning rate is almost always the most important hyperparameter. Rather than keeping it fixed, schedulers adjust it during training.
+learning rate는 거의 항상 가장 중요한 hyperparameter다. 고정해 두는 대신 scheduler는 training 중에 learning rate를 조정한다.
 
-| Scheduler | Formula | When to use |
+| Scheduler | Formula | 사용할 때 |
 |-----------|---------|-------------|
-| Step decay | Multiply by 0.1 every N epochs | Classic CNN training |
-| Cosine annealing | lr * 0.5 * (1 + cos(pi * t / T)) | Modern default |
+| Step decay | Multiply by 0.1 every N epochs | classic CNN training |
+| Cosine annealing | lr * 0.5 * (1 + cos(pi * t / T)) | modern default |
 | Warmup + decay | Linear increase then cosine decay | Transformers |
-| One-cycle | Increase then decrease over one cycle | Fast convergence |
-| Reduce on plateau | Reduce by factor when metric stalls | Safe default |
+| One-cycle | Increase then decrease over one cycle | 빠른 convergence |
+| Reduce on plateau | Reduce by factor when metric stalls | 안전한 default |
 
-### Hyperparameter Importance
+### Hyperparameter importance
 
-Not all hyperparameters matter equally. Research on random forests (Probst et al., 2019) and gradient boosting shows consistent patterns:
+모든 hyperparameter가 똑같이 중요하지는 않다. random forests(Probst et al., 2019)와 gradient boosting에 대한 연구는 일관된 pattern을 보여준다.
 
-**High importance:**
-- Learning rate (always tune first)
-- Number of estimators / epochs (use early stopping instead of tuning)
+**중요도 높음:**
+- Learning rate(항상 먼저 tune)
+- Number of estimators / epochs(tuning 대신 early stopping 사용)
 - Regularization strength
 
-**Medium importance:**
+**중요도 중간:**
 - Max depth / number of layers
 - Min samples per leaf / weight decay
 - Subsample ratio
 
-**Low importance:**
-- Max features (for random forests)
-- Specific activation function choice
-- Batch size (within reasonable range)
+**중요도 낮음:**
+- Max features(random forests의 경우)
+- 특정 activation function 선택
+- Batch size(합리적인 range 안에서)
 
-Tune the important ones first, leave the rest at defaults.
+중요한 것부터 tune하고 나머지는 default로 둔다.
 
-### Practical Strategy
+### 실용적 Strategy
 
 ```mermaid
 flowchart TD
@@ -162,20 +162,20 @@ flowchart TD
     E --> F[Retrain on full training data]
 ```
 
-The concrete workflow:
+구체적인 workflow:
 
-1. **Start with library defaults.** They are chosen by experienced practitioners and are often 80% of the way there.
-2. **Coarse random search.** Wide ranges, 20-50 trials. Use early stopping to kill bad runs fast.
-3. **Analyze results.** Which hyperparameters correlate with performance? Narrow the search space.
-4. **Fine search.** Bayesian optimization or focused random search in the narrowed space. 50-100 trials.
-5. **Retrain on all training data** with the best hyperparameters found.
+1. **library default로 시작한다.** 경험 많은 practitioner들이 고른 값이며, 종종 80% 수준까지 도달한다.
+2. **Coarse random search.** 넓은 range, 20-50 trial. 나쁜 run을 빨리 종료하려면 early stopping을 사용한다.
+3. **결과를 analyze한다.** 어떤 hyperparameter가 performance와 correlate하는가? search space를 좁힌다.
+4. **Fine search.** 좁힌 space에서 Bayesian optimization 또는 focused random search를 수행한다. 50-100 trial.
+5. 찾은 best hyperparameter로 **모든 training data에서 retrain**한다.
 
-### Cross-Validation Integration
+### Cross-validation 통합
 
-Tuning hyperparameters on a single validation split is risky. The best hyperparameters might overfit to the specific validation fold. Nested cross-validation solves this by using two loops:
+단일 validation split에서 hyperparameter를 tuning하는 것은 위험하다. best hyperparameter가 특정 validation fold에 과대적합할 수 있다. Nested cross-validation은 두 loop를 사용해 이 문제를 해결한다.
 
-- **Outer loop** (evaluation): splits data into train+val and test. Reports unbiased performance.
-- **Inner loop** (tuning): splits train+val into train and val. Finds best hyperparameters.
+- **Outer loop** (evaluation): data를 train+val과 test로 나눈다. unbiased performance를 보고한다.
+- **Inner loop** (tuning): train+val을 train과 val로 나눈다. best hyperparameter를 찾는다.
 
 ```mermaid
 flowchart TD
@@ -194,9 +194,9 @@ flowchart TD
     T2 --> E2[Evaluate on outer test fold 2]
 ```
 
-Each outer fold finds its own best hyperparameters independently. The outer scores are an unbiased estimate of generalization performance.
+각 outer fold는 자신만의 best hyperparameter를 독립적으로 찾는다. outer score는 generalization performance의 unbiased estimate다.
 
-With sklearn:
+sklearn에서는 다음과 같다.
 
 ```python
 from sklearn.model_selection import cross_val_score, GridSearchCV
@@ -220,40 +220,40 @@ outer_scores = cross_val_score(
 print(f"Nested CV MSE: {-outer_scores.mean():.4f} +/- {outer_scores.std():.4f}")
 ```
 
-This is expensive (5 outer folds x 5 inner folds x 27 grid points = 675 model fits), but it gives you a trustworthy performance estimate. Use it when reporting final results in papers or when the stake of the decision is high.
+이 방법은 비싸다(5 outer folds x 5 inner folds x 27 grid points = 675 model fits). 하지만 신뢰할 수 있는 performance estimate를 준다. 논문에서 final result를 보고하거나 decision의 stake가 높을 때 사용한다.
 
-### Practical Tips
+### 실용적 팁
 
-**Start with the learning rate.** It is always the most important hyperparameter for gradient-based methods. A bad learning rate makes everything else irrelevant. Fix other hyperparameters at defaults and sweep learning rate first.
+**learning rate부터 시작한다.** gradient-based method에서는 항상 가장 중요한 hyperparameter다. 나쁜 learning rate는 다른 모든 것을 irrelevant하게 만든다. 다른 hyperparameter를 default로 고정하고 learning rate를 먼저 sweep한다.
 
-**Use log-uniform distributions for learning rate and regularization.** The difference between 0.001 and 0.01 matters as much as the difference between 0.1 and 1.0. Searching linearly wastes budget on the large end.
+**learning rate와 regularization에는 log-uniform distribution을 사용한다.** 0.001과 0.01의 차이는 0.1과 1.0의 차이만큼 중요하다. linear하게 search하면 큰 쪽 끝에 budget을 낭비한다.
 
-**Use early stopping instead of tuning n_estimators.** For boosting and neural networks, set n_estimators or epochs high and let early stopping decide when to stop. This removes one hyperparameter from the search.
+**n_estimators를 tuning하는 대신 early stopping을 사용한다.** boosting과 neural network에서는 n_estimators 또는 epoch를 높게 설정하고 언제 멈출지는 early stopping이 결정하게 한다. 이렇게 하면 search에서 hyperparameter 하나가 제거된다.
 
-**Budget allocation.** Spend 60% of your tuning budget on the top 2 most important hyperparameters. Spend the remaining 40% on everything else. The top 2 account for most of the performance variation.
+**Budget allocation.** tuning budget의 60%를 가장 중요한 hyperparameter 상위 2개에 사용한다. 나머지 40%를 그 밖의 것들에 쓴다. 상위 2개가 performance variation의 대부분을 설명한다.
 
-**Scale matters.** Never search batch size on a log scale (16, 32, 64 are fine). Always search learning rate on a log scale. Match the search distribution to how the hyperparameter affects the model.
+**Scale이 중요하다.** batch size를 log scale에서 search하지 않는다(16, 32, 64면 충분하다). learning rate는 항상 log scale에서 search한다. hyperparameter가 model에 영향을 주는 방식에 search distribution을 맞춘다.
 
 | Model Type | Top Hyperparameters | Recommended Search | Budget |
 |-----------|--------------------|--------------------|--------|
-| Random Forest | n_estimators, max_depth, min_samples_leaf | Random search, 50 trials | Low (fast training) |
+| Random Forest | n_estimators, max_depth, min_samples_leaf | Random search, 50 trials | Low(빠른 training) |
 | Gradient Boosting | learning_rate, n_estimators, max_depth | Bayesian, 100 trials + early stopping | Medium |
-| Neural Network | learning_rate, weight_decay, batch_size | Bayesian or random, 100+ trials | High (slow training) |
-| SVM | C, gamma (RBF kernel) | Grid on log scale, 25-50 trials | Low (2 params) |
+| Neural Network | learning_rate, weight_decay, batch_size | Bayesian or random, 100+ trials | High(느린 training) |
+| SVM | C, gamma (RBF kernel) | Grid on log scale, 25-50 trials | Low(2 params) |
 | Lasso/Ridge | alpha | 1D search on log scale, 20 trials | Very low |
 | XGBoost | learning_rate, max_depth, subsample, colsample | Bayesian, 100-200 trials + early stopping | Medium |
 
-**When in doubt:** random search with 2x the number of hyperparameters as trials (e.g., 6 hyperparameters = 12+ trials minimum). You will be surprised how often random search with 50 trials beats carefully designed grid search.
+**확신이 없다면:** hyperparameter 수의 2배를 trial 수로 삼아 random search를 실행한다(예: hyperparameter 6개 = 최소 12+ trial). 50 trial random search가 세심하게 설계한 grid search를 얼마나 자주 이기는지 보면 놀랄 것이다.
 
 ```figure
 k-fold-cv
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Grid Search from Scratch
+### 1단계: 처음부터 Grid Search 만들기
 
-The code in `code/tuning.py` implements grid search, random search, and a simple Bayesian optimizer from scratch.
+`code/tuning.py`의 코드는 grid search, random search, 간단한 Bayesian optimizer를 처음부터 구현한다.
 
 ```python
 def grid_search(model_fn, param_grid, X_train, y_train, X_val, y_val):
@@ -277,7 +277,7 @@ def grid_search(model_fn, param_grid, X_train, y_train, X_val, y_val):
     return best_params, best_score, n_evals
 ```
 
-### Step 2: Random Search from Scratch
+### 2단계: 처음부터 Random Search 만들기
 
 ```python
 def random_search(model_fn, param_distributions, X_train, y_train,
@@ -299,9 +299,9 @@ def random_search(model_fn, param_distributions, X_train, y_train,
     return best_params, best_score, n_iter
 ```
 
-### Step 3: Bayesian Optimization (Simplified)
+### 3단계: Bayesian Optimization (단순화)
 
-The core idea: fit a Gaussian process to observed (hyperparameter, score) pairs, then use an acquisition function to decide where to look next.
+핵심 아이디어는 observed (hyperparameter, score) pair에 Gaussian process를 fit한 뒤, acquisition function을 사용해 다음에 어디를 볼지 결정하는 것이다.
 
 ```python
 class SimpleBayesianOptimizer:
@@ -355,11 +355,11 @@ class SimpleBayesianOptimizer:
         self.y_observed.append(score)
 ```
 
-The GP surrogate gives two things at each candidate point: a predicted score (mu) and an uncertainty (var). Expected Improvement balances these: it favors points where the model predicts high scores OR where uncertainty is high. Early on, most points have high uncertainty so the optimizer explores. Later, it focuses on the most promising region.
+GP surrogate는 각 candidate point에서 두 가지를 제공한다. predicted score(mu)와 uncertainty(var)다. Expected Improvement는 이 둘의 균형을 맞춘다. model이 높은 score를 예측하거나 uncertainty가 높은 point를 선호한다. 초반에는 대부분의 point가 높은 uncertainty를 가지므로 optimizer가 explore한다. 이후에는 가장 promising한 region에 집중한다.
 
-### Step 4: Compare All Methods
+### 4단계: 모든 Method 비교
 
-Run all three methods on the same synthetic objective and compare. This comparison uses a simplified wrapper that calls each optimizer with a direct objective function (no model training), so the API differs from the model-based implementations above:
+세 method를 같은 synthetic objective에서 실행하고 비교한다. 이 비교는 direct objective function(model training 없음)으로 각 optimizer를 호출하는 단순화된 wrapper를 사용하므로, API는 위의 model-based implementation과 다르다.
 
 ```python
 def synthetic_objective(params):
@@ -416,13 +416,13 @@ print(f"{'Random Search':<20} {rand_score:>12.4f} {len(rand_history):>12}")
 print(f"{'Bayesian Opt':<20} {bayes_score:>12.4f} {len(bayes_history):>12}")
 ```
 
-With the same budget, Bayesian optimization usually finds the best score fastest because it does not waste evaluations in clearly bad regions. Random search covers more ground than grid search. Grid search only wins when you have very few hyperparameters and can afford to be exhaustive.
+같은 budget에서는 Bayesian optimization이 보통 best score를 가장 빠르게 찾는다. 명백히 나쁜 region에 evaluation을 낭비하지 않기 때문이다. Random search는 grid search보다 더 넓게 cover한다. Grid search는 hyperparameter가 매우 적고 exhaustive하게 할 여유가 있을 때만 이긴다.
 
-## Use It
+## 사용하기
 
-### Optuna in Practice
+### 실전 Optuna
 
-Optuna is the recommended library for serious hyperparameter tuning. It supports pruning, distributed search, and visualization out of the box.
+Optuna는 serious hyperparameter tuning에 권장되는 library다. pruning, distributed search, visualization을 out of the box로 지원한다.
 
 ```python
 import optuna
@@ -447,16 +447,16 @@ print(f"Best params: {study.best_params}")
 print(f"Best MSE: {study.best_value:.4f}")
 ```
 
-Key Optuna features:
-- `suggest_float(..., log=True)` for parameters best searched on log scale (learning rate, regularization)
-- `suggest_int` for integer parameters
-- `suggest_categorical` for discrete choices
-- Built-in MedianPruner for early stopping of bad trials
-- `study.trials_dataframe()` for analysis
+핵심 Optuna feature:
+- log scale에서 search하는 것이 가장 좋은 parameter(learning rate, regularization)에 `suggest_float(..., log=True)` 사용
+- integer parameter에는 `suggest_int` 사용
+- discrete choice에는 `suggest_categorical` 사용
+- 나쁜 trial을 early stopping하기 위한 built-in MedianPruner
+- analysis를 위한 `study.trials_dataframe()`
 
-### Optuna with Pruning
+### Pruning을 사용하는 Optuna
 
-Pruning stops unpromising trials early, saving massive compute. Here is the pattern:
+Pruning은 promising하지 않은 trial을 일찍 멈춰 massive compute를 절약한다. pattern은 다음과 같다.
 
 ```python
 import optuna
@@ -486,11 +486,11 @@ study = optuna.create_study(direction="minimize", pruner=pruner)
 study.optimize(objective, n_trials=200)
 ```
 
-The `MedianPruner` stops a trial if its intermediate value is worse than the median of all completed trials at the same step. Pruning requires calling `trial.report()` to report intermediate metrics and `trial.should_prune()` to check whether the trial should be stopped. The `n_startup_trials=10` ensures at least 10 trials complete fully before pruning kicks in. This typically saves 40-60% of total compute.
+`MedianPruner`는 intermediate value가 같은 step에서 완료된 모든 trial의 median보다 나쁘면 trial을 멈춘다. Pruning에는 intermediate metric을 보고하기 위한 `trial.report()` 호출과 trial을 멈춰야 하는지 확인하기 위한 `trial.should_prune()` 호출이 필요하다. `n_startup_trials=10`은 pruning이 시작되기 전에 최소 10개의 trial이 완전히 완료되도록 보장한다. 이것은 보통 전체 compute의 40-60%를 절약한다.
 
-### sklearn's Built-in Tuners
+### sklearn의 Built-in Tuner
 
-For quick experiments, sklearn provides `GridSearchCV`, `RandomizedSearchCV`, and `HalvingRandomSearchCV`:
+빠른 experiment를 위해 sklearn은 `GridSearchCV`, `RandomizedSearchCV`, `HalvingRandomSearchCV`를 제공한다.
 
 ```python
 from sklearn.model_selection import RandomizedSearchCV
@@ -516,50 +516,50 @@ print(f"Best params: {search.best_params_}")
 print(f"Best CV MSE: {-search.best_score_:.4f}")
 ```
 
-Use `loguniform` from scipy for learning rate and regularization. Use `randint` for integer hyperparameters. The `n_jobs=-1` flag parallelizes across all CPU cores.
+learning rate와 regularization에는 scipy의 `loguniform`을 사용한다. integer hyperparameter에는 `randint`를 사용한다. `n_jobs=-1` flag는 모든 CPU core에 걸쳐 parallelize한다.
 
-### Common Mistakes in Hyperparameter Tuning
+### Hyperparameter Tuning의 흔한 실수
 
-**Data leakage through preprocessing.** If you fit a scaler on the full dataset before cross-validation, information from the validation fold leaks into training. Always put preprocessing inside a `Pipeline` so it is fit only on the training fold.
+**preprocessing을 통한 data leakage.** cross-validation 전에 full dataset에 scaler를 fit하면 validation fold의 information이 training으로 leak된다. preprocessing은 항상 `Pipeline` 안에 넣어 training fold에서만 fit되게 한다.
 
-**Overfitting to the validation set.** Running thousands of trials effectively trains on the validation set. Use nested cross-validation for final performance estimates, or hold out a separate test set that you never touch during tuning.
+**validation set에 과대적합.** 수천 개 trial을 실행하면 사실상 validation set에서 train하는 셈이다. final performance estimate에는 nested cross-validation을 사용하거나, tuning 중 절대 건드리지 않는 별도 test set을 hold out한다.
 
-**Searching too narrow a range.** If your best value is at the boundary of your search space, you have not searched widely enough. The optimal value might be outside your range. Always check if the best parameters are at the edges.
+**너무 좁은 range search.** best value가 search space의 boundary에 있다면 충분히 넓게 search하지 않은 것이다. optimal value가 range 밖에 있을 수 있다. best parameter가 edge에 있는지 항상 확인한다.
 
-**Ignoring interaction effects.** Learning rate and number of estimators interact strongly in boosting. A low learning rate needs more estimators. Tuning them independently gives worse results than tuning them together.
+**interaction effect 무시.** boosting에서 learning rate와 number of estimators는 강하게 상호작용한다. 낮은 learning rate에는 더 많은 estimator가 필요하다. 이들을 독립적으로 tuning하면 함께 tuning할 때보다 결과가 나쁘다.
 
-**Not using early stopping for iterative models.** For gradient boosting and neural networks, set n_estimators or epochs to a high value and use early stopping. This is strictly better than tuning the number of iterations as a hyperparameter.
+**iterative model에서 early stopping을 사용하지 않음.** gradient boosting과 neural network에서는 n_estimators 또는 epoch를 높은 값으로 설정하고 early stopping을 사용한다. 이것은 iteration 수를 hyperparameter로 tuning하는 것보다 엄밀히 더 낫다.
 
-## Exercises
+## 연습 문제
 
-1. Run grid search and random search with the same total budget (e.g., 50 evaluations). Compare the best scores found. Run the experiment 10 times with different seeds. How often does random search win?
+1. 같은 total budget(예: 50 evaluations)으로 grid search와 random search를 실행한다. 찾은 best score를 비교한다. 서로 다른 seed로 experiment를 10번 실행한다. random search는 얼마나 자주 이기는가?
 
-2. Implement Hyperband from scratch. Start with 81 configurations, each trained for 1 epoch. Keep the top 1/3 at each round and triple their budget. Compare total compute (sum of all epochs across all configs) to running 81 configs for the full budget.
+2. Hyperband를 처음부터 구현한다. 81개 configuration으로 시작하고, 각각 1 epoch만 train한다. 각 round에서 상위 1/3을 유지하고 budget을 3배로 늘린다. total compute(모든 config의 epoch 합)를 81개 config를 full budget으로 실행하는 경우와 비교한다.
 
-3. Add a learning rate scheduler (cosine annealing) to the gradient boosting implementation from Lesson 11. Does it help compared to a fixed learning rate?
+3. Lesson 11의 gradient boosting implementation에 learning rate scheduler(cosine annealing)를 추가한다. fixed learning rate와 비교해 도움이 되는가?
 
-4. Use Optuna to tune a RandomForestClassifier on a real dataset (e.g., sklearn's breast cancer dataset). Use `optuna.visualization.plot_param_importances(study)` to see which hyperparameters matter most. Does it match the importance ranking from this lesson?
+4. 실제 dataset(예: sklearn의 breast cancer dataset)에서 Optuna로 RandomForestClassifier를 tune한다. `optuna.visualization.plot_param_importances(study)`를 사용해 어떤 hyperparameter가 가장 중요한지 확인한다. 이 lesson의 importance ranking과 일치하는가?
 
-5. Implement a simple acquisition function (Expected Improvement) and demonstrate exploration vs exploitation. Plot the surrogate model's mean and uncertainty, and show where EI chooses to evaluate next.
+5. 간단한 acquisition function(Expected Improvement)을 구현하고 exploration vs exploitation을 보여준다. surrogate model의 mean과 uncertainty를 plot하고, EI가 다음에 어디를 evaluate하기로 선택하는지 보여준다.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Hyperparameter | "A setting you choose" | A value set before training that controls the learning process, not learned from data |
-| Grid search | "Try every combination" | Exhaustive search over a specified parameter grid. Exponential cost. |
-| Random search | "Just sample randomly" | Sample hyperparameters from distributions. Covers important dimensions better than grid search. |
-| Bayesian optimization | "Smart search" | Uses a surrogate model of the objective to decide where to evaluate next, balancing exploration and exploitation |
-| Surrogate model | "A cheap approximation" | A model (usually Gaussian process) that approximates the expensive objective function from observed evaluations |
-| Acquisition function | "Where to look next" | Scores candidate points by balancing expected improvement with uncertainty. EI and UCB are common choices. |
-| Early stopping | "Stop wasting time" | Terminate training early when validation performance stops improving |
-| Hyperband | "Tournament bracket for configs" | Adaptive resource allocation: start many configs with small budgets, keep the best and increase their budgets |
-| Learning rate scheduler | "Change lr during training" | A function that adjusts the learning rate over the course of training for better convergence |
+| Hyperparameter | "선택하는 setting" | data에서 학습되는 것이 아니라 training 전에 설정되어 learning process를 제어하는 값 |
+| Grid search | "모든 combination을 시도" | 지정된 parameter grid에 대한 exhaustive search. cost가 exponential하다. |
+| Random search | "그냥 무작위 sample" | distribution에서 hyperparameter를 sample한다. grid search보다 중요한 dimension을 더 잘 cover한다. |
+| Bayesian optimization | "Smart search" | objective의 surrogate model을 사용해 다음 evaluate 위치를 결정하고, exploration과 exploitation의 균형을 맞춘다 |
+| Surrogate model | "저렴한 approximation" | observed evaluation에서 expensive objective function을 근사하는 model(보통 Gaussian process) |
+| Acquisition function | "다음에 볼 곳" | expected improvement와 uncertainty의 균형을 맞춰 candidate point에 score를 매긴다. EI와 UCB가 흔한 선택지다. |
+| Early stopping | "시간 낭비 중단" | validation performance가 개선을 멈추면 training을 early terminate한다 |
+| Hyperband | "config를 위한 tournament bracket" | adaptive resource allocation: 작은 budget으로 많은 config를 시작하고, 가장 좋은 것을 유지하며 budget을 늘린다 |
+| Learning rate scheduler | "training 중 lr 변경" | 더 나은 convergence를 위해 training 과정에서 learning rate를 조정하는 function |
 
-## Further Reading
+## 더 읽을거리
 
-- [Bergstra & Bengio: Random Search for Hyper-Parameter Optimization (2012)](https://jmlr.org/papers/v13/bergstra12a.html) -- the paper that showed random beats grid
-- [Snoek et al., Practical Bayesian Optimization of Machine Learning Algorithms (2012)](https://arxiv.org/abs/1206.2944) -- Bayesian optimization for ML
-- [Li et al., Hyperband: A Novel Bandit-Based Approach (2018)](https://jmlr.org/papers/v18/16-558.html) -- the Hyperband paper
-- [Optuna: A Next-generation Hyperparameter Optimization Framework](https://arxiv.org/abs/1907.10902) -- the Optuna paper
-- [Probst et al., Tunability: Importance of Hyperparameters (2019)](https://jmlr.org/papers/v20/18-444.html) -- which hyperparameters matter
+- [Bergstra & Bengio: Random Search for Hyper-Parameter Optimization (2012)](https://jmlr.org/papers/v13/bergstra12a.html) -- random이 grid를 이긴다는 것을 보인 paper
+- [Snoek et al., Practical Bayesian Optimization of Machine Learning Algorithms (2012)](https://arxiv.org/abs/1206.2944) -- ML을 위한 Bayesian optimization
+- [Li et al., Hyperband: A Novel Bandit-Based Approach (2018)](https://jmlr.org/papers/v18/16-558.html) -- Hyperband paper
+- [Optuna: A Next-generation Hyperparameter Optimization Framework](https://arxiv.org/abs/1907.10902) -- Optuna paper
+- [Probst et al., Tunability: Importance of Hyperparameters (2019)](https://jmlr.org/papers/v20/18-444.html) -- 어떤 hyperparameter가 중요한가

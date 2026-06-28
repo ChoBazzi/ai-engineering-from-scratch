@@ -1,44 +1,44 @@
-# Audio-Language Models — Qwen2.5-Omni, Audio Flamingo, GPT-4o Audio
+# 오디오-언어 모델: Qwen2.5-Omni, Audio Flamingo, GPT-4o Audio
 
-> 2026 audio-language models reason over speech + environmental sound + music. Qwen2.5-Omni-7B matches GPT-4o Audio on MMAU-Pro. Audio Flamingo Next beats Gemini 2.5 Pro on LongAudioBench. The gap between open and closed is essentially closed — except on multi-audio tasks, where everyone is near random.
+> 2026년 audio-language model은 speech + environmental sound + music을 함께 추론한다. Qwen2.5-Omni-7B는 MMAU-Pro에서 GPT-4o Audio와 맞먹는다. Audio Flamingo Next는 LongAudioBench에서 Gemini 2.5 Pro를 앞선다. 오픈과 폐쇄 모델의 격차는 사실상 닫혔다. 단, multi-audio task에서는 모두 거의 random에 가깝다.
 
 **Type:** Learn
 **Languages:** Python
 **Prerequisites:** Phase 6 · 04 (ASR), Phase 12 · 03 (Vision-Language Models), Phase 7 · 10 (Audio Transformers)
 **Time:** ~45 minutes
 
-## The Problem
+## 문제
 
-You have 5 seconds of audio: dog barks, someone yells "stop!", then silence. Useful questions span multiple axes:
+5초짜리 오디오가 있다. 개가 짖고, 누군가 "stop!"이라고 외친 뒤 침묵한다. 유용한 질문은 여러 축에 걸쳐 있다.
 
-- **Transcription.** "What was said?" — ASR territory.
-- **Semantic reasoning.** "Is the person in danger?" — requires joint understanding of the bark + yell + silence.
-- **Music reasoning.** "What instruments play the melody?"
-- **Long-audio retrieval.** "Where in this 90-minute lecture did the instructor explain gradient descent?"
+- **전사.** "무슨 말을 했나?": ASR 영역이다.
+- **의미 추론.** "그 사람이 위험한가?": 짖음 + 외침 + 침묵을 함께 이해해야 한다.
+- **음악 추론.** "어떤 악기가 melody를 연주하나?"
+- **긴 오디오 검색.** "이 90분 lecture에서 강사가 gradient descent를 설명한 부분은 어디인가?"
 
-A single model that answers all of these with one prompt is an **audio-language model** (LALM / ALM). Separate from pure ASR: LALMs produce free-form natural-language answers, not just transcripts.
+하나의 prompt로 이 모든 것에 답하는 단일 모델이 **audio-language model**(LALM / ALM)이다. 순수 ASR과는 다르다. LALM은 transcript만이 아니라 자유 형식의 자연어 답변을 생성한다.
 
-## The Concept
+## 개념
 
 ![Audio-language model: audio encoder + projector + LLM decoder](../assets/alm-architecture.svg)
 
-### The three-component template
+### 세 구성요소 템플릿
 
-Every 2026 LALM has the same skeleton:
+2026년의 모든 LALM은 같은 뼈대를 갖는다.
 
-1. **Audio encoder.** Whisper encoder · BEATs · CLAP · WavLM · or a custom encoder per model.
-2. **Projector.** Linear or MLP bridging audio-encoder features into the LLM's token embedding space.
-3. **LLM.** Llama / Qwen / Gemma-based decoder. Takes interleaved text + audio tokens; generates text.
+1. **Audio encoder.** Whisper encoder · BEATs · CLAP · WavLM · 또는 모델별 custom encoder.
+2. **Projector.** audio-encoder feature를 LLM token embedding space로 연결하는 linear 또는 MLP.
+3. **LLM.** Llama / Qwen / Gemma 기반 decoder. interleaved text + audio token을 받아 text를 생성한다.
 
-Training:
+학습:
 
-- **Stage 1.** Freeze encoder + LLM; train projector only on ASR / captioning data.
-- **Stage 2.** Full / LoRA fine-tune on instruction-following audio tasks (QA, reasoning, music understanding).
-- **Stage 3 (optional).** Voice-in / voice-out adds a speech decoder. Qwen2.5-Omni and AF3-Chat do this.
+- **학습 1단계.** encoder + LLM을 freeze하고 ASR / captioning data에서 projector만 학습한다.
+- **학습 2단계.** instruction-following audio task(QA, reasoning, music understanding)로 full / LoRA fine-tune한다.
+- **학습 3단계(선택).** voice-in / voice-out은 speech decoder를 추가한다. Qwen2.5-Omni와 AF3-Chat이 이렇게 한다.
 
-### The 2026 model map
+### 2026 모델 지도
 
-| Model | Backbone | Audio encoder | Output modality | Access |
+| 모델 | Backbone | 오디오 encoder | 출력 방식 | 접근 방식 |
 |-------|----------|---------------|-----------------|--------|
 | Qwen2.5-Omni-7B | Qwen2.5-7B | Custom + Whisper | text + speech | Apache-2.0 |
 | Qwen3-Omni | Qwen3 | Custom | text + speech | Apache-2.0 |
@@ -50,39 +50,39 @@ Training:
 | Gemini 2.5 Flash/Pro (closed) | Gemini | proprietary | text + speech | API |
 | GPT-4o Audio (closed) | GPT-4o | proprietary | text + speech | API |
 
-### Benchmark reality check (2026)
+### 벤치마크 현실 점검(2026)
 
-**MMAU-Pro.** 1800 QA pairs covering speech / sound / music / mixed. Multi-audio subset included.
+**MMAU-Pro.** speech / sound / music / mixed를 다루는 1800개 QA pair. Multi-audio subset 포함.
 
-| Model | Overall | Speech | Sound | Music | Multi-audio |
+| 모델 | 전체 | Speech | Sound | Music | Multi-audio |
 |-------|---------|--------|-------|-------|-------------|
 | Gemini 2.5 Pro | ~60% | 73.4% | 51.9% | 64.9% | ~22% |
 | Gemini 2.5 Flash | ~57% | 73.4% | 50.5% | 64.9% | 21.2% |
-| GPT-4o Audio | 52.5% | — | — | — | 26.5% |
+| GPT-4o Audio | 52.5% | n/a | n/a | n/a | 26.5% |
 | Qwen2.5-Omni-7B | 52.2% | 57.4% | 47.6% | 61.5% | ~20% |
-| Audio Flamingo 3 | ~54% | — | — | — | — |
-| Audio Flamingo Next | SOTA on LongAudioBench | — | — | — | — |
+| Audio Flamingo 3 | ~54% | n/a | n/a | n/a | n/a |
+| Audio Flamingo Next | LongAudioBench SOTA | n/a | n/a | n/a | n/a |
 
-The **multi-audio column is damning for everyone.** Random chance on 4-option multiple choice = 25%; most models score around there. LALMs still struggle to compare two clips.
+**multi-audio 열은 모두에게 혹독하다.** 4지선다 random chance는 25%이고, 대부분 모델은 그 근처다. LALM은 아직 두 clip을 비교하는 데 어려움을 겪는다.
 
-### Where LALMs are useful in 2026
+### 2026년에 LALM이 유용한 곳
 
-- **Compliance audit of call-center recordings.** "Did the agent mention the required disclosure?"
-- **Accessibility.** Describe sound events to deaf users (not just transcription).
-- **Content moderation.** Detect violent language + threatening tone + background context.
-- **Podcast / meeting chaptering.** Semantic summary, not just speaker turns.
-- **Music catalog analysis.** "Find all tracks with a B-section key change."
+- **콜센터 녹음 compliance audit.** "상담원이 필수 고지를 말했나?"
+- **접근성.** 청각 장애 사용자에게 sound event를 설명한다(전사만이 아니다).
+- **Content moderation.** 폭력적 언어 + 위협적인 tone + background context를 감지한다.
+- **Podcast / meeting chaptering.** 단순 speaker turn이 아니라 의미 기반 요약.
+- **음악 catalog 분석.** "B-section key change가 있는 모든 track을 찾아라."
 
-### Where they are NOT (yet) useful
+### 아직 유용하지 않은 곳
 
-- Fine-grained music theory (below chord-level).
-- Speaker-attributed reasoning over long conversations (degrades past 10 minutes).
-- Multi-audio comparison (22-26% is barely above random).
-- Real-time streaming reasoning (most are offline batch inference).
+- 세밀한 음악 이론(chord-level 아래).
+- 긴 대화에서 speaker attribution이 필요한 추론(10분을 넘기면 저하).
+- Multi-audio comparison(22-26%는 random보다 아주 조금 높은 수준).
+- Real-time streaming reasoning(대부분은 offline batch inference).
 
-## Build It
+## 직접 만들기
 
-### Step 1: query Qwen2.5-Omni
+### 1단계: Qwen2.5-Omni 질의하기
 
 ```python
 from transformers import AutoModelForCausalLM, AutoProcessor
@@ -103,7 +103,7 @@ output = model.generate(**inputs, max_new_tokens=200)
 print(processor.decode(output[0], skip_special_tokens=True))
 ```
 
-### Step 2: the projector pattern
+### 2단계: projector 패턴
 
 ```python
 import torch.nn as nn
@@ -119,9 +119,9 @@ class AudioProjector(nn.Module):
         return self.up(self.act(self.down(audio_features)))
 ```
 
-That's it. The projector is usually 1-3 linear layers. Training it on ASR pairs (audio → transcript) is the Stage-1 pretext task.
+전부 이것이다. projector는 보통 1-3개의 linear layer다. ASR pair(audio → transcript)로 학습시키는 것이 Stage-1 pretext task다.
 
-### Step 3: benchmarking MMAU / LongAudioBench
+### 3단계: MMAU / LongAudioBench 벤치마크
 
 ```python
 from datasets import load_dataset
@@ -135,52 +135,52 @@ for item in mmau["test"]:
 print(f"Accuracy: {correct / len(mmau['test']):.3f}")
 ```
 
-Report per-category (speech / sound / music / multi-audio) separately. Aggregate numbers hide where the model fails.
+category별(speech / sound / music / multi-audio)로 따로 보고하라. 집계 수치는 모델이 어디서 실패하는지 숨긴다.
 
-## Use It
+## 활용하기
 
-| Task | 2026 pick |
+| 작업 | 2026년 선택 |
 |------|-----------|
-| Free-form audio QA (open) | Qwen2.5-Omni-7B |
-| Best open on long audio | Audio Flamingo Next |
-| Best closed | Gemini 2.5 Pro |
-| Voice-in / voice-out agent | Qwen2.5-Omni or GPT-4o Audio |
-| Music reasoning | Audio Flamingo 3 or 2 (music-specialized AF-CLAP) |
-| Call-center audit | Gemini 2.5 Pro via API, with RAG over your policy docs |
+| 자유 형식 audio QA(오픈) | Qwen2.5-Omni-7B |
+| 긴 오디오에서 최고의 오픈 모델 | Audio Flamingo Next |
+| 최고의 폐쇄 모델 | Gemini 2.5 Pro |
+| Voice-in / voice-out agent | Qwen2.5-Omni 또는 GPT-4o Audio |
+| 음악 추론 | Audio Flamingo 3 또는 2(music-specialized AF-CLAP) |
+| 콜센터 audit | Gemini 2.5 Pro via API, policy doc 위 RAG 포함 |
 
-## Pitfalls
+## 함정
 
-- **Over-trust on multi-audio.** If your task needs "which clip has X," random-chance-level performance is real.
-- **Long-audio degradation.** Past 10 minutes, most models' speaker attribution breaks. Diarize first (Lesson 6), then summarize.
-- **Hallucinations on silence.** Same Whisper-style issue inherited by LALMs that use Whisper encoder. VAD-gate.
-- **Benchmark cherry-picking.** Vendor blog posts highlight best-case categories. Run MMAU-Pro multi-audio subset yourself.
+- **Multi-audio 과신.** 작업이 "어느 clip에 X가 있는가"를 요구한다면 random-chance 수준 성능이 현실이다.
+- **긴 오디오 성능 저하.** 10분을 넘기면 대부분 모델의 speaker attribution이 무너진다. 먼저 diarize하고(Lesson 6), 그다음 요약하라.
+- **침묵에서의 hallucination.** Whisper encoder를 쓰는 LALM이 물려받는 동일한 Whisper식 문제다. VAD-gate하라.
+- **Benchmark cherry-picking.** Vendor blog post는 best-case category를 강조한다. MMAU-Pro multi-audio subset을 직접 실행하라.
 
-## Ship It
+## 출시하기
 
-Save as `outputs/skill-alm-picker.md`. Pick LALM + benchmark subset + output-modality (text vs speech) for a given audio-understanding task.
+`outputs/skill-alm-picker.md`로 저장하라. 주어진 audio-understanding task에 대해 LALM + benchmark subset + output-modality(text vs speech)를 선택한다.
 
-## Exercises
+## 연습문제
 
-1. **Easy.** Run `code/main.py` to see a toy projector pattern + fake LALM routing of (audio-embedding, text-tokens) → output tokens.
-2. **Medium.** Score Qwen2.5-Omni-7B on 100 MMAU-Pro speech items. Compare to the paper's reported number.
-3. **Hard.** Build a minimal audio-captioning baseline: BEATs encoder + 2-layer projector + frozen Llama-3.2-1B. Fine-tune only the projector on AudioCaps. Compare to SALMONN on Clotho-AQA.
+1. **쉬움.** `code/main.py`를 실행해 toy projector pattern과 가짜 LALM routing((audio-embedding, text-tokens) → output tokens)을 확인하라.
+2. **중간.** Qwen2.5-Omni-7B를 MMAU-Pro speech item 100개에서 채점하라. 논문에 보고된 수치와 비교하라.
+3. **어려움.** 최소 audio-captioning baseline을 만들어라: BEATs encoder + 2-layer projector + frozen Llama-3.2-1B. AudioCaps에서 projector만 fine-tune하라. Clotho-AQA에서 SALMONN과 비교하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|-----------------|-----------------------|
 | LALM | Audio ChatGPT | Audio encoder + projector + LLM decoder. |
-| Projector | Adapter | Small MLP mapping audio features into LLM embedding space. |
-| MMAU | The benchmark | 10k audio-QA pairs across speech, sound, music. |
-| MMAU-Pro | Harder MMAU | 1800 multi-audio / reasoning-heavy questions. |
-| LongAudioBench | Long-form eval | Multi-minute clips with semantic queries. |
-| Voice-in / voice-out | Speech-native | Model ingests speech and emits speech without text detour. |
+| Projector | Adapter | audio feature를 LLM embedding space로 mapping하는 작은 MLP. |
+| MMAU | Benchmark | speech, sound, music 전반의 10k audio-QA pair. |
+| MMAU-Pro | 더 어려운 MMAU | multi-audio / reasoning-heavy question 1800개. |
+| LongAudioBench | Long-form eval | 의미 query가 있는 multi-minute clip. |
+| Voice-in / voice-out | Speech-native | 모델이 text 우회 없이 speech를 ingest하고 speech를 emit한다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Chu et al. (2024). Qwen2-Audio](https://arxiv.org/abs/2407.10759) — reference architecture.
-- [Alibaba (2025). Qwen2.5-Omni](https://huggingface.co/Qwen/Qwen2.5-Omni-7B) — speech-in-speech-out.
-- [NVIDIA (2025). Audio Flamingo 3](https://arxiv.org/abs/2507.08128) — the open long-audio leader.
-- [NVIDIA (2026). Audio Flamingo Next](https://arxiv.org/abs/2604.10905) — LongAudioBench SOTA.
-- [Tang et al. (2023). SALMONN](https://arxiv.org/abs/2310.13289) — dual-encoder pioneer.
-- [MMAU-Pro leaderboard](https://mmaubenchmark.github.io/) — live 2026 rankings.
+- [Chu et al. (2024). Qwen2-Audio](https://arxiv.org/abs/2407.10759): reference architecture.
+- [Alibaba (2025). Qwen2.5-Omni](https://huggingface.co/Qwen/Qwen2.5-Omni-7B): speech-in-speech-out.
+- [NVIDIA (2025). Audio Flamingo 3](https://arxiv.org/abs/2507.08128): 오픈 long-audio leader.
+- [NVIDIA (2026). Audio Flamingo Next](https://arxiv.org/abs/2604.10905): LongAudioBench SOTA.
+- [Tang et al. (2023). SALMONN](https://arxiv.org/abs/2310.13289): dual-encoder pioneer.
+- [MMAU-Pro leaderboard](https://mmaubenchmark.github.io/): 2026년 live ranking.

@@ -1,35 +1,35 @@
-# GloVe, FastText, and Subword Embeddings
+# GloVe, FastText, Subword Embeddings
 
-> Word2Vec trained one embedding per word. GloVe factorized the co-occurrence matrix. FastText embedded the pieces. BPE bridged to transformers.
+> Word2Vec은 단어마다 embedding 하나를 학습했습니다. GloVe는 co-occurrence matrix를 factorize했습니다. FastText는 조각을 embedding했습니다. BPE는 transformer로 가는 다리를 놓았습니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 5 · 03 (Word2Vec from Scratch)
 **Time:** ~45 minutes
 
-## The Problem
+## 문제
 
-Word2Vec left two open questions.
+Word2Vec은 두 가지 열린 질문을 남겼습니다.
 
-First, there was a parallel line of research that factorized the co-occurrence matrix directly (LSA, HAL) rather than doing online skip-gram updates. Was Word2Vec's iterative approach fundamentally better, or was the difference an artifact of how the two methods handled counts? **GloVe** answered that: matrix factorization with a thoughtfully chosen loss matches or beats Word2Vec, and costs less to train.
+첫째, online skip-gram update 대신 co-occurrence matrix를 직접 factorize하는 연구 흐름이 따로 있었습니다(LSA, HAL). Word2Vec의 iterative approach가 근본적으로 더 나았던 것일까요, 아니면 두 방법이 count를 다루는 방식 때문에 생긴 차이였을까요? **GloVe**가 이에 답했습니다. 신중하게 고른 loss를 사용한 matrix factorization은 Word2Vec과 맞먹거나 이기며, 학습 비용은 더 낮습니다.
 
-Second, neither method had a story for words it had never seen. `Zoomer-approved`, `dogecoin`, any proper noun coined last week, every inflected form of a rare root. **FastText** fixed this by embedding character n-grams: a word is the sum of its parts, including morphemes, so even out-of-vocabulary words get a sensible vector.
+둘째, 두 방법 모두 한 번도 본 적 없는 단어를 처리할 방법이 없었습니다. `Zoomer-approved`, `dogecoin`, 지난주에 만들어진 proper noun, 드문 root의 모든 inflected form이 여기에 해당합니다. **FastText**는 character n-gram을 embedding해 이 문제를 고쳤습니다. 단어는 morpheme을 포함한 부분들의 합이므로 out-of-vocabulary word도 그럴듯한 vector를 얻습니다.
 
-Third, once transformers arrived, the question shifted again. Word-level vocabularies cap out around a million entries; real language is more open than that. **Byte-pair encoding (BPE)** and its relatives solved this by learning a vocabulary of frequent subword units that covers everything. Every modern tokenizer for every modern LLM is a subword tokenizer.
+셋째, transformer가 등장하자 질문이 다시 바뀌었습니다. word-level vocabulary는 백만 항목쯤에서 한계에 부딪힙니다. 실제 언어는 그보다 훨씬 열려 있습니다. **Byte-pair encoding (BPE)**과 그 친척들은 모든 것을 덮는 빈번한 subword unit의 vocabulary를 학습해 이 문제를 해결했습니다. 모든 현대 LLM의 모든 현대 tokenizer는 subword tokenizer입니다.
 
-This lesson walks all three, then explains which to reach for when.
+이 lesson은 세 가지를 모두 살펴본 뒤, 언제 무엇을 선택해야 하는지 설명합니다.
 
-## The Concept
+## 개념
 
-**GloVe (Global Vectors).** Build the word-word co-occurrence matrix `X` where `X[i][j]` is how often word `j` appears in the context of word `i`. Train vectors such that `v_i · v_j + b_i + b_j ≈ log(X[i][j])`. Weight the loss so frequent pairs do not dominate. Done.
+**GloVe (Global Vectors).** word-word co-occurrence matrix `X`를 만듭니다. 여기서 `X[i][j]`는 word `j`가 word `i`의 context에 등장한 횟수입니다. `v_i · v_j + b_i + b_j ≈ log(X[i][j])`가 되도록 vector를 학습합니다. frequent pair가 loss를 지배하지 않도록 가중치를 둡니다. 끝입니다.
 
-**FastText.** A word is the sum of its character n-grams plus the word itself. `where` becomes `<wh, whe, her, ere, re>, <where>`. The word vector is the sum of those component vectors. Train as Word2Vec. Benefit: unseen words (`whereupon`) compose from known n-grams.
+**FastText.** 단어는 자기 자신과 character n-gram의 합입니다. `where`는 `<wh, whe, her, ere, re>, <where>`가 됩니다. word vector는 이런 component vector의 합입니다. Word2Vec처럼 학습합니다. 장점: unseen word(`whereupon`)도 알려진 n-gram에서 조합됩니다.
 
-**BPE (Byte-Pair Encoding).** Start with a vocabulary of individual bytes (or characters). Count every adjacent pair in the corpus. Merge the most frequent pair into a new token. Repeat for `k` iterations. Result: a vocabulary of `k + 256` tokens where frequent sequences (`ing`, `tion`, `the`) are single tokens and rare words are broken into familiar pieces. Every sentence tokenizes into something.
+**BPE (Byte-Pair Encoding).** 개별 byte(또는 character)의 vocabulary에서 시작합니다. corpus의 모든 adjacent pair를 셉니다. 가장 frequent한 pair를 새 token으로 merge합니다. 이를 `k`번 반복합니다. 결과는 frequent sequence(`ing`, `tion`, `the`)가 single token이 되고 rare word는 익숙한 조각으로 쪼개지는 `k + 256` token vocabulary입니다. 모든 문장은 무언가로 tokenize됩니다.
 
-## Build It
+## 직접 만들기
 
-### GloVe: factorize the co-occurrence matrix
+### GloVe: co-occurrence matrix factorize하기
 
 ```python
 import numpy as np
@@ -77,9 +77,9 @@ def glove_train(vocab, pair_counts, dim=16, epochs=100, lr=0.05, x_max=100, alph
     return W + W_tilde
 ```
 
-Two moving pieces worth naming. The weighting function `f(x) = (x/x_max)^alpha` downweights very frequent pairs (like `(the, and)`) so they do not dominate the loss. The final embedding is the sum of `W` (center) and `W_tilde` (context) tables. Summing both is a published trick that tends to outperform using just one.
+이름 붙일 만한 moving piece가 두 개 있습니다. weighting function `f(x) = (x/x_max)^alpha`는 `(the, and)`처럼 매우 frequent한 pair가 loss를 지배하지 않도록 downweight합니다. 최종 embedding은 `W`(center)와 `W_tilde`(context) table의 합입니다. 둘을 더하는 것은 하나만 쓰는 것보다 성능이 좋은 경향이 있는 published trick입니다.
 
-### FastText: subword-aware embeddings
+### FastText: subword-aware embedding
 
 ```python
 def char_ngrams(word, n_min=3, n_max=6):
@@ -96,7 +96,7 @@ def char_ngrams(word, n_min=3, n_max=6):
 {'<where>', '<wh', 'whe', 'her', 'ere', 're>', '<whe', 'wher', 'here', 'ere>', '<wher', 'where', 'here>'}
 ```
 
-Each word is represented by its set of n-grams (typically 3 to 6 characters). The word embedding is the sum of its n-gram embeddings. For skip-gram training, plug this in where Word2Vec used a single vector.
+각 단어는 n-gram 집합(보통 3-6 character)으로 표현됩니다. word embedding은 n-gram embedding의 합입니다. skip-gram training에서는 Word2Vec이 single vector를 사용하던 자리에 이것을 꽂습니다.
 
 ```python
 def fasttext_vector(word, ngram_table):
@@ -107,9 +107,9 @@ def fasttext_vector(word, ngram_table):
     return np.sum(vecs, axis=0)
 ```
 
-For an unseen word, you still get a vector as long as some of its n-grams are known. `whereupon` shares `<wh`, `her`, `ere`, and `<where` with `where`, so the two land near each other.
+unseen word라도 그 n-gram 일부를 알고 있으면 vector를 얻습니다. `whereupon`은 `where`와 `<wh`, `her`, `ere`, `<where`를 공유하므로 둘은 서로 가까운 곳에 놓입니다.
 
-### BPE: learned subword vocabulary
+### BPE: 학습된 subword vocabulary
 
 ```python
 def learn_bpe(corpus, k_merges):
@@ -168,13 +168,13 @@ def apply_bpe(word, merges):
 ['low', 'est</w>']
 ```
 
-First iteration merges the most common adjacent pair. After enough iterations, frequent substrings (`low`, `est`, `tion`) become single tokens and rare words break cleanly.
+첫 번째 iteration은 가장 common한 adjacent pair를 merge합니다. 충분히 반복하면 frequent substring(`low`, `est`, `tion`)은 single token이 되고 rare word는 깔끔하게 쪼개집니다.
 
-The real GPT / BERT / T5 tokenizers learn 30k-100k merges. Result: any text tokenizes into a bounded-length sequence of known IDs, no OOV ever.
+실제 GPT / BERT / T5 tokenizer는 30k-100k merge를 학습합니다. 결과: 어떤 text든 알려진 ID의 bounded-length sequence로 tokenize되고, OOV는 절대 없습니다.
 
-## Use It
+## 사용하기
 
-In practice, you rarely train any of these yourself. You load pre-trained checkpoints.
+실무에서는 이 중 어떤 것도 직접 학습하는 일이 드뭅니다. pre-trained checkpoint를 로드합니다.
 
 ```python
 import fasttext.util
@@ -184,7 +184,7 @@ print(ft.get_word_vector("whereupon").shape)
 print(ft.get_word_vector("zoomerapproved").shape)
 ```
 
-For BPE-style subword tokenization in the transformer era:
+transformer 시대의 BPE-style subword tokenization은 다음과 같습니다.
 
 ```python
 from transformers import AutoTokenizer
@@ -193,65 +193,65 @@ tok = AutoTokenizer.from_pretrained("gpt2")
 print(tok.tokenize("unbelievably tokenized"))
 ```
 
-```
+```text
 ['un', 'bel', 'iev', 'ably', 'Ġtoken', 'ized']
 ```
 
-The `Ġ` prefix marks word boundaries (a GPT-2 convention). Every modern tokenizer is a BPE variant, WordPiece (BERT), or SentencePiece (T5, LLaMA).
+`Ġ` prefix는 word boundary를 표시합니다(GPT-2 convention). 모든 현대 tokenizer는 BPE variant, WordPiece(BERT), 또는 SentencePiece(T5, LLaMA)입니다.
 
-### When to pick which
+### 무엇을 선택할까
 
-| Situation | Pick |
-|-----------|------|
-| Pretrained general-purpose word vectors, no OOV tolerance needed | GloVe 300d |
-| Pretrained general-purpose word vectors, must handle misspellings / neologisms / morphologically rich languages | FastText |
-| Anything going into a transformer (training or inference) | Whatever tokenizer the model shipped with. Never swap. |
-| Training your own language model from scratch | Train a BPE or SentencePiece tokenizer on your corpus first |
-| Production text classification with a linear model | Still TF-IDF. Lesson 02. |
+| 상황 | 선택 |
+|------|------|
+| pre-trained general-purpose word vector가 필요하고 OOV tolerance가 필요 없음 | GloVe 300d |
+| pre-trained general-purpose word vector가 필요하고 misspelling / neologism / morphologically rich language를 처리해야 함 | FastText |
+| transformer(training 또는 inference)에 들어가는 모든 것 | 모델과 함께 제공된 tokenizer. 절대 바꾸지 마세요. |
+| language model을 직접 처음부터 학습 | corpus에서 BPE 또는 SentencePiece tokenizer를 먼저 학습 |
+| linear model 기반 production text classification | 여전히 TF-IDF. Lesson 02. |
 
-## Ship It
+## 내보내기
 
-Save as `outputs/skill-embeddings-picker.md`:
+`outputs/skill-embeddings-picker.md`로 저장합니다.
 
 ```markdown
 ---
 name: tokenizer-picker
-description: Pick a tokenization approach for a new language model or text pipeline.
+description: 새 language model 또는 text pipeline을 위한 tokenization approach를 선택합니다.
 version: 1.0.0
 phase: 5
 lesson: 04
 tags: [nlp, tokenization, embeddings]
 ---
 
-Given a task and dataset description, you output:
+task와 dataset description이 주어지면 다음을 출력합니다.
 
-1. Tokenization strategy (word-level, BPE, WordPiece, SentencePiece, byte-level). One-sentence reason.
-2. Vocabulary size target (e.g., 32k for an English-only LM, 64k-100k for multilingual).
-3. Library call with the exact training command. Name the library. Quote the arguments.
-4. One reproducibility pitfall. Tokenizer-model mismatch is the single most common silent production bug; call out which pair must be used together.
+1. Tokenization strategy(word-level, BPE, WordPiece, SentencePiece, byte-level). 한 문장짜리 이유.
+2. Vocabulary size target(예: English-only LM은 32k, multilingual은 64k-100k).
+3. 정확한 training command가 포함된 library call. library 이름을 말하세요. argument를 quote하세요.
+4. reproducibility pitfall 하나. Tokenizer-model mismatch는 production에서 가장 흔한 silent bug입니다. 어떤 pair를 함께 사용해야 하는지 지적하세요.
 
-Refuse to recommend training a custom tokenizer when the user is fine-tuning a pretrained LLM. Refuse to recommend word-level tokenization for any model targeting production inference. Flag non-English / multi-script corpora as needing SentencePiece with byte fallback.
+사용자가 pretrained LLM을 fine-tuning하는 경우 custom tokenizer 학습을 권장하지 마세요. production inference를 목표로 하는 어떤 model에도 word-level tokenization을 권장하지 마세요. non-English / multi-script corpus에는 byte fallback이 있는 SentencePiece가 필요하다고 표시하세요.
 ```
 
-## Exercises
+## 연습 문제
 
-1. **Easy.** Run `char_ngrams("playing")` and `char_ngrams("played")`. Compute the Jaccard overlap of the two n-gram sets. You should see substantial shared pieces (`pla`, `lay`, `play`), which is why FastText transfers well across morphological variants.
-2. **Medium.** Extend `learn_bpe` to track vocabulary growth. Plot tokens-per-corpus-character as a function of number of merges. You should see rapid compression at first, asymptoting near ~2-3 chars per token.
-3. **Hard.** Train a 1k-merge BPE on Shakespeare's complete works. Compare tokenization of common words vs. rare proper nouns. Measure average tokens per word before and after. Write up what surprised you.
+1. **Easy.** `char_ngrams("playing")`와 `char_ngrams("played")`를 실행하세요. 두 n-gram set의 Jaccard overlap을 계산하세요. 공유 조각(`pla`, `lay`, `play`)이 상당히 많다는 것을 볼 수 있습니다. 그래서 FastText는 morphological variant 사이에서 잘 전이됩니다.
+2. **Medium.** `learn_bpe`를 확장해 vocabulary growth를 추적하세요. merge 수의 함수로 tokens-per-corpus-character를 plot하세요. 처음에는 빠르게 compression되고, 이후 token당 ~2-3 character 근처에서 asymptote하는 모습을 볼 수 있습니다.
+3. **Hard.** Shakespeare complete works에서 1k-merge BPE를 학습하세요. common word와 rare proper noun의 tokenization을 비교하세요. 전후의 average tokens per word를 측정하세요. 무엇이 의외였는지 정리하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
-|------|-----------------|-----------------------|
-| Co-occurrence matrix | Word-word frequency table | `X[i][j]` = how often word `j` appears in a window around word `i`. |
-| Subword | Piece of a word | A character n-gram (FastText) or learned token (BPE/WordPiece/SentencePiece). |
-| BPE | Byte-pair encoding | Iterative merging of most-frequent adjacent pairs until vocabulary hits target size. |
-| OOV | Out of vocabulary | Word the model has never seen. Word2Vec/GloVe fail. FastText and BPE handle it. |
-| Byte-level BPE | BPE on raw bytes | GPT-2's scheme. Vocabulary starts with 256 bytes, so nothing is ever OOV. |
+| Term | 사람들이 말하는 것 | 실제 의미 |
+|------|-------------------|-----------|
+| Co-occurrence matrix | word-word frequency table | `X[i][j]` = word `j`가 word `i` 주변 window에 등장하는 횟수. |
+| Subword | 단어의 조각 | character n-gram(FastText) 또는 learned token(BPE/WordPiece/SentencePiece). |
+| BPE | Byte-pair encoding | vocabulary가 target size에 도달할 때까지 most-frequent adjacent pair를 반복적으로 merge. |
+| OOV | Out of vocabulary | 모델이 한 번도 본 적 없는 단어. Word2Vec/GloVe는 실패합니다. FastText와 BPE는 처리합니다. |
+| Byte-level BPE | raw byte 위의 BPE | GPT-2의 방식입니다. Vocabulary가 256 byte에서 시작하므로 어떤 것도 OOV가 되지 않습니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Pennington, Socher, Manning (2014). GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/pubs/glove.pdf) — the GloVe paper, seven pages, still the best derivation of the loss.
+- [Pennington, Socher, Manning (2014). GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/pubs/glove.pdf) — GloVe 논문입니다. 7쪽이며, loss 유도는 여전히 이 글이 가장 좋습니다.
 - [Bojanowski et al. (2017). Enriching Word Vectors with Subword Information](https://arxiv.org/abs/1607.04606) — FastText.
-- [Sennrich, Haddow, Birch (2016). Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) — the paper that introduced BPE to modern NLP.
-- [Hugging Face tokenizer summary](https://huggingface.co/docs/transformers/tokenizer_summary) — how BPE, WordPiece, and SentencePiece actually differ in practice.
+- [Sennrich, Haddow, Birch (2016). Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) — BPE를 현대 NLP에 도입한 논문입니다.
+- [Hugging Face tokenizer summary](https://huggingface.co/docs/transformers/tokenizer_summary) — BPE, WordPiece, SentencePiece가 실제로 어떻게 다른지 설명합니다.

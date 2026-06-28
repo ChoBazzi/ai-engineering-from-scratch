@@ -1,10 +1,10 @@
 {
   "lesson": "15-crewai-role-based-crews",
-  "title": "CrewAI: Role-Based Crews and Flows",
+  "title": "CrewAI: 역할 기반 Crew와 Flow",
   "questions": [
     {
       "stage": "pre",
-      "question": "What are CrewAI's four primitives?",
+      "question": "CrewAI의 네 가지 primitive는 무엇인가?",
       "options": [
         "Agent, Task, Crew, Process",
         "Node, Edge, Reducer, Checkpointer",
@@ -12,11 +12,11 @@
         "Tool, Prompt, Model, Memory"
       ],
       "correct": 0,
-      "explanation": "Agent, Task, Crew, and Process are the four primitives."
+      "explanation": "Agent, Task, Crew, Process가 네 가지 primitive다."
     },
     {
       "stage": "pre",
-      "question": "What is the recommended production starting point per the CrewAI docs?",
+      "question": "CrewAI 문서가 권장하는 production 시작점은 무엇인가?",
       "options": [
         "Crew",
         "Flow",
@@ -24,23 +24,23 @@
         "Hierarchical process"
       ],
       "correct": 1,
-      "explanation": "The docs say start production apps with Flows; fold Crews in as sub-steps when autonomy earns its cost."
+      "explanation": "문서는 production app을 Flow로 시작하라고 말한다. autonomy가 비용을 정당화할 때 Crew를 sub-step으로 접어 넣는다."
     },
     {
       "stage": "check",
-      "question": "What is the difference between a Crew and a Flow?",
+      "question": "Crew와 Flow의 차이는 무엇인가?",
       "options": [
-        "Crew is paid, Flow is free",
-        "Crew is autonomous and LLM-driven; Flow is event-driven, code-owned, deterministic and testable",
-        "Crew runs on GPUs only",
-        "Flow has no agents"
+        "Crew는 유료이고 Flow는 무료다",
+        "Crew는 autonomous하고 LLM-driven이다. Flow는 event-driven, code-owned, deterministic, testable하다",
+        "Crew는 GPU에서만 실행된다",
+        "Flow에는 agent가 없다"
       ],
       "correct": 1,
-      "explanation": "Crew is autonomy-first; Flow is determinism-first."
+      "explanation": "Crew는 autonomy 우선이고 Flow는 determinism 우선이다."
     },
     {
       "stage": "check",
-      "question": "Which of these is NOT one of the four memory types CrewAI ships?",
+      "question": "다음 중 CrewAI가 제공하는 네 가지 memory type이 아닌 것은?",
       "options": [
         "Short-term",
         "Long-term",
@@ -48,43 +48,43 @@
         "Quantized"
       ],
       "correct": 3,
-      "explanation": "Short-term, long-term, entity, and contextual are the four. Quantized memory is not a CrewAI concept."
+      "explanation": "네 가지는 short-term, long-term, entity, contextual이다. Quantized memory는 CrewAI 개념이 아니다."
     },
     {
       "stage": "check",
-      "question": "What is backstory bloat and how does the lesson recommend handling it?",
+      "question": "backstory bloat란 무엇이며 lesson은 어떻게 다루라고 권장하는가?",
       "options": [
-        "Storing too many crews; archive old ones",
-        "2000-word agent backstories push out context budget; keep them tight",
-        "Too many tools; delete some",
-        "Slow Bedrock calls; switch regions"
+        "Crew를 너무 많이 저장하는 것. 오래된 것을 archive한다",
+        "2000단어짜리 agent backstory가 context budget을 밀어낸다. 타이트하게 유지한다",
+        "도구가 너무 많은 것. 일부를 삭제한다",
+        "느린 Bedrock call. region을 바꾼다"
       ],
       "correct": 1,
-      "explanation": "Backstories shape tone and judgment but eat context if oversized."
+      "explanation": "backstory는 tone과 judgment를 형성하지만 너무 크면 context를 잡아먹는다."
     },
     {
       "stage": "post",
-      "question": "When is Hierarchical process worth picking over Sequential?",
+      "question": "Sequential보다 Hierarchical process를 고를 가치가 있는 때는 언제인가?",
       "options": [
-        "Always",
-        "When you have 4+ specialists that need a manager Agent to route between them",
-        "When you have one task",
-        "When you do not have any tools"
+        "항상",
+        "manager Agent가 specialist 사이를 route해야 하는 specialist가 4명 이상 있을 때",
+        "task가 하나일 때",
+        "도구가 전혀 없을 때"
       ],
       "correct": 1,
-      "explanation": "Hierarchical adds a manager Agent; only worthwhile when several specialists need dynamic routing."
+      "explanation": "Hierarchical은 manager Agent를 추가한다. 여러 specialist에 dynamic routing이 필요할 때만 가치가 있다."
     },
     {
       "stage": "post",
-      "question": "Why does the lesson caution against using a free-form Crew in production?",
+      "question": "lesson이 production에서 free-form Crew 사용을 조심하라고 하는 이유는 무엇인가?",
       "options": [
-        "Crews are unsupported",
-        "Output variability is high and debugging is painful without a Flow wrapper",
-        "Crews cost more than Flows",
-        "Crews lack memory"
+        "Crew는 지원되지 않는다",
+        "output variability가 높고 Flow wrapper 없이는 debugging이 고통스럽다",
+        "Crew는 Flow보다 비용이 더 든다",
+        "Crew에는 memory가 없다"
       ],
       "correct": 1,
-      "explanation": "Crew autonomy makes prod replay and audit painful; wrap with a Flow when shipping."
+      "explanation": "Crew autonomy는 production replay와 audit를 어렵게 만든다. ship할 때는 Flow로 감싸라."
     }
   ]
 }

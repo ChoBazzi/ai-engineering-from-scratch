@@ -1,45 +1,45 @@
-# Numerical Stability
+# 수치 안정성
 
-> Floating point is a leaky abstraction. It will bite you during training, and you will not see it coming.
+> Floating point는 새는 추상화입니다. 학습 중 당신을 물 것이고, 당신은 그것이 오는 것을 보지 못할 것입니다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 1, Lessons 01-04
 **Time:** ~120 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Implement numerically stable softmax and log-sum-exp using the max-subtraction trick
-- Identify overflow, underflow, and catastrophic cancellation in floating-point computations
-- Verify analytical gradients against numerical gradients using centered finite differences
-- Explain why bfloat16 is preferred over float16 for training and how loss scaling prevents gradient underflow
+- max-subtraction trick을 사용해 numerically stable softmax와 log-sum-exp 구현하기
+- floating-point computation에서 overflow, underflow, catastrophic cancellation 식별하기
+- centered finite differences로 analytical gradients를 numerical gradients와 검증하기
+- bfloat16이 학습에서 float16보다 선호되는 이유와 loss scaling이 gradient underflow를 막는 방법 설명하기
 
-## The Problem
+## 문제
 
-Your model trains for three hours, then the loss becomes NaN. You add a print statement. The logits are fine at step 9,000. At step 9,001 they are `inf`. By step 9,002 every gradient is `nan` and training is dead.
+모델이 세 시간 동안 학습하다가 loss가 NaN이 됩니다. print statement를 추가합니다. step 9,000에서는 logits가 멀쩡합니다. step 9,001에서는 `inf`입니다. step 9,002가 되면 모든 gradient가 `nan`이고 학습은 끝났습니다.
 
-Or: your model trains to completion but accuracy is 2% worse than the paper claims. You check everything. Architecture matches. Hyperparameters match. Data matches. The problem is that the paper used float32 and you used float16 without the right scaling. Thirty-two bits of accumulated rounding error quietly ate your accuracy.
+또는 모델이 끝까지 학습되지만 accuracy가 논문보다 2% 낮습니다. 모든 것을 확인합니다. Architecture도 맞고, hyperparameters도 맞고, data도 맞습니다. 문제는 논문은 float32를 썼고 당신은 적절한 scaling 없이 float16을 썼다는 것입니다. 32비트의 누적 rounding error가 조용히 accuracy를 갉아먹었습니다.
 
-Or: you implement cross-entropy loss from scratch. It works on small logits. When logits exceed 100, it returns `inf`. The softmax overflowed because `exp(100)` is larger than float32 can represent. Every ML framework handles this with a two-line trick. You did not know the trick existed.
+또는 cross-entropy loss를 처음부터 구현합니다. 작은 logits에서는 작동합니다. logits가 100을 넘으면 `inf`를 반환합니다. `exp(100)`이 float32가 표현할 수 있는 것보다 크기 때문에 softmax가 overflow했습니다. 모든 ML framework는 이 문제를 두 줄짜리 trick으로 처리합니다. 당신은 그 trick이 있다는 것을 몰랐습니다.
 
-Numerical stability is not a theoretical concern. It is the difference between a training run that succeeds and one that silently fails. Every serious ML bug you will debug eventually comes down to floating point.
+Numerical stability는 이론적인 관심사가 아닙니다. 성공하는 training run과 조용히 실패하는 training run의 차이입니다. 결국 디버깅하게 될 심각한 ML bug는 모두 floating point로 내려갑니다.
 
-## The Concept
+## 개념
 
-### IEEE 754: How Computers Store Real Numbers
+### IEEE 754: 컴퓨터가 실수를 저장하는 방법
 
-Computers store real numbers as floating point values following the IEEE 754 standard. A float has three parts: a sign bit, an exponent, and a mantissa (significand).
+컴퓨터는 IEEE 754 표준을 따르는 floating point 값으로 실수를 저장합니다. float는 sign bit, exponent, mantissa(significand)의 세 부분으로 구성됩니다.
 
-```
+```text
 Float32 layout (32 bits total):
 [1 sign] [8 exponent] [23 mantissa]
 
 Value = (-1)^sign * 2^(exponent - 127) * 1.mantissa
 ```
 
-The mantissa determines precision (how many significant digits). The exponent determines range (how large or small a number can be).
+mantissa는 precision(몇 개의 significant digits)을 결정합니다. exponent는 range(숫자가 얼마나 크거나 작을 수 있는지)를 결정합니다.
 
-```
+```text
 Format     Bits   Exponent  Mantissa  Decimal digits  Range (approx)
 float64    64     11        52        ~15-16          +/- 1.8e308
 float32    32     8         23        ~7-8            +/- 3.4e38
@@ -47,23 +47,23 @@ float16    16     5         10        ~3-4            +/- 65,504
 bfloat16   16     8         7         ~2-3            +/- 3.4e38
 ```
 
-float32 gives you about 7 decimal digits of precision. That means it can tell apart 1.0000001 and 1.0000002, but not 1.00000001 and 1.00000002. After 7 digits, everything is rounding noise.
+float32는 약 7개의 decimal digits precision을 제공합니다. 1.0000001과 1.0000002는 구분할 수 있지만, 1.00000001과 1.00000002는 구분할 수 없습니다. 7자리 이후는 rounding noise입니다.
 
-float16 gives you about 3 digits. The largest number it can represent is 65,504. That is disturbingly small for ML where logits, gradients, and activations routinely exceed this.
+float16은 약 3자리 precision을 제공합니다. 표현할 수 있는 가장 큰 수는 65,504입니다. logits, gradients, activations가 이 값을 자주 넘는 ML에서는 불안할 정도로 작습니다.
 
-bfloat16 is Google's answer to float16's range problem. It has the same 8-bit exponent as float32 (same range, up to 3.4e38) but only 7 mantissa bits (less precision than float16). For training neural networks, range matters more than precision, so bfloat16 usually wins.
+bfloat16은 float16의 range 문제에 대한 Google의 답입니다. float32와 같은 8-bit exponent(같은 range, 최대 3.4e38)를 가지지만 mantissa는 7비트뿐입니다(float16보다 precision이 낮음). neural network 학습에서는 precision보다 range가 더 중요하므로 보통 bfloat16이 이깁니다.
 
-### Why 0.1 + 0.2 != 0.3
+### 왜 0.1 + 0.2 != 0.3인가
 
-The number 0.1 cannot be represented exactly in binary floating point. In base 2, it is a repeating fraction:
+0.1은 binary floating point에서 정확히 표현할 수 없습니다. base 2에서는 반복 소수입니다.
 
-```
+```text
 0.1 in binary = 0.0001100110011001100110011... (repeating forever)
 ```
 
-Float32 truncates this to 23 bits of mantissa. The stored value is approximately 0.100000001490116. Similarly, 0.2 is stored as approximately 0.200000002980232. Their sum is 0.300000004470348, not 0.3.
+Float32는 이를 23 mantissa bits로 자릅니다. 저장된 값은 대략 0.100000001490116입니다. 0.2도 대략 0.200000002980232로 저장됩니다. 둘의 합은 0.3이 아니라 0.300000004470348입니다.
 
-```
+```text
 In Python:
 >>> 0.1 + 0.2
 0.30000000000000004
@@ -72,19 +72,19 @@ In Python:
 False
 ```
 
-This matters for ML because:
+ML에서 이것이 중요한 이유:
 
-1. Loss comparisons like `if loss < threshold` can give wrong answers
-2. Accumulating many small values (gradient updates over thousands of steps) drifts from the true sum
-3. Checksums and reproducibility tests fail if you compare floats with `==`
+1. `if loss < threshold` 같은 loss comparison이 잘못된 답을 줄 수 있습니다
+2. 많은 작은 값을 누적하면(수천 step의 gradient updates) true sum에서 drift합니다
+3. float를 `==`로 비교하면 checksum과 reproducibility test가 실패합니다
 
-The fix: never compare floats with `==`. Use `abs(a - b) < epsilon` or `math.isclose()`.
+수정: float를 `==`로 비교하지 마세요. `abs(a - b) < epsilon` 또는 `math.isclose()`를 사용하세요.
 
-### Catastrophic Cancellation
+### 치명적 소거
 
-When you subtract two nearly equal floating point numbers, the significant digits cancel and you are left with rounding noise promoted to leading digits.
+거의 같은 두 floating point number를 빼면 significant digits가 상쇄되고 rounding noise가 leading digits로 승격됩니다.
 
-```
+```text
 a = 1.0000001    (stored as 1.00000011920929 in float32)
 b = 1.0000000    (stored as 1.00000000000000 in float32)
 
@@ -94,19 +94,19 @@ Computed:         0.00000011920929
 Relative error: 19.2%
 ```
 
-That is a 19% relative error from a single subtraction. In ML, this happens whenever you:
+단 한 번의 subtraction으로 19% relative error가 생깁니다. ML에서는 다음 상황에서 발생합니다.
 
-- Compute variance of data with a large mean: `E[x^2] - E[x]^2` when E[x] is large
-- Subtract nearly equal log-probabilities
-- Compute finite-difference gradients with too-small epsilon
+- 큰 mean을 가진 data의 variance 계산: E[x]가 클 때 `E[x^2] - E[x]^2`
+- 거의 같은 log-probabilities 빼기
+- epsilon이 너무 작은 finite-difference gradients 계산
 
-The fix: rearrange formulas to avoid subtracting large, nearly equal numbers. For variance, use the Welford algorithm or center the data first. For log-probabilities, work in log-space throughout.
+수정: 크고 거의 같은 수를 빼지 않도록 공식을 재배열하세요. variance에는 Welford algorithm을 사용하거나 data를 먼저 center하세요. log-probabilities는 처음부터 끝까지 log-space에서 작업하세요.
 
-### Overflow and Underflow
+### Overflow와 Underflow
 
-Overflow happens when a result is too large to represent. Underflow happens when it is too small (closer to zero than the smallest representable positive number).
+Overflow는 결과가 너무 커서 표현할 수 없을 때 발생합니다. Underflow는 너무 작을 때(표현 가능한 가장 작은 양수보다 0에 가까울 때) 발생합니다.
 
-```
+```text
 Float32 boundaries:
   Maximum:  3.4028235e+38
   Minimum positive (normal): 1.175e-38
@@ -115,41 +115,41 @@ Float32 boundaries:
   Underflow: anything < 1.4e-45 becomes 0.0
 ```
 
-The `exp()` function is the primary source of overflow in ML:
+ML에서 `exp()` function은 overflow의 주요 원인입니다.
 
-```
+```text
 exp(88.7)  = 3.40e+38   (barely fits in float32)
 exp(89.0)  = inf         (overflow)
 exp(-87.3) = 1.18e-38   (barely above underflow)
 exp(-104)  = 0.0         (underflow to zero)
 ```
 
-The `log()` function hits the other direction:
+`log()` function은 반대 방향에서 문제를 만납니다.
 
-```
+```text
 log(0.0)   = -inf
 log(-1.0)  = nan
 log(1e-45) = -103.3      (fine)
 log(1e-46) = -inf        (input underflowed to 0, then log(0) = -inf)
 ```
 
-In ML, `exp()` appears in softmax, sigmoid, and probability computations. `log()` appears in cross-entropy, log-likelihoods, and KL divergence. The combination `log(exp(x))` is a minefield without the right tricks.
+ML에서 `exp()`는 softmax, sigmoid, probability computation에 나타납니다. `log()`는 cross-entropy, log-likelihoods, KL divergence에 나타납니다. `log(exp(x))` 조합은 올바른 trick 없이는 지뢰밭입니다.
 
-### The Log-Sum-Exp Trick
+### Log-Sum-Exp trick 설명
 
-Computing `log(sum(exp(x_i)))` directly is numerically dangerous. If any `x_i` is large, `exp(x_i)` overflows. If all `x_i` are very negative, every `exp(x_i)` underflows to zero and `log(0)` is `-inf`.
+`log(sum(exp(x_i)))`를 직접 계산하는 것은 수치적으로 위험합니다. 어떤 `x_i`가 크면 `exp(x_i)`가 overflow합니다. 모든 `x_i`가 매우 음수이면 모든 `exp(x_i)`가 0으로 underflow하고 `log(0)`은 `-inf`입니다.
 
-The trick: subtract the maximum value before exponentiating.
+trick은 exponentiating 전에 최대값을 빼는 것입니다.
 
-```
+```text
 log(sum(exp(x_i))) = max(x) + log(sum(exp(x_i - max(x))))
 ```
 
-Why this works: after subtracting `max(x)`, the largest exponent is `exp(0) = 1`. No overflow is possible. At least one term in the sum is 1, so the sum is at least 1, and `log(1) = 0`. No underflow to `-inf` is possible.
+작동 이유: `max(x)`를 빼면 가장 큰 exponent는 `exp(0) = 1`입니다. overflow가 불가능합니다. 합에는 적어도 하나의 항 1이 있으므로 합은 최소 1이고, `log(1) = 0`입니다. `-inf`로 underflow하지 않습니다.
 
-Proof:
+증명:
 
-```
+```text
 log(sum(exp(x_i)))
 = log(sum(exp(x_i - c + c)))                    (add and subtract c)
 = log(sum(exp(x_i - c) * exp(c)))               (exp(a+b) = exp(a)*exp(b))
@@ -157,26 +157,26 @@ log(sum(exp(x_i)))
 = c + log(sum(exp(x_i - c)))                    (log(a*b) = log(a) + log(b))
 ```
 
-Set `c = max(x)` and overflow is eliminated.
+`c = max(x)`로 두면 overflow가 제거됩니다.
 
-This trick appears everywhere in ML:
+이 trick은 ML 전반에 나타납니다.
 - Softmax normalization
 - Cross-entropy loss computation
-- Log-probability summation in sequence models
+- Sequence model의 log-probability summation
 - Mixture of Gaussians
 - Variational inference
 
-### Why Softmax Needs the Max-Subtraction Trick
+### Softmax에 max-subtraction trick이 필요한 이유
 
-Softmax converts logits to probabilities:
+Softmax는 logits를 probabilities로 변환합니다.
 
-```
+```text
 softmax(x_i) = exp(x_i) / sum(exp(x_j))
 ```
 
-Without the trick, logits of [100, 101, 102] cause overflow:
+trick 없이 logits [100, 101, 102]는 overflow를 일으킵니다.
 
-```
+```text
 exp(100) = 2.69e43
 exp(101) = 7.31e43
 exp(102) = 1.99e44
@@ -187,9 +187,9 @@ exp(88.7) is already at the float32 limit.
 exp(100) = inf in float32.
 ```
 
-With the trick, subtract max(x) = 102:
+trick을 사용해 max(x) = 102를 뺍니다.
 
-```
+```text
 exp(100 - 102) = exp(-2) = 0.135
 exp(101 - 102) = exp(-1) = 0.368
 exp(102 - 102) = exp(0)  = 1.000
@@ -198,26 +198,26 @@ sum = 1.503
 softmax = [0.090, 0.245, 0.665]
 ```
 
-The probabilities are identical. The computation is safe. This is not an optimization. It is a requirement for correctness.
+probabilities는 동일합니다. computation은 안전합니다. 이것은 optimization이 아니라 correctness의 요구사항입니다.
 
-### NaN and Inf: Detection and Prevention
+### NaN과 Inf: 감지와 예방
 
-`nan` (Not a Number) and `inf` (infinity) propagate virally through computation. One `nan` in a gradient update makes the weight `nan`, which makes every subsequent output `nan`. Training is dead within one step.
+`nan`(Not a Number)과 `inf`(infinity)는 계산을 통해 전염성 있게 퍼집니다. gradient update 하나에 `nan`이 있으면 weight가 `nan`이 되고, 이후 모든 output이 `nan`이 됩니다. 한 step 안에 학습이 죽습니다.
 
-How `inf` appears:
-- `exp()` of a large positive number
-- Division by zero: `1.0 / 0.0`
-- `float32` overflow in accumulations
+`inf`가 나타나는 방식:
+- 큰 양수에 대한 `exp()`
+- 0으로 나누기: `1.0 / 0.0`
+- accumulation에서 `float32` overflow
 
-How `nan` appears:
+`nan`이 나타나는 방식:
 - `0.0 / 0.0`
 - `inf - inf`
 - `inf * 0`
-- `sqrt()` of a negative number
-- `log()` of a negative number
-- Any arithmetic involving an existing `nan`
+- 음수의 `sqrt()`
+- 음수의 `log()`
+- 기존 `nan`이 포함된 모든 산술
 
-Detection:
+감지:
 
 ```python
 import math
@@ -227,48 +227,48 @@ math.isinf(x)       # True if x is +inf or -inf
 math.isfinite(x)    # True if x is neither nan nor inf
 ```
 
-Prevention strategies:
+예방 전략:
 
-1. Clamp inputs to `exp()`: `exp(clamp(x, -80, 80))`
-2. Add epsilon to denominators: `x / (y + 1e-8)`
-3. Add epsilon inside `log()`: `log(x + 1e-8)`
-4. Use stable implementations (log-sum-exp, stable softmax)
-5. Gradient clipping to prevent weight explosion
-6. Check for `nan`/`inf` after every forward pass during debugging
+1. `exp()` 입력 clamp: `exp(clamp(x, -80, 80))`
+2. denominator에 epsilon 추가: `x / (y + 1e-8)`
+3. `log()` 안에 epsilon 추가: `log(x + 1e-8)`
+4. stable implementations 사용(log-sum-exp, stable softmax)
+5. weight explosion을 막기 위한 gradient clipping
+6. debugging 중 모든 forward pass 후 `nan`/`inf` 확인
 
-### Numerical Gradient Checking
+### 수치적 gradient checking
 
-Analytical gradients (from backpropagation) can have bugs. Numerical gradient checking verifies them by computing gradients with finite differences.
+Analytical gradients(backpropagation에서 나온 것)는 버그를 가질 수 있습니다. Numerical gradient checking은 finite differences로 gradients를 계산해 이를 검증합니다.
 
-The centered difference formula:
+중심 차분 공식:
 
-```
+```text
 df/dx ~= (f(x + h) - f(x - h)) / (2h)
 ```
 
-This is O(h^2) accurate, much better than the forward difference `(f(x+h) - f(x)) / h` which is only O(h).
+이는 O(h^2) 정확도이며, O(h)뿐인 forward difference `(f(x+h) - f(x)) / h`보다 훨씬 좋습니다.
 
-Choosing h: too large and the approximation is wrong. Too small and catastrophic cancellation destroys the answer. `h = 1e-5` to `1e-7` is typical.
+h 선택: 너무 크면 approximation이 틀립니다. 너무 작으면 catastrophic cancellation이 답을 망칩니다. `h = 1e-5`에서 `1e-7`이 일반적입니다.
 
-The check: compute the relative difference between analytical and numerical gradients.
+check: analytical gradient와 numerical gradient 사이의 relative difference를 계산합니다.
 
-```
+```text
 relative_error = |grad_analytical - grad_numerical| / max(|grad_analytical|, |grad_numerical|, 1e-8)
 ```
 
-Rules of thumb:
-- relative_error < 1e-7: perfect, gradient is correct
-- relative_error < 1e-5: acceptable, probably correct
-- relative_error > 1e-3: something is wrong
-- relative_error > 1: gradient is completely wrong
+경험칙:
+- relative_error < 1e-7: 완벽, gradient가 맞음
+- relative_error < 1e-5: 허용 가능, 아마 맞음
+- relative_error > 1e-3: 무언가 틀림
+- relative_error > 1: gradient가 완전히 틀림
 
-Always check gradients when implementing a new layer or loss function. PyTorch provides `torch.autograd.gradcheck()` for this.
+새 layer나 loss function을 구현할 때는 항상 gradient를 확인하세요. PyTorch는 이를 위해 `torch.autograd.gradcheck()`를 제공합니다.
 
-### Mixed Precision Training
+### Mixed precision training 설명
 
-Modern GPUs have specialized hardware (Tensor Cores) that compute float16 matrix multiplications 2-8x faster than float32. Mixed precision training exploits this:
+현대 GPU에는 float16 matrix multiplication을 float32보다 2-8x 빠르게 계산하는 specialized hardware(Tensor Cores)가 있습니다. Mixed precision training은 이를 활용합니다.
 
-```
+```text
 1. Maintain float32 master copy of weights
 2. Forward pass in float16 (fast)
 3. Compute loss in float32 (prevents overflow)
@@ -277,11 +277,11 @@ Modern GPUs have specialized hardware (Tensor Cores) that compute float16 matrix
 6. Update float32 master weights
 ```
 
-The problem with pure float16 training: gradients are often very small (1e-8 or smaller). Float16 underflows anything below ~6e-8 to zero. Your model stops learning because all gradient updates are zero.
+pure float16 training의 문제: gradients는 종종 매우 작습니다(1e-8 또는 더 작음). Float16은 ~6e-8 아래를 0으로 underflow합니다. 모든 gradient update가 0이 되어 모델이 더 이상 학습하지 않습니다.
 
-The fix is loss scaling:
+수정은 loss scaling입니다.
 
-```
+```text
 1. Multiply loss by a large scale factor (e.g., 1024)
 2. Backward pass computes gradients of (loss * 1024)
 3. All gradients are 1024x larger (pushed above float16 underflow)
@@ -289,112 +289,112 @@ The fix is loss scaling:
 5. Net effect: same update, but no underflow
 ```
 
-Dynamic loss scaling adjusts the scale factor automatically. Start with a large value (65536). If gradients overflow to `inf`, halve it. If N steps pass without overflow, double it.
+Dynamic loss scaling은 scale factor를 자동으로 조정합니다. 큰 값(65536)으로 시작합니다. gradients가 `inf`로 overflow하면 절반으로 줄입니다. N steps 동안 overflow가 없으면 두 배로 늘립니다.
 
-### bfloat16 vs float16: Why bfloat16 Wins for Training
+### bfloat16 vs float16: 왜 bfloat16이 학습에서 이기는가
 
-```
+```text
 float16:   [1 sign] [5 exponent]  [10 mantissa]
 bfloat16:  [1 sign] [8 exponent]  [7 mantissa]
 ```
 
-float16 has more precision (10 mantissa bits vs 7) but limited range (max ~65,504). bfloat16 has less precision but the same range as float32 (max ~3.4e38).
+float16은 precision이 더 높지만(10 mantissa bits vs 7) range가 제한적입니다(max ~65,504). bfloat16은 precision이 더 낮지만 float32와 같은 range를 가집니다(max ~3.4e38).
 
-For training neural networks:
+neural network 학습에서는:
 
-- Activations and logits regularly exceed 65,504 during training spikes. float16 overflows; bfloat16 handles it.
-- Loss scaling is required with float16 but usually unnecessary with bfloat16 because its range covers the gradient magnitude spectrum.
-- bfloat16 is a simple truncation of float32: drop the bottom 16 bits of the mantissa. Conversion is trivial and lossless in the exponent.
+- Activations와 logits가 training spike 중 65,504를 자주 넘습니다. float16은 overflow하지만 bfloat16은 처리합니다.
+- float16에는 loss scaling이 필요하지만 bfloat16은 range가 gradient magnitude spectrum을 덮기 때문에 보통 필요 없습니다.
+- bfloat16은 float32의 단순 truncation입니다. mantissa의 하위 16 bits를 버립니다. 변환이 단순하고 exponent에서는 lossless입니다.
 
-float16 is preferred for inference where values are bounded and precision matters more. bfloat16 is preferred for training where range matters more. This is why TPUs and modern NVIDIA GPUs (A100, H100) have native bfloat16 support.
+float16은 값이 bounded되고 precision이 더 중요한 inference에 선호됩니다. bfloat16은 range가 더 중요한 training에 선호됩니다. 그래서 TPU와 현대 NVIDIA GPU(A100, H100)는 native bfloat16 support를 가집니다.
 
-### Gradient Clipping
+### Gradient clipping 설명
 
-Exploding gradients happen when gradients grow exponentially through many layers (common in RNNs, deep networks, and transformers). A single large gradient can corrupt all weights in one step.
+Exploding gradients는 많은 layer를 지나며 gradients가 지수적으로 커질 때 발생합니다(RNNs, deep networks, transformers에서 흔함). 하나의 큰 gradient가 한 step에서 모든 weights를 망칠 수 있습니다.
 
-Two types of clipping:
+두 가지 clipping:
 
-**Clip by value:** clamp each gradient element independently.
+**Clip by value:** 각 gradient element를 독립적으로 clamp합니다.
 
-```
+```text
 grad = clamp(grad, -max_val, max_val)
 ```
 
-Simple but can change the direction of the gradient vector.
+단순하지만 gradient vector의 방향을 바꿀 수 있습니다.
 
-**Clip by norm:** scale the entire gradient vector so its norm does not exceed a threshold.
+**Clip by norm:** 전체 gradient vector를 scale해 norm이 threshold를 넘지 않게 합니다.
 
-```
+```text
 if ||grad|| > max_norm:
     grad = grad * (max_norm / ||grad||)
 ```
 
-Preserves the direction of the gradient. This is what `torch.nn.utils.clip_grad_norm_()` does. It is the standard choice.
+gradient의 방향을 보존합니다. 이것이 `torch.nn.utils.clip_grad_norm_()`가 하는 일입니다. 표준 선택입니다.
 
-Typical values: `max_norm=1.0` for transformers, `max_norm=0.5` for RL, `max_norm=5.0` for simpler networks.
+일반적인 값: transformers는 `max_norm=1.0`, RL은 `max_norm=0.5`, 더 단순한 network는 `max_norm=5.0`.
 
-Gradient clipping is not a hack. It is a safety mechanism. Without it, a single outlier batch can produce a gradient large enough to ruin weeks of training.
+Gradient clipping은 hack이 아닙니다. safety mechanism입니다. 없으면 outlier batch 하나가 몇 주의 training을 망칠 만큼 큰 gradient를 만들 수 있습니다.
 
-### Normalization Layers as Numerical Stabilizers
+### 수치 안정화 장치로서의 normalization layers
 
-Batch normalization, layer normalization, and RMS normalization are usually presented as regularizers that help training converge. They are also numerical stabilizers.
+Batch normalization, layer normalization, RMS normalization은 보통 training convergence를 돕는 regularizers로 소개됩니다. 이들은 numerical stabilizers이기도 합니다.
 
-Without normalization, activations can grow or shrink exponentially through layers:
+normalization이 없으면 activations가 layers를 지나며 지수적으로 커지거나 작아질 수 있습니다.
 
-```
+```text
 Layer 1: values in [0, 1]
 Layer 5: values in [0, 100]
 Layer 10: values in [0, 10,000]
 Layer 50: values in [0, inf]
 ```
 
-Normalization recenters and rescales activations at every layer:
+Normalization은 각 layer에서 activations를 recenter하고 rescale합니다.
 
-```
+```text
 LayerNorm(x) = (x - mean(x)) / (std(x) + epsilon) * gamma + beta
 ```
 
-The `epsilon` (typically 1e-5) prevents division by zero when all activations are identical. The learned parameters `gamma` and `beta` let the network restore any scale it needs.
+`epsilon`(보통 1e-5)은 모든 activation이 같을 때 division by zero를 막습니다. learned parameters `gamma`와 `beta`는 network가 필요한 scale을 복원할 수 있게 합니다.
 
-This keeps values in a numerically safe range throughout the network, preventing both overflow in the forward pass and gradient explosion in the backward pass.
+이는 network 전체에서 값을 수치적으로 안전한 range에 유지해 forward pass의 overflow와 backward pass의 gradient explosion을 모두 막습니다.
 
-### Common ML Numerical Bugs
+### 흔한 ML numerical bugs
 
-**Bug: Loss is NaN after a few epochs.**
-Cause: logits grew too large, softmax overflowed. Or learning rate is too high and weights diverged.
-Fix: use stable softmax (max subtraction), reduce learning rate, add gradient clipping.
+**Bug: Loss가 몇 epoch 후 NaN이 됩니다.**
+Cause: logits가 너무 커져 softmax가 overflow했습니다. 또는 learning rate가 너무 높아 weights가 diverge했습니다.
+Fix: stable softmax(max subtraction)를 사용하고, learning rate를 줄이며, gradient clipping을 추가하세요.
 
-**Bug: Loss is stuck at log(num_classes).**
-Cause: model outputs are near-uniform probabilities. Often means gradients are vanishing or the model is not learning at all.
-Fix: check that data labels are correct, verify the loss function, check for dead ReLUs.
+**Bug: Loss가 log(num_classes)에 고정됩니다.**
+Cause: model outputs가 거의 uniform probabilities입니다. 보통 gradients가 vanishing하거나 모델이 전혀 학습하지 않는다는 뜻입니다.
+Fix: data labels가 올바른지 확인하고, loss function을 검증하며, dead ReLUs를 확인하세요.
 
-**Bug: Validation accuracy is lower than expected by 1-3%.**
-Cause: mixed precision without proper loss scaling. Gradient underflow silently zeroes out small updates.
-Fix: enable dynamic loss scaling, or switch to bfloat16.
+**Bug: Validation accuracy가 기대보다 1-3% 낮습니다.**
+Cause: proper loss scaling 없는 mixed precision. Gradient underflow가 작은 update를 조용히 0으로 만듭니다.
+Fix: dynamic loss scaling을 활성화하거나 bfloat16으로 전환하세요.
 
-**Bug: Gradient norms are 0.0 for some layers.**
-Cause: dead ReLU neurons (all inputs negative), or float16 underflow.
-Fix: use LeakyReLU or GELU, use gradient scaling, check weight initialization.
+**Bug: 일부 layer의 gradient norms가 0.0입니다.**
+Cause: dead ReLU neurons(모든 input이 negative), 또는 float16 underflow.
+Fix: LeakyReLU 또는 GELU를 사용하고, gradient scaling을 사용하며, weight initialization을 확인하세요.
 
-**Bug: Model works on one GPU but gives different results on another.**
-Cause: non-deterministic floating point accumulation order. GPU parallel reductions sum in different orders on different hardware, and floating point addition is not associative.
-Fix: accept small differences (1e-6), or set `torch.use_deterministic_algorithms(True)` and accept the speed penalty.
+**Bug: 모델이 한 GPU에서는 작동하지만 다른 GPU에서는 다른 결과를 냅니다.**
+Cause: non-deterministic floating point accumulation order. GPU parallel reductions는 hardware마다 다른 순서로 합산하고, floating point addition은 associative가 아닙니다.
+Fix: 작은 차이(1e-6)를 받아들이거나 `torch.use_deterministic_algorithms(True)`를 설정하고 speed penalty를 감수하세요.
 
-**Bug: `exp()` returns `inf` in loss computation.**
-Cause: raw logits passed to `exp()` without the max-subtraction trick.
-Fix: use `torch.nn.functional.log_softmax()` which implements log-sum-exp internally.
+**Bug: loss computation에서 `exp()`가 `inf`를 반환합니다.**
+Cause: max-subtraction trick 없이 raw logits가 `exp()`에 전달되었습니다.
+Fix: 내부적으로 log-sum-exp를 구현하는 `torch.nn.functional.log_softmax()`를 사용하세요.
 
-**Bug: Training diverges after switching from float32 to float16.**
-Cause: float16 cannot represent gradient magnitudes below 6e-8 or activations above 65,504.
-Fix: use mixed precision with loss scaling (AMP), or use bfloat16 instead.
+**Bug: float32에서 float16으로 바꾼 뒤 training이 diverge합니다.**
+Cause: float16은 6e-8보다 작은 gradient magnitude나 65,504보다 큰 activation을 표현할 수 없습니다.
+Fix: loss scaling이 있는 mixed precision(AMP)을 사용하거나 bfloat16을 사용하세요.
 
 ```figure
 logsumexp-stability
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Demonstrate floating point precision limits
+### Step 1: floating point precision limit 시연
 
 ```python
 print("=== Floating Point Precision ===")
@@ -403,7 +403,7 @@ print(f"0.1 + 0.2 == 0.3? {0.1 + 0.2 == 0.3}")
 print(f"Difference: {(0.1 + 0.2) - 0.3:.2e}")
 ```
 
-### Step 2: Implement naive vs stable softmax
+### Step 2: naive vs stable softmax 구현
 
 ```python
 import math
@@ -428,7 +428,7 @@ print(f"Stable: {softmax_stable(dangerous_logits)}")
 # softmax_naive(dangerous_logits) would return [nan, nan, nan]
 ```
 
-### Step 3: Implement stable log-sum-exp
+### Step 3: stable log-sum-exp 구현
 
 ```python
 def logsumexp_naive(values):
@@ -447,7 +447,7 @@ print(f"Stable: {logsumexp_stable(large):.6f}")
 # logsumexp_naive(large) returns inf
 ```
 
-### Step 4: Implement stable cross-entropy
+### Step 4: stable cross-entropy 구현
 
 ```python
 def cross_entropy_naive(true_class, logits):
@@ -467,7 +467,7 @@ print(f"Naive:  {cross_entropy_naive(true_class, logits):.6f}")
 print(f"Stable: {cross_entropy_stable(true_class, logits):.6f}")
 ```
 
-### Step 5: Gradient checking
+### Step 5: Gradient checking 구현
 
 ```python
 def numerical_gradient(f, x, h=1e-5):
@@ -502,9 +502,9 @@ numerical = numerical_gradient(f, point)
 check_gradient(analytical, numerical)
 ```
 
-## Use It
+## 사용하기
 
-### Mixed precision simulation
+### Mixed precision simulation 구현
 
 ```python
 import struct
@@ -523,7 +523,7 @@ def simulate_bfloat16(x):
     return struct.unpack('f', repacked)[0]
 ```
 
-### Gradient clipping
+### Gradient clipping 구현
 
 ```python
 def clip_by_norm(gradients, max_norm):
@@ -540,7 +540,7 @@ print(f"Clipped norm:  {math.sqrt(sum(g**2 for g in clipped)):.2f}")
 print(f"Direction preserved: {[c/clipped[0] for c in clipped]} == {[g/grads[0] for g in grads]}")
 ```
 
-### NaN/Inf detection
+### NaN/Inf detection 구현
 
 ```python
 def check_tensor(name, values):
@@ -556,52 +556,52 @@ check_tensor("bad",  [1.0, float('nan'), 3.0])
 check_tensor("ugly", [1.0, float('inf'), 3.0])
 ```
 
-See `code/numerical.py` for complete implementations with all edge cases demonstrated.
+모든 edge case가 포함된 complete implementations는 `code/numerical.py`를 보세요.
 
-## Ship It
+## 산출물
 
-This lesson produces:
-- `code/numerical.py` with stable softmax, log-sum-exp, cross-entropy, gradient checking, and mixed precision simulation
-- `outputs/prompt-numerical-debugger.md` for diagnosing NaN/Inf and numerical issues in training
+이 lesson은 다음을 만듭니다.
+- `code/numerical.py`: stable softmax, log-sum-exp, cross-entropy, gradient checking, mixed precision simulation
+- `outputs/prompt-numerical-debugger.md`: training 중 NaN/Inf 및 numerical issues를 진단하는 prompt
 
-These stable implementations reappear in Phase 3 when building the training loop and in Phase 4 when implementing attention mechanisms.
+이 stable implementations는 Phase 3에서 training loop를 만들 때와 Phase 4에서 attention mechanisms를 구현할 때 다시 등장합니다.
 
-## Exercises
+## 연습문제
 
-1. **Catastrophic cancellation.** Compute the variance of [1000000.0, 1000001.0, 1000002.0] using the naive formula `E[x^2] - E[x]^2` in float32. Then compute it using Welford's online algorithm. Compare the errors against the true variance (0.6667).
+1. **Catastrophic cancellation.** float32에서 naive formula `E[x^2] - E[x]^2`로 [1000000.0, 1000001.0, 1000002.0]의 variance를 계산하세요. 그런 다음 Welford's online algorithm으로 계산하세요. true variance(0.6667)와 error를 비교하세요.
 
-2. **Precision hunt.** Find the smallest positive float32 value `x` such that `1.0 + x == 1.0` in Python. This is the machine epsilon. Verify it matches `numpy.finfo(numpy.float32).eps`.
+2. **Precision hunt.** Python에서 `1.0 + x == 1.0`이 되는 가장 작은 positive float32 값 `x`를 찾으세요. 이것이 machine epsilon입니다. `numpy.finfo(numpy.float32).eps`와 일치하는지 확인하세요.
 
-3. **Log-sum-exp edge cases.** Test your `logsumexp_stable` function with: (a) all values equal, (b) one value much larger than the rest, (c) all values very negative (-1000). Verify it gives correct results where the naive version fails.
+3. **Log-sum-exp edge cases.** `logsumexp_stable` 함수를 (a) 모든 값이 같음, (b) 하나의 값이 나머지보다 훨씬 큼, (c) 모든 값이 매우 음수(-1000)인 경우로 테스트하세요. naive version이 실패하는 곳에서 올바른 결과를 주는지 확인하세요.
 
-4. **Gradient checking a neural network layer.** Implement a single linear layer `y = Wx + b` and its analytical backward pass. Use `numerical_gradient` to verify correctness for a 3x2 weight matrix.
+4. **Gradient checking a neural network layer.** 단일 linear layer `y = Wx + b`와 analytical backward pass를 구현하세요. `numerical_gradient`로 3x2 weight matrix에 대한 correctness를 검증하세요.
 
-5. **Loss scaling experiment.** Simulate training with float16: create random gradients in the range [1e-9, 1e-3], convert to float16, and measure what fraction become zero. Then apply loss scaling (multiply by 1024), convert to float16, scale back, and measure the zero fraction again.
+5. **Loss scaling experiment.** float16 학습을 simulation하세요. [1e-9, 1e-3] 범위의 random gradients를 만들고 float16으로 변환해 몇 퍼센트가 zero가 되는지 측정하세요. 그런 다음 loss scaling(1024 곱하기)을 적용하고 float16으로 변환한 뒤 다시 scale back하여 zero fraction을 다시 측정하세요.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| IEEE 754 | "The float standard" | International standard defining binary floating point formats, rounding rules, and special values (inf, nan). Every modern CPU and GPU implements it. |
-| Machine epsilon | "The precision limit" | The smallest value e such that 1.0 + e != 1.0 in a given float format. For float32, it is about 1.19e-7. |
-| Catastrophic cancellation | "Precision loss from subtraction" | When subtracting nearly equal floating point numbers, significant digits cancel and rounding noise dominates the result. |
-| Overflow | "Number too big" | A result exceeds the maximum representable value and becomes inf. exp(89) overflows float32. |
-| Underflow | "Number too small" | A result is closer to zero than the smallest representable positive number and becomes 0.0. exp(-104) underflows float32. |
-| Log-sum-exp trick | "Subtract the max first" | Computing log(sum(exp(x))) by factoring out exp(max(x)) to prevent overflow and underflow. Used in softmax, cross-entropy, and log-probability math. |
-| Stable softmax | "Softmax that does not explode" | Subtracting max(logits) before exponentiating. Numerically identical result, no overflow possible. |
-| Gradient checking | "Verify your backprop" | Comparing analytical gradients from backpropagation against numerical gradients from finite differences to catch implementation bugs. |
-| Mixed precision | "Float16 forward, float32 backward" | Using lower-precision floats for speed-critical operations and higher-precision floats for numerically sensitive operations. Typical speedup is 2-3x. |
-| Loss scaling | "Prevent gradient underflow" | Multiplying the loss by a large constant before backprop so gradients stay in float16's representable range, then dividing by the same constant before weight updates. |
-| bfloat16 | "Brain floating point" | Google's 16-bit format with 8 exponent bits (same range as float32) and 7 mantissa bits (less precision than float16). Preferred for training. |
-| Gradient clipping | "Cap the gradient norm" | Scaling the gradient vector so its norm does not exceed a threshold. Prevents exploding gradients from ruining weights. |
-| NaN | "Not a Number" | Special float value from undefined operations (0/0, inf-inf, sqrt(-1)). Propagates through all subsequent arithmetic. |
-| Inf | "Infinity" | Special float value from overflow or division by zero. Can combine to produce NaN (inf - inf, inf * 0). |
-| Numerical gradient | "Brute force derivative" | Approximating a derivative by evaluating f(x+h) and f(x-h) and dividing by 2h. Slow but reliable for verification. |
+| IEEE 754 | "float standard" | binary floating point formats, rounding rules, special values(inf, nan)를 정의하는 국제 표준입니다. 모든 현대 CPU와 GPU가 구현합니다. |
+| Machine epsilon | "precision limit" | 주어진 float format에서 1.0 + e != 1.0이 되는 가장 작은 값 e입니다. float32에서는 약 1.19e-7입니다. |
+| Catastrophic cancellation | "subtraction으로 인한 precision loss" | 거의 같은 floating point number를 뺄 때 significant digits가 상쇄되고 rounding noise가 결과를 지배합니다. |
+| Overflow | "숫자가 너무 큼" | 결과가 표현 가능한 최댓값을 넘어 inf가 됩니다. exp(89)는 float32에서 overflow합니다. |
+| Underflow | "숫자가 너무 작음" | 결과가 표현 가능한 가장 작은 양수보다 0에 가까워 0.0이 됩니다. exp(-104)는 float32에서 underflow합니다. |
+| Log-sum-exp trick | "먼저 max를 빼기" | overflow와 underflow를 막기 위해 exp(max(x))를 factor out하여 log(sum(exp(x)))를 계산하는 방법입니다. softmax, cross-entropy, log-probability math에 사용됩니다. |
+| Stable softmax | "폭발하지 않는 softmax" | exponentiating 전에 max(logits)를 빼는 것입니다. 결과는 수치적으로 동일하고 overflow가 불가능합니다. |
+| Gradient checking | "backprop 검증" | backpropagation의 analytical gradients를 finite differences의 numerical gradients와 비교해 구현 버그를 잡는 방법입니다. |
+| Mixed precision | "Float16 forward, float32 backward" | speed-critical operations에는 낮은 precision float를, numerically sensitive operations에는 높은 precision float를 사용합니다. 일반적인 speedup은 2-3x입니다. |
+| Loss scaling | "gradient underflow 방지" | backprop 전에 loss에 큰 상수를 곱해 gradients를 float16의 표현 범위 안에 두고, weight update 전에 같은 상수로 나눕니다. |
+| bfloat16 | "Brain floating point" | 8 exponent bits(float32와 같은 range)와 7 mantissa bits(float16보다 낮은 precision)를 가진 Google의 16-bit format입니다. training에 선호됩니다. |
+| Gradient clipping | "gradient norm 제한" | gradient vector의 norm이 threshold를 넘지 않도록 scale합니다. exploding gradients가 weights를 망치는 것을 막습니다. |
+| NaN | "Not a Number" | undefined operations(0/0, inf-inf, sqrt(-1))에서 생기는 special float value입니다. 이후 모든 arithmetic에 전파됩니다. |
+| Inf | "Infinity" | overflow 또는 division by zero에서 생기는 special float value입니다. 결합되어 NaN을 만들 수 있습니다(inf - inf, inf * 0). |
+| Numerical gradient | "brute force derivative" | f(x+h)와 f(x-h)를 평가하고 2h로 나누어 derivative를 근사합니다. 느리지만 검증에는 신뢰할 수 있습니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [What Every Computer Scientist Should Know About Floating-Point Arithmetic (Goldberg 1991)](https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html) -- the definitive reference, dense but complete
-- [Mixed Precision Training (Micikevicius et al., 2018)](https://arxiv.org/abs/1710.03740) -- the NVIDIA paper that introduced loss scaling for float16 training
-- [AMP: Automatic Mixed Precision (PyTorch docs)](https://pytorch.org/docs/stable/amp.html) -- practical guide to mixed precision in PyTorch
-- [bfloat16 format (Google Cloud TPU docs)](https://cloud.google.com/tpu/docs/bfloat16) -- why Google chose this format for TPUs
-- [Kahan Summation (Wikipedia)](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) -- algorithm for reducing rounding error in floating point sums
+- [What Every Computer Scientist Should Know About Floating-Point Arithmetic (Goldberg 1991)](https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html) -- definitive reference, dense but complete
+- [Mixed Precision Training (Micikevicius et al., 2018)](https://arxiv.org/abs/1710.03740) -- float16 training을 위한 loss scaling을 소개한 NVIDIA paper
+- [AMP: Automatic Mixed Precision (PyTorch docs)](https://pytorch.org/docs/stable/amp.html) -- PyTorch의 mixed precision 실무 가이드
+- [bfloat16 format (Google Cloud TPU docs)](https://cloud.google.com/tpu/docs/bfloat16) -- Google이 TPU에 이 format을 선택한 이유
+- [Kahan Summation (Wikipedia)](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) -- floating point sums의 rounding error를 줄이는 algorithm

@@ -1,97 +1,97 @@
-# Convex Optimization
+# 볼록 최적화
 
-> Convex problems have one valley. Neural networks have millions. Knowing the difference matters.
+> Convex problem에는 valley가 하나뿐입니다. Neural network에는 수백만 개가 있습니다. 그 차이를 아는 것이 중요합니다.
 
 **Type:** Build
-**Language:** Python
+**Languages:** Python
 **Prerequisites:** Phase 1, Lessons 04 (Calculus for ML), 08 (Optimization)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Test whether a function is convex using the definition, second derivative, and Hessian criteria
-- Implement Newton's method and compare its quadratic convergence against gradient descent
-- Solve constrained optimization problems using Lagrange multipliers and interpret KKT conditions
-- Explain why neural network loss landscapes are non-convex yet SGD still finds good solutions
+- definition, second derivative, Hessian criteria를 사용해 function이 convex인지 테스트합니다
+- Newton's method를 구현하고 quadratic convergence를 gradient descent와 비교합니다
+- Lagrange multipliers를 사용해 constrained optimization problems를 풀고 KKT conditions를 해석합니다
+- neural network loss landscapes가 non-convex인데도 SGD가 좋은 해를 찾는 이유를 설명합니다
 
-## The Problem
+## 문제
 
-Lesson 08 taught you gradient descent, momentum, and Adam. Those optimizers walk downhill on any surface. But they come with no guarantees. Gradient descent on a non-convex landscape might land in a bad local minimum, get stuck on a saddle point, or oscillate forever. You used it anyway because neural networks are non-convex and there is no alternative.
+Lesson 08에서는 gradient descent, momentum, Adam을 배웠습니다. 이 optimizer들은 어떤 surface에서도 downhill로 걸어갑니다. 하지만 보장은 없습니다. non-convex landscape에서 gradient descent는 나쁜 local minimum에 도착하거나 saddle point에 갇히거나 계속 oscillate할 수 있습니다. 그래도 neural network는 non-convex이고 대안이 없기 때문에 사용했습니다.
 
-But many problems in machine learning are convex. Linear regression, logistic regression, SVMs, LASSO, ridge regression. For these, something stronger exists: optimization with mathematical guarantees. A convex problem has exactly one valley. Any algorithm that walks downhill will reach the global minimum. No restarts needed. No learning rate schedules. No prayer.
+하지만 machine learning의 많은 problems는 convex입니다. Linear regression, logistic regression, SVMs, LASSO, ridge regression이 그렇습니다. 이런 경우에는 더 강한 것이 있습니다. mathematical guarantees가 있는 optimization입니다. convex problem에는 정확히 하나의 valley만 있습니다. downhill로 걷는 어떤 algorithm도 global minimum에 도달합니다. restarts도 필요 없고 learning rate schedules도 필요 없으며 운에 맡길 필요도 없습니다.
 
-Understanding convexity does three things. First, it tells you when your problem is easy (convex) versus hard (non-convex). Second, it gives you faster tools like Newton's method for convex problems. Third, it explains concepts that appear throughout ML: regularization as a constraint, duality in SVMs, and why deep learning works despite violating every nice property convexity gives you.
+convexity를 이해하면 세 가지를 얻습니다. 첫째, problem이 쉬운지(convex) 어려운지(non-convex) 알려 줍니다. 둘째, convex problems에 대해 Newton's method 같은 더 빠른 도구를 제공합니다. 셋째, ML 전반에 등장하는 concepts를 설명합니다. constraint로서의 regularization, SVMs의 duality, 그리고 convexity가 주는 좋은 properties를 모두 위반하는데도 deep learning이 작동하는 이유입니다.
 
-## The Concept
+## 개념
 
-### Convex sets
+### Convex sets 설명
 
-A set S is convex if for any two points in S, the line segment between them also lies entirely in S.
+set S 안의 임의의 두 points에 대해, 그 사이의 line segment도 완전히 S 안에 있으면 S는 convex입니다.
 
-| Convex sets | Not convex |
+| Convex sets | Convex가 아님 |
 |---|---|
-| **Rectangle**: any two points inside can be connected by a line segment that stays inside | **Star/crescent shape**: a line between two interior points can pass outside the set |
-| **Triangle**: same property holds for all interior points | **Donut/annulus**: the hole means some line segments leave the set |
-| The line segment between any two points stays within the set | The line segment between some pairs of points exits the set |
+| **Rectangle**: 내부의 임의의 두 points를 내부에 머무는 line segment로 연결할 수 있음 | **Star/crescent shape**: 내부의 두 points를 잇는 line이 set 밖으로 나갈 수 있음 |
+| **Triangle**: 모든 interior points에 대해 같은 property가 성립 | **Donut/annulus**: hole 때문에 일부 line segments가 set을 벗어남 |
+| 임의의 두 points 사이의 line segment가 set 안에 머묾 | 일부 point pairs 사이의 line segment가 set을 벗어남 |
 
-Formal test: for any points x, y in S and any t in [0, 1], the point tx + (1-t)y is also in S.
+형식적 테스트: S 안의 임의의 points x, y와 임의의 t in [0, 1]에 대해 point tx + (1-t)y도 S 안에 있어야 합니다.
 
-Examples of convex sets:
-- A line, a plane, all of R^n
-- A ball (circle, sphere, hypersphere)
-- A halfspace: {x : a^T x <= b}
-- The intersection of any number of convex sets
+convex sets의 예:
+- line, plane, R^n 전체
+- ball(circle, sphere, hypersphere)
+- halfspace: {x : a^T x <= b}
+- 임의 개수의 convex sets의 intersection
 
-Examples of non-convex sets:
-- A donut (annulus)
-- The union of two disjoint circles
-- Any set with a "dent" or "hole"
+non-convex sets의 예:
+- donut(annulus)
+- 두 disjoint circles의 union
+- "dent"나 "hole"이 있는 set
 
-### Convex functions
+### Convex functions 설명
 
-A function f is convex if its domain is a convex set and for any two points x, y in its domain and any t in [0, 1]:
+function f의 domain이 convex set이고, domain 안의 임의의 두 points x, y와 임의의 t in [0, 1]에 대해 다음이 성립하면 f는 convex입니다.
 
-```
+```text
 f(tx + (1-t)y) <= t*f(x) + (1-t)*f(y)
 ```
 
-Geometrically: the line segment between any two points on the graph lies above or on the graph.
+기하학적으로는 graph 위의 임의의 두 points를 잇는 line segment가 graph 위에 있거나 그보다 위에 있다는 뜻입니다.
 
-| Property | Convex function | Non-convex function |
+| 성질 | Convex function | Non-convex function |
 |---|---|---|
-| **Line segment test** | The line between any two points on the graph lies **above or on** the curve | The line between some points on the graph dips **below** the curve |
-| **Shape** | Single bowl/valley curving upward | Multiple peaks and valleys with mixed curvature |
-| **Local minima** | Every local minimum is the global minimum | Multiple local minima may exist at different heights |
+| **Line segment test** | graph 위의 임의의 두 points 사이 line이 curve **위에 있거나 그 위**에 있음 | graph 위의 일부 points 사이 line이 curve **아래**로 내려감 |
+| **Shape** | 위로 휘는 single bowl/valley | mixed curvature를 가진 multiple peaks and valleys |
+| **Local minima** | 모든 local minimum이 global minimum | 서로 다른 heights의 multiple local minima가 존재할 수 있음 |
 
-Common convex functions:
+흔한 convex functions:
 - f(x) = x^2 (parabola)
 - f(x) = |x| (absolute value)
 - f(x) = e^x (exponential)
 - f(x) = max(0, x) (ReLU, though piecewise linear)
 - f(x) = -log(x) for x > 0 (negative log)
-- Any linear function f(x) = a^T x + b (both convex and concave)
+- 임의의 linear function f(x) = a^T x + b (convex이면서 concave)
 
-### Testing for convexity
+### convexity 테스트
 
-Three practical tests, from easiest to most rigorous.
+쉬운 것부터 엄밀한 것까지 세 가지 practical test가 있습니다.
 
-**Test 1: Second derivative test (1D).** If f''(x) >= 0 for all x, then f is convex.
+**Test 1: Second derivative test (1D).** 모든 x에 대해 f''(x) >= 0이면 f는 convex입니다.
 
-- f(x) = x^2: f''(x) = 2 >= 0. Convex.
-- f(x) = x^3: f''(x) = 6x. Negative for x < 0. Not convex.
-- f(x) = e^x: f''(x) = e^x > 0. Convex.
+- f(x) = x^2: f''(x) = 2 >= 0. Convex입니다.
+- f(x) = x^3: f''(x) = 6x. x < 0에서는 negative입니다. Convex가 아닙니다.
+- f(x) = e^x: f''(x) = e^x > 0. Convex입니다.
 
-**Test 2: Hessian test (multivariate).** If the Hessian matrix H(x) is positive semidefinite for all x, then f is convex. The Hessian is the matrix of second partial derivatives.
+**Test 2: Hessian test (multivariate).** 모든 x에 대해 Hessian matrix H(x)가 positive semidefinite이면 f는 convex입니다. Hessian은 second partial derivatives의 matrix입니다.
 
-**Test 3: Definition test.** Check the inequality f(tx + (1-t)y) <= t*f(x) + (1-t)*f(y) directly. Useful for functions where derivatives are hard to compute.
+**Test 3: Definition test.** inequality f(tx + (1-t)y) <= t*f(x) + (1-t)*f(y)를 직접 확인합니다. derivatives를 계산하기 어려운 functions에 유용합니다.
 
-### Why convexity matters
+### convexity가 중요한 이유
 
-The central theorem of convex optimization:
+convex optimization의 핵심 theorem:
 
-**For a convex function, every local minimum is a global minimum.**
+**convex function에서는 모든 local minimum이 global minimum입니다.**
 
-This means gradient descent cannot get trapped. Any downhill path leads to the same answer. The algorithm is guaranteed to converge to the optimal solution.
+이는 gradient descent가 갇힐 수 없다는 뜻입니다. 어떤 downhill path도 같은 답으로 이어집니다. algorithm은 optimal solution으로 수렴한다는 보장을 갖습니다.
 
 ```mermaid
 graph LR
@@ -106,38 +106,38 @@ graph LR
     end
 ```
 
-Consequences:
-- No need for random restarts
-- No need for sophisticated learning rate schedules
-- Convergence proofs are possible (rate depends on function properties)
-- The solution is unique (up to flat regions)
+결과:
+- random restarts가 필요 없음
+- 정교한 learning rate schedules가 필요 없음
+- convergence proofs가 가능함(rate는 function properties에 따라 달라짐)
+- solution이 unique함(flat regions까지 고려)
 
-### Convex vs non-convex in ML
+### ML에서 convex vs non-convex
 
-| Problem | Convex? | Why |
+| Problem | Convex? | 이유 |
 |---------|---------|-----|
-| Linear regression (MSE) | Yes | Loss is quadratic in weights |
-| Logistic regression | Yes | Log-loss is convex in weights |
-| SVM (hinge loss) | Yes | Maximum of linear functions |
-| LASSO (L1 regression) | Yes | Sum of convex functions is convex |
+| Linear regression (MSE) | Yes | Loss가 weights에 대해 quadratic |
+| Logistic regression | Yes | Log-loss가 weights에 대해 convex |
+| SVM (hinge loss) | Yes | linear functions의 maximum |
+| LASSO (L1 regression) | Yes | convex functions의 sum은 convex |
 | Ridge regression (L2) | Yes | Quadratic + quadratic = convex |
-| Neural network (any loss) | No | Nonlinear activations create non-convex landscape |
+| Neural network (any loss) | No | Nonlinear activations가 non-convex landscape를 만듦 |
 | k-means clustering | No | Discrete assignment step |
-| Matrix factorization | No | Product of unknowns |
+| Matrix factorization | No | unknowns의 product |
 
-Linear models with convex losses are convex. The moment you add hidden layers with nonlinear activations, convexity breaks.
+convex losses를 가진 linear models는 convex입니다. nonlinear activations가 있는 hidden layers를 추가하는 순간 convexity는 깨집니다.
 
-### The Hessian matrix
+### Hessian matrix 설명
 
-The Hessian H of a function f: R^n -> R is the n x n matrix of second partial derivatives.
+function f: R^n -> R의 Hessian H는 second partial derivatives의 n x n matrix입니다.
 
-```
+```text
 H[i][j] = d^2 f / (dx_i dx_j)
 ```
 
 For f(x, y) = x^2 + 3xy + y^2:
 
-```
+```text
 df/dx = 2x + 3y       d^2f/dx^2 = 2      d^2f/dxdy = 3
 df/dy = 3x + 2y       d^2f/dydx = 3      d^2f/dy^2 = 2
 
@@ -145,19 +145,19 @@ H = [ 2  3 ]
     [ 3  2 ]
 ```
 
-The Hessian tells you about curvature:
-- Eigenvalues all positive: the function curves upward in every direction (convex at that point)
-- Eigenvalues all negative: curves downward in every direction (concave, a local max)
-- Mixed signs: saddle point (curves up in some directions, down in others)
-- Zero eigenvalue: flat in that direction (degenerate)
+Hessian은 curvature를 알려 줍니다.
+- Eigenvalues가 모두 positive: function이 모든 direction에서 위로 휨(그 point에서 convex)
+- Eigenvalues가 모두 negative: 모든 direction에서 아래로 휨(concave, local max)
+- Mixed signs: saddle point(어떤 directions에서는 위로, 다른 directions에서는 아래로 휨)
+- Zero eigenvalue: 그 direction에서 flat(degenerate)
 
-For convexity, the Hessian must be positive semidefinite (all eigenvalues >= 0) everywhere, not just at one point.
+convexity를 위해서는 Hessian이 한 point가 아니라 모든 곳에서 positive semidefinite(모든 eigenvalues >= 0)여야 합니다.
 
-### Newton's method
+### Newton's method 설명
 
-Gradient descent uses first-order information (the gradient). Newton's method uses second-order information (the Hessian). It fits a quadratic approximation at the current point and jumps directly to the minimum of that quadratic.
+Gradient descent는 first-order information(gradient)을 사용합니다. Newton's method는 second-order information(Hessian)을 사용합니다. 현재 point에서 quadratic approximation을 맞추고 그 quadratic의 minimum으로 바로 이동합니다.
 
-```
+```text
 Update rule:
   x_new = x - H^(-1) * gradient
 
@@ -165,7 +165,7 @@ Compare to gradient descent:
   x_new = x - lr * gradient
 ```
 
-Newton's method replaces the scalar learning rate with the inverse Hessian. This automatically adjusts the step size and direction based on local curvature.
+Newton's method는 scalar learning rate를 inverse Hessian으로 대체합니다. 이는 local curvature에 따라 step size와 direction을 자동으로 조정합니다.
 
 ```mermaid
 graph TD
@@ -184,22 +184,22 @@ graph TD
     end
 ```
 
-Advantages:
-- Quadratic convergence near the minimum (error squares each step)
-- No learning rate to tune
-- Scale-invariant (works regardless of how you parameterize the problem)
+장점:
+- minimum 근처에서 quadratic convergence(error가 각 step마다 제곱됨)
+- tune할 learning rate가 없음
+- Scale-invariant(problem을 어떻게 parameterize하든 작동)
 
-Disadvantages:
-- Computing the Hessian costs O(n^2) memory and O(n^3) to invert
-- For a neural network with 1 million weights, that is 10^12 entries and 10^18 operations
-- Not practical for deep learning
+단점:
+- Hessian을 계산하는 데 O(n^2) memory가 들고 invert하는 데 O(n^3)이 듦
+- 1 million weights를 가진 neural network에서는 10^12 entries와 10^18 operations
+- deep learning에는 실용적이지 않음
 
-### Constrained optimization
+### Constrained optimization 설명
 
-Unconstrained optimization: minimize f(x) over all x.
-Constrained optimization: minimize f(x) subject to constraints.
+Unconstrained optimization: 모든 x에 대해 f(x)를 minimize합니다.
+Constrained optimization: constraints를 만족하면서 f(x)를 minimize합니다.
 
-Real problems have constraints. You want to minimize cost but your budget is limited. You want to minimize error but your model complexity is bounded.
+실제 problems에는 constraints가 있습니다. cost를 minimize하고 싶지만 budget은 제한되어 있습니다. error를 minimize하고 싶지만 model complexity는 bounded되어 있습니다.
 
 ```mermaid
 graph LR
@@ -212,26 +212,26 @@ graph LR
     end
 ```
 
-### Lagrange multipliers
+### Lagrange multipliers 설명
 
-The method of Lagrange multipliers converts a constrained problem into an unconstrained one.
+Lagrange multipliers method는 constrained problem을 unconstrained problem으로 변환합니다.
 
-Problem: minimize f(x) subject to g(x) = 0.
+Problem: g(x) = 0을 만족하면서 f(x)를 minimize합니다.
 
-Solution: introduce a new variable (the Lagrange multiplier lambda) and solve the unconstrained problem:
+Solution: 새 variable(Lagrange multiplier lambda)을 도입하고 unconstrained problem을 풉니다.
 
-```
+```text
 L(x, lambda) = f(x) + lambda * g(x)
 ```
 
-At the solution, the gradient of L is zero:
+solution에서는 L의 gradient가 zero입니다.
 
-```
+```text
 dL/dx = df/dx + lambda * dg/dx = 0
 dL/dlambda = g(x) = 0
 ```
 
-Geometric intuition: at the constrained minimum, the gradient of f must be parallel to the gradient of the constraint g. If they were not parallel, you could move along the constraint surface and reduce f further.
+Geometric intuition: constrained minimum에서 f의 gradient는 constraint g의 gradient와 parallel이어야 합니다. parallel이 아니라면 constraint surface를 따라 움직여 f를 더 줄일 수 있습니다.
 
 ```mermaid
 graph LR
@@ -240,9 +240,9 @@ graph LR
     S --- C["At the solution, gradient of f is parallel to gradient of g"]
 ```
 
-Example: minimize f(x,y) = x^2 + y^2 subject to x + y = 1.
+예: x + y = 1을 만족하면서 f(x,y) = x^2 + y^2를 minimize합니다.
 
-```
+```text
 L = x^2 + y^2 + lambda(x + y - 1)
 
 dL/dx = 2x + lambda = 0  =>  x = -lambda/2
@@ -253,83 +253,83 @@ From first two: x = y
 Substituting: 2x = 1, so x = y = 0.5, lambda = -1
 ```
 
-The closest point on the line x + y = 1 to the origin is (0.5, 0.5).
+line x + y = 1 위에서 origin에 가장 가까운 point는 (0.5, 0.5)입니다.
 
-### KKT conditions
+### KKT conditions 설명
 
-The Karush-Kuhn-Tucker conditions extend Lagrange multipliers to inequality constraints.
+Karush-Kuhn-Tucker conditions는 Lagrange multipliers를 inequality constraints로 확장합니다.
 
-Problem: minimize f(x) subject to g_i(x) <= 0 for i = 1, ..., m.
+Problem: i = 1, ..., m에 대해 g_i(x) <= 0을 만족하면서 f(x)를 minimize합니다.
 
-The KKT conditions (necessary for optimality):
+KKT conditions(optimality에 필요한 조건):
 
-```
+```text
 1. Stationarity:    df/dx + sum(lambda_i * dg_i/dx) = 0
 2. Primal feasibility:  g_i(x) <= 0  for all i
 3. Dual feasibility:    lambda_i >= 0  for all i
 4. Complementary slackness:  lambda_i * g_i(x) = 0  for all i
 ```
 
-Complementary slackness is the key insight: either the constraint is active (g_i = 0, the solution sits on the boundary) or the multiplier is zero (the constraint does not matter). A constraint that does not affect the solution has lambda = 0.
+Complementary slackness가 핵심 insight입니다. constraint가 active이거나(g_i = 0, solution이 boundary 위에 있음), multiplier가 zero입니다(constraint가 중요하지 않음). solution에 영향을 주지 않는 constraint는 lambda = 0입니다.
 
-KKT conditions are central to SVMs. The support vectors are the data points where the constraint is active (lambda > 0). All other data points have lambda = 0 and do not affect the decision boundary.
+KKT conditions는 SVMs의 중심입니다. support vectors는 constraint가 active인(lambda > 0) data points입니다. 다른 모든 data points는 lambda = 0이고 decision boundary에 영향을 주지 않습니다.
 
-### Regularization as constrained optimization
+### constrained optimization으로서의 Regularization
 
-L1 and L2 regularization are not arbitrary tricks. They are constrained optimization problems in disguise.
+L1과 L2 regularization은 임의의 trick이 아닙니다. disguised constrained optimization problems입니다.
 
-**L2 regularization (Ridge):**
+**L2 regularization(Ridge) 설명:**
 
-```
+```text
 minimize  Loss(w)  subject to  ||w||^2 <= t
 
 Equivalent unconstrained form:
 minimize  Loss(w) + lambda * ||w||^2
 ```
 
-The constraint ||w||^2 <= t defines a ball (circle in 2D, sphere in 3D). The solution is where the loss contours first touch this ball.
+constraint ||w||^2 <= t는 ball(2D에서는 circle, 3D에서는 sphere)을 정의합니다. solution은 loss contours가 이 ball에 처음 닿는 곳입니다.
 
-**L1 regularization (LASSO):**
+**L1 regularization(LASSO) 설명:**
 
-```
+```text
 minimize  Loss(w)  subject to  ||w||_1 <= t
 
 Equivalent unconstrained form:
 minimize  Loss(w) + lambda * ||w||_1
 ```
 
-The constraint ||w||_1 <= t defines a diamond (rotated square in 2D).
+constraint ||w||_1 <= t는 diamond(2D에서 rotated square)를 정의합니다.
 
-| Property | L2 constraint (circle) | L1 constraint (diamond) |
+| 성질 | L2 constraint (circle) | L1 constraint (diamond) |
 |---|---|---|
-| **Constraint shape** | Circle (sphere in higher dims) | Diamond (rotated square in 2D) |
-| **Where loss contour touches** | Smooth boundary — any point on the circle | Corner — aligned with an axis |
-| **Solution behavior** | Weights are small but nonzero | Some weights are exactly zero (sparse) |
+| **Constraint shape** | Circle(higher dims에서는 sphere) | Diamond(2D에서 rotated square) |
+| **Loss contour가 닿는 곳** | Smooth boundary, circle 위의 임의의 point | Corner, axis와 aligned |
+| **Solution behavior** | Weights가 작지만 nonzero | 일부 weights가 정확히 zero(sparse) |
 | **Result** | Weight shrinkage | Feature selection |
 
-This explains why L1 produces sparse models (feature selection) while L2 only shrinks weights. The diamond has corners aligned with axes. Loss contours are more likely to touch a corner, setting one or more weights exactly to zero.
+이것은 L1이 sparse models(feature selection)를 만들고 L2는 weights를 shrink하기만 하는 이유를 설명합니다. diamond에는 axes와 aligned된 corners가 있습니다. Loss contours는 corner에 닿을 가능성이 더 높고, 하나 이상의 weights를 정확히 zero로 만듭니다.
 
-### Duality
+### Duality 설명
 
-Every constrained optimization problem (the primal) has a companion problem (the dual). For convex problems, the primal and dual have the same optimal value. This is strong duality.
+모든 constrained optimization problem(primal)에는 companion problem(dual)이 있습니다. convex problems에서는 primal과 dual이 같은 optimal value를 갖습니다. 이것이 strong duality입니다.
 
-The Lagrangian dual function:
+Lagrangian dual function 설명:
 
-```
+```text
 Primal: minimize f(x) subject to g(x) <= 0
 Lagrangian: L(x, lambda) = f(x) + lambda * g(x)
 Dual function: d(lambda) = min_x L(x, lambda)
 Dual problem: maximize d(lambda) subject to lambda >= 0
 ```
 
-Why duality matters:
-- The dual problem is sometimes easier to solve than the primal
-- SVMs are solved in their dual form, where the problem depends on dot products between data points (enabling the kernel trick)
-- The dual provides a lower bound on the primal optimum, useful for checking solution quality
+duality가 중요한 이유:
+- dual problem이 때때로 primal보다 풀기 쉽습니다
+- SVMs는 dual form으로 풀리며, 여기서 problem은 data points 사이의 dot products에 의존합니다(kernel trick 가능)
+- dual은 primal optimum에 대한 lower bound를 제공하므로 solution quality를 확인하는 데 유용합니다
 
-For SVMs specifically:
+SVMs에 대해서는 구체적으로:
 
-```
+```text
 Primal: find w, b that maximize the margin 2/||w|| subject to
         y_i(w^T x_i + b) >= 1 for all i
 
@@ -340,56 +340,56 @@ The dual only involves dot products x_i^T x_j.
 Replace x_i^T x_j with K(x_i, x_j) to get the kernel trick.
 ```
 
-### Why deep learning works despite non-convexity
+### non-convexity에도 deep learning이 작동하는 이유
 
-Neural network loss functions are wildly non-convex. By every classical measure, optimizing them should fail. Yet stochastic gradient descent finds good solutions reliably. Several factors explain this.
+Neural network loss functions는 매우 non-convex입니다. classical measure로 보면 이를 optimize하는 것은 실패해야 합니다. 하지만 stochastic gradient descent는 안정적으로 좋은 solutions를 찾습니다. 몇 가지 factors가 이를 설명합니다.
 
-**Most local minima are good enough.** In high-dimensional spaces, random critical points (where the gradient is zero) are overwhelmingly saddle points, not local minima. The few local minima that exist tend to have loss values close to the global minimum. Getting trapped in a terrible local minimum is extremely unlikely when the parameter space has millions of dimensions.
+**대부분의 local minima는 충분히 좋습니다.** high-dimensional spaces에서 random critical points(gradient가 zero인 곳)의 압도적 다수는 local minima가 아니라 saddle points입니다. 존재하는 소수의 local minima는 global minimum에 가까운 loss values를 갖는 경향이 있습니다. parameter space가 millions of dimensions를 가지면 끔찍한 local minimum에 갇힐 가능성은 극히 낮습니다.
 
-**Saddle points, not local minima, are the real obstacle.** In a function with n parameters, a saddle point has a mix of positive and negative curvature directions. For a random critical point in high dimensions, the probability of all n eigenvalues being positive (local minimum) is roughly 2^(-n). Almost all critical points are saddle points. SGD's noise helps escape them.
+**진짜 obstacle은 local minima가 아니라 saddle points입니다.** n parameters를 가진 function에서 saddle point는 positive와 negative curvature directions가 섞여 있습니다. high dimensions의 random critical point에서 모든 n eigenvalues가 positive일(local minimum일) 확률은 대략 2^(-n)입니다. 거의 모든 critical points는 saddle points입니다. SGD의 noise가 이를 빠져나오게 돕습니다.
 
-**Overparameterization smooths the landscape.** Networks with more parameters than training examples have smoother, more connected loss surfaces. Wider networks have fewer bad local minima. This is counterintuitive but empirically consistent.
+**Overparameterization은 landscape를 매끄럽게 합니다.** training examples보다 parameters가 많은 networks는 더 매끄럽고 더 연결된 loss surfaces를 갖습니다. 더 넓은 networks에는 나쁜 local minima가 더 적습니다. 이는 직관에 어긋나지만 empirical하게 일관됩니다.
 
-**Loss landscape structure:**
+**Loss landscape 구조:**
 
 | Property | Low-dimensional space | High-dimensional space |
 |---|---|---|
-| **Landscape** | Many isolated peaks and valleys | Smoothly connected valleys |
-| **Minima** | Many isolated local minima | Few bad local minima; most are near-optimal |
-| **Navigation** | Hard to find global minimum | Many paths lead to good solutions |
-| **Critical points** | Mix of local minima and saddle points | Overwhelmingly saddle points, not local minima |
+| **Landscape** | many isolated peaks and valleys | smoothly connected valleys |
+| **Minima** | many isolated local minima | bad local minima는 적고 대부분 near-optimal |
+| **Navigation** | global minimum을 찾기 어려움 | 많은 paths가 good solutions로 이어짐 |
+| **Critical points** | local minima와 saddle points가 섞임 | 압도적으로 saddle points이며 local minima가 아님 |
 
-**Stochastic noise acts as implicit regularization.** Mini-batch SGD adds noise that prevents settling into sharp minima. Sharp minima overfit; flat minima generalize. The noise biases optimization toward flat regions of the loss landscape.
+**Stochastic noise는 implicit regularization처럼 작동합니다.** Mini-batch SGD는 sharp minima에 안착하는 것을 막는 noise를 추가합니다. Sharp minima는 overfit하고 flat minima는 generalize합니다. noise는 optimization을 loss landscape의 flat regions 쪽으로 bias합니다.
 
-### Second-order methods in practice
+### 실제 second-order methods
 
-Pure Newton's method is impractical for large models. Several approximations make second-order information usable.
+순수 Newton's method는 large models에 비실용적입니다. 여러 approximations가 second-order information을 사용할 수 있게 만듭니다.
 
-**L-BFGS (Limited-memory BFGS):** Approximates the inverse Hessian using the last m gradient differences. Requires O(mn) memory instead of O(n^2). Works well for problems with up to ~10,000 parameters. Used in classical ML (logistic regression, CRFs) but not deep learning.
+**L-BFGS (Limited-memory BFGS):** 마지막 m개의 gradient differences를 사용해 inverse Hessian을 근사합니다. O(n^2) 대신 O(mn) memory가 필요합니다. 최대 약 10,000 parameters 규모의 problems에서 잘 작동합니다. classical ML(logistic regression, CRFs)에서는 사용되지만 deep learning에서는 잘 쓰이지 않습니다.
 
-**Natural gradient:** Uses the Fisher information matrix (expected Hessian of the log-likelihood) instead of the standard Hessian. This accounts for the geometry of probability distributions. K-FAC (Kronecker-Factored Approximate Curvature) approximates the Fisher matrix as a Kronecker product, making it practical for neural networks.
+**Natural gradient:** 표준 Hessian 대신 Fisher information matrix(log-likelihood의 expected Hessian)를 사용합니다. 이는 probability distributions의 geometry를 반영합니다. K-FAC(Kronecker-Factored Approximate Curvature)는 Fisher matrix를 Kronecker product로 근사해 neural networks에서도 실용적으로 만듭니다.
 
-**Hessian-free optimization:** Uses conjugate gradient to solve Hx = g without ever forming H. Only requires Hessian-vector products, which can be computed in O(n) time via automatic differentiation.
+**Hessian-free optimization:** H를 직접 만들지 않고 conjugate gradient를 사용해 Hx = g를 풉니다. Hessian-vector products만 필요하며, 이는 automatic differentiation으로 O(n) time에 계산할 수 있습니다.
 
-**Diagonal approximations:** Adam's second moment is a diagonal approximation of the Hessian's diagonal. AdaHessian extends this by using actual Hessian diagonal elements via Hutchinson's estimator.
+**Diagonal approximations:** Adam의 second moment는 Hessian diagonal의 diagonal approximation입니다. AdaHessian은 Hutchinson's estimator를 통해 실제 Hessian diagonal elements를 사용하도록 이를 확장합니다.
 
-| Method | Memory | Per-step cost | When to use |
+| Method | Memory | Step당 비용 | 사용할 때 |
 |--------|--------|--------------|-------------|
 | Gradient descent | O(n) | O(n) | Baseline, large models |
-| Newton's method | O(n^2) | O(n^3) | Small convex problems |
-| L-BFGS | O(mn) | O(mn) | Medium convex problems |
+| Newton's method | O(n^2) | O(n^3) | 작은 convex problems |
+| L-BFGS | O(mn) | O(mn) | 중간 규모 convex problems |
 | Adam | O(n) | O(n) | Deep learning default |
-| K-FAC | O(n) | O(n) per layer | Research, large-batch training |
+| K-FAC | O(n) | layer당 O(n) | Research, large-batch training |
 
 ```figure
 convex-vs-nonconvex
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Convexity checker
+### 단계 1: Convexity checker
 
-Build a function that tests convexity empirically by sampling points and checking the definition.
+points를 sampling하고 definition을 확인하여 convexity를 경험적으로 테스트하는 function을 만드세요.
 
 ```python
 import random
@@ -409,9 +409,9 @@ def check_convexity(f, dim, bounds=(-5, 5), samples=1000):
     return violations == 0, violations
 ```
 
-### Step 2: Newton's method for 2D
+### 단계 2: 2D용 Newton's method
 
-Implement Newton's method using an explicit Hessian. Compare convergence speed against gradient descent.
+explicit Hessian을 사용해 Newton's method를 구현하세요. convergence speed를 gradient descent와 비교하세요.
 
 ```python
 def newtons_method(f, grad_f, hessian_f, x0, steps=50, tol=1e-12):
@@ -438,9 +438,9 @@ def newtons_method(f, grad_f, hessian_f, x0, steps=50, tol=1e-12):
     return history
 ```
 
-### Step 3: Lagrange multiplier solver
+### 단계 3: Lagrange multiplier solver
 
-Solve constrained optimization using gradient descent on the Lagrangian.
+Lagrangian에 gradient descent를 적용해 constrained optimization을 푸세요.
 
 ```python
 def lagrange_solve(f_grad, g_val, g_grad, x0, lr=0.01,
@@ -461,9 +461,9 @@ def lagrange_solve(f_grad, g_val, g_grad, x0, lr=0.01,
     return history
 ```
 
-### Step 4: Compare first-order vs second-order
+### 단계 4: first-order와 second-order 비교
 
-Run gradient descent and Newton's method on the same quadratic function. Count the steps to convergence.
+같은 quadratic function에서 gradient descent와 Newton's method를 실행하세요. convergence까지의 steps를 세세요.
 
 ```python
 def quadratic(x):
@@ -476,22 +476,22 @@ def quadratic_hessian(x):
     return [[10, 0], [0, 2]]
 ```
 
-Newton's method will converge in 1 step (it is exact for quadratics). Gradient descent will take hundreds of steps because the eigenvalues of the Hessian differ by a factor of 5, creating an elongated valley.
+Newton's method는 1 step에 수렴합니다(quadratics에서는 exact). Hessian의 eigenvalues가 factor 5만큼 달라 elongated valley를 만들기 때문에 gradient descent는 수백 steps가 걸립니다.
 
-## Use It
+## 사용하기
 
-Convexity analysis applies directly when choosing ML models and solvers.
+Convexity analysis는 ML models와 solvers를 선택할 때 직접 적용됩니다.
 
-For convex problems (logistic regression, SVMs, LASSO):
-- Use dedicated solvers (liblinear, CVXPY, scipy.optimize.minimize with method='L-BFGS-B')
-- Expect a unique global solution
-- Second-order methods are practical and fast
+convex problems(logistic regression, SVMs, LASSO)의 경우:
+- dedicated solvers(liblinear, CVXPY, scipy.optimize.minimize with method='L-BFGS-B')를 사용하세요
+- unique global solution을 기대하세요
+- second-order methods는 실용적이고 빠릅니다
 
-For non-convex problems (neural networks):
-- Use first-order methods (SGD, Adam)
-- Accept that the solution depends on initialization and randomness
-- Use overparameterization, noise, and learning rate schedules as implicit regularization
-- Do not waste time searching for the global minimum. A good local minimum is sufficient.
+non-convex problems(neural networks)의 경우:
+- first-order methods(SGD, Adam)를 사용하세요
+- solution이 initialization과 randomness에 의존함을 받아들이세요
+- overparameterization, noise, learning rate schedules를 implicit regularization으로 사용하세요
+- global minimum을 찾는 데 시간을 낭비하지 마세요. 좋은 local minimum이면 충분합니다.
 
 ```python
 from scipy.optimize import minimize
@@ -504,7 +504,7 @@ result = minimize(
 )
 ```
 
-For SVMs, the dual formulation lets you use the kernel trick:
+SVMs에서는 dual formulation 덕분에 kernel trick을 사용할 수 있습니다.
 
 ```python
 from sklearn.svm import SVC
@@ -514,42 +514,42 @@ svm.fit(X_train, y_train)
 print(f"Support vectors: {svm.n_support_}")
 ```
 
-## Exercises
+## 연습 문제
 
-1. **Convexity gallery.** Test these functions for convexity using the checker: f(x) = x^4, f(x) = sin(x), f(x,y) = x^2 + y^2, f(x,y) = x*y, f(x) = max(x, 0). Explain why each result makes sense.
+1. **Convexity gallery.** checker를 사용해 다음 functions의 convexity를 테스트하세요: f(x) = x^4, f(x) = sin(x), f(x,y) = x^2 + y^2, f(x,y) = x*y, f(x) = max(x, 0). 각 결과가 왜 타당한지 설명하세요.
 
-2. **Newton vs gradient descent race.** Run both methods on f(x,y) = 50*x^2 + y^2 from the starting point (10, 10). How many steps does each need to reach loss < 1e-10? What happens to gradient descent when the condition number (ratio of largest to smallest Hessian eigenvalue) increases?
+2. **Newton vs gradient descent race.** starting point (10, 10)에서 f(x,y) = 50*x^2 + y^2에 두 method를 모두 실행하세요. loss < 1e-10에 도달하려면 각각 몇 step이 필요한가요? condition number(Hessian eigenvalue의 largest/smallest ratio)가 증가하면 gradient descent에는 어떤 일이 일어나나요?
 
-3. **Lagrange multiplier geometry.** Minimize f(x,y) = (x-3)^2 + (y-3)^2 subject to x + 2y = 4. Verify the solution by checking that the gradient of f is parallel to the gradient of g at the solution.
+3. **Lagrange multiplier geometry.** x + 2y = 4를 만족하면서 f(x,y) = (x-3)^2 + (y-3)^2를 minimize하세요. solution에서 f의 gradient가 g의 gradient와 parallel인지 확인해 solution을 검증하세요.
 
-4. **Regularization constraint.** Implement L1-constrained optimization: minimize (x-3)^2 + (y-2)^2 subject to |x| + |y| <= 1. Show that the solution has one coordinate equal to zero (sparsity from the diamond constraint).
+4. **Regularization constraint.** L1-constrained optimization을 구현하세요: |x| + |y| <= 1을 만족하면서 (x-3)^2 + (y-2)^2를 minimize합니다. solution의 coordinate 하나가 zero임을 보이세요(diamond constraint에서 오는 sparsity).
 
-5. **Hessian eigenvalue analysis.** Compute the Hessian of the Rosenbrock function at (1,1) and at (-1,1). Compute eigenvalues at both points. What do the eigenvalues tell you about the curvature at the minimum versus far from it?
+5. **Hessian eigenvalue analysis.** Rosenbrock function의 Hessian을 (1,1)과 (-1,1)에서 계산하세요. 두 points에서 eigenvalues를 계산하세요. eigenvalues는 minimum과 그곳에서 먼 지점의 curvature에 대해 무엇을 알려 주나요?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What it means |
+| 용어 | 의미 |
 |------|---------------|
-| Convex set | A set where the line segment between any two points in the set stays inside the set |
-| Convex function | A function where the line between any two points on its graph lies above or on the graph. Equivalently, Hessian is positive semidefinite everywhere |
-| Local minimum | A point lower than all nearby points. For convex functions, every local minimum is the global minimum |
-| Global minimum | The lowest point of a function over its entire domain |
-| Hessian matrix | The matrix of all second partial derivatives. Encodes curvature information |
-| Positive semidefinite | A matrix whose eigenvalues are all non-negative. The multidimensional analogue of "second derivative >= 0" |
-| Condition number | Ratio of largest to smallest eigenvalue of the Hessian. High condition number means elongated valleys and slow gradient descent |
-| Newton's method | Second-order optimizer that uses the inverse Hessian to determine step direction and size. Quadratic convergence near the minimum |
-| Lagrange multiplier | A variable introduced to convert a constrained optimization problem into an unconstrained one |
-| KKT conditions | Necessary conditions for optimality with inequality constraints. Generalize Lagrange multipliers |
-| Complementary slackness | At the solution, either a constraint is active or its multiplier is zero. Never both nonzero |
-| Duality | Every constrained problem has a companion dual problem. For convex problems, both have the same optimal value |
-| Strong duality | Primal and dual optimal values are equal. Holds for convex problems satisfying Slater's condition |
-| L-BFGS | Approximate second-order method that stores the last m gradient differences instead of the full Hessian |
-| Saddle point | A point where the gradient is zero but it is a minimum in some directions and a maximum in others |
-| Overparameterization | Using more parameters than training examples. Smooths the loss landscape and reduces bad local minima |
+| Convex set | set 안의 임의의 두 points 사이 line segment가 set 안에 머무는 set |
+| Convex function | graph 위의 임의의 두 points 사이 line이 graph 위에 있거나 그보다 위에 있는 function입니다. 동치로 Hessian이 모든 곳에서 positive semidefinite입니다. |
+| Local minimum | 주변 모든 points보다 낮은 point입니다. convex functions에서는 모든 local minimum이 global minimum입니다. |
+| Global minimum | function의 전체 domain에서 가장 낮은 point입니다. |
+| Hessian matrix | 모든 second partial derivatives의 matrix입니다. curvature information을 encode합니다. |
+| Positive semidefinite | eigenvalues가 모두 non-negative인 matrix입니다. "second derivative >= 0"의 multidimensional analogue입니다. |
+| Condition number | Hessian의 largest/smallest eigenvalue ratio입니다. 높은 condition number는 elongated valleys와 느린 gradient descent를 의미합니다. |
+| Newton's method | inverse Hessian을 사용해 step direction과 size를 결정하는 second-order optimizer입니다. minimum 근처에서 quadratic convergence를 보입니다. |
+| Lagrange multiplier | constrained optimization problem을 unconstrained one으로 바꾸기 위해 도입하는 variable입니다. |
+| KKT conditions | inequality constraints가 있는 optimality의 necessary conditions입니다. Lagrange multipliers를 generalize합니다. |
+| Complementary slackness | solution에서 constraint가 active이거나 multiplier가 zero입니다. 둘 다 nonzero일 수 없습니다. |
+| Duality | 모든 constrained problem에는 companion dual problem이 있습니다. convex problems에서는 둘이 같은 optimal value를 갖습니다. |
+| Strong duality | primal과 dual optimal values가 같습니다. Slater's condition을 만족하는 convex problems에서 성립합니다. |
+| L-BFGS | full Hessian 대신 마지막 m gradient differences를 저장하는 approximate second-order method입니다. |
+| Saddle point | gradient는 zero이지만 일부 directions에서는 minimum이고 다른 directions에서는 maximum인 point입니다. |
+| Overparameterization | training examples보다 더 많은 parameters를 사용합니다. loss landscape를 smooth하게 하고 bad local minima를 줄입니다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Boyd & Vandenberghe: Convex Optimization](https://web.stanford.edu/~boyd/cvxbook/) - the standard textbook, freely available online
-- [Bottou, Curtis, Nocedal: Optimization Methods for Large-Scale Machine Learning (2018)](https://arxiv.org/abs/1606.04838) - bridges convex optimization theory and deep learning practice
-- [Choromanska et al.: The Loss Surfaces of Multilayer Networks (2015)](https://arxiv.org/abs/1412.0233) - why non-convex neural network landscapes are not as bad as they seem
-- [Nocedal & Wright: Numerical Optimization](https://link.springer.com/book/10.1007/978-0-387-40065-5) - comprehensive reference for Newton's method, L-BFGS, and constrained optimization
+- [Boyd & Vandenberghe: Convex Optimization](https://web.stanford.edu/~boyd/cvxbook/) - 온라인에서 무료로 제공되는 표준 교재
+- [Bottou, Curtis, Nocedal: Optimization Methods for Large-Scale Machine Learning (2018)](https://arxiv.org/abs/1606.04838) - convex optimization theory와 deep learning practice를 연결하는 논문
+- [Choromanska et al.: The Loss Surfaces of Multilayer Networks (2015)](https://arxiv.org/abs/1412.0233) - non-convex neural network landscapes가 보이는 것만큼 나쁘지 않은 이유
+- [Nocedal & Wright: Numerical Optimization](https://link.springer.com/book/10.1007/978-0-387-40065-5) - Newton's method, L-BFGS, constrained optimization의 종합 참고서

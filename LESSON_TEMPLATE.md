@@ -1,133 +1,133 @@
-# Lesson Template
+# 수업 템플릿
 
-Use this template when creating a new lesson. Copy the folder structure and fill in the content.
+새 수업을 만들 때 이 템플릿을 사용하세요. 폴더 구조를 복사하고 내용을 채우면 됩니다.
 
-## Folder Structure
+## 폴더 구조
 
 ```
 NN-lesson-name/
 ├── code/
-│   ├── main.py            (primary implementation)
-│   ├── main.ts            (TypeScript version, if applicable)
-│   ├── main.rs            (Rust version, if applicable)
-│   └── main.jl            (Julia version, if applicable)
+│   ├── main.py            (주 구현)
+│   ├── main.ts            (해당하는 경우 TypeScript 버전)
+│   ├── main.rs            (해당하는 경우 Rust 버전)
+│   └── main.jl            (해당하는 경우 Julia 버전)
 ├── notebook/
-│   └── lesson.ipynb       (Jupyter notebook for experimentation)
+│   └── lesson.ipynb       (실험용 Jupyter notebook)
 ├── docs/
-│   └── en.md              (lesson documentation)
+│   └── en.md              (수업 문서)
 └── outputs/
-    ├── prompt-*.md         (prompts produced by this lesson)
-    └── skill-*.md          (skills produced by this lesson)
+    ├── prompt-*.md         (이 수업에서 만든 프롬프트)
+    └── skill-*.md          (이 수업에서 만든 스킬)
 ```
 
-## Documentation Format (docs/en.md)
+## 문서 형식 (docs/en.md)
 
 ```markdown
-# [Lesson Title]
+# [수업 제목]
 
-> [One-line motto — the core idea that sticks]
+> [한 줄 모토 — 기억에 남는 핵심 아이디어]
 
 **Type:** Build | Learn
-**Languages:** Python, TypeScript, Rust, Julia (list what's used)
-**Prerequisites:** [List prior lessons needed]
-**Time:** ~[estimated time] minutes
+**Languages:** Python, TypeScript, Rust, Julia (사용한 언어만 나열)
+**Prerequisites:** [필요한 이전 수업 목록]
+**Time:** ~[예상 시간] minutes
 
-## The Problem
+## 문제
 
-[2-3 paragraphs. What can't you do without this? Why should you care?
-Make it concrete — show a scenario where not knowing this hurts.]
+[2~3개 문단. 이것 없이는 무엇을 할 수 없는가? 왜 신경 써야 하는가?
+모르면 문제가 되는 구체적인 상황을 보여 주세요.]
 
-## The Concept
+## 개념
 
-[Explain with diagrams and intuition. No code yet.
-Use ASCII diagrams, tables, or link to visuals in the web app.
-Build mental models before implementation.]
+[다이어그램과 직관으로 설명합니다. 아직 코드는 넣지 않습니다.
+ASCII 다이어그램, 표, 또는 웹 앱의 시각 자료 링크를 사용하세요.
+구현 전에 머릿속 모델을 먼저 만듭니다.]
 
-## Build It
+## 직접 만들기
 
-[Step-by-step implementation from scratch.
-Start with the simplest version, then add complexity.
-Every code block should be runnable on its own.]
+[처음부터 단계별로 구현합니다.
+가장 단순한 버전에서 시작해 복잡도를 더합니다.
+모든 코드 블록은 독립적으로 실행 가능해야 합니다.]
 
-### Step 1: [Name]
+### Step 1: [이름]
 
-[Explanation]
-
-    [code block]
-
-### Step 2: [Name]
-
-[Explanation]
+[설명]
 
     [code block]
 
-[...continue...]
+### Step 2: [이름]
 
-## Use It
+[설명]
 
-[Now show how frameworks/libraries do the same thing.
-Compare your from-scratch version to the library version.
-This proves the concept and introduces practical tools.]
+    [code block]
 
-## Ship It
+[...계속...]
 
-[What reusable artifact does this lesson produce?
-Could be a prompt, a skill, an agent, an MCP server, or a tool.
-Include it here and save it in the outputs/ folder.]
+## 활용하기
 
-## Exercises
+[이제 프레임워크/라이브러리가 같은 일을 어떻게 하는지 보여 줍니다.
+직접 만든 버전과 라이브러리 버전을 비교합니다.
+이 과정은 개념을 검증하고 실무 도구를 소개합니다.]
 
-1. [Easy — reinforce the core concept]
-2. [Medium — apply it to a different problem]
-3. [Hard — extend or combine with prior lessons]
+## 산출물로 만들기
 
-## Key Terms
+[이 수업은 어떤 재사용 가능한 산출물을 만드는가?
+프롬프트, 스킬, 에이전트, MCP 서버, 도구가 될 수 있습니다.
+여기에 포함하고 outputs/ 폴더에 저장하세요.]
 
-| Term | What people say | What it actually means |
+## 연습 문제
+
+1. [쉬움 — 핵심 개념 강화]
+2. [중간 — 다른 문제에 적용]
+3. [어려움 — 이전 수업과 확장하거나 결합]
+
+## 핵심 용어
+
+| 용어 | 사람들이 흔히 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| [term] | [common misconception] | [actual definition] |
+| [용어] | [흔한 오해] | [실제 정의] |
 
-## Further Reading
+## 더 읽을거리
 
-- [Resource 1](url) — [why it's worth reading]
-- [Resource 2](url) — [why it's worth reading]
+- [자료 1](url) — [읽을 가치가 있는 이유]
+- [자료 2](url) — [읽을 가치가 있는 이유]
 ```
 
-## Code File Guidelines
+## 코드 파일 지침
 
-- Code must run without errors
-- No comments — code should be self-explanatory
-- Use the language that fits best for the topic
-- Include a `requirements.txt` or equivalent if there are dependencies
-- Start simple, build up complexity
-- Every function and class should have a clear purpose
+- 코드는 오류 없이 실행되어야 합니다
+- 주석은 넣지 않습니다. 코드는 스스로 설명적이어야 합니다
+- 주제에 가장 잘 맞는 언어를 사용합니다
+- 의존성이 있으면 `requirements.txt` 또는 그에 준하는 파일을 포함합니다
+- 단순하게 시작해 복잡도를 키웁니다
+- 모든 함수와 클래스는 명확한 목적을 가져야 합니다
 
-## Output File Format
+## 출력 파일 형식
 
-### Prompts
+### 프롬프트
 
 ```markdown
 ---
 name: prompt-name
-description: What this prompt does
+description: 이 프롬프트가 하는 일
 phase: [phase number]
 lesson: [lesson number]
 ---
 
-[Prompt content]
+[프롬프트 내용]
 ```
 
-### Skills
+### 스킬
 
 ```markdown
 ---
 name: skill-name
-description: What this skill teaches
+description: 이 스킬이 가르치는 내용
 version: 1.0.0
 phase: [phase number]
 lesson: [lesson number]
 tags: [relevant, tags]
 ---
 
-[Skill content]
+[스킬 내용]
 ```

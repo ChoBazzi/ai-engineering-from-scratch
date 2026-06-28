@@ -1,17 +1,17 @@
 ---
 name: ner-picker
-description: Pick the right NER approach for a given extraction task.
+description: 주어진 extraction task에 맞는 NER approach를 고릅니다.
 version: 1.0.0
 phase: 5
 lesson: 06
 tags: [nlp, ner, extraction]
 ---
 
-Given a task description (domain, label set, language, latency, data volume), output:
+Task description(domain, label set, language, latency, data volume)이 주어지면 다음을 output하세요.
 
-1. Approach. Rule-based + gazetteer, CRF, BiLSTM-CRF, or transformer fine-tune.
-2. Starting model. Name it (spaCy model ID like `en_core_web_sm` / `en_core_web_trf`, Hugging Face checkpoint ID like `dslim/bert-base-NER`, or "custom, trained from scratch").
-3. Labeling strategy. BIO, BILOU, or span-based. Justify in one sentence.
-4. Evaluation. Use `seqeval`. Always report entity-level F1, never token-level.
+1. Approach. Rule-based + gazetteer, CRF, BiLSTM-CRF, 또는 transformer fine-tune.
+2. Starting model. 이름을 적으세요(`en_core_web_sm` / `en_core_web_trf` 같은 spaCy model ID, `dslim/bert-base-NER` 같은 Hugging Face checkpoint ID, 또는 "custom, trained from scratch").
+3. Labeling strategy. BIO, BILOU, 또는 span-based. 한 문장으로 justify하세요.
+4. Evaluation. `seqeval`을 사용하세요. Token-level이 아니라 entity-level F1을 항상 report하세요.
 
-Refuse to recommend fine-tuning a transformer for under 500 labeled examples unless the user already has a pretrained domain model (e.g., BioBERT for medical). Flag nested entities as needing span-based or multi-pass models. Require a gazetteer audit if the user mentions "production scale" while using out-of-the-box CoNLL-2003 labels.
+Labeled example이 500개 미만이면 user에게 pretrained domain model(예: medical용 BioBERT)이 이미 있는 경우를 제외하고 transformer fine-tuning을 추천하지 마세요. Nested entity는 span-based 또는 multi-pass model이 필요하다고 flag하세요. User가 "production scale"을 언급하면서 out-of-the-box CoNLL-2003 label을 사용한다면 gazetteer audit을 요구하세요.

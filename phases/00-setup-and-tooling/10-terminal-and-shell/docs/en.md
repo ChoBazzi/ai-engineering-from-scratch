@@ -1,53 +1,53 @@
-# Terminal & Shell
+# 터미널과 셸
 
-> The terminal is where AI engineers live. Get comfortable here.
+> 터미널은 AI 엔지니어가 머무는 곳입니다. 여기에서 편해져야 합니다.
 
 **Type:** Learn
 **Languages:** --
 **Prerequisites:** Phase 0, Lesson 01
 **Time:** ~35 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Use piping, redirects, and `grep` to filter and process training logs from the command line
-- Create persistent tmux sessions with multiple panes for concurrent training and GPU monitoring
-- Monitor system and GPU resources with `htop`, `nvtop`, and `nvidia-smi`
-- Transfer files between local and remote machines using SSH, `scp`, and `rsync`
+- 명령줄에서 파이프, 리다이렉트, `grep`을 사용해 학습 로그를 필터링하고 처리하기
+- 동시 학습과 GPU 모니터링을 위해 여러 창이 있는 지속적인 tmux 세션 만들기
+- `htop`, `nvtop`, `nvidia-smi`로 시스템과 GPU 리소스 모니터링하기
+- SSH, `scp`, `rsync`를 사용해 로컬 머신과 원격 머신 사이에서 파일 전송하기
 
-## The Problem
+## 문제
 
-You will spend more time in the terminal than in any editor. Training runs, GPU monitoring, log tailing, remote SSH sessions, environment management. Every AI workflow touches the shell. If you're slow here, you're slow everywhere.
+어떤 에디터보다 터미널에서 더 많은 시간을 보내게 됩니다. 학습 실행, GPU 모니터링, 로그 tail, 원격 SSH 세션, 환경 관리까지 모든 AI 워크플로는 셸을 거칩니다. 여기에서 느리면 모든 곳에서 느립니다.
 
-This lesson covers the terminal skills that matter for AI work. No history of Unix. No deep-dive into Bash scripting. Just what you need.
+이 lesson은 AI 작업에 필요한 터미널 기술을 다룹니다. Unix 역사도, Bash 스크립팅 심화도 없습니다. 필요한 것만 다룹니다.
 
-## The Concept
+## 개념
 
 ```mermaid
 graph TD
-    subgraph tmux["tmux session: training"]
-        subgraph top["Top row"]
-            P1["Pane 1: Training run<br/>python train.py<br/>Epoch 12/100 ..."]
-            P2["Pane 2: GPU monitor<br/>watch -n1 nvidia-smi<br/>GPU: 78% | Mem: 14/24G"]
+    subgraph tmux["tmux 세션: training"]
+        subgraph top["위쪽 행"]
+            P1["창 1: 학습 실행<br/>python train.py<br/>Epoch 12/100 ..."]
+            P2["창 2: GPU 모니터<br/>watch -n1 nvidia-smi<br/>GPU: 78% | Mem: 14/24G"]
         end
-        P3["Pane 3: Logs + experiments<br/>tail -f logs/train.log | grep loss"]
+        P3["창 3: 로그 + 실험<br/>tail -f logs/train.log | grep loss"]
     end
 ```
 
-Three things running at once. One terminal. You can detach, go home, SSH back in, and reattach. The training keeps running.
+세 가지가 동시에 실행됩니다. 터미널은 하나입니다. 세션에서 분리하고, 집에 갔다가, 다시 SSH로 접속해 재연결할 수 있습니다. 학습은 계속 실행됩니다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: Know your shell
+### Step 1: 자신의 셸 알기
 
-Check which shell you're running:
+어떤 셸을 실행 중인지 확인합니다.
 
 ```bash
 echo $SHELL
 ```
 
-Most systems use `bash` or `zsh`. Both work fine. The commands in this course work in either.
+대부분의 시스템은 `bash` 또는 `zsh`를 사용합니다. 둘 다 괜찮습니다. 이 course의 명령은 둘 중 어느 쪽에서도 동작합니다.
 
-Key things to know:
+알아야 할 핵심은 다음과 같습니다.
 
 ```bash
 # Move around
@@ -69,9 +69,9 @@ clear   # or Ctrl+L
 # Ctrl+Z
 ```
 
-### Step 2: Piping and redirects
+### Step 2: 파이프와 리다이렉트
 
-Piping connects commands together. This is how you process logs, filter output, and chain tools. You will use this constantly.
+파이프는 명령들을 서로 연결합니다. 로그를 처리하고, 출력을 필터링하고, 도구를 이어 붙이는 방식입니다. 계속 사용하게 됩니다.
 
 ```bash
 # Count how many times "loss" appears in a log
@@ -93,19 +93,19 @@ python train.py > output.log 2> errors.log
 python train.py > train_full.log 2>&1
 ```
 
-The three redirects you need:
+알아야 할 리다이렉션 기호는 다음과 같습니다.
 
-| Symbol | What it does |
+| 기호 | 하는 일 |
 |--------|-------------|
-| `>` | Write stdout to file (overwrite) |
-| `>>` | Append stdout to file |
-| `2>` | Write stderr to file |
-| `2>&1` | Send stderr to same place as stdout |
-| `\|` | Send stdout of one command as stdin to the next |
+| `>` | stdout을 파일에 씁니다(덮어쓰기) |
+| `>>` | stdout을 파일에 덧붙입니다 |
+| `2>` | stderr를 파일에 씁니다 |
+| `2>&1` | stderr를 stdout과 같은 위치로 보냅니다 |
+| `\|` | 한 명령의 stdout을 다음 명령의 stdin으로 보냅니다 |
 
-### Step 3: Background processes
+### Step 3: 백그라운드 프로세스
 
-Training runs take hours. You don't want to keep your terminal open the whole time.
+학습 실행은 몇 시간이 걸립니다. 터미널을 계속 열어 두고 싶지는 않을 것입니다.
 
 ```bash
 # Run in background (output still goes to terminal)
@@ -127,19 +127,19 @@ kill %1
 kill $(pgrep -f "train.py")
 ```
 
-The difference between `&`, `nohup`, and `screen`/`tmux`:
+`&`, `nohup`, `screen`/`tmux`의 차이:
 
-| Method | Survives terminal close? | Can reattach? |
+| 방식 | 터미널을 닫아도 살아남나요? | 다시 연결할 수 있나요? |
 |--------|-------------------------|---------------|
-| `command &` | No | No |
-| `nohup command &` | Yes | No (check log file) |
-| `screen` / `tmux` | Yes | Yes |
+| `command &` | 아니요 | 아니요 |
+| `nohup command &` | 예 | 아니요(로그 파일 확인) |
+| `screen` / `tmux` | 예 | 예 |
 
-For anything longer than a few minutes, use tmux.
+몇 분보다 오래 걸리는 작업에는 tmux를 사용하세요.
 
 ### Step 4: tmux
 
-tmux lets you create persistent terminal sessions with multiple panes. This is the single most useful tool for managing training runs.
+tmux를 사용하면 여러 창이 있는 지속적인 터미널 세션을 만들 수 있습니다. 학습 실행을 관리하는 데 가장 유용한 단일 도구입니다.
 
 ```bash
 # Install
@@ -173,7 +173,7 @@ tmux ls
 tmux kill-session -t training
 ```
 
-A typical AI workflow session:
+전형적인 AI 워크플로 세션은 다음과 같습니다.
 
 ```bash
 tmux new -s train
@@ -192,7 +192,7 @@ tail -f logs/experiment.log
 # tmux attach -t train
 ```
 
-### Step 5: Monitoring with htop and nvtop
+### Step 5: htop과 nvtop으로 모니터링하기
 
 ```bash
 # System processes (better than top)
@@ -212,15 +212,15 @@ watch -n1 nvidia-smi
 nvidia-smi --query-compute-apps=pid,name,used_memory --format=csv
 ```
 
-`htop` keybindings you'll use:
-- `F6` or `>` to sort by column (sort by memory to find memory leaks)
-- `F5` to toggle tree view (see child processes)
-- `F9` to kill a process
-- `/` to search for a process name
+사용하게 될 `htop` 키 바인딩:
+- `F6` 또는 `>`: 열 기준 정렬(메모리 누수를 찾으려면 메모리 기준 정렬)
+- `F5`: 트리 보기 전환(자식 프로세스 확인)
+- `F9`: 프로세스 종료
+- `/`: 프로세스 이름 검색
 
-### Step 6: SSH for remote GPU boxes
+### Step 6: 원격 GPU 박스용 SSH
 
-When you rent a cloud GPU (Lambda, RunPod, Vast.ai), you connect via SSH.
+클라우드 GPU(Lambda, RunPod, Vast.ai)를 빌리면 SSH로 접속합니다.
 
 ```bash
 # Basic connection
@@ -253,15 +253,15 @@ ssh -L 8888:localhost:8888 user@gpu-box-ip
 # ssh gpu
 ```
 
-### Step 7: Useful aliases for AI work
+### Step 7: AI 작업에 유용한 alias
 
-Add these to your `~/.bashrc` or `~/.zshrc`:
+다음을 `~/.bashrc` 또는 `~/.zshrc`에 추가합니다.
 
 ```bash
 source phases/00-setup-and-tooling/10-terminal-and-shell/code/shell_aliases.sh
 ```
 
-Or copy the ones you want. The key aliases:
+또는 원하는 것만 복사하세요. 핵심 alias는 다음과 같습니다.
 
 ```bash
 # GPU status at a glance
@@ -277,11 +277,11 @@ alias ae='source .venv/bin/activate'
 alias watchloss='tail -f logs/*.log | grep --line-buffered "loss"'
 ```
 
-See `code/shell_aliases.sh` for the full set.
+전체 목록은 `code/shell_aliases.sh`를 보세요.
 
-### Step 8: Common AI terminal patterns
+### Step 8: 자주 쓰는 AI 터미널 패턴
 
-These come up repeatedly in practice:
+실무에서 반복해서 등장합니다.
 
 ```bash
 # Run training, log everything, notify when done
@@ -311,34 +311,34 @@ env | grep -i cuda
 env | grep -i torch
 ```
 
-## Use It
+## 사용하기
 
-Here's when each tool comes into play during this course:
+이 course에서 각 도구가 쓰이는 시점은 다음과 같습니다.
 
-| Tool | When you use it |
+| 도구 | 언제 사용하는가 |
 |------|----------------|
-| tmux | Every training run (Phases 3+) |
-| `tail -f` + `grep` | Monitoring training logs |
-| `nohup` / `&` | Quick background tasks |
-| `htop` / `nvtop` | Debugging slow training, OOM errors |
-| SSH + `rsync` | Working on cloud GPUs |
-| Piping + redirects | Processing experiment results |
-| Aliases | Saving time on repetitive commands |
+| tmux | 모든 학습 실행(Phases 3+) |
+| `tail -f` + `grep` | 학습 로그 모니터링 |
+| `nohup` / `&` | 빠른 백그라운드 작업 |
+| `htop` / `nvtop` | 느린 학습, OOM 오류 디버깅 |
+| SSH + `rsync` | 클라우드 GPU에서 작업 |
+| 파이프 + 리다이렉트 | 실험 결과 처리 |
+| Alias | 반복 명령 시간 절약 |
 
-## Exercises
+## 연습 문제
 
-1. Install tmux, create a session with three panes, and run `htop` in one, `watch -n1 date` in another, and a Python script in the third. Detach and reattach.
-2. Add the aliases from `code/shell_aliases.sh` to your shell config and reload with `source ~/.zshrc` (or `~/.bashrc`).
-3. Create a fake training log with `for i in $(seq 1 100); do echo "epoch $i loss: $(echo "scale=4; 1/$i" | bc)"; sleep 0.1; done > fake_train.log` and then use `grep`, `tail`, and `awk` to extract just the loss values.
-4. Set up an SSH config entry for a server you have access to (or use `localhost` to practice the syntax).
+1. tmux를 설치하고 세 개의 창이 있는 세션을 만든 뒤, 한 창에서는 `htop`, 다른 창에서는 `watch -n1 date`, 세 번째 창에서는 Python 스크립트를 실행하세요. 분리한 다음 다시 연결하세요.
+2. `code/shell_aliases.sh`의 alias를 셸 설정에 추가하고 `source ~/.zshrc`(또는 `~/.bashrc`)로 다시 로드하세요.
+3. `for i in $(seq 1 100); do echo "epoch $i loss: $(echo "scale=4; 1/$i" | bc)"; sleep 0.1; done > fake_train.log`로 가짜 학습 로그를 만든 다음 `grep`, `tail`, `awk`를 사용해 loss 값만 추출하세요.
+4. 접근 권한이 있는 서버에 대한 SSH config 항목을 설정하세요(또는 문법 연습용으로 `localhost`를 사용하세요).
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 말하는 것 | 실제 의미 |
 |------|----------------|----------------------|
-| Shell | "The terminal" | The program that interprets your commands (bash, zsh, fish) |
-| tmux | "Terminal multiplexer" | A program that lets you run multiple terminal sessions inside one window, and detach/reattach |
-| Pipe | "The bar thing" | The `\|` operator that sends one command's output as input to another |
-| PID | "Process ID" | A unique number assigned to every running process, used to monitor or kill it |
-| nohup | "No hangup" | Runs a command immune to the hangup signal, so closing the terminal won't kill it |
-| SSH | "Connecting to the server" | Secure Shell, an encrypted protocol for running commands on a remote machine |
+| Shell | "터미널" | 명령을 해석하는 프로그램(bash, zsh, fish) |
+| tmux | "Terminal multiplexer" | 하나의 창 안에서 여러 터미널 세션을 실행하고 분리/재연결할 수 있게 해주는 프로그램 |
+| Pipe | "막대 기호" | 한 명령의 출력을 다른 명령의 입력으로 보내는 `\|` 연산자 |
+| PID | "Process ID" | 실행 중인 모든 프로세스에 부여되는 고유 번호로, 모니터링하거나 종료할 때 사용 |
+| nohup | "No hangup" | hangup 신호의 영향을 받지 않게 명령을 실행해 터미널을 닫아도 종료되지 않게 함 |
+| SSH | "서버에 접속하기" | 원격 머신에서 명령을 실행하기 위한 암호화 프로토콜인 Secure Shell |

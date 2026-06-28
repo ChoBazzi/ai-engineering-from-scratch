@@ -1,44 +1,44 @@
-# Image Fundamentals — Pixels, Channels, Color Spaces
+# 이미지 기초 - 픽셀, 채널, 색 공간
 
-> An image is a tensor of light samples. Every vision model you will ever use starts from this one fact.
+> 이미지는 빛 샘플의 텐서입니다. 앞으로 사용할 모든 비전 모델은 이 한 가지 사실에서 시작합니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 1 Lesson 12 (Tensor Operations), Phase 3 Lesson 11 (Intro to PyTorch)
-**Time:** ~45 minutes
+**Time:** ~45분
 
-## Learning Objectives
+## 학습 목표
 
-- Explain how a continuous scene gets discretized into pixels and why sampling/quantization decisions set the ceiling on every downstream model
-- Read, slice, and inspect images as NumPy arrays and switch fluently between HWC and CHW layouts
-- Convert between RGB, grayscale, HSV, and YCbCr and justify why each color space exists
-- Apply pixel-level preprocessing (normalize, standardize, resize, channel-first) exactly as torchvision expects it
+- 연속적인 장면이 픽셀로 이산화되는 과정을 설명하고, sampling/quantization 결정이 모든 downstream model의 상한을 정하는 이유를 설명합니다
+- 이미지를 NumPy 배열로 읽고, slice하고, 검사하며 HWC와 CHW layout 사이를 능숙하게 전환합니다
+- RGB, grayscale, HSV, YCbCr 사이를 변환하고 각 color space가 존재하는 이유를 정당화합니다
+- torchvision이 기대하는 방식 그대로 pixel-level preprocessing(normalize, standardize, resize, channel-first)을 적용합니다
 
-## The Problem
+## 문제
 
-Every paper you will read, every pretrained weight you will download, every vision API you will call assumes a specific encoding of the input. Pass a `uint8` image where the model wants `float32` and it will still run — and silently produce garbage. Feed BGR to a network trained on RGB and accuracy collapses by ten points. Hand a model channels-last input when it expects channels-first and the first conv layer treats height as a feature channel. None of this throws an error. It just ruins your metrics and you spend a week hunting for a bug that lives in how you loaded the file.
+앞으로 읽을 모든 논문, 내려받을 모든 pretrained weight, 호출할 모든 vision API는 입력의 특정 encoding을 가정합니다. 모델이 `float32`를 원하는 곳에 `uint8` 이미지를 넣어도 실행은 됩니다. 그리고 조용히 쓰레기 결과를 냅니다. RGB로 학습된 network에 BGR을 넣으면 정확도는 10포인트씩 무너집니다. channels-first를 기대하는 모델에 channels-last 입력을 주면 첫 conv layer가 height를 feature channel로 취급합니다. 이 중 어느 것도 오류를 던지지 않습니다. metric만 망가지고, 결국 파일을 불러온 방식에 숨어 있던 버그를 찾느라 일주일을 씁니다.
 
-A convolution is not complicated once you know what it is sliding over. The hard part is that "an image" means different things to a camera, a JPEG decoder, PIL, OpenCV, torchvision, and a CUDA kernel. Each stack has its own axis order, byte range, and channel convention. A vision engineer who cannot keep these straight ships broken pipelines.
+convolution은 무엇 위를 미끄러지는지 알면 복잡하지 않습니다. 어려운 부분은 "이미지"라는 말이 camera, JPEG decoder, PIL, OpenCV, torchvision, CUDA kernel에서 각각 다른 뜻을 가진다는 점입니다. 각 stack은 자기만의 axis order, byte range, channel convention을 갖습니다. 이것을 구분하지 못하는 vision engineer는 깨진 pipeline을 배포합니다.
 
-This lesson fixes the foundation so the rest of the phase can build on it. By the end you will know what a pixel is, why there are three numbers per pixel instead of one, what "normalize with ImageNet stats" actually does, and how to move between the two or three layouts that every other lesson in this phase will assume.
+이 lesson은 phase의 나머지가 그 위에 올라설 수 있도록 기초를 바로잡습니다. 끝까지 마치면 pixel이 무엇인지, 왜 pixel마다 숫자 하나가 아니라 세 개가 있는지, "ImageNet stats로 normalize"가 실제로 무엇을 하는지, 그리고 이 phase의 다른 lesson들이 가정할 두세 가지 layout 사이를 어떻게 오가는지 알게 됩니다.
 
-## The Concept
+## 개념
 
-### The full preprocessing pipeline at a glance
+### 전체 preprocessing pipeline 한눈에 보기
 
-Every production vision system is the same sequence of reversible transforms. Get one step wrong and the model sees a different input than it was trained on.
+모든 production vision system은 같은 reversible transform 순서입니다. 한 단계만 틀려도 모델은 학습 때 본 것과 다른 입력을 보게 됩니다.
 
 ```mermaid
 flowchart LR
-    A["Image file<br/>(JPEG/PNG)"] --> B["Decode<br/>uint8 HWC"]
-    B --> C["Convert<br/>colorspace<br/>(RGB/BGR/YCbCr)"]
-    C --> D["Resize<br/>shorter side"]
-    D --> E["Center crop<br/>model size"]
-    E --> F["Divide by 255<br/>float32 [0,1]"]
-    F --> G["Subtract mean<br/>Divide by std"]
+    A["이미지 파일<br/>(JPEG/PNG)"] --> B["디코드<br/>uint8 HWC"]
+    B --> C["변환<br/>colorspace<br/>(RGB/BGR/YCbCr)"]
+    C --> D["리사이즈<br/>짧은 변"]
+    D --> E["센터 크롭<br/>model size"]
+    E --> F["255로 나누기<br/>float32 [0,1]"]
+    F --> G["mean 빼기<br/>std로 나누기"]
     G --> H["Transpose<br/>HWC → CHW"]
-    H --> I["Batch<br/>CHW → NCHW"]
-    I --> J["Model"]
+    H --> I["배치<br/>CHW → NCHW"]
+    I --> J["모델"]
 
     style A fill:#fef3c7,stroke:#d97706
     style J fill:#ddd6fe,stroke:#7c3aed
@@ -46,15 +46,15 @@ flowchart LR
     style H fill:#bfdbfe,stroke:#2563eb
 ```
 
-The two red and blue boxes are where 80% of silent failures live: missing standardization and wrong layout.
+빨간색과 파란색 두 box가 silent failure의 80%가 사는 곳입니다. missing standardization과 wrong layout입니다.
 
-### A pixel is a sample, not a square
+### 픽셀은 사각형이 아니라 샘플입니다
 
-A camera sensor counts photons that land on a grid of tiny detectors. Each detector integrates light for a fraction of a second and emits a voltage proportional to how many photons hit it. The sensor then discretizes that voltage into an integer. One detector becomes one pixel.
+camera sensor는 작은 detector 격자에 떨어지는 photon을 셉니다. 각 detector는 짧은 시간 동안 빛을 적분하고, 부딪힌 photon 수에 비례하는 전압을 냅니다. sensor는 그 전압을 정수로 이산화합니다. detector 하나가 pixel 하나가 됩니다.
 
-```
-Continuous scene                 Sensor grid                     Digital image
-(infinite detail)                (H x W detectors)               (H x W integers)
+```text
+연속 장면                         센서 격자                        디지털 이미지
+(무한한 세부 정보)                (H x W detectors)               (H x W integers)
 
     ~~~~~                        +--+--+--+--+--+                 210 198 180 155 120
    ~   ~   ~                     |  |  |  |  |  |                 205 195 178 152 118
@@ -63,35 +63,35 @@ Continuous scene                 Sensor grid                     Digital image
                                  +--+--+--+--+--+                 188 180 165 145 108
 ```
 
-Two choices happen at this step and they fix the ceiling on everything downstream:
+이 단계에서 두 가지 선택이 일어나며, 이 선택이 downstream의 모든 것에 대한 상한을 고정합니다.
 
-- **Spatial sampling** decides how many detectors per degree of the scene. Too few, and edges become jagged (aliasing). Too many, and storage and compute explode.
-- **Intensity quantization** decides how finely the voltage is bucketed. 8 bits gives 256 levels and is standard for display. 10, 12, 16 bits give smoother gradients and matter for medical imaging, HDR, and raw sensor pipelines.
+- **Spatial sampling**은 장면의 각도당 detector를 몇 개 둘지 결정합니다. 너무 적으면 edge가 톱니처럼 됩니다(aliasing). 너무 많으면 storage와 compute가 폭발합니다.
+- **Intensity quantization**은 전압을 얼마나 잘게 bucket으로 나눌지 결정합니다. 8 bits는 256 level을 제공하며 display 표준입니다. 10, 12, 16 bits는 더 부드러운 gradient를 제공하고 medical imaging, HDR, raw sensor pipeline에서 중요합니다.
 
-A pixel is not a coloured square with area. It is a single measurement. When you resize or rotate, you are resampling that measurement grid.
+pixel은 면적을 가진 색칠된 사각형이 아닙니다. 단일 측정값입니다. resize하거나 rotate할 때는 그 measurement grid를 resampling하는 것입니다.
 
-### Why three channels
+### 왜 세 채널인가
 
-One detector counts photons across the whole visible spectrum — that is grayscale. To get colour, the sensor covers the grid with a mosaic of red, green, and blue filters. After demosaicing, every spatial location has three integers: the response of the red-filtered detector, green-filtered, and blue-filtered nearby. Those three integers are a pixel's RGB triplet.
+detector 하나는 전체 가시광 spectrum에 걸친 photon을 셉니다. 이것이 grayscale입니다. 색을 얻기 위해 sensor는 격자를 red, green, blue filter의 mosaic으로 덮습니다. demosaicing 뒤에는 모든 spatial location마다 세 정수가 있습니다. 근처의 red-filtered detector, green-filtered detector, blue-filtered detector의 response입니다. 이 세 정수가 pixel의 RGB triplet입니다.
 
-```
-One pixel in memory:
+```text
+메모리 안의 pixel 하나:
 
     (R, G, B) = (210, 140, 30)   <- reddish-orange
 
-An H x W RGB image:
+H x W RGB 이미지:
 
-    shape (H, W, 3)     stored as   H rows of W pixels of 3 values
-                                    each in [0, 255] for uint8
+    shape (H, W, 3)     저장 방식   H rows of W pixels of 3 values
+                                    uint8에서는 각각 [0, 255]
 ```
 
-Three is not magic. Depth cameras add a Z channel. Satellites add infrared and ultraviolet bands. Medical scans often have one channel (X-ray, CT) or many (hyperspectral). The number of channels is the last axis; conv layers learn to mix across it.
+3이라는 숫자는 마법이 아닙니다. depth camera는 Z channel을 추가합니다. satellite는 infrared와 ultraviolet band를 추가합니다. medical scan은 보통 channel이 하나이거나(X-ray, CT) 많습니다(hyperspectral). channel 수는 마지막 axis입니다. conv layer는 그 축을 섞는 법을 배웁니다.
 
-### Two layout conventions: HWC and CHW
+### 두 가지 layout convention: HWC와 CHW
 
-Same tensor, two orderings. Every library picks one.
+같은 tensor지만 ordering은 두 가지입니다. 모든 library가 둘 중 하나를 고릅니다.
 
-```
+```text
 HWC (height, width, channels)           CHW (channels, height, width)
 
    W ->                                    H ->
@@ -103,108 +103,108 @@ v |R G B|R G B|R G B|                   v |G G G G G G|
                                           |B B B B B B|
                                           +-----+-----+
 
-   PIL, OpenCV, matplotlib,              PyTorch, most deep learning
-   almost every image file on disk       frameworks, cuDNN kernels
+   PIL, OpenCV, matplotlib,              PyTorch, 대부분의 deep learning
+   디스크의 거의 모든 이미지 파일         framework, cuDNN kernel
 ```
 
-CHW exists because convolution kernels slide across H and W. Keeping the channel axis first means each kernel sees a contiguous 2D plane per channel, which vectorizes cleanly. Disk formats keep HWC because that matches how scanlines come out of a sensor.
+CHW가 존재하는 이유는 convolution kernel이 H와 W 위를 미끄러지기 때문입니다. channel axis를 앞에 두면 각 kernel은 channel마다 contiguous 2D plane을 보게 되고, 이는 깔끔하게 vectorize됩니다. disk format은 sensor에서 scanline이 나오는 방식과 맞기 때문에 HWC를 유지합니다.
 
-The one-line conversion you will type a thousand times:
+앞으로 천 번 입력하게 될 한 줄 변환입니다.
 
-```
+```text
 img_chw = img_hwc.transpose(2, 0, 1)      # NumPy
 img_chw = img_hwc.permute(2, 0, 1)        # PyTorch tensor
 ```
 
-Memory layout, visualised:
+memory layout을 시각화하면 다음과 같습니다.
 
 ```mermaid
 flowchart TB
-    subgraph HWC["HWC — pixels stored interleaved (PIL, OpenCV, JPEG)"]
+    subgraph HWC["HWC - pixel이 interleaved로 저장됨 (PIL, OpenCV, JPEG)"]
         H1["row 0: R G B | R G B | R G B ..."]
         H2["row 1: R G B | R G B | R G B ..."]
         H3["row 2: R G B | R G B | R G B ..."]
     end
-    subgraph CHW["CHW — channels stored as stacked planes (PyTorch, cuDNN)"]
-        C1["plane R: entire H x W of red values"]
-        C2["plane G: entire H x W of green values"]
-        C3["plane B: entire H x W of blue values"]
+    subgraph CHW["CHW - channel이 stacked plane으로 저장됨 (PyTorch, cuDNN)"]
+        C1["plane R: red value의 전체 H x W"]
+        C2["plane G: green value의 전체 H x W"]
+        C3["plane B: blue value의 전체 H x W"]
     end
     HWC -->|"transpose(2, 0, 1)"| CHW
     CHW -->|"transpose(1, 2, 0)"| HWC
 ```
 
-### Byte ranges and dtype
+### Byte range와 dtype
 
-Three conventions dominate:
+세 가지 convention이 지배적입니다.
 
 | Convention | dtype | Range | Where you see it |
 |------------|-------|-------|------------------|
-| Raw | `uint8` | [0, 255] | Files on disk, PIL, OpenCV output |
-| Normalized | `float32` | [0.0, 1.0] | After `img.astype('float32') / 255` |
-| Standardized | `float32` | roughly [-2, +2] | After subtracting mean and dividing by std |
+| Raw | `uint8` | [0, 255] | 디스크의 파일, PIL, OpenCV output |
+| Normalized | `float32` | [0.0, 1.0] | `img.astype('float32') / 255` 이후 |
+| Standardized | `float32` | 대략 [-2, +2] | mean을 빼고 std로 나눈 이후 |
 
-Convolutional networks were trained on standardized inputs. ImageNet stats `mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]` are the arithmetic mean and standard deviation of the three channels over the full ImageNet training set, computed on [0, 1] normalized pixels. Feeding raw `uint8` into a model that expects standardized float is the single most common silent failure in applied vision.
+convolutional network는 standardized input으로 학습되었습니다. ImageNet stats `mean=[0.485, 0.456, 0.406]`, `std=[0.229, 0.224, 0.225]`는 전체 ImageNet training set의 세 channel에 대한 산술 평균과 표준편차이며, [0, 1]로 normalized된 pixel에서 계산되었습니다. standardized float를 기대하는 모델에 raw `uint8`을 넣는 것은 applied vision에서 가장 흔한 silent failure입니다.
 
-### Color spaces and why they exist
+### Color space와 존재 이유
 
-RGB is the capture format but it is not always the most useful representation for a model.
+RGB는 capture format이지만 모델에 언제나 가장 유용한 representation은 아닙니다.
 
-```
+```text
  RGB               HSV                       YCbCr / YUV
 
  R red             H hue (angle 0-360)       Y luminance (brightness)
  G green           S saturation (0-1)        Cb chroma blue-yellow
  B blue            V value/brightness (0-1)  Cr chroma red-green
 
- Linear to         Separates color from      Separates brightness from
- sensor output     brightness. Useful for    color. JPEG and most video
-                   color thresholding, UI    codecs compress the chroma
-                   sliders, simple filters   channels harder because the
-                                             human eye is less sensitive
-                                             to chroma detail than to Y.
+ sensor output에    color를 brightness와      brightness를 color와
+ 선형                분리합니다. color          분리합니다. JPEG와 대부분의
+                    thresholding, UI slider,  video codec은 인간 눈이
+                    simple filter에 유용       chroma detail보다 Y에 더
+                                              민감하기 때문에 chroma channel을
+                                              더 강하게 압축합니다.
 ```
 
-For most modern CNNs you feed RGB. You meet other spaces when:
+대부분의 현대 CNN에는 RGB를 넣습니다. 다른 space는 다음 상황에서 만납니다.
 
-- **HSV** — classical CV code, color-based segmentation, white-balancing.
-- **YCbCr** — reading JPEG internals, video pipelines, super-resolution models that operate on Y only.
-- **Grayscale** — OCR, document models, any case where color is nuisance variable rather than signal.
+- **HSV** - classical CV code, color-based segmentation, white-balancing.
+- **YCbCr** - JPEG internals 읽기, video pipeline, Y에서만 동작하는 super-resolution model.
+- **Grayscale** - OCR, document model, color가 signal이 아니라 nuisance variable인 모든 경우.
 
-Grayscale from RGB is a weighted sum, not an average, because the human eye is more sensitive to green than to red or blue:
+RGB에서 grayscale로 바꾸는 것은 평균이 아니라 weighted sum입니다. 인간 눈이 red나 blue보다 green에 더 민감하기 때문입니다.
 
-```
+```text
 Y = 0.299 R + 0.587 G + 0.114 B       (ITU-R BT.601, the classic weights)
 ```
 
-### Aspect ratio, resizing, and interpolation
+### Aspect ratio, resizing, interpolation
 
-Every model has a fixed input size (224x224 for most ImageNet classifiers, 384x384 or 512x512 for modern detectors). Your images rarely match. The three resize choices that matter:
+모든 모델에는 고정 input size가 있습니다(대부분의 ImageNet classifier는 224x224, 현대 detector는 384x384 또는 512x512). 실제 이미지는 거의 맞지 않습니다. 중요한 resize 선택지는 세 가지입니다.
 
-- **Resize shorter side, then center crop** — the standard ImageNet recipe. Preserves aspect ratio, throws away a strip of edge pixels.
-- **Resize and pad** — preserves aspect ratio and every pixel, adds black bars. Standard for detection and OCR.
-- **Resize directly to target** — stretches the image. Cheap, distorts geometry, fine for many classification tasks.
+- **Resize shorter side, then center crop** - 표준 ImageNet recipe입니다. aspect ratio를 보존하지만 edge pixel strip을 버립니다.
+- **Resize and pad** - aspect ratio와 모든 pixel을 보존하고 black bar를 추가합니다. detection과 OCR의 표준입니다.
+- **Resize directly to target** - 이미지를 늘립니다. 싸지만 geometry를 왜곡하며, 많은 classification task에는 괜찮습니다.
 
-The interpolation method decides how intermediate pixels are computed when the new grid does not align with the old one:
+interpolation method는 새 grid가 기존 grid와 맞지 않을 때 중간 pixel을 어떻게 계산할지 결정합니다.
 
+```text
+Nearest neighbour     가장 빠름, blocky함, mask/label에는 유일한 선택
+Bilinear              빠르고 부드러움, 대부분 image resizing의 기본값
+Bicubic               더 느리지만 upscaling에서 더 선명함
+Lanczos               가장 느리고 품질이 가장 좋음, final display에 사용
 ```
-Nearest neighbour     fastest, blocky, only choice for masks/labels
-Bilinear              fast, smooth, default for most image resizing
-Bicubic               slower, sharper on upscaling
-Lanczos               slowest, best quality, used for final display
-```
 
-Rule of thumb: bilinear for training, bicubic or lanczos for assets you will look at, nearest for anything containing integer class IDs.
+경험칙: training에는 bilinear, 직접 볼 asset에는 bicubic이나 lanczos, integer class ID를 포함하는 모든 것에는 nearest를 사용합니다.
 
 ```figure
 conv-output-size
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: Load an image and inspect its shape
+### Step 1: 이미지를 불러와 shape 검사하기
 
-Use Pillow to load any JPEG or PNG, convert to NumPy, and print what you got. For a deterministic example that runs offline, synthesize one.
+Pillow로 임의의 JPEG 또는 PNG를 불러오고, NumPy로 변환한 뒤, 무엇을 얻었는지 출력합니다. offline에서 deterministic하게 실행되는 예제로는 이미지를 합성합니다.
 
 ```python
 import numpy as np
@@ -231,11 +231,11 @@ print(f"max:    {arr.max()}")
 print(f"pixel at (0, 0): {arr[0, 0]}")
 ```
 
-Expected output: `shape: (H, W, 3)`, `dtype: uint8`, range `[0, 255]`. That is the canonical on-disk representation whether the bytes came from a camera, a JPEG decoder, or a synthetic generator.
+예상 output은 `shape: (H, W, 3)`, `dtype: uint8`, range `[0, 255]`입니다. byte가 camera, JPEG decoder, synthetic generator 중 어디에서 왔든 이것이 canonical on-disk representation입니다.
 
-### Step 2: Split channels and re-order layout
+### Step 2: channel을 나누고 layout 재정렬하기
 
-Pull out R, G, B separately, then convert from HWC to CHW for PyTorch.
+R, G, B를 따로 꺼낸 뒤 PyTorch를 위해 HWC에서 CHW로 변환합니다.
 
 ```python
 R = arr[:, :, 0]
@@ -250,11 +250,11 @@ print(f"\nHWC shape: {arr.shape}")
 print(f"CHW shape: {arr_chw.shape}")
 ```
 
-Three grayscale planes, one per channel. CHW just reorders the axes; no data copy is strictly required when the memory layout allows it.
+channel마다 하나씩, 세 개의 grayscale plane입니다. CHW는 axis만 재정렬합니다. memory layout이 허용한다면 엄밀히는 data copy가 필요하지 않습니다.
 
-### Step 3: Grayscale and HSV conversions
+### Step 3: Grayscale과 HSV 변환
 
-Weighted-sum grayscale, then a manual RGB-to-HSV.
+weighted-sum grayscale을 만든 다음, RGB-to-HSV를 직접 구현합니다.
 
 ```python
 def rgb_to_grayscale(rgb):
@@ -291,11 +291,11 @@ print(f"sat range: [{hsv[..., 1].min():.2f}, {hsv[..., 1].max():.2f}]")
 print(f"val range: [{hsv[..., 2].min():.2f}, {hsv[..., 2].max():.2f}]")
 ```
 
-Hue comes out in degrees, saturation and value in [0, 1]. That matches the OpenCV `hsv_full` convention.
+Hue는 degree로 나오고, saturation과 value는 [0, 1] 범위입니다. 이는 OpenCV `hsv_full` convention과 일치합니다.
 
-### Step 4: Normalize, standardize, and reverse it
+### Step 4: Normalize, standardize, 그리고 되돌리기
 
-Go from raw bytes to the exact tensor a pretrained ImageNet model expects, then back.
+raw byte에서 pretrained ImageNet model이 기대하는 정확한 tensor로 갔다가 다시 되돌립니다.
 
 ```python
 mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
@@ -324,11 +324,11 @@ max_diff = np.abs(roundtrip.astype(int) - arr.astype(int)).max()
 print(f"roundtrip max pixel diff: {max_diff}    # should be 0 or 1")
 ```
 
-Per-channel mean should be close to zero, std close to one. The preprocess/deprocess pair is exactly what every torchvision `transforms.Normalize` call is doing under the hood.
+채널별 mean은 0에 가깝고 std는 1에 가까워야 합니다. preprocess/deprocess 쌍은 모든 torchvision `transforms.Normalize` 호출이 내부에서 정확히 수행하는 일입니다.
 
-### Step 5: Resize with three interpolation methods
+### Step 5: 세 가지 interpolation method로 resize하기
 
-Compare nearest, bilinear, and bicubic on an upscale so the difference is visible.
+차이가 보이도록 upscale에서 nearest, bilinear, bicubic을 비교합니다.
 
 ```python
 target = (arr.shape[0] * 3, arr.shape[1] * 3)
@@ -346,11 +346,11 @@ for name, out in [("nearest", nearest), ("bilinear", bilinear), ("bicubic", bicu
     print(f"{name:>8}  shape={out.shape}  roughness={local_roughness(out):6.2f}")
 ```
 
-Nearest scores highest on roughness because it keeps hard edges. Bilinear is the smoothest. Bicubic sits in between, preserving perceived sharpness without the stair-step artifacts.
+nearest는 hard edge를 유지하기 때문에 roughness 점수가 가장 높습니다. bilinear가 가장 부드럽습니다. bicubic은 그 사이에 있으며, stair-step artifact 없이 지각되는 선명도를 보존합니다.
 
-## Use It
+## 사용하기
 
-`torchvision.transforms` bundles everything above into a single composable pipeline. The code below reproduces exactly what `preprocess_imagenet` does, plus resize and crop.
+`torchvision.transforms`는 위의 모든 것을 하나의 composable pipeline으로 묶습니다. 아래 코드는 resize와 crop을 더해 `preprocess_imagenet`이 하는 일을 정확히 재현합니다.
 
 ```python
 import torch
@@ -377,37 +377,37 @@ batch = x.unsqueeze(0)
 print(f"\nbatched shape: {tuple(batch.shape)}   # (N, C, H, W) — ready for a model")
 ```
 
-Four steps, in this exact order: `Resize(256)` scales the shorter side to 256; `CenterCrop(224)` takes a 224x224 patch from the middle; `ToTensor()` divides by 255 and swaps HWC to CHW; `Normalize` subtracts the ImageNet mean and divides by std. Reversing that order silently changes what reaches the model.
+정확히 이 순서의 네 단계입니다. `Resize(256)`은 짧은 변을 256으로 scale합니다. `CenterCrop(224)`는 가운데에서 224x224 patch를 가져옵니다. `ToTensor()`는 255로 나누고 HWC를 CHW로 바꿉니다. `Normalize`는 ImageNet mean을 빼고 std로 나눕니다. 이 순서를 바꾸면 모델에 도달하는 것이 조용히 달라집니다.
 
-## Ship It
+## 결과물
 
-This lesson produces:
+이 lesson은 다음을 만듭니다.
 
-- `outputs/prompt-vision-preprocessing-audit.md` — a prompt that turns any model card or dataset card into a checklist of the exact preprocessing invariants a team must honour.
-- `outputs/skill-image-tensor-inspector.md` — a skill that, given any image-shaped tensor or array, reports dtype, layout, range, and whether it looks raw, normalized, or standardized.
+- `outputs/prompt-vision-preprocessing-audit.md` - model card나 dataset card를 팀이 지켜야 할 정확한 preprocessing invariant checklist로 바꾸는 prompt입니다.
+- `outputs/skill-image-tensor-inspector.md` - 이미지 형태의 tensor나 array가 주어지면 dtype, layout, range, raw/normalized/standardized처럼 보이는지 보고하는 skill입니다.
 
-## Exercises
+## 연습문제
 
-1. **(Easy)** Load a JPEG with OpenCV (`cv2.imread`) and with Pillow. Print both shapes and the pixel at `(0, 0)`. Explain the channel-order difference, then write a one-line conversion that makes the OpenCV array identical to the Pillow one.
-2. **(Medium)** Write `standardize(img, mean, std)` and its inverse that together pass a `roundtrip_max_diff <= 1` test on any uint8 image. Your functions must work on a single image in HWC and on a batch in NCHW with the same call.
-3. **(Hard)** Take a 3-channel ImageNet-standardized tensor and run it through a 1x1 conv that learns a weighted mixture of RGB into a single grayscale channel. Initialize the weights to `[0.299, 0.587, 0.114]`, freeze them, and verify the output matches your manual `rgb_to_grayscale` to within floating-point error. What other classical color-space transforms can be written as 1x1 convolutions?
+1. **(Easy)** OpenCV(`cv2.imread`)와 Pillow로 JPEG를 불러오세요. 두 shape와 `(0, 0)`의 pixel을 출력하세요. channel-order 차이를 설명한 다음, OpenCV 배열을 Pillow 배열과 동일하게 만드는 한 줄 변환을 작성하세요.
+2. **(Medium)** 임의의 uint8 image에서 함께 `roundtrip_max_diff <= 1` test를 통과하는 `standardize(img, mean, std)`와 그 inverse를 작성하세요. 함수는 같은 호출로 HWC의 단일 image와 NCHW의 batch 모두에서 동작해야 합니다.
+3. **(Hard)** 3-channel ImageNet-standardized tensor를 가져와 RGB의 weighted mixture를 단일 grayscale channel로 학습하는 1x1 conv에 통과시키세요. weight를 `[0.299, 0.587, 0.114]`로 초기화하고 freeze한 뒤, output이 직접 만든 `rgb_to_grayscale`과 floating-point error 이내로 일치하는지 검증하세요. 다른 어떤 classical color-space transform을 1x1 convolution으로 쓸 수 있을까요?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|----------------|----------------------|
-| Pixel | "A coloured square" | One sample of light intensity at one grid location — three numbers for colour, one for grayscale |
-| Channel | "The colour" | One of the parallel spatial grids stacked into an image tensor; last axis in HWC, first in CHW |
-| HWC / CHW | "The shape" | Axis orderings for an image tensor; disk and PIL use HWC, PyTorch and cuDNN use CHW |
-| Normalize | "Scale the image" | Divide by 255 so pixels live in [0, 1] — necessary but not sufficient |
-| Standardize | "Zero-center" | Subtract mean and divide by std per channel so the input distribution matches what the model was trained on |
-| Grayscale conversion | "Average the channels" | A weighted sum with coefficients 0.299/0.587/0.114 that matches human luminance perception |
-| Interpolation | "How resize picks pixels" | The rule that decides output values when the new grid does not align with the old one — nearest for labels, bilinear for training, bicubic for display |
-| Aspect ratio | "Width over height" | The ratio that distinguishes "resize and pad" from "resize and stretch" |
+| Pixel | "색칠된 사각형" | 한 grid location에서의 빛 세기 sample 하나. color는 숫자 세 개, grayscale은 하나 |
+| Channel | "색" | image tensor에 쌓인 parallel spatial grid 중 하나. HWC에서는 마지막 axis, CHW에서는 첫 axis |
+| HWC / CHW | "shape" | image tensor의 axis ordering. disk와 PIL은 HWC를 쓰고, PyTorch와 cuDNN은 CHW를 씁니다 |
+| Normalize | "이미지 scale 조정" | pixel이 [0, 1]에 있도록 255로 나누는 것. 필요하지만 충분하지는 않습니다 |
+| Standardize | "zero-center" | input distribution이 모델이 학습한 것과 맞도록 channel마다 mean을 빼고 std로 나누는 것 |
+| Grayscale conversion | "channel 평균" | 인간의 luminance perception과 맞는 계수 0.299/0.587/0.114를 쓰는 weighted sum |
+| Interpolation | "resize가 pixel을 고르는 방식" | 새 grid가 기존 grid와 맞지 않을 때 output value를 결정하는 규칙. label에는 nearest, training에는 bilinear, display에는 bicubic |
+| Aspect ratio | "width over height" | "resize and pad"와 "resize and stretch"를 구분하는 비율 |
 
-## Further Reading
+## 더 읽을거리
 
-- [Charles Poynton — A Guided Tour of Color Space](https://poynton.ca/PDFs/Guided_tour.pdf) — the clearest technical treatment of why there are so many color spaces and when each one matters
-- [PyTorch Vision Transforms Docs](https://pytorch.org/vision/stable/transforms.html) — the full pipeline of transforms you will actually compose in production
-- [How JPEG Works (Colt McAnlis)](https://www.youtube.com/watch?v=F1kYBnY6mwg) — a sharp visual tour of chroma subsampling, DCT, and why JPEG encodes YCbCr rather than RGB
-- [ImageNet Preprocessing Conventions (torchvision models)](https://pytorch.org/vision/stable/models.html) — the source of truth for `mean=[0.485, 0.456, 0.406]` and why every model in the zoo expects it
+- [Charles Poynton - A Guided Tour of Color Space](https://poynton.ca/PDFs/Guided_tour.pdf) - color space가 왜 그렇게 많고 각각이 언제 중요한지에 대한 가장 명확한 기술적 설명입니다
+- [PyTorch Vision Transforms Docs](https://pytorch.org/vision/stable/transforms.html) - production에서 실제로 compose하게 될 transform의 전체 pipeline입니다
+- [How JPEG Works (Colt McAnlis)](https://www.youtube.com/watch?v=F1kYBnY6mwg) - chroma subsampling, DCT, 그리고 JPEG가 RGB가 아니라 YCbCr을 encoding하는 이유를 보여 주는 날카로운 visual tour입니다
+- [ImageNet Preprocessing Conventions (torchvision models)](https://pytorch.org/vision/stable/models.html) - `mean=[0.485, 0.456, 0.406]`의 source of truth이며, model zoo의 모든 모델이 왜 이를 기대하는지 설명합니다

@@ -1,37 +1,37 @@
 [
   {
-    "question": "What is the key difference between zero-shot and few-shot prompting?",
-    "options": ["Zero-shot is faster", "Zero-shot gives only the instruction; few-shot includes example input-output demonstrations before the actual query", "Few-shot uses a different model", "Zero-shot doesn't use a system prompt"],
+    "question": "zero-shot prompting과 few-shot prompting의 핵심 차이는 무엇인가요?",
+    "options": ["zero-shot이 더 빠르다", "zero-shot은 지시만 제공하고, few-shot은 실제 질의 전에 입력-출력 예시 demonstration을 포함한다", "few-shot은 다른 모델을 사용한다", "zero-shot은 system prompt를 사용하지 않는다"],
     "correct": 1,
-    "explanation": "Few-shot prompting includes worked examples (demonstrations) that show the model the expected pattern. This is like showing someone how to fill out a form before asking them to fill out their own.",
+    "explanation": "few-shot prompting은 모델에게 기대하는 패턴을 보여주는 풀이 예제(demonstration)를 포함합니다. 누군가에게 자기 양식을 작성하라고 하기 전에 작성 예시를 보여주는 것과 같습니다.",
     "stage": "pre"
   },
   {
-    "question": "What does 'Chain of Thought' prompting do?",
-    "options": ["It chains multiple API calls together", "It instructs the model to show intermediate reasoning steps before giving the final answer, improving accuracy on multi-step problems", "It connects multiple models in sequence", "It generates longer responses"],
+    "question": "'Chain of Thought' prompting은 무엇을 하나요?",
+    "options": ["여러 API 호출을 서로 연결한다", "최종 답을 내기 전에 중간 reasoning 단계를 보이도록 모델에 지시하여 다단계 문제의 정확도를 높인다", "여러 모델을 순서대로 연결한다", "더 긴 응답을 생성한다"],
     "correct": 1,
-    "explanation": "CoT prompting (e.g., 'Let's think step by step') gives the model 'scratch paper' to work through problems. On GSM8K math problems, this alone improved GPT-4o accuracy from 78% to 91%.",
+    "explanation": "CoT prompting(예: 'Let's think step by step')은 모델이 문제를 풀 수 있는 'scratch paper'를 제공합니다. GSM8K 수학 문제에서 이것만으로 GPT-4o 정확도가 78%에서 91%로 향상되었습니다.",
     "stage": "pre"
   },
   {
-    "question": "How does Tree-of-Thought differ from Chain-of-Thought?",
-    "options": ["It uses a tree data structure for storage", "It explores multiple reasoning paths in parallel and evaluates which path leads to the best answer", "It's just a longer chain of thought", "It uses a different model"],
+    "question": "Tree-of-Thought는 Chain-of-Thought와 어떻게 다른가요?",
+    "options": ["저장을 위해 tree 자료구조를 사용한다", "여러 reasoning 경로를 병렬로 탐색하고 어떤 경로가 가장 좋은 답으로 이어지는지 평가한다", "그저 더 긴 chain of thought일 뿐이다", "다른 모델을 사용한다"],
     "correct": 1,
-    "explanation": "CoT follows a single reasoning path. Tree-of-Thought generates multiple candidate paths, evaluates them (possibly with the LLM itself), and selects the best one. This helps on problems where the first reasoning path might be wrong.",
+    "explanation": "CoT는 하나의 reasoning 경로를 따릅니다. Tree-of-Thought는 여러 후보 경로를 만들고, 그것들을 평가한 뒤(LLM 자체를 평가자로 사용할 수도 있음) 가장 좋은 경로를 선택합니다. 첫 reasoning 경로가 틀릴 수 있는 문제에 도움이 됩니다.",
     "stage": "post"
   },
   {
-    "question": "When selecting few-shot examples, what matters most?",
-    "options": ["Using as many examples as possible", "Choosing diverse examples that cover different cases and demonstrate the exact format and reasoning pattern you want", "Using the shortest examples", "Using examples from the test set"],
+    "question": "few-shot 예제를 선택할 때 가장 중요한 것은 무엇인가요?",
+    "options": ["가능한 한 많은 예제를 사용하는 것", "서로 다른 사례를 포괄하고 원하는 정확한 형식과 reasoning 패턴을 보여주는 다양한 예제를 고르는 것", "가장 짧은 예제를 사용하는 것", "테스트 세트의 예제를 사용하는 것"],
     "correct": 1,
-    "explanation": "Example quality trumps quantity. 3-5 diverse, well-formatted examples that cover different edge cases teach the model the pattern better than 20 repetitive examples that waste context window tokens.",
+    "explanation": "예제의 품질이 수량보다 중요합니다. 다양한 edge case를 포괄하는 잘 구성된 예제 3-5개가, context window 토큰을 낭비하는 반복 예제 20개보다 패턴을 더 잘 가르칩니다.",
     "stage": "post"
   },
   {
-    "question": "Why does CoT prompting improve accuracy even though the model has the same knowledge with or without it?",
-    "options": ["It activates hidden model capabilities", "Generating intermediate tokens creates a larger effective context for the final answer, allowing the model to condition on its own reasoning", "It uses more compute", "It changes the model weights"],
+    "question": "CoT prompting이 있든 없든 모델의 지식은 같은데도 정확도가 향상되는 이유는 무엇인가요?",
+    "options": ["숨겨진 모델 능력을 활성화하기 때문", "중간 토큰을 생성하면 최종 답을 위한 유효 컨텍스트가 커지고, 모델이 자신의 reasoning에 조건화할 수 있기 때문", "더 많은 compute를 사용하기 때문", "모델 가중치를 바꾸기 때문"],
     "correct": 1,
-    "explanation": "Without CoT, the model must jump directly to the answer in one token. With CoT, each intermediate step is a token the model conditions on for the next step. The model essentially 'thinks out loud,' building up to the answer.",
+    "explanation": "CoT가 없으면 모델은 한 번에 바로 답으로 건너뛰어야 합니다. CoT가 있으면 각 중간 단계가 다음 단계를 위한 조건 토큰이 됩니다. 본질적으로 모델은 '소리 내어 생각하며' 답을 쌓아 갑니다.",
     "stage": "post"
   }
 ]

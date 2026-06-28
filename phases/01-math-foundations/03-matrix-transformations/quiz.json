@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is an eigenvector of a matrix?",
-      "options": ["The largest row in the matrix", "A vector that the matrix only scales (never rotates) when multiplied", "A vector perpendicular to all columns of the matrix", "The diagonal entries of the matrix expressed as a vector"],
+      "question": "행렬의 고유벡터란 무엇인가요?",
+      "options": ["행렬에서 가장 큰 행", "곱해졌을 때 행렬이 크기만 바꾸고(회전시키지 않고) 방향은 유지하는 벡터", "행렬의 모든 열에 수직인 벡터", "행렬의 대각 원소를 벡터로 나타낸 것"],
       "correct": 1,
-      "explanation": "An eigenvector v satisfies Av = lambda*v, meaning the matrix A only stretches v by the scalar factor lambda (the eigenvalue) without changing its direction."
+      "explanation": "고유벡터 v는 Av = lambda*v를 만족합니다. 즉 행렬 A가 v의 방향을 바꾸지 않고 스칼라 lambda(고유값)만큼만 늘리거나 줄인다는 뜻입니다."
     },
     {
       "stage": "pre",
-      "question": "What does the determinant of a 2D transformation matrix represent geometrically?",
-      "options": ["The angle of rotation applied by the matrix", "The factor by which the matrix scales area", "The number of eigenvectors the matrix has", "The trace of the matrix"],
+      "question": "2D 변환 행렬의 행렬식은 기하학적으로 무엇을 나타내나요?",
+      "options": ["행렬이 적용하는 회전 각도", "행렬이 면적을 스케일하는 배율", "행렬이 가진 고유벡터의 수", "행렬의 trace"],
       "correct": 1,
-      "explanation": "The determinant measures how much the transformation scales area. det=1 preserves area (rotation), det=2 doubles area, det=0 crushes to a lower dimension, and det=-1 preserves area but flips orientation."
+      "explanation": "행렬식은 변환이 면적을 얼마나 스케일하는지 측정합니다. det=1은 면적 보존(회전), det=2는 면적 두 배, det=0은 더 낮은 차원으로 붕괴, det=-1은 면적을 보존하지만 방향을 뒤집는다는 뜻입니다."
     },
     {
       "stage": "post",
-      "question": "Why does the order of matrix transformations matter? (i.e., why is R @ S different from S @ R?)",
-      "options": ["Matrix addition is not commutative", "Matrix multiplication is not commutative: rotating then scaling gives a different result than scaling then rotating", "The determinants are different for each order", "One order produces a larger matrix than the other"],
+      "question": "행렬 변환의 순서는 왜 중요한가요? (즉, R @ S가 S @ R과 다른 이유는 무엇인가요?)",
+      "options": ["행렬 덧셈이 교환법칙을 만족하지 않기 때문입니다", "행렬 곱셈은 교환법칙을 만족하지 않습니다. 회전 후 스케일링은 스케일링 후 회전과 다른 결과를 냅니다", "각 순서마다 행렬식이 다르기 때문입니다", "한 순서는 다른 순서보다 더 큰 행렬을 만들기 때문입니다"],
       "correct": 1,
-      "explanation": "Matrix multiplication is not commutative. Rotating (1,0) by 90 degrees then scaling by (2,0.5) gives (0,0.5), but scaling first then rotating gives (0,2). The geometric operations compose differently."
+      "explanation": "행렬 곱셈은 교환법칙을 만족하지 않습니다. (1,0)을 90도 회전한 뒤 (2,0.5)로 스케일링하면 (0,0.5)가 되지만, 먼저 스케일링한 뒤 회전하면 (0,2)가 됩니다. 기하 연산이 서로 다르게 합성됩니다."
     },
     {
       "stage": "post",
-      "question": "In a recurrent neural network, what happens when the weight matrix has eigenvalues with magnitude greater than 1?",
-      "options": ["The network learns faster", "Outputs explode exponentially over time steps (exploding gradient problem)", "The network becomes more stable", "The eigenvalues converge to 1 over training"],
+      "question": "순환 신경망에서 가중치 행렬이 크기 1보다 큰 고유값을 가지면 어떤 일이 일어나나요?",
+      "options": ["네트워크가 더 빠르게 학습합니다", "시간 단계가 지날수록 출력이 지수적으로 폭주합니다(폭주하는 그래디언트 문제)", "네트워크가 더 안정적이 됩니다", "학습 중 고유값이 1로 수렴합니다"],
       "correct": 1,
-      "explanation": "Repeated multiplication by a matrix amplifies the eigenvalue directions. Eigenvalues > 1 cause exponential growth (exploding gradients), while eigenvalues < 1 cause exponential decay (vanishing gradients)."
+      "explanation": "행렬을 반복해서 곱하면 고유값 방향이 증폭됩니다. 고유값이 1보다 크면 지수적 성장(폭주하는 그래디언트)이 생기고, 1보다 작으면 지수적 감쇠(사라지는 그래디언트)가 생깁니다."
     },
     {
       "stage": "post",
-      "question": "The matrix A = [[2, 1], [1, 2]] has eigenvalues 3 and 1. What does eigendecomposition A = V @ D @ V^(-1) reveal?",
-      "options": ["A is equivalent to two rotations", "A stretches space by 3x along the [1,1] direction and leaves the [1,-1] direction unchanged", "A compresses all vectors by a factor of 2", "A has rank 1 and maps all vectors to a line"],
+      "question": "행렬 A = [[2, 1], [1, 2]]의 고유값은 3과 1입니다. 고유분해 A = V @ D @ V^(-1)는 무엇을 보여 주나요?",
+      "options": ["A는 두 번의 회전과 동등합니다", "A는 [1,1] 방향으로 공간을 3배 늘리고 [1,-1] 방향은 그대로 둡니다", "A는 모든 벡터를 2배 압축합니다", "A는 랭크 1이며 모든 벡터를 하나의 선으로 매핑합니다"],
       "correct": 1,
-      "explanation": "The eigenvalue 3 with eigenvector [1,1] means A stretches 3x along the diagonal. The eigenvalue 1 with eigenvector [1,-1] means A leaves the anti-diagonal unchanged. D holds {3,1}, V holds the eigenvectors."
+      "explanation": "고유벡터 [1,1]에 대응하는 고유값 3은 A가 대각선 방향으로 3배 늘린다는 뜻입니다. 고유벡터 [1,-1]에 대응하는 고유값 1은 A가 반대 대각선 방향을 그대로 둔다는 뜻입니다. D는 {3,1}을 담고 V는 고유벡터를 담습니다."
     }
   ]
 }

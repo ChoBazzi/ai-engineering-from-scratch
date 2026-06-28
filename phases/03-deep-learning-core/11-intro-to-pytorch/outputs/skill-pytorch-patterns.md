@@ -1,13 +1,13 @@
 ---
 name: skill-pytorch-patterns
-description: Reference patterns for PyTorch training, evaluation, and deployment
+description: PyTorch 학습, 평가, 배포를 위한 reference pattern
 version: 1.0.0
 phase: 03
 lesson: 11
 tags: [pytorch, training, deep-learning, gpu, patterns]
 ---
 
-## Canonical Training Loop
+## 표준 학습 루프
 
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +33,7 @@ for epoch in range(num_epochs):
             outputs = model(inputs)
 ```
 
-## Mixed Precision Training
+## Mixed Precision 학습
 
 ```python
 from torch.amp import autocast, GradScaler
@@ -50,9 +50,9 @@ for inputs, targets in train_loader:
     scaler.update()
 ```
 
-Use when: training on GPU with float16-capable hardware (V100, A100, H100, RTX 3090+). Expect ~1.5-2x speedup and ~50% memory reduction.
+사용할 때: float16을 지원하는 하드웨어(V100, A100, H100, RTX 3090+)에서 GPU 학습을 할 때. 약 1.5-2배 속도 향상과 약 50% 메모리 감소를 기대할 수 있습니다.
 
-## Gradient Accumulation
+## 그래디언트 누적
 
 ```python
 accumulation_steps = 4
@@ -67,9 +67,9 @@ for i, (inputs, targets) in enumerate(train_loader):
         optimizer.zero_grad()
 ```
 
-Use when: effective batch size needs to be larger than GPU memory allows. Dividing loss by accumulation_steps keeps gradient scale consistent.
+사용할 때: effective batch size가 GPU 메모리가 허용하는 것보다 커야 할 때. loss를 accumulation_steps로 나누면 그래디언트 scale이 일관되게 유지됩니다.
 
-## Save and Load
+## 저장과 로드
 
 ```python
 torch.save({
@@ -84,9 +84,9 @@ model.load_state_dict(checkpoint["model_state_dict"])
 optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 ```
 
-Always save optimizer state for resuming training. For inference-only, save just `model.state_dict()`.
+학습을 재개하려면 항상 optimizer state를 저장하세요. 추론 전용이라면 `model.state_dict()`만 저장합니다.
 
-## Custom Dataset
+## 사용자 정의 Dataset
 
 ```python
 class CustomDataset(torch.utils.data.Dataset):
@@ -107,7 +107,7 @@ class CustomDataset(torch.utils.data.Dataset):
         ...
 ```
 
-## DataLoader Configuration
+## DataLoader 설정
 
 ```python
 train_loader = torch.utils.data.DataLoader(
@@ -121,14 +121,14 @@ train_loader = torch.utils.data.DataLoader(
 )
 ```
 
-| Parameter | What it does | When to use |
+| 파라미터 | 하는 일 | 사용할 때 |
 |-----------|-------------|-------------|
-| num_workers=4 | Parallel data loading | Always on multi-core machines |
-| pin_memory=True | Page-locked CPU memory | When training on GPU |
-| drop_last=True | Drop incomplete final batch | When using BatchNorm |
-| persistent_workers=True | Keep workers alive across epochs | When num_workers > 0 |
+| num_workers=4 | 병렬 데이터 로딩 | 멀티코어 머신에서는 항상 |
+| pin_memory=True | Page-locked CPU 메모리 | GPU에서 학습할 때 |
+| drop_last=True | 불완전한 마지막 배치 버리기 | BatchNorm을 사용할 때 |
+| persistent_workers=True | epoch 사이에도 worker 유지 | num_workers > 0일 때 |
 
-## Learning Rate Schedules
+## 학습률 스케줄
 
 ```python
 scheduler = torch.optim.lr_scheduler.OneCycleLR(
@@ -145,9 +145,9 @@ for epoch in range(num_epochs):
         scheduler.step()
 ```
 
-OneCycleLR: best default for most tasks. Warms up to max_lr, then cosine decays. Call `scheduler.step()` after every batch, not every epoch.
+OneCycleLR: 대부분의 작업에서 가장 좋은 기본값입니다. max_lr까지 warm up한 다음 cosine decay를 적용합니다. `scheduler.step()`은 매 epoch가 아니라 매 batch 뒤에 호출하세요.
 
-## Weight Initialization
+## 가중치 초기화
 
 ```python
 def init_weights(module):
@@ -161,7 +161,7 @@ def init_weights(module):
 model.apply(init_weights)
 ```
 
-## Inference Mode
+## 추론 모드
 
 ```python
 model.eval()
@@ -170,15 +170,15 @@ with torch.inference_mode():
     outputs = model(inputs)
 ```
 
-`torch.inference_mode()` is faster than `torch.no_grad()` because it disables autograd entirely rather than just suppressing gradient computation.
+`torch.inference_mode()`는 그래디언트 계산만 억제하는 것이 아니라 autograd 전체를 비활성화하므로 `torch.no_grad()`보다 빠릅니다.
 
-## Common Mistakes Checklist
+## 흔한 실수 체크리스트
 
-1. Applying softmax before CrossEntropyLoss (it includes log_softmax internally)
-2. Forgetting to call model.eval() during validation
-3. Forgetting to move tensors to the same device as the model
-4. Not calling optimizer.zero_grad() (gradients accumulate by default)
-5. Using torch.no_grad() during training (disables gradient computation)
-6. Setting num_workers too high (spawns too many processes, thrashes memory)
-7. Not using pin_memory=True when training on GPU
-8. Saving the entire model object instead of state_dict (breaks on refactor)
+1. CrossEntropyLoss 전에 softmax를 적용함(내부에 log_softmax가 포함되어 있음)
+2. validation 중 model.eval() 호출을 잊음
+3. 텐서를 모델과 같은 device로 옮기는 것을 잊음
+4. optimizer.zero_grad()를 호출하지 않음(그래디언트는 기본적으로 누적됨)
+5. 학습 중 torch.no_grad()를 사용함(그래디언트 계산을 비활성화함)
+6. num_workers를 너무 높게 설정함(프로세스를 너무 많이 만들어 메모리를 thrash함)
+7. GPU 학습 중 pin_memory=True를 사용하지 않음
+8. state_dict 대신 전체 모델 객체를 저장함(리팩터링 시 깨짐)

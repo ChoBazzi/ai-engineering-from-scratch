@@ -2,66 +2,66 @@
   {
     "id": "biasvar-pre-1",
     "stage": "pre",
-    "question": "A linear model is used to fit a clearly curved (quadratic) relationship. Which error component dominates?",
+    "question": "명확히 휘어진(이차) 관계를 맞추는 데 선형 모델을 사용했다. 어떤 오류 성분이 지배적인가?",
     "options": [
-      "Variance: the model changes too much with different training data",
-      "Bias: the model is too rigid to capture the true nonlinear pattern",
-      "Irreducible noise: the data is too noisy",
-      "None: the model should fit perfectly"
+      "분산: 모델이 서로 다른 학습 데이터에 따라 너무 많이 변한다",
+      "편향: 모델이 참 비선형 패턴을 포착하기에 너무 경직되어 있다",
+      "줄일 수 없는 노이즈: 데이터가 너무 noisy하다",
+      "없음: 모델은 완벽하게 맞아야 한다"
     ],
     "correct": 1,
-    "explanation": "A linear model cannot capture a quadratic curve no matter how much data it sees. This systematic error from wrong model assumptions is bias. The model underfits."
+    "explanation": "선형 모델은 데이터를 아무리 많이 보더라도 이차 곡선을 포착할 수 없다. 잘못된 모델 가정에서 오는 이 체계적 오류가 편향이다. 모델은 과소적합한다."
   },
   {
     "id": "biasvar-pre-2",
     "stage": "pre",
-    "question": "The bias-variance decomposition of expected error has three terms. Which one cannot be reduced by any model?",
+    "question": "기대 오류의 편향-분산 분해에는 세 항이 있다. 어떤 항은 어떤 모델로도 줄일 수 없는가?",
     "options": [
-      "Bias squared",
-      "Variance",
-      "Irreducible noise (sigma squared)",
-      "All three can be reduced to zero"
+      "편향 제곱",
+      "분산",
+      "줄일 수 없는 노이즈(sigma squared)",
+      "셋 모두 0으로 줄일 수 있다"
     ],
     "correct": 2,
-    "explanation": "Irreducible noise comes from randomness in the data itself (measurement error, missing variables). No model can predict noise. Expected error = bias^2 + variance + irreducible noise."
+    "explanation": "줄일 수 없는 노이즈는 데이터 자체의 무작위성(측정 오류, 누락 변수)에서 온다. 어떤 모델도 노이즈를 예측할 수 없다. Expected error = bias^2 + variance + irreducible noise."
   },
   {
     "id": "biasvar-post-1",
     "stage": "post",
-    "question": "Adding L2 regularization to a model increases bias and decreases variance. Why is this useful?",
+    "question": "모델에 L2 정규화를 추가하면 편향은 증가하고 분산은 감소한다. 이것이 왜 유용한가?",
     "options": [
-      "It always improves both training and test accuracy",
-      "The reduction in variance can outweigh the increase in bias, lowering total error",
-      "L2 regularization eliminates irreducible noise",
-      "It makes the model faster to train"
+      "항상 학습 정확도와 테스트 정확도를 모두 개선한다",
+      "분산 감소가 편향 증가보다 커서 전체 오류를 낮출 수 있다",
+      "L2 정규화는 줄일 수 없는 노이즈를 제거한다",
+      "모델 학습을 더 빠르게 만든다"
     ],
     "correct": 1,
-    "explanation": "Regularization trades a small increase in bias for a larger decrease in variance. When a model is overfitting (high variance), this tradeoff reduces total error even though bias goes up slightly."
+    "explanation": "정규화는 작은 편향 증가를 더 큰 분산 감소와 교환한다. 모델이 과대적합(높은 분산)일 때, 편향이 약간 올라가더라도 이 트레이드오프는 전체 오류를 줄인다."
   },
   {
     "id": "biasvar-post-2",
     "stage": "post",
-    "question": "A model has training error = 2% and test error = 25%. What is the most likely diagnosis?",
+    "question": "한 모델의 학습 오류가 2%이고 테스트 오류가 25%다. 가장 그럴듯한 진단은 무엇인가?",
     "options": [
-      "High bias (underfitting): the model is too simple",
-      "High variance (overfitting): the model memorized training data and fails to generalize",
-      "High irreducible noise: the data is too noisy",
-      "The model is perfectly calibrated"
+      "높은 편향(과소적합): 모델이 너무 단순하다",
+      "높은 분산(과대적합): 모델이 학습 데이터를 암기했고 일반화에 실패한다",
+      "높은 줄일 수 없는 노이즈: 데이터가 너무 noisy하다",
+      "모델이 완벽하게 보정되어 있다"
     ],
     "correct": 1,
-    "explanation": "Low training error + high test error + large gap = high variance (overfitting). The model fits training-specific noise. Remedies: regularize, reduce complexity, get more data."
+    "explanation": "낮은 학습 오류 + 높은 테스트 오류 + 큰 차이 = 높은 분산(과대적합). 모델이 학습 데이터 특유의 노이즈를 맞춘다. 해결책: 정규화, 복잡도 감소, 더 많은 데이터."
   },
   {
     "id": "biasvar-post-3",
     "stage": "post",
-    "question": "You train the same model architecture on 50 different random training subsets and observe that predictions vary wildly between them. What does this indicate?",
+    "question": "같은 모델 구조를 서로 다른 50개의 무작위 학습 부분집합으로 학습했더니 예측이 크게 달라졌다. 이것은 무엇을 나타내는가?",
     "options": [
-      "High bias: the model consistently misses the true pattern",
-      "High variance: the model is sensitive to which specific training data it sees",
-      "High irreducible noise: the target variable is random",
-      "The learning rate is too high"
+      "높은 편향: 모델이 일관되게 참 패턴을 놓친다",
+      "높은 분산: 모델이 어떤 특정 학습 데이터를 보느냐에 민감하다",
+      "높은 줄일 수 없는 노이즈: target variable이 무작위다",
+      "learning rate가 너무 높다"
     ],
     "correct": 1,
-    "explanation": "Variance measures how much predictions change when trained on different data subsets. Wildly different predictions across subsets is the definition of high variance."
+    "explanation": "분산은 서로 다른 데이터 부분집합으로 학습했을 때 예측이 얼마나 변하는지를 측정한다. 부분집합마다 예측이 크게 달라지는 것은 높은 분산의 정의다."
   }
 ]

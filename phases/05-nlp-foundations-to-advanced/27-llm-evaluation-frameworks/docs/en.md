@@ -1,58 +1,58 @@
-# LLM Evaluation — RAGAS, DeepEval, G-Eval
+# LLM 평가 — RAGAS, DeepEval, G-Eval
 
-> Exact-match and F1 miss semantic equivalence. Human review does not scale. LLM-as-judge is the production answer — with enough calibration to trust the number.
+> exact-match와 F1은 의미적 동등성을 놓친다. 사람 리뷰는 규모를 키울 수 없다. LLM-as-judge가 프로덕션의 답이다. 단, 그 숫자를 믿을 만큼 충분히 calibration해야 한다.
 
 **Type:** Build
 **Languages:** Python
-**Prerequisites:** Phase 5 · 13 (Question Answering), Phase 5 · 14 (Information Retrieval)
+**Prerequisites:** Phase 5 · 13 (질의응답), Phase 5 · 14 (정보 검색)
 **Time:** ~75 minutes
 
-## The Problem
+## 문제
 
-Your RAG system answers: "June 29th, 2007."
-The gold reference is: "June 29, 2007."
-Exact Match scores 0. F1 scores ~75%. A human would score 100%.
+당신의 RAG 시스템이 "June 29th, 2007."이라고 답한다.
+gold reference는 "June 29, 2007."이다.
+Exact Match는 0점을 준다. F1은 ~75%를 준다. 사람이라면 100%로 채점할 것이다.
 
-Now multiply by 10,000 test cases. Multiply again by every change to the retriever, chunking, prompt, or model. You need an evaluator that understands meaning, runs cheaply at scale, does not lie about regressions, and surfaces the right failure modes.
+이제 여기에 테스트 케이스 10,000개를 곱해 보자. retriever, chunking, prompt, model이 바뀔 때마다 다시 곱해 보자. 의미를 이해하고, 대규모에서도 저렴하게 실행되며, regression을 속이지 않고, 올바른 failure mode를 드러내는 evaluator가 필요하다.
 
-2026 has three frameworks that own this problem.
+2026년에는 이 문제를 다루는 세 가지 framework가 있다.
 
-- **RAGAS.** Retrieval-Augmented Generation ASsessment. Four RAG metrics (faithfulness, answer-relevance, context-precision, context-recall) with NLI + LLM-judge backends. Research-backed, lightweight.
-- **DeepEval.** Pytest for LLMs. G-Eval, task-completion, hallucination, bias metrics. CI/CD-native.
-- **G-Eval.** A method (and a DeepEval metric): LLM-as-judge with chain-of-thought, custom criteria, 0-1 score.
+- **RAGAS.** Retrieval-Augmented Generation ASsessment. NLI + LLM-judge backend을 사용하는 네 가지 RAG metric(faithfulness, answer-relevance, context-precision, context-recall). 연구 기반이며 가볍다.
+- **DeepEval.** LLM을 위한 pytest. G-Eval, task-completion, hallucination, bias metric. CI/CD에 자연스럽게 맞는다.
+- **G-Eval.** 하나의 방법이자 DeepEval metric이다. chain-of-thought, custom criteria, 0-1 score를 사용하는 LLM-as-judge.
 
-All three lean on LLM-as-judge. This lesson builds intuition for the method and the trust layer around it.
+세 가지 모두 LLM-as-judge에 기대고 있다. 이 lesson은 그 방법과 그 주변의 신뢰 계층에 대한 직관을 만든다.
 
-## The Concept
+## 개념
 
 ![Four evaluation dimensions, LLM-as-judge architecture](../assets/llm-evaluation.svg)
 
-**LLM-as-judge.** Replace a static metric with an LLM that scores outputs given a rubric. Given `(query, context, answer)`, prompt a judge LLM: "Score 0-1 on faithfulness." Return the score.
+**LLM-as-judge.** 정적 metric을 rubric에 따라 output을 채점하는 LLM으로 바꾼다. `(query, context, answer)`가 주어지면 judge LLM에 "faithfulness를 0-1로 채점하라"고 prompt한다. score를 반환한다.
 
-Why it works: LLMs approximate human judgment at a tiny fraction of the cost. GPT-4o-mini at ~$0.003 per scored case enables 1000-sample regression eval runs for under $5.
+작동하는 이유: LLM은 훨씬 적은 비용으로 사람의 판단에 가까운 값을 낸다. 채점 케이스당 ~$0.003인 GPT-4o-mini를 쓰면 1000개 sample regression eval을 $5 미만으로 실행할 수 있다.
 
-Why it fails silently:
+조용히 실패하는 이유:
 
-1. **Judge bias.** Judges prefer longer answers, answers from their own model family, answers that match the prompt style.
-2. **JSON parsing failures.** Bad JSON → NaN score → silently excluded from the aggregate. RAGAS users know this pain. Gate with try/except + explicit failure mode.
-3. **Drift over model versions.** Upgrading the judge changes every metric. Freeze judge model + version.
+1. **Judge bias.** judge는 더 긴 답, 자기 model family에서 나온 답, prompt style과 맞는 답을 선호한다.
+2. **JSON parsing failures.** 잘못된 JSON → NaN score → aggregate에서 조용히 제외된다. RAGAS 사용자는 이 고통을 안다. try/except + 명시적 failure mode로 gate하라.
+3. **Drift over model versions.** judge를 upgrade하면 모든 metric이 바뀐다. judge model + version을 고정하라.
 
-**The RAG four.**
+**RAG 네 가지.**
 
-| Metric | Question | Backend |
+| Metric | 질문 | Backend |
 |--------|----------|---------|
-| Faithfulness | Does each claim in the answer come from the retrieved context? | NLI-based entailment |
-| Answer relevance | Does the answer address the question? | Generate hypothetical questions from answer; compare to real question |
-| Context precision | Of retrieved chunks, what fraction were relevant? | LLM-judge |
-| Context recall | Did retrieval return everything needed? | LLM-judge against gold answer |
+| Faithfulness | 답의 각 claim이 retrieved context에서 나왔는가? | NLI-based entailment |
+| Answer relevance | 답이 질문에 응답하는가? | 답에서 가상 질문을 생성하고 실제 질문과 비교 |
+| Context precision | retrieved chunk 중 관련 있는 비율은 얼마인가? | LLM-judge |
+| Context recall | retrieval이 필요한 모든 것을 반환했는가? | gold answer에 대한 LLM-judge |
 
-**G-Eval.** Define a custom criterion: "Did the answer cite the correct source?" The framework auto-expands into chain-of-thought evaluation steps, then scores 0-1. Good for domain-specific quality dimensions RAGAS does not cover.
+**G-Eval.** "답이 올바른 source를 인용했는가?" 같은 custom criterion을 정의한다. framework가 이를 chain-of-thought evaluation step으로 자동 확장한 뒤 0-1로 채점한다. RAGAS가 다루지 않는 domain-specific quality dimension에 좋다.
 
-**Calibration.** Never trust the raw judge score until you have a correlation against human labels. Run 100 hand-labeled examples. Plot judge vs human. Compute Spearman rho. If rho < 0.7, your judge rubric needs work.
+**Calibration.** human label과의 correlation을 확인하기 전까지 raw judge score를 믿지 마라. 사람이 label한 example 100개를 실행하라. judge vs human을 plot하라. Spearman rho를 계산하라. rho < 0.7이면 judge rubric을 손봐야 한다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: faithfulness with NLI (RAGAS-style)
+### 1단계: NLI로 faithfulness 계산하기(RAGAS-style)
 
 ```python
 from typing import Callable
@@ -87,9 +87,9 @@ def faithfulness(answer: str, context: str, llm: LLM) -> float:
     return supported / len(claims)
 ```
 
-Decompose the answer into atomic claims. NLI-check each claim against the retrieved context. Faithfulness = fraction supported.
+답을 atomic claim으로 분해한다. 각 claim을 retrieved context에 대해 NLI-check한다. Faithfulness = support된 비율이다.
 
-### Step 2: answer relevance
+### 2단계: answer relevance
 
 ```python
 import numpy as np
@@ -109,9 +109,9 @@ def answer_relevance(question: str, answer: str, encoder, llm: LLM, n: int = 3) 
     return sum(sims) / len(sims)
 ```
 
-If the answer implies different questions than the one asked, relevance drops.
+답이 실제 질문과 다른 질문들을 암시한다면 relevance가 떨어진다.
 
-### Step 3: G-Eval custom metric
+### 3단계: G-Eval custom metric
 
 ```python
 from deepeval.metrics import GEval
@@ -137,9 +137,9 @@ metric.measure(test)
 print(metric.score, metric.reason)
 ```
 
-The evaluation steps are the rubric. Explicit steps are more stable than implicit "score 0-1" prompts.
+evaluation step 자체가 rubric이다. 명시적 step은 암묵적인 "score 0-1" prompt보다 더 안정적이다.
 
-### Step 4: CI gate
+### 4단계: CI gate
 
 ```python
 import deepeval
@@ -157,83 +157,83 @@ def test_rag_system():
         assert rel.score >= 0.7, f"relevancy regression on {case.id}"
 ```
 
-Ship as a pytest file. Run on every PR. Block merges on regressions.
+pytest file로 ship하라. 모든 PR에서 실행하라. regression이 있으면 merge를 막아라.
 
-### Step 5: toy eval from scratch
+### 5단계: toy eval from scratch
 
-See `code/main.py`. Stdlib-only approximations of faithfulness (overlap of answer claims with context) and relevance (overlap of answer tokens with question tokens). Not production. Shows the shape.
+`code/main.py`를 보라. stdlib만으로 faithfulness(답 claim과 context의 overlap)와 relevance(답 token과 질문 token의 overlap)를 근사한다. 프로덕션용은 아니다. 구조를 보여준다.
 
-## Pitfalls
+## 함정
 
-- **No calibration.** A judge with 0.3 correlation to human labels is noise. Require a calibration run before shipping.
-- **Self-evaluation.** Using the same LLM to generate and judge inflates scores by 10-20%. Use a different model family for the judge.
-- **Positional bias in pairwise judging.** Judges prefer the first option presented. Always randomize order and run both.
-- **Raw aggregate hides failures.** Mean score 0.85 often hides 5% catastrophic failures. Always inspect the bottom quantile.
-- **Golden dataset rot.** Unversioned eval sets that drift over time break longitudinal comparison. Tag the dataset with every change.
-- **LLM cost.** At scale, judge calls dominate cost. Use the cheapest model that meets calibration threshold. GPT-4o-mini, Claude Haiku, Mistral-small.
+- **Calibration 없음.** human label과 correlation이 0.3인 judge는 noise다. ship 전에 calibration run을 요구하라.
+- **Self-evaluation.** 같은 LLM으로 생성하고 judge하면 score가 10-20% 부풀려진다. judge에는 다른 model family를 사용하라.
+- **Pairwise judging의 positional bias.** judge는 먼저 제시된 option을 선호한다. 항상 순서를 randomize하고 양쪽 순서로 실행하라.
+- **Raw aggregate는 failure를 숨긴다.** mean score 0.85는 5%의 catastrophic failure를 자주 숨긴다. 항상 bottom quantile을 inspect하라.
+- **Golden dataset rot.** version이 없는 eval set이 시간이 지나며 drift하면 longitudinal comparison이 깨진다. 변경할 때마다 dataset에 tag를 붙여라.
+- **LLM cost.** 규모가 커지면 judge call이 비용을 지배한다. calibration threshold를 만족하는 가장 저렴한 model을 사용하라. GPT-4o-mini, Claude Haiku, Mistral-small.
 
-## Use It
+## 사용하기
 
-The 2026 stack:
+2026년 stack:
 
-| Use case | Framework |
+| 사용 사례 | Framework |
 |---------|-----------|
-| RAG quality monitoring | RAGAS (4 metrics) |
-| CI/CD regression gates | DeepEval + pytest |
-| Custom domain criteria | G-Eval within DeepEval |
-| Online live-traffic monitoring | RAGAS with reference-free mode |
-| Human-in-the-loop spot checks | LangSmith or Phoenix with annotation UI |
-| Red-teaming / safety eval | Promptfoo + DeepEval |
+| RAG quality monitoring | RAGAS(4 metrics) |
+| CI/CD regression gate | DeepEval + pytest |
+| custom domain criteria | DeepEval 안의 G-Eval |
+| online live-traffic monitoring | reference-free mode의 RAGAS |
+| human-in-the-loop spot check | annotation UI가 있는 LangSmith 또는 Phoenix |
+| red-teaming / safety eval | Promptfoo + DeepEval |
 
-Typical stack: RAGAS for monitoring, DeepEval for CI, G-Eval for novel dimensions. Run all three; they disagree usefully.
+일반적인 stack: monitoring에는 RAGAS, CI에는 DeepEval, 새로운 dimension에는 G-Eval. 세 가지를 모두 실행하라. 서로 다른 의견을 내는 것이 유용하다.
 
-## Ship It
+## 배포하기
 
-Save as `outputs/skill-eval-architect.md`:
+`outputs/skill-eval-architect.md`로 저장하라:
 
 ```markdown
 ---
 name: eval-architect
-description: Design an LLM evaluation plan with calibrated judge and CI gates.
+description: calibrated judge와 CI gate를 갖춘 LLM evaluation plan을 설계한다.
 version: 1.0.0
 phase: 5
 lesson: 27
 tags: [nlp, evaluation, rag]
 ---
 
-Given a use case (RAG / agent / generative task), output:
+use case(RAG / agent / generative task)가 주어지면 다음을 output하라:
 
-1. Metrics. Faithfulness / relevance / context-precision / context-recall + any custom G-Eval metrics with criteria.
-2. Judge model. Named model + version, rationale for cost vs accuracy.
-3. Calibration. Hand-labeled set size, target Spearman rho vs human > 0.7.
-4. Dataset versioning. Tag strategy, change log, stratification.
-5. CI gate. Thresholds per metric, regression-window logic, bottom-quantile alert.
+1. Metrics. Faithfulness / relevance / context-precision / context-recall + criteria가 있는 custom G-Eval metrics.
+2. Judge model. 명명된 model + version, cost vs accuracy의 근거.
+3. Calibration. hand-labeled set size, human 대비 target Spearman rho > 0.7.
+4. Dataset versioning. tag strategy, change log, stratification.
+5. CI gate. metric별 threshold, regression-window logic, bottom-quantile alert.
 
-Refuse to rely on a judge untested against ≥50 human-labeled examples. Refuse self-evaluation (same model generates + judges). Refuse aggregate-only reporting without bottom-10% surfacing. Flag any pipeline where judge upgrade lands without parallel baseline eval.
+≥50개 human-labeled example에 대해 test되지 않은 judge에 의존하는 것을 거부하라. self-evaluation(같은 model이 generate + judge)을 거부하라. bottom-10%를 드러내지 않는 aggregate-only reporting을 거부하라. parallel baseline eval 없이 judge upgrade가 반영되는 pipeline을 flag하라.
 ```
 
-## Exercises
+## 연습 문제
 
-1. **Easy.** Use RAGAS on 10 RAG examples with known hallucinations. Verify the faithfulness metric catches each one.
-2. **Medium.** Hand-label 50 QA answers 0-1 for correctness. Score with G-Eval. Measure Spearman rho between judge and human.
-3. **Hard.** Build a pytest CI gate with DeepEval. Intentionally regress the retriever. Verify the gate fails. Add bottom-quantile alerting via threshold check on the lowest 10%.
+1. **쉬움.** 알려진 hallucination이 있는 RAG example 10개에 RAGAS를 사용하라. faithfulness metric이 각각을 잡아내는지 verify하라.
+2. **보통.** QA answer 50개를 correctness 기준으로 0-1 hand-label하라. G-Eval로 score하라. judge와 human 사이의 Spearman rho를 measure하라.
+3. **어려움.** DeepEval로 pytest CI gate를 만들라. 의도적으로 retriever를 regress시키라. gate가 실패하는지 verify하라. 가장 낮은 10%에 대한 threshold check로 bottom-quantile alerting을 추가하라.
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| Term | 사람들이 말하는 뜻 | 실제 의미 |
 |------|-----------------|-----------------------|
-| LLM-as-judge | Scoring with an LLM | Prompt a judge model to score outputs 0-1 given a rubric. |
-| RAGAS | The RAG metric library | Open-source eval framework with 4 reference-free RAG metrics. |
-| Faithfulness | Is the answer grounded? | Fraction of answer claims entailed by retrieved context. |
-| Context precision | Were retrieved chunks relevant? | Fraction of top-K chunks that actually mattered. |
-| Context recall | Did retrieval find everything? | Fraction of gold-answer claims supported by retrieved chunks. |
-| G-Eval | Custom LLM judge | Rubric + chain-of-thought eval steps + 0-1 score. |
-| Calibration | Trust but verify | Spearman correlation between judge score and human score. |
+| LLM-as-judge | LLM으로 채점하기 | rubric이 주어졌을 때 judge model에 output을 0-1로 채점하게 prompt한다. |
+| RAGAS | RAG metric library | 4개의 reference-free RAG metric을 가진 open-source eval framework. |
+| Faithfulness | 답이 근거를 갖는가? | retrieved context가 entail하는 answer claim의 비율. |
+| Context precision | retrieved chunk가 관련 있었는가? | top-K chunk 중 실제로 중요했던 비율. |
+| Context recall | retrieval이 모든 것을 찾았는가? | retrieved chunk가 support하는 gold-answer claim의 비율. |
+| G-Eval | Custom LLM judge | rubric + chain-of-thought eval step + 0-1 score. |
+| Calibration | 믿되 검증하라 | judge score와 human score 사이의 Spearman correlation. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Es et al. (2023). RAGAS: Automated Evaluation of Retrieval Augmented Generation](https://arxiv.org/abs/2309.15217) — the RAGAS paper.
-- [Liu et al. (2023). G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment](https://arxiv.org/abs/2303.16634) — the G-Eval paper.
+- [Es et al. (2023). RAGAS: Automated Evaluation of Retrieval Augmented Generation](https://arxiv.org/abs/2309.15217) — RAGAS 논문.
+- [Liu et al. (2023). G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment](https://arxiv.org/abs/2303.16634) — G-Eval 논문.
 - [DeepEval docs](https://deepeval.com/docs/metrics-introduction) — open production stack.
-- [Zheng et al. (2023). Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685) — biases, calibration, limits.
-- [MLflow GenAI Scorer](https://mlflow.org/blog/third-party-scorers) — unifying framework that integrates RAGAS, DeepEval, Phoenix.
+- [Zheng et al. (2023). Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685) — bias, calibration, limit.
+- [MLflow GenAI Scorer](https://mlflow.org/blog/third-party-scorers) — RAGAS, DeepEval, Phoenix를 통합하는 framework.

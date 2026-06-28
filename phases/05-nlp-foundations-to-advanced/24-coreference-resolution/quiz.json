@@ -4,99 +4,99 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the goal of coreference resolution?",
+      "question": "coreference resolution의 목표는 무엇인가?",
       "options": [
-        "Cluster all mentions (named, nominal, pronominal) that refer to the same real-world entity",
-        "Tag parts of speech",
-        "Extract relations",
-        "Translate pronouns to nouns"
+        "같은 real-world entity를 가리키는 모든 mention(named, nominal, pronominal)을 cluster한다",
+        "part of speech를 tag한다",
+        "relation을 추출한다",
+        "pronoun을 noun으로 번역한다"
       ],
       "correct": 0,
-      "explanation": "Coref clusters mention spans that all refer to the same entity."
+      "explanation": "Coref는 모두 같은 entity를 가리키는 mention span을 cluster한다."
     },
     {
       "stage": "pre",
-      "question": "Which type of expression is a 'nominal' mention?",
+      "question": "'nominal' mention은 어떤 type의 expression인가?",
       "options": [
-        "A proper noun only",
-        "A noun phrase such as 'the CEO' or 'the company'",
-        "A pronoun like 'she'",
-        "A verb"
+        "proper noun만",
+        "'the CEO' 또는 'the company' 같은 noun phrase",
+        "'she' 같은 pronoun",
+        "verb"
       ],
       "correct": 1,
-      "explanation": "Nominal mentions are noun phrases like 'the company'; pronominal mentions are pronouns."
+      "explanation": "Nominal mention은 'the company' 같은 noun phrase이고, pronominal mention은 pronoun이다."
     },
     {
       "stage": "check",
-      "question": "What is the modern (Lee et al., 2017) coref architecture?",
+      "question": "현대적(Lee et al., 2017) coref architecture는 무엇인가?",
       "options": [
         "BM25 retrieval",
-        "Rule-based syntactic parsing only",
+        "Rule-based syntactic parsing만 사용",
         "Decision trees",
-        "End-to-end span-based: enumerate spans, score mentions, then score antecedent probabilities and cluster greedily"
+        "End-to-end span-based: span을 enumerate하고, mention에 score를 매긴 뒤 antecedent probability를 score하고 greedily cluster한다"
       ],
       "correct": 3,
-      "explanation": "End-to-end neural coref enumerates spans and learns mention + antecedent scoring jointly."
+      "explanation": "End-to-end neural coref는 span을 enumerate하고 mention scoring과 antecedent scoring을 함께 학습한다."
     },
     {
       "stage": "check",
-      "question": "What does CoNLL F1 average?",
+      "question": "CoNLL F1은 무엇을 평균하는가?",
       "options": [
-        "F1 across languages",
-        "MUC, B-cubed, and CEAF-phi4 F1 scores",
-        "Token and span F1",
-        "Precision and recall"
+        "language 전반의 F1",
+        "MUC, B-cubed, CEAF-phi4 F1 scores",
+        "Token F1과 span F1",
+        "Precision과 recall"
       ],
       "correct": 1,
-      "explanation": "CoNLL F1 is the mean of MUC, B-cubed, and CEAF-phi4 metrics."
+      "explanation": "CoNLL F1은 MUC, B-cubed, CEAF-phi4 metric의 평균이다."
     },
     {
       "stage": "check",
-      "question": "What is bridging anaphora?",
+      "question": "bridging anaphora란 무엇인가?",
       "options": [
-        "A mistranslation",
-        "An implicit reference like 'the wheels' implying the wheels of a previously mentioned car",
-        "A pronoun before its referent",
-        "A pronoun without an antecedent"
+        "오역",
+        "앞서 언급된 car의 wheels를 암시하는 'the wheels' 같은 implicit reference",
+        "referent보다 먼저 나오는 pronoun",
+        "antecedent가 없는 pronoun"
       ],
       "correct": 1,
-      "explanation": "Bridging links a mention to a part-of or related entity that was implied but not explicitly stated."
+      "explanation": "Bridging은 명시적으로 말하지 않았지만 암시된 part-of 또는 related entity에 mention을 연결한다."
     },
     {
       "stage": "post",
-      "question": "Why is LLM-only coref unreliable on long documents?",
+      "question": "LLM-only coref가 long document에서 신뢰하기 어려운 이유는 무엇인가?",
       "options": [
-        "LLMs cannot read text",
-        "Tokenizers fail",
-        "Single-call LLMs over-merge or silently drop mentions across 50+ paragraphs; require sliding-window plus merge",
-        "Coref requires a CFG"
+        "LLM은 text를 읽을 수 없다",
+        "Tokenizer가 실패한다",
+        "Single-call LLM은 50+ paragraphs에서 over-merge하거나 mention을 조용히 누락한다. sliding-window plus merge가 필요하다",
+        "Coref에는 CFG가 필요하다"
       ],
       "correct": 2,
-      "explanation": "Long-doc LLM coref degrades; sliding-window with cross-window merging mitigates."
+      "explanation": "Long-doc LLM coref는 성능이 떨어진다. cross-window merging을 포함한 sliding-window가 이를 완화한다."
     },
     {
       "stage": "post",
-      "question": "Why merge coref clusters into NER results before downstream tasks?",
+      "question": "downstream task 전에 coref cluster를 NER result로 merge하는 이유는 무엇인가?",
       "options": [
-        "Required by Wikidata",
-        "To increase token count",
-        "Lower latency",
-        "So downstream tasks see one entity per cluster rather than one per surface mention, dramatically improving coverage"
+        "Wikidata가 요구한다",
+        "token count를 늘리기 위해",
+        "latency를 낮추기 위해",
+        "downstream task가 surface mention마다 하나가 아니라 cluster마다 하나의 entity를 보게 되어 coverage가 크게 개선되기 때문이다"
       ],
       "correct": 3,
-      "explanation": "Without merging, NER counts each surface form separately and misses 60-80% of entity mentions."
+      "explanation": "merge하지 않으면 NER는 각 surface form을 별도로 세고 entity mention의 60-80%를 놓친다."
     },
     {
       "stage": "post",
-      "question": "Why are hard-coded gender rules a fragility in coref systems?",
+      "question": "hard-coded gender rule이 coref system에서 취약한 이유는 무엇인가?",
       "options": [
-        "They break on non-binary referents, organizations, and animals; learned scoring is more robust",
-        "They require GPU",
-        "They run too fast",
-        "They cannot use POS tags"
+        "non-binary referent, organization, animal에서 깨지며, learned scoring이 더 robust하다",
+        "GPU가 필요하다",
+        "너무 빠르게 실행된다",
+        "POS tag를 사용할 수 없다"
       ],
       "correct": 0,
-      "explanation": "Gender heuristics fail in demographically diverse text; learned models are preferred."
+      "explanation": "Gender heuristic은 demographically diverse text에서 실패한다. learned model이 선호된다."
     }
   ]
 }

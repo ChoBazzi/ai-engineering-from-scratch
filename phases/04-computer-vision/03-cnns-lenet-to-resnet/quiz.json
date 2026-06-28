@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "What single architectural idea did AlexNet (2012) introduce that made training deep CNNs practical on GPUs?",
-      "options": ["Residual connections", "Replacing tanh with ReLU, which does not saturate and speeds convergence by roughly 6x", "Batch normalization", "Depthwise separable convolutions"],
+      "question": "AlexNet(2012)이 깊은 CNN을 GPU에서 실용적으로 학습할 수 있게 만든 단일 아키텍처 아이디어는 무엇인가요?",
+      "options": ["잔차 연결", "포화되지 않고 수렴을 대략 6배 빠르게 하는 ReLU로 tanh를 대체한 것", "배치 정규화", "깊이별 분리 합성곱"],
       "correct": 1,
-      "explanation": "AlexNet's biggest training speedup came from ReLU. Tanh saturates for large positive or negative inputs, which kills gradients and caps the depth you can train. ReLU is piecewise linear, does not saturate for positive inputs, and was the single change that took training from weeks to days. Dropout and GPU parallelism mattered, but ReLU is the one that unlocked depth."
+      "explanation": "AlexNet의 가장 큰 학습 속도 향상은 ReLU에서 나왔습니다. tanh는 큰 양수나 음수 입력에서 포화되어 그래디언트를 죽이고 학습 가능한 깊이를 제한합니다. ReLU는 구간별 선형이며 양수 입력에서는 포화되지 않았고, 학습 시간을 몇 주에서 며칠로 줄인 단일 변화였습니다. 드롭아웃과 GPU 병렬화도 중요했지만, 깊이를 가능하게 한 것은 ReLU였습니다."
     },
     {
       "stage": "pre",
-      "question": "Why did VGG prefer stacks of 3x3 convolutions over a single larger kernel?",
-      "options": ["Smaller kernels run faster on CPU", "Two 3x3 convs cover the same 5x5 receptive field with fewer parameters (18C^2 vs 25C^2) and one extra ReLU between them", "3x3 convs are rotation-invariant; 5x5 is not", "Larger kernels cannot be trained with SGD"],
+      "question": "VGG가 하나의 더 큰 커널보다 3x3 합성곱 스택을 선호한 이유는 무엇인가요?",
+      "options": ["작은 커널이 CPU에서 더 빠르게 실행되기 때문", "두 개의 3x3 합성곱이 같은 5x5 수용 영역을 더 적은 파라미터(18C^2 대 25C^2)로 덮고, 그 사이에 ReLU를 하나 더 넣기 때문", "3x3 합성곱은 회전 불변이지만 5x5는 그렇지 않기 때문", "큰 커널은 SGD로 학습할 수 없기 때문"],
       "correct": 1,
-      "explanation": "Two stacked 3x3 convs see the same 5x5 patch as one 5x5 conv, but use fewer parameters (2 * 3 * 3 * C^2 = 18C^2 compared to 25C^2) and include an additional non-linearity. That extra ReLU increases expressive power. VGG turned this observation into an entire architecture with exactly one block type repeated."
+      "explanation": "쌓은 두 개의 3x3 합성곱은 하나의 5x5 합성곱과 같은 5x5 패치를 보지만, 더 적은 파라미터(2 * 3 * 3 * C^2 = 18C^2, 25C^2와 비교)를 사용하고 추가 비선형성을 포함합니다. 그 추가 ReLU가 표현력을 높입니다. VGG는 이 관찰을 정확히 하나의 블록 타입을 반복하는 전체 아키텍처로 만들었습니다."
     },
     {
       "stage": "post",
-      "question": "ResNet introduced residual connections as y = F(x) + x. What problem does this solve?",
-      "options": ["Overfitting in the classifier head", "Vanishing activations in layers with ReLU", "The degradation problem — past ~20 plain conv layers, training loss starts getting worse because the optimizer struggles to learn an identity mapping through many non-linear layers", "Memory consumption during backprop"],
+      "question": "ResNet은 y = F(x) + x 형태의 잔차 연결을 도입했습니다. 이것은 어떤 문제를 해결하나요?",
+      "options": ["분류기 헤드의 과적합", "ReLU가 있는 층의 활성값 소실", "열화 문제: 일반 합성곱 층이 ~20개를 넘으면 옵티마이저가 많은 비선형 층을 통해 항등 매핑을 학습하기 어려워져 학습 손실이 악화되기 시작하는 문제", "역전파 중 메모리 사용량"],
       "correct": 2,
-      "explanation": "Before ResNet, training loss started increasing past about 20 layers even though the network had more capacity — the degradation problem. A residual block can trivially represent identity by driving F to zero, giving the optimizer a safe default. With that escape hatch, every extra block can make the network slightly better, which is how 100+ layer networks became trainable."
+      "explanation": "ResNet 이전에는 네트워크 용량이 더 커졌는데도 약 20층을 넘으면 학습 손실이 증가하기 시작했습니다. 이것이 열화 문제입니다. 잔차 블록은 F를 0으로 몰아 항등 함수를 쉽게 표현할 수 있으므로 옵티마이저에 안전한 기본값을 줍니다. 이 탈출구 덕분에 추가 블록마다 네트워크를 조금씩 개선할 수 있었고, 그래서 100층 이상의 네트워크가 학습 가능해졌습니다."
     },
     {
       "stage": "post",
-      "question": "In a ResNet BasicBlock with in_channels=64, out_channels=128, stride=2, what is the role of the shortcut branch?",
-      "options": ["It is always identity; the main branch handles the shape change", "It is a 1x1 conv with stride 2 that matches the output channels and spatial size of the main branch so the two can be added", "It is a max-pool that halves the spatial dimension", "It is a placeholder that is removed at inference time"],
+      "question": "in_channels=64, out_channels=128, stride=2인 ResNet BasicBlock에서 shortcut 브랜치의 역할은 무엇인가요?",
+      "options": ["항상 항등 함수이며, main 브랜치가 모양 변화를 처리한다", "출력 채널과 공간 크기를 main 브랜치와 맞춰 두 값을 더할 수 있게 하는 stride 2의 1x1 합성곱이다", "공간 차원을 절반으로 줄이는 max-pool이다", "추론 시 제거되는 자리표시자다"],
       "correct": 1,
-      "explanation": "When a block changes channel count or spatial stride, the identity path cannot be added directly to the main branch because shapes differ. The shortcut becomes a 1x1 conv with stride=2 and C_out output channels, optionally followed by batch norm. Pass-through identity is used only when in_c == out_c and stride == 1."
+      "explanation": "블록이 채널 수나 공간 stride를 바꾸면 모양이 달라서 identity 경로를 main 브랜치에 직접 더할 수 없습니다. shortcut은 stride=2와 C_out 출력 채널을 가진 1x1 합성곱이 되며, 선택적으로 배치 정규화가 뒤따릅니다. 통과 항등 함수는 in_c == out_c이고 stride == 1일 때만 사용합니다."
     },
     {
       "stage": "post",
-      "question": "ResNet-18 has ~11.7M parameters and matches or beats VGG-16 (138M params) on ImageNet. What does this imply about VGG?",
-      "options": ["VGG's kernels were too small to learn good features", "Most of VGG's parameters are wasted in the fully connected head and the redundant depth past the point where residual connections would let each layer contribute", "VGG was trained with a worse optimizer", "VGG's accuracy on ImageNet has been measured incorrectly"],
+      "question": "ResNet-18은 약 11.7M 파라미터로 ImageNet에서 VGG-16(138M params)과 비슷하거나 더 나은 성능을 냅니다. 이것은 VGG에 대해 무엇을 시사하나요?",
+      "options": ["VGG의 커널은 좋은 특징을 학습하기에 너무 작았다", "VGG 파라미터 대부분은 완전 연결 헤드와, 잔차 연결이 있었다면 각 층이 기여할 수 있었을 지점 이후의 중복 깊이에 낭비된다", "VGG는 더 나쁜 옵티마이저로 학습되었다", "ImageNet에서의 VGG 정확도는 잘못 측정되었다"],
       "correct": 1,
-      "explanation": "VGG-16's parameter count is dominated by its giant fully connected classifier (three dense layers on 25088 activations), and its plain deep stack cannot add layers as efficiently as a residual stack. ResNet-18 replaces the FC head with global average pool plus one linear layer and uses residual blocks, which together give roughly 12x parameter efficiency at similar accuracy."
+      "explanation": "VGG-16의 파라미터 수는 거대한 완전 연결 분류기(25088개 활성값 위의 세 dense 층)가 지배하며, plain deep stack은 잔차 스택만큼 효율적으로 층을 더할 수 없습니다. ResNet-18은 FC 헤드를 global average pool과 하나의 linear 층으로 바꾸고 잔차 블록을 사용합니다. 이 둘이 합쳐져 비슷한 정확도에서 대략 12배의 파라미터 효율을 냅니다."
     }
   ]
 }

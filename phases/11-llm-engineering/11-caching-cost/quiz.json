@@ -1,37 +1,37 @@
 [
   {
-    "question": "Why do AI startups often fail from cost issues rather than model quality?",
-    "options": ["Models are always good enough", "Per-call costs compound rapidly: 10K users making 10 calls/day costs $250/day in tokens before charging a single dollar", "Cost optimization is easy", "API providers offer unlimited free tiers"],
+    "question": "AI 스타트업이 모델 품질보다 비용 문제로 실패하는 경우가 많은 이유는 무엇인가?",
+    "options": ["모델은 언제나 충분히 좋기 때문이다", "호출당 비용이 빠르게 누적되기 때문이다. 사용자 1만 명이 하루 10회 호출하면, 단 1달러를 청구하기 전에도 토큰 비용만 하루 $250이 든다", "비용 최적화가 쉽기 때문이다", "API 제공자가 무제한 무료 티어를 제공하기 때문이다"],
     "correct": 1,
-    "explanation": "LLM API costs scale linearly with usage. A feature that costs $0.003 per call seems cheap until it's called 100K times/day ($300/day, $9K/month). Without cost optimization, many AI products are unprofitable at scale.",
+    "explanation": "LLM API 비용은 사용량에 선형으로 증가한다. 호출당 $0.003인 기능은 하루 10만 번 호출되기 전까지는 저렴해 보인다(하루 $300, 월 $9K). 비용 최적화가 없으면 많은 AI 제품은 규모가 커질수록 수익성이 없다.",
     "stage": "pre"
   },
   {
-    "question": "What is semantic caching for LLM applications?",
-    "options": ["Caching model weights", "Storing responses for previous queries and serving cached responses when a new query is semantically similar (not just exactly matching)", "Caching embeddings only", "Pre-generating all possible responses"],
+    "question": "LLM 애플리케이션에서 시맨틱 캐싱이란 무엇인가?",
+    "options": ["모델 가중치를 캐싱하는 것", "이전 쿼리의 응답을 저장하고, 새 쿼리가 정확히 일치할 때뿐 아니라 의미적으로 비슷할 때 캐시된 응답을 제공하는 것", "임베딩만 캐싱하는 것", "가능한 모든 응답을 미리 생성하는 것"],
     "correct": 1,
-    "explanation": "Exact-match caching only helps with identical queries. Semantic caching embeds queries and serves cached responses when cosine similarity exceeds a threshold. 'What's the weather in NYC?' matches 'NYC weather today?'.",
+    "explanation": "정확 일치 캐싱은 동일한 쿼리에만 도움이 된다. 시맨틱 캐싱은 쿼리를 임베딩하고 코사인 유사도가 임계값을 넘으면 캐시된 응답을 제공한다. '뉴욕 날씨가 어때?'는 '오늘 NYC 날씨?'와 매칭된다.",
     "stage": "pre"
   },
   {
-    "question": "What is model routing as a cost optimization strategy?",
-    "options": ["Load balancing across servers", "Sending simple queries to cheap/fast models and complex queries to expensive/powerful models based on query classification", "Routing between different API providers", "Caching responses from multiple models"],
+    "question": "비용 최적화 전략으로서 모델 라우팅이란 무엇인가?",
+    "options": ["서버 간 로드 밸런싱", "쿼리 분류를 바탕으로 단순 쿼리는 저렴하고 빠른 모델에, 복잡한 쿼리는 비싸고 강력한 모델에 보내는 것", "서로 다른 API 제공자 사이에서 라우팅하는 것", "여러 모델의 응답을 캐싱하는 것"],
     "correct": 1,
-    "explanation": "Not every query needs GPT-4. A classifier routes simple questions (FAQ, greetings) to a cheap model (GPT-3.5, Haiku) and complex questions (reasoning, analysis) to an expensive model. This can cut costs 50-80%.",
+    "explanation": "모든 쿼리에 GPT-4가 필요한 것은 아니다. 분류기는 단순 질문(FAQ, 인사)을 저렴한 모델(GPT-3.5, Haiku)로 보내고, 복잡한 질문(추론, 분석)을 비싼 모델로 보낸다. 이 방식은 비용을 50-80% 줄일 수 있다.",
     "stage": "post"
   },
   {
-    "question": "What is prompt compression and how does it reduce costs?",
-    "options": ["Making prompts shorter by removing words", "Removing redundant tokens, summarizing long contexts, and eliminating boilerplate to reduce input token count while preserving essential information", "Compressing prompts with gzip", "Using shorter variable names"],
+    "question": "프롬프트 압축이란 무엇이며 어떻게 비용을 줄이는가?",
+    "options": ["단어를 제거해 프롬프트를 짧게 만드는 것", "필수 정보를 유지하면서 중복 토큰을 제거하고, 긴 컨텍스트를 요약하며, 상용구를 없애 입력 토큰 수를 줄이는 것", "gzip으로 프롬프트를 압축하는 것", "더 짧은 변수명을 사용하는 것"],
     "correct": 1,
-    "explanation": "Input tokens dominate cost in RAG applications (large retrieved contexts). Prompt compression removes filler words, summarizes verbose passages, and trims low-relevance chunks to reduce token count without losing key information.",
+    "explanation": "RAG 애플리케이션에서는 입력 토큰(큰 검색 컨텍스트)이 비용의 대부분을 차지한다. 프롬프트 압축은 핵심 정보를 잃지 않으면서 군더더기 단어를 제거하고, 장황한 문단을 요약하며, 관련성이 낮은 청크를 잘라 토큰 수를 줄인다.",
     "stage": "post"
   },
   {
-    "question": "What is prefix caching and which provider feature enables it?",
-    "options": ["Caching the first word of each response", "Reusing KV-cache computation for shared prompt prefixes (system prompt + tool definitions), reducing latency and cost for repeated patterns", "Caching DNS lookups", "Browser caching of API responses"],
+    "question": "접두사 캐싱이란 무엇이며 어떤 제공자 기능이 이를 가능하게 하는가?",
+    "options": ["각 응답의 첫 단어를 캐싱하는 것", "공유 프롬프트 접두사(시스템 프롬프트 + 도구 정의)에 대한 KV-cache 계산을 재사용해 반복 패턴의 지연 시간과 비용을 줄이는 것", "DNS 조회를 캐싱하는 것", "API 응답을 브라우저에 캐싱하는 것"],
     "correct": 1,
-    "explanation": "If your system prompt + tool definitions are 5000 tokens and identical across requests, prefix caching computes the KV-cache once and reuses it. Anthropic's prompt caching and OpenAI's cached tokens both support this.",
+    "explanation": "시스템 프롬프트 + 도구 정의가 5000토큰이고 요청마다 동일하다면, 접두사 캐싱은 KV-cache를 한 번 계산한 뒤 재사용한다. Anthropic의 프롬프트 캐싱과 OpenAI의 cached tokens가 모두 이를 지원한다.",
     "stage": "post"
   }
 ]

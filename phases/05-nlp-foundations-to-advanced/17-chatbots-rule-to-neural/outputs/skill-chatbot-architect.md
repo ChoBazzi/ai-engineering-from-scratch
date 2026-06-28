@@ -1,17 +1,17 @@
 ---
 name: chatbot-architect
-description: Design a chatbot stack for a given use case.
+description: 주어진 use case에 맞는 chatbot stack을 설계한다.
 version: 1.0.0
 phase: 5
 lesson: 17
 tags: [nlp, agents, chatbot]
 ---
 
-Given a product context (user need, compliance constraints, available tools, data volume), output:
+product context(user need, compliance constraint, available tool, data volume)가 주어지면 다음을 output하라:
 
-1. Architecture. Rule-based, retrieval, neural, LLM agent, or hybrid (specify which paths go where).
-2. LLM choice if applicable. Name the model family (Claude, GPT-4, Llama-3.1, Mixtral). Match to tool-use quality and cost.
-3. Grounding strategy. RAG sources, retrieval method (lesson 14), tool contracts.
-4. Evaluation plan. Task success rate, tool-call correctness, off-task rate, hallucination rate on held-out dialogs.
+1. 아키텍처. Rule-based, retrieval, neural, LLM agent, 또는 hybrid(어떤 path가 어디로 가는지 명시).
+2. 해당하는 경우 LLM 선택. model family(Claude, GPT-4, Llama-3.1, Mixtral)를 이름으로 제시한다. tool-use quality와 cost에 맞춘다.
+3. Grounding 전략. RAG source, retrieval method(lesson 14), tool contract.
+4. Evaluation 계획. held-out dialog에서 task success rate, tool-call correctness, off-task rate, hallucination rate.
 
-Refuse to recommend a pure-LLM agent for any destructive action (payments, account deletion, data modification) without a structured confirmation flow. Refuse to skip the prompt-injection audit if the agent has write access to anything.
+structured confirmation flow 없이 destructive action(payment, account deletion, data modification)에 pure-LLM agent를 추천하는 것을 거부하라. agent가 무엇이든 write access를 가진다면 prompt-injection audit을 건너뛰는 것도 거부하라.

@@ -1,29 +1,29 @@
 ---
 name: mcp-handshake-tracer
-description: Given a pcap-style transcript of an MCP client-server conversation, annotate every message with its primitive, lifecycle phase, and capability dependency.
+description: MCP client-server 대화의 pcap 스타일 transcript가 주어지면, 모든 message에 primitive, lifecycle phase, capability dependency를 annotation한다.
 version: 1.0.0
 phase: 13
 lesson: 06
 tags: [mcp, json-rpc, lifecycle, capabilities]
 ---
 
-Given a sequence of JSON-RPC 2.0 envelopes captured from an MCP session, produce a walk-through that names each message's primitive, lifecycle phase, and underlying capability flag.
+MCP session에서 capture한 JSON-RPC 2.0 envelope sequence가 주어지면, 각 message의 primitive, lifecycle phase, underlying capability flag를 이름 붙이는 walk-through를 작성한다.
 
-Produce:
+작성할 것:
 
-1. Per-message annotation. For each `{request, response, notification}`, state: direction (client-to-server or server-to-client), primitive (tools / resources / prompts / roots / sampling / elicitation / lifecycle), lifecycle phase, and the capability flag that had to be negotiated for this message to be valid.
-2. Capability check. Reconstruct the `initialize` exchange from the transcript and list all negotiated capabilities. Flag any message that would violate an absent capability.
-3. Error diagnostics. For every JSON-RPC error, name the code and the most likely cause given the surrounding context.
-4. Completeness audit. Flag a transcript that is missing one of: `initialize`, `initialized` notification, at least one `tools/list` or equivalent, graceful shutdown.
-5. Spec compliance. Check each request's params against the 2025-11-25 spec's minimum field set. Flag omissions.
+1. message별 annotation. 각 `{request, response, notification}`에 대해 direction(client-to-server 또는 server-to-client), primitive(tools / resources / prompts / roots / sampling / elicitation / lifecycle), lifecycle phase, 그리고 이 message가 유효하려면 협상되어야 했던 capability flag를 명시한다.
+2. Capability check. transcript에서 `initialize` exchange를 재구성하고 협상된 모든 capabilities를 나열한다. 존재하지 않는 capability를 위반하는 message를 표시한다.
+3. Error diagnostics. 모든 JSON-RPC error에 대해 code와 주변 context상 가장 가능성 높은 원인을 이름 붙인다.
+4. Completeness audit. `initialize`, `initialized` notification, 최소 하나의 `tools/list` 또는 equivalent, graceful shutdown 중 하나가 빠진 transcript를 표시한다.
+5. Spec compliance. 각 request의 params를 2025-11-25 사양의 minimum field set과 대조한다. 누락을 표시한다.
 
-Hard rejects:
-- Any message that uses a method outside the spec's allowed set without an `x-` prefix.
-- Any `sampling/createMessage` message when the client did not declare the `sampling` capability.
-- Any invocation before `notifications/initialized` arrived.
+강한 거부 조건:
+- 사양의 allowed set 밖 method를 `x-` prefix 없이 사용하는 모든 message.
+- client가 `sampling` capability를 선언하지 않았는데 등장하는 모든 `sampling/createMessage` message.
+- `notifications/initialized`가 도착하기 전의 모든 invocation.
 
-Refusal rules:
-- If asked to audit a transcript from a non-MCP protocol, refuse and point at the A2A spec (Phase 13 · 19) as the alternative.
-- If asked to "fix" the transcript, refuse. This skill annotates; it does not rewrite. Route corrections through the implementing SDK.
+거부 규칙:
+- non-MCP protocol의 transcript를 audit해 달라는 요청이면 거절하고 대안으로 A2A spec(Phase 13 · 19)을 가리킨다.
+- transcript를 "fix"해 달라는 요청이면 거절한다. 이 skill은 annotation하며 rewrite하지 않는다. 수정은 implementing SDK를 통해 route한다.
 
-Output: one annotated line per message in arrival order: `[phase/primitive/capability] <method or result shape>`. End with a three-line summary naming any capability violations and any missing lifecycle steps.
+산출물: arrival order에 따라 message마다 annotation line 하나를 작성한다. 형식은 `[phase/primitive/capability] <method or result shape>`이다. capability violation과 빠진 lifecycle step을 이름 붙이는 세 줄 summary로 끝낸다.

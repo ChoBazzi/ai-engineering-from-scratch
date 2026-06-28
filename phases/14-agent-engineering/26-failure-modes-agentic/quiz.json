@@ -1,22 +1,22 @@
 {
   "lesson": "26-failure-modes-agentic",
-  "title": "Failure Modes: Why Agents Break",
+  "title": "Failure Modes: 에이전트가 깨지는 이유",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is MASFT's central claim?",
+      "question": "MASFT의 중심 주장은 무엇인가?",
       "options": [
-        "Failures are random noise",
-        "Multi-agent failures are fundamental design flaws, not LLM limitations to be fixed with better base models",
-        "Failures vanish with bigger models",
-        "Failures are due to network outages"
+        "failure는 random noise다",
+        "multi-agent failure는 더 나은 base model로 고칠 LLM limitation이 아니라 근본적인 design flaw다",
+        "더 큰 model을 쓰면 failure가 사라진다",
+        "failure는 network outage 때문이다"
       ],
       "correct": 1,
-      "explanation": "Berkeley's MASFT categorizes failures as design flaws; they do not disappear by scaling the base model."
+      "explanation": "Berkeley의 MASFT는 failure를 design flaw로 분류한다. base model을 scale한다고 사라지지 않는다."
     },
     {
       "stage": "pre",
-      "question": "Which is NOT one of the five recurring industry failure modes the lesson lists?",
+      "question": "다음 중 이 lesson이 나열한 다섯 recurring industry failure mode가 아닌 것은 무엇인가?",
       "options": [
         "Hallucinated actions",
         "Scope creep",
@@ -24,67 +24,67 @@
         "Embedding versioning"
       ],
       "correct": 3,
-      "explanation": "The five are hallucinated actions, scope creep, cascading errors, context loss, tool misuse."
+      "explanation": "다섯 가지는 hallucinated actions, scope creep, cascading errors, context loss, tool misuse다."
     },
     {
       "stage": "check",
-      "question": "What is a cascading error in this lesson?",
+      "question": "이 lesson에서 cascading error란 무엇인가?",
       "options": [
-        "An LLM rate-limit cascade",
-        "One wrong call triggers downstream effects across systems (a phantom SKU triggers four downstream API calls)",
-        "A cron failure",
-        "A YAML parser error"
+        "LLM rate-limit cascade",
+        "잘못된 call 하나가 system 전반의 downstream effect를 유발하는 것(phantom SKU가 네 개 downstream API call을 촉발)",
+        "cron failure",
+        "YAML parser error"
       ],
       "correct": 1,
-      "explanation": "Cascades amplify a single bad call into a multi-system incident; especially severe when agents fake success."
+      "explanation": "cascade는 단일 bad call을 multi-system incident로 증폭한다. agent가 success를 위조할 때 특히 심각하다."
     },
     {
       "stage": "check",
-      "question": "Which two manifestations does the LLM Agent Hallucinations Survey list?",
+      "question": "LLM Agent Hallucinations Survey가 나열하는 두 manifestation은 무엇인가?",
       "options": [
-        "Hot and cold tokens",
-        "Instruction-following Deviation and Long-range Contextual Misuse",
-        "Greedy and beam search",
-        "Soft and hard prompts"
+        "Hot and cold token",
+        "Instruction-following Deviation과 Long-range Contextual Misuse",
+        "greedy search와 beam search",
+        "soft prompt와 hard prompt"
       ],
       "correct": 1,
-      "explanation": "Hallucinations show up as either ignoring system prompt or forgetting/misapplying earlier-turn context."
+      "explanation": "hallucination은 system prompt 무시 또는 earlier-turn context를 잊거나 잘못 적용하는 형태로 나타난다."
     },
     {
       "stage": "check",
-      "question": "What does success hallucination mean?",
+      "question": "success hallucination은 무엇을 뜻하는가?",
       "options": [
-        "The model is overconfident on benchmarks",
-        "The agent returns a success message even though the target state did not change (often on a 400 from a tool)",
-        "The user thinks success when none happened",
-        "A unit test passed"
+        "model이 benchmark에서 과신하는 것",
+        "target state가 변하지 않았는데도 agent가 success message를 반환하는 것(종종 tool의 400에서)",
+        "성공하지 않았는데 사용자가 성공했다고 생각하는 것",
+        "unit test가 통과한 것"
       ],
       "correct": 1,
-      "explanation": "Re-probe environment state; agents commonly fake completion when they cannot distinguish 'I failed' from 'impossible'."
+      "explanation": "environment state를 다시 probe하라. agent는 'I failed'와 'impossible'을 구분하지 못할 때 completion을 흔히 위조한다."
     },
     {
       "stage": "post",
-      "question": "Why is tagging only crashes insufficient?",
+      "question": "crash만 tag하는 것이 충분하지 않은 이유는 무엇인가?",
       "options": [
-        "Crashes are slow",
-        "Most agent failures produce valid-looking output that does not crash; content-level checks are needed",
-        "Crashes leak PII",
-        "Logging is paid"
+        "crash가 느리기 때문이다",
+        "대부분의 agent failure는 crash하지 않는 valid-looking output을 만들기 때문에 content-level check가 필요하다",
+        "crash가 PII를 누출하기 때문이다",
+        "logging이 유료이기 때문이다"
       ],
       "correct": 1,
-      "explanation": "Crash-based monitoring misses the bulk of agent failures, which are content-shaped."
+      "explanation": "crash-based monitoring은 content-shaped인 agent failure 대부분을 놓친다."
     },
     {
       "stage": "post",
-      "question": "What mitigation does the lesson recommend at every step of a reasoning chain?",
+      "question": "이 lesson은 reasoning chain의 모든 step에서 어떤 mitigation을 권하는가?",
       "options": [
-        "Add a sleep()",
-        "Automated verification gates that check factual grounding against environment state",
-        "Disable retries",
-        "Lower temperature only"
+        "sleep()을 추가한다",
+        "environment state에 대한 factual grounding을 확인하는 automated verification gate",
+        "retry를 비활성화한다",
+        "temperature만 낮춘다"
       ],
       "correct": 1,
-      "explanation": "Per-step gates (safety classifier, argument validation, CRITIC, state re-probe) catch failures before they cascade."
+      "explanation": "step별 gate(safety classifier, argument validation, CRITIC, state re-probe)는 failure가 cascade되기 전에 잡는다."
     }
   ]
 }

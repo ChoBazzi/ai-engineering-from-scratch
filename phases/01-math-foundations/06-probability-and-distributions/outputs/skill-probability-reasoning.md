@@ -1,28 +1,28 @@
 ---
 name: skill-probability-reasoning
-description: Choose the right probability distribution for a given ML problem
+description: 주어진 ML 문제에 맞는 확률분포를 선택한다
 version: 1.0.0
 phase: 1
 lesson: 6
 tags: [probability, distributions, modeling]
 ---
 
-# Probability Distribution Selection
+# 확률분포 선택
 
-How to pick the right distribution when modeling data, designing loss functions, or setting priors.
+데이터를 모델링하거나, 손실 함수를 설계하거나, prior를 설정할 때 알맞은 분포를 고르는 방법입니다.
 
-## Decision Checklist
+## 결정 체크리스트
 
-1. Is the outcome discrete (categories, counts) or continuous (measurements, scores)?
-2. Is the outcome bounded (e.g., [0, 1]) or unbounded?
-3. How many possible outcomes are there? Two? k? Infinite?
-4. Is the data symmetric or skewed?
-5. Are events independent or correlated?
-6. Are you modeling a rate, a count, a proportion, or a measurement?
+1. 결과가 이산적인가요(categories, counts), 아니면 연속적인가요(measurements, scores)?
+2. 결과가 bounded인가요(예: [0, 1]), 아니면 unbounded인가요?
+3. 가능한 결과는 몇 개인가요? 두 개? k개? 무한개?
+4. 데이터가 symmetric인가요, skewed인가요?
+5. 사건들이 independent인가요, correlated인가요?
+6. rate, count, proportion, measurement 중 무엇을 모델링하나요?
 
-## Distribution decision tree
+## 분포 결정 트리
 
-```
+```text
 Is the variable discrete?
   Yes --> Only 2 outcomes? --> Bernoulli (p)
      |    k outcomes, one trial? --> Categorical (p1...pk)
@@ -41,7 +41,7 @@ Is the variable discrete?
      |   On a simplex (sums to 1)? --> Dirichlet (alpha)
 ```
 
-## Mapping real-world ML scenarios to distributions
+## 실제 ML 시나리오를 분포에 매핑하기
 
 | Scenario | Distribution | Parameters |
 |---|---|---|
@@ -61,21 +61,21 @@ Is the variable discrete?
 | Duration/lifetime modeling | Weibull or Gamma | shape and scale |
 | Topic distribution per document (LDA) | Dirichlet | alpha < 1 for sparse |
 
-## When distributions go wrong
+## 분포 선택이 잘못될 때
 
-- Using Normal when data has a hard lower bound (e.g., prices, distances). The normal assigns nonzero probability to negative values. Use log-normal or gamma instead.
-- Using Poisson when the variance differs from the mean. Poisson assumes mean = variance. If variance > mean, use negative binomial.
-- Using Bernoulli for multi-class problems. Bernoulli is strictly binary. Use categorical for k > 2.
-- Assuming independence when observations are correlated. Time series, spatial data, and grouped data violate independence. Use autoregressive or hierarchical models.
+- 데이터에 단단한 하한이 있는데도 Normal을 사용하는 경우(예: prices, distances). normal은 음수 값에도 0이 아닌 확률을 부여합니다. 대신 log-normal이나 gamma를 사용하세요.
+- 분산이 평균과 다른데 Poisson을 사용하는 경우. Poisson은 mean = variance를 가정합니다. variance > mean이면 negative binomial을 사용하세요.
+- multi-class 문제에 Bernoulli를 사용하는 경우. Bernoulli는 엄격히 binary입니다. k > 2에는 categorical을 사용하세요.
+- 관측값이 correlated인데 independence를 가정하는 경우. Time series, spatial data, grouped data는 independence를 위반합니다. autoregressive 또는 hierarchical model을 사용하세요.
 
-## Common mistakes
+## 흔한 실수
 
-- Confusing PDF values with probabilities. A PDF can exceed 1. Probability comes from integrating the PDF over an interval.
-- Forgetting that softmax outputs are categorical probabilities, not independent Bernoulli probabilities. They sum to 1 by construction.
-- Using a uniform prior when you have domain knowledge. Informative priors reduce variance without biasing the result if chosen well.
-- Treating log-probabilities as probabilities. Log-probs are always negative (or zero). They do not sum to 1.
+- PDF 값을 확률과 혼동하기. PDF는 1을 초과할 수 있습니다. 확률은 PDF를 구간에 대해 적분해서 나옵니다.
+- softmax 출력이 independent Bernoulli probability가 아니라 categorical probability라는 점을 잊기. softmax 출력은 구성상 합이 1입니다.
+- domain knowledge가 있는데 uniform prior를 사용하기. Informative prior는 잘 선택하면 결과를 편향시키지 않고 variance를 줄입니다.
+- log-probability를 probability처럼 다루기. Log-prob는 항상 음수(또는 0)입니다. 합이 1이 되지 않습니다.
 
-## Quick reference: distribution properties
+## 빠른 참고: 분포 속성
 
 | Distribution | Support | Mean | Variance | Key property |
 |---|---|---|---|---|

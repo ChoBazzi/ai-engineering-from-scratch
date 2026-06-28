@@ -1,94 +1,94 @@
 ---
 name: skill-imbalanced-data
-description: Decision checklist for handling imbalanced classification problems
+description: 불균형 분류 문제를 다루기 위한 의사결정 체크리스트
 version: 1.0.0
 phase: 2
 lesson: 17
 tags: [imbalanced-data, smote, class-weights, threshold-tuning, evaluation]
 ---
 
-# Imbalanced Data Strategy
+# 불균형 데이터 전략
 
-A decision checklist for handling imbalanced classification. Follow this sequence to pick the right approach for your problem.
+불균형 분류를 다루기 위한 의사결정 체크리스트입니다. 문제에 맞는 접근법을 고르려면 이 순서를 따르세요.
 
-## Step 1: Measure the imbalance
+## 1단계: 불균형 측정하기
 
-- Count samples per class
-- Compute the imbalance ratio (majority / minority)
-- Mild: ratio < 3:1 (e.g., 70/30)
-- Moderate: ratio 3:1 to 20:1 (e.g., 95/5)
-- Severe: ratio > 20:1 (e.g., 99/1)
+- 클래스별 샘플 수를 센다
+- 불균형 비율(다수 / 소수)을 계산한다
+- 약함: 비율 < 3:1(예: 70/30)
+- 보통: 비율 3:1부터 20:1까지(예: 95/5)
+- 심함: 비율 > 20:1(예: 99/1)
 
-## Step 2: Pick the right metric
+## 2단계: 올바른 지표 고르기
 
-Prefer precision/recall/F1 over accuracy for imbalanced datasets. Choose based on your problem:
+불균형 데이터셋에서는 정확도보다 정밀도/재현율/F1을 선호하세요. 문제에 따라 선택합니다.
 
-| Situation | Primary Metric | Secondary Metric |
+| 상황 | 주요 지표 | 보조 지표 |
 |-----------|---------------|-----------------|
-| Missing positives is very costly (fraud, disease) | Recall | F2 score |
-| False alarms are costly (spam filter, recommendations) | Precision | F0.5 score |
-| Both matter roughly equally | F1 score | MCC |
-| Need a single ranking metric | AUPRC | AUC-ROC |
-| Need to compare across datasets | MCC | AUPRC |
+| 양성을 놓치는 비용이 매우 큼(사기, 질병) | 재현율 | F2 점수 |
+| 거짓 경보 비용이 큼(스팸 필터, 추천) | 정밀도 | F0.5 점수 |
+| 둘 다 거의 비슷하게 중요함 | F1 점수 | MCC |
+| 단일 순위 지표가 필요함 | AUPRC | AUC-ROC |
+| 데이터셋 간 비교가 필요함 | MCC | AUPRC |
 
-## Step 3: Choose a rebalancing strategy
+## 3단계: 재균형 전략 선택하기
 
-### By imbalance severity
+### 불균형 심각도 기준
 
-| Imbalance | First Try | Second Try | Avoid |
+| 불균형 | 먼저 시도 | 두 번째 시도 | 피할 것 |
 |-----------|-----------|------------|-------|
-| Mild (< 3:1) | Class weights | Threshold tuning | Oversampling (unnecessary) |
-| Moderate (3:1 to 20:1) | SMOTE + class weights | Threshold tuning on top | Undersampling (too much data loss) |
-| Severe (> 20:1) | SMOTE + class weights + threshold | Ensemble with balanced bagging | Undersampling alone |
+| 약함(< 3:1) | 클래스 가중치 | 임계값 튜닝 | 오버샘플링(불필요) |
+| 보통(3:1부터 20:1까지) | SMOTE + 클래스 가중치 | 그 위에 임계값 튜닝 | 언더샘플링(데이터 손실이 너무 큼) |
+| 심함(> 20:1) | SMOTE + 클래스 가중치 + 임계값 | 균형 배깅 앙상블 | 언더샘플링만 사용 |
 
-### By dataset size
+### 데이터셋 크기 기준
 
-| Dataset Size | Preferred Strategy | Reason |
+| 데이터셋 크기 | 선호 전략 | 이유 |
 |-------------|-------------------|--------|
-| < 1,000 samples | Oversampling or SMOTE | Cannot afford to lose majority data |
-| 1,000 - 10,000 | SMOTE + threshold tuning | Enough minority samples for k-NN |
-| > 10,000 | Class weights or undersampling | Fast, sufficient minority data |
+| < 1,000 샘플 | 오버샘플링 또는 SMOTE | 다수 클래스 데이터를 잃을 여유가 없음 |
+| 1,000 - 10,000 | SMOTE + 임계값 튜닝 | k-NN에 충분한 소수 클래스 샘플이 있음 |
+| > 10,000 | 클래스 가중치 또는 언더샘플링 | 빠르고, 소수 클래스 데이터가 충분함 |
 
-## Step 4: Apply the technique
+## 4단계: 기법 적용하기
 
-### Class weights (always try first)
-- In sklearn: `class_weight='balanced'`
-- No data modification needed
-- Works with any loss-based model
-- Equivalent to oversampling in expectation
+### 클래스 가중치(항상 먼저 시도)
+- sklearn에서는: `class_weight='balanced'`
+- 데이터 수정이 필요 없음
+- 손실 기반 모델이라면 어디든 동작함
+- 기대값 관점에서 오버샘플링과 동등함
 
 ### SMOTE
-- Apply only to training data (never test/validation)
-- Use k=5 neighbors (default)
-- Combine with class weights for best results
-- Watch for noisy synthetic points near the boundary
+- 훈련 데이터에만 적용한다(테스트/검증에는 절대 적용하지 않음)
+- k=5 이웃을 사용한다(기본값)
+- 최상의 결과를 위해 클래스 가중치와 결합한다
+- 결정 경계 근처의 노이즈 많은 합성 점을 주의한다
 
-### Threshold tuning
-- Train model, get predicted probabilities on validation set
-- Sweep thresholds from 0.05 to 0.95
-- Pick threshold maximizing your chosen metric
-- Always tune on validation data, never test data
+### 임계값 튜닝
+- 모델을 훈련하고 검증 세트에서 예측 확률을 얻는다
+- 임계값을 0.05부터 0.95까지 훑는다
+- 선택한 지표를 최대화하는 임계값을 고른다
+- 항상 검증 데이터에서 튜닝하고, 테스트 데이터에서는 절대 튜닝하지 않는다
 
-## Step 5: Validate properly
+## 5단계: 올바르게 검증하기
 
-- Use stratified cross-validation (preserves class ratios in each fold)
-- Report metrics on the original (non-resampled) test set
-- Never apply SMOTE before splitting -- only on training folds
-- Compare against the "always predict majority" baseline
+- 층화 교차 검증을 사용한다(각 폴드에서 클래스 비율 보존)
+- 원래의(재샘플링하지 않은) 테스트 세트에서 지표를 보고한다
+- 분할 전에 SMOTE를 적용하지 않는다 -- 훈련 폴드에만 적용한다
+- "항상 다수 클래스를 예측" 기준선과 비교한다
 
-## Step 6: Common mistakes to avoid
+## 6단계: 피해야 할 흔한 실수
 
-- Applying SMOTE to the entire dataset before train/test split (data leakage)
-- Using accuracy as the evaluation metric
-- Not trying class weights first (simplest approach, often sufficient)
-- Oversampling and then cross-validating (synthetic points leak across folds)
-- Ignoring threshold tuning (free performance, no retraining needed)
-- Using random undersampling on small datasets (throws away too much data)
+- 훈련/테스트 분할 전에 전체 데이터셋에 SMOTE를 적용하기(데이터 누수)
+- 평가 지표로 정확도 사용하기
+- 클래스 가중치를 먼저 시도하지 않기(가장 단순하고, 종종 충분함)
+- 오버샘플링한 뒤 교차 검증하기(합성 점이 폴드 사이로 누수됨)
+- 임계값 튜닝 무시하기(재훈련 없이 얻는 공짜 성능)
+- 작은 데이터셋에서 무작위 언더샘플링 사용하기(너무 많은 데이터를 버림)
 
-## Quick Decision Tree
+## 빠른 의사결정 트리
 
-1. Is the imbalance ratio < 3:1? -> Try class weights only
-2. Is the dataset > 10,000 samples? -> Class weights + threshold tuning
-3. Is the dataset < 1,000 samples? -> SMOTE + class weights
-4. Otherwise -> SMOTE + class weights + threshold tuning
-5. Still not good enough? -> Balanced bagging ensemble
+1. 불균형 비율이 < 3:1인가? -> 클래스 가중치만 시도
+2. 데이터셋이 > 10,000 샘플인가? -> 클래스 가중치 + 임계값 튜닝
+3. 데이터셋이 < 1,000 샘플인가? -> SMOTE + 클래스 가중치
+4. 그 외에는 -> SMOTE + 클래스 가중치 + 임계값 튜닝
+5. 그래도 충분하지 않은가? -> 균형 배깅 앙상블

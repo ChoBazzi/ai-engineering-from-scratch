@@ -1,159 +1,159 @@
-# Scaling Laws
+# 스케일링 법칙
 
-> The 2020 Kaplan paper said: bigger model, lower loss. The 2022 Hoffmann paper said: you were under-training. Compute goes into two buckets — parameters and tokens — and the split is not obvious.
+> 2020년 Kaplan 논문은 이렇게 말했다. 모델이 클수록 손실은 낮아진다. 2022년 Hoffmann 논문은 이렇게 말했다. 당신은 모델을 너무 적게 학습시키고 있었다. 계산량은 두 버킷, 즉 파라미터와 토큰으로 들어가며, 그 분배는 직관적이지 않다.
 
 **Type:** Learn
 **Languages:** Python
 **Prerequisites:** Phase 7 · 05 (Full Transformer), Phase 7 · 07 (GPT)
 **Time:** ~45 minutes
 
-## The Problem
+## 문제
 
-When you have C FLOPs of training compute and want the best model, you face two knobs:
+훈련 계산량으로 C FLOPs가 있고 그 안에서 최고의 모델을 얻고 싶다면 두 개의 손잡이를 조절해야 한다.
 
-1. **How many parameters (N)?** Bigger model, higher capacity.
-2. **How many training tokens (D)?** More data, better use of capacity.
+1. **파라미터를 몇 개 둘 것인가(N)?** 더 큰 모델은 더 높은 용량을 가진다.
+2. **훈련 토큰을 몇 개 쓸 것인가(D)?** 더 많은 데이터는 용량을 더 잘 쓰게 해 준다.
 
-FLOPs scale approximately as `6 × N × D`. You can push N up and D down, or D up and N down. Which is better?
+FLOPs는 대략 `6 × N × D`로 스케일한다. N을 올리고 D를 낮출 수도 있고, D를 올리고 N을 낮출 수도 있다. 어느 쪽이 더 나을까?
 
-Before 2022, the answer was "push N hard." GPT-3 (2020) was 175B parameters trained on ~300B tokens. A ratio of about 1.7 tokens per parameter. The Kaplan scaling laws backed this up.
+2022년 전에는 답이 "N을 강하게 밀어붙여라"였다. GPT-3(2020)는 175B 파라미터를 약 300B 토큰으로 학습했다. 파라미터 하나당 약 1.7토큰 비율이다. Kaplan scaling laws가 이 결론을 뒷받침했다.
 
-Hoffmann et al. (2022), training a small family of models called Chinchilla, found something different: optimal ratio is closer to **20 tokens per parameter**. GPT-3 was 10× undertrained. Chinchilla (70B params, 1.4T tokens) beat GPT-3 (175B, 300B tokens) on every benchmark at 2.5× less inference cost.
+Hoffmann 등(2022)은 Chinchilla라는 작은 모델군을 학습하며 다른 결과를 발견했다. 최적 비율은 **파라미터 하나당 20토큰**에 더 가깝다. GPT-3는 10배 덜 학습된 모델이었다. Chinchilla(70B 파라미터, 1.4T 토큰)는 GPT-3(175B, 300B 토큰)를 모든 벤치마크에서 이겼고, 추론 비용은 2.5배 낮았다.
 
-2026 is Chinchilla's world — with one important twist. Llama 3 8B was trained on 15 trillion tokens, a ratio of 1,875 tokens per parameter. Ninety-four times past Chinchilla-optimal. Inference cost matters more than training cost for models that will be used at scale, so over-training (past Chinchilla) for a smaller deployable footprint is the 2026 default.
+2026년은 Chinchilla의 세계다. 다만 중요한 반전이 하나 있다. Llama 3 8B는 15조 토큰으로 학습되었고, 이는 파라미터 하나당 1,875토큰 비율이다. Chinchilla 최적점을 94배나 지난 지점이다. 대규모로 쓰일 모델에서는 훈련 비용보다 추론 비용이 더 중요하므로, 더 작은 배포 가능 모델을 만들기 위해 Chinchilla 이후까지 과훈련(over-training)하는 것이 2026년의 기본값이다.
 
-## The Concept
+## 개념
 
-![Chinchilla curves: loss vs compute at various N/D ratios](../assets/scaling-laws.svg)
+![Chinchilla 곡선: 여러 N/D 비율에서 손실 대 계산량](../assets/scaling-laws.svg)
 
-### The Hoffmann law
+### Hoffmann 법칙
 
-From the Chinchilla paper, loss follows:
+Chinchilla 논문에 따르면 손실은 다음을 따른다.
 
-```
+```text
 L(N, D) = A / N^α + B / D^β + E
 ```
 
-- `N` = parameters (non-embedding).
-- `D` = training tokens.
-- `α ≈ 0.34`, `β ≈ 0.28` (roughly symmetric).
-- `E ≈ 1.69`, the irreducible loss ceiling.
+- `N` = 파라미터 수(임베딩 제외).
+- `D` = 훈련 토큰 수.
+- `α ≈ 0.34`, `β ≈ 0.28`(대략 대칭).
+- `E ≈ 1.69`, 줄일 수 없는 손실 하한.
 - `A ≈ 406`, `B ≈ 411`.
 
-Two terms trade against each other as you scale. Take the derivative w.r.t. `N` at fixed compute (C = 6ND) and solve:
+스케일을 키울 때 두 항은 서로 맞바뀐다. 고정된 계산량(C = 6ND)에서 `N`에 대한 미분을 잡고 풀면 다음과 같다.
 
-```
+```text
 N_opt ≈ 0.6 × (C/6)^0.5
 D_opt ≈ 0.6 × (C/6)^0.5
 D_opt / N_opt ≈ 20
 ```
 
-Compute-optimal: 20 tokens per parameter.
+계산 최적점은 파라미터 하나당 20토큰이다.
 
-### Why over-training anyway
+### 그래도 왜 과훈련하는가
 
-Chinchilla-optimal minimizes training loss per training FLOP. But you pay training cost once; inference cost forever.
+Chinchilla 최적점은 훈련 FLOP당 훈련 손실을 최소화한다. 하지만 훈련 비용은 한 번만 내고, 추론 비용은 계속 낸다.
 
-For a chatbot that serves a trillion tokens per month, inference dominates total cost. Llama's approach: train smaller, longer. 8B at 15T tokens is deeply inference-optimized:
+한 달에 1조 토큰을 처리하는 챗봇이라면 총비용은 추론이 지배한다. Llama의 접근은 더 작은 모델을 더 오래 학습시키는 것이다. 15T 토큰으로 학습한 8B 모델은 추론에 깊게 최적화되어 있다.
 
-- Fits on consumer GPUs.
-- Latency is a fraction of 70B Chinchilla-optimal.
-- Quality is close enough for most tasks.
+- 소비자용 GPU에 올라간다.
+- 지연 시간이 Chinchilla 최적인 70B 모델의 일부에 불과하다.
+- 대부분의 작업에는 품질이 충분히 가깝다.
 
-DeepMind's 2024 paper ("Over-training is the new optimal") formalized this. For inference-dominated workloads, the right ratio is closer to 100–500 tokens per parameter depending on serving volume.
+DeepMind의 2024년 논문("Over-training is the new optimal")은 이를 형식화했다. 추론이 지배적인 워크로드에서는 제공량에 따라 파라미터 하나당 100-500토큰에 가까운 비율이 맞다.
 
-### Emergence vs smoothness
+### 창발성 대 매끄러움
 
-Claim: certain abilities (arithmetic, multi-step reasoning, chain-of-thought following) "emerge" suddenly at some scale.
+주장: 어떤 능력(산술, 다단계 추론, chain-of-thought 따르기)은 특정 스케일에서 갑자기 "창발"한다.
 
-Schaeffer et al. (2023) argued this is a measurement artifact: emergent metrics use discontinuous scoring (exact match, accuracy at threshold) that hide smooth improvement in the underlying logits. Continuous metrics (cross-entropy) show smooth curves.
+Schaeffer 등(2023)은 이것이 측정 인공물이라고 주장했다. 창발 지표는 불연속 채점(정확 일치, 임계값 기준 정확도)을 사용해, 기저 logits에서 일어나는 매끄러운 개선을 숨긴다. 연속 지표(교차 엔트로피)는 매끄러운 곡선을 보인다.
 
-In 2026 the consensus is: predictions via continuous loss are reliable. Benchmark jumps are often scorer artifacts. Plan budgets against continuous metrics.
+2026년의 합의는 이렇다. 연속 손실을 통한 예측은 신뢰할 수 있다. 벤치마크 점프는 종종 채점기 인공물이다. 예산은 연속 지표를 기준으로 계획하라.
 
-### The 2026 picture
+### 2026년의 그림
 
-Scaling laws still work, but:
+스케일링 법칙은 여전히 작동하지만 다음이 달라졌다.
 
-| Factor | Changed how |
+| 요소 | 어떻게 달라졌나 |
 |--------|-------------|
-| Data quality | Curating "good" tokens (Phi-style) shifts curves by >2× effective compute |
-| MoE | Total params decouple from active FLOPs; scaling laws per-active-FLOP |
-| Post-training | Some capabilities (instruction following, code) shift with SFT+RLHF more than pretraining |
-| Multimodality | Image + text tokens scale together; separate curves per modality |
-| Synthetic data | Models generate training data; effective compute can compound |
+| 데이터 품질 | "좋은" 토큰 선별(Phi 스타일)이 곡선을 2배 이상의 유효 계산량만큼 이동시킨다 |
+| MoE | 전체 파라미터가 활성 FLOPs와 분리된다. 스케일링 법칙은 활성 FLOP 기준으로 본다 |
+| 사후 학습 | 일부 능력(명령 따르기, 코드)은 사전학습보다 SFT+RLHF로 더 크게 이동한다 |
+| 멀티모달리티 | 이미지와 텍스트 토큰이 함께 스케일한다. 모달리티별 곡선은 따로 둔다 |
+| 합성 데이터 | 모델이 훈련 데이터를 생성한다. 유효 계산량이 복리처럼 늘 수 있다 |
 
-The Muon optimizer (Kimi Moonlight, 2024) showed a ~2× effective-compute gain over AdamW at matched data. Some 2026 training runs use Muon by default. Changes the absolute constant in the scaling law, not its shape.
+Muon 옵티마이저(Kimi Moonlight, 2024)는 같은 데이터에서 AdamW 대비 약 2배의 유효 계산량 이득을 보였다. 일부 2026년 훈련 런은 Muon을 기본값으로 쓴다. 이는 스케일링 법칙의 절대 상수를 바꾸지만, 모양은 바꾸지 않는다.
 
 ```figure
 scaling-laws
 ```
 
-## Build It
+## 직접 만들기
 
-See `code/main.py`. We implement the Chinchilla loss equation and solve for compute-optimal `(N, D)` at each of several compute budgets.
+`code/main.py`를 보라. Chinchilla 손실 방정식을 구현하고, 여러 계산 예산 각각에서 계산 최적 `(N, D)`를 푼다.
 
-### Step 1: Chinchilla loss
+### 1단계: Chinchilla 손실
 
 ```python
 def chinchilla_loss(N, D, A=406.4, B=410.7, alpha=0.34, beta=0.28, E=1.69):
     return A / N ** alpha + B / D ** beta + E
 ```
 
-Plot `L` as a contour over `(N, D)` at fixed `C = 6ND`. Find the minimum.
+고정된 `C = 6ND`에서 `(N, D)` 위에 `L`의 등고선을 그린다. 최솟값을 찾는다.
 
-### Step 2: compute-optimal frontier
+### 2단계: 계산 최적 전선
 
-For compute budgets from `1e17` to `1e25` FLOPs, find `(N, D)` that minimize loss subject to `6ND = C`. Verify the ratio `D/N ≈ 20`.
+`1e17`부터 `1e25` FLOPs까지의 계산 예산에 대해, `6ND = C` 조건에서 손실을 최소화하는 `(N, D)`를 찾는다. `D/N ≈ 20` 비율을 확인한다.
 
-### Step 3: over-training cost
+### 3단계: 과훈련 비용
 
-Compute the extra loss you pay to train a 10× smaller model (1/10 of optimal N, 10× the optimal D). Reports the inference FLOP savings (proportional to N) in exchange.
+10배 더 작은 모델(최적 N의 1/10, 최적 D의 10배)을 학습시키기 위해 치르는 추가 손실을 계산한다. 그 대가로 얻는 추론 FLOP 절감량(N에 비례)을 보고한다.
 
-### Step 4: compare to real models
+### 4단계: 실제 모델과 비교
 
-Drop in known `(N, D)` pairs for GPT-3, Chinchilla, Llama 3 8B, DeepSeek-V3 (active params), and compare predicted vs reported loss.
+GPT-3, Chinchilla, Llama 3 8B, DeepSeek-V3(활성 파라미터)의 알려진 `(N, D)` 쌍을 넣고 예측 손실과 보고된 손실을 비교한다.
 
-## Use It
+## 활용하기
 
-You're unlikely to train a frontier model yourself. But scaling laws tell you:
+직접 frontier 모델을 학습할 일은 거의 없을 것이다. 하지만 스케일링 법칙은 다음을 알려 준다.
 
-1. **Whether your fine-tune has enough data.** If your task-specific data is below 20 tokens per param of the base model, expect saturation at some loss floor.
-2. **Whether to pick a bigger base model.** If you're spending all your budget on inference, prefer a smaller, longer-trained model.
-3. **Where the returns diminish.** Beyond 1000× Chinchilla-optimal, log-loss changes become noise.
+1. **파인튜닝 데이터가 충분한지.** 작업별 데이터가 기본 모델 파라미터 하나당 20토큰보다 적다면 어떤 손실 바닥에서 포화될 것을 예상하라.
+2. **더 큰 기본 모델을 고를지.** 예산 대부분을 추론에 쓰고 있다면 더 작고 더 오래 학습된 모델을 선호하라.
+3. **수익이 줄어드는 지점.** Chinchilla 최적점의 1000배를 넘으면 로그 손실 변화는 잡음에 가까워진다.
 
-**The research trajectory in 2026:**
+**2026년 연구 흐름:**
 
-- **Data-constrained regime.** The web has a finite number of high-quality tokens (~5–10 trillion English after filtering). Frontier pretraining is approaching this ceiling. Synthetic data, multilingual, multimodal, and RLHF-scaled fine-tuning are the next levers.
-- **Compute-multiplier tricks.** Muon optimizer, MoE, better data curation — each shifts the absolute constants, not the asymptote.
-- **Scaling laws for RL.** Open question. Early evidence suggests power-law in RL samples but with very different exponents than pretraining.
+- **데이터 제약 구간.** 웹에는 고품질 토큰이 유한하게 있다(필터링 후 영어 약 5-10조). Frontier 사전학습은 이 상한에 접근하고 있다. 합성 데이터, 다국어, 멀티모달, RLHF로 스케일한 파인튜닝이 다음 손잡이다.
+- **계산량 배수 트릭.** Muon 옵티마이저, MoE, 더 나은 데이터 선별은 각각 절대 상수를 이동시키지만 점근선은 바꾸지 않는다.
+- **RL용 스케일링 법칙.** 열린 질문이다. 초기 증거는 RL 샘플에서도 power law가 있음을 시사하지만, 지수는 사전학습과 매우 다르다.
 
-## Ship It
+## 출시하기
 
-See `outputs/skill-training-budget-estimator.md`. The skill picks `(N, D, hours, GPU)` for a new training run given compute budget, deployment constraints, and target loss.
+`outputs/skill-training-budget-estimator.md`를 보라. 이 스킬은 계산 예산, 배포 제약, 목표 손실이 주어졌을 때 새 훈련 런의 `(N, D, hours, GPU)`를 고른다.
 
-## Exercises
+## 연습 문제
 
-1. **Easy.** Run `code/main.py`. Print Chinchilla-optimal `(N, D)` for compute budgets `1e20`, `1e22`, `1e24`. Compare to the real model table.
-2. **Medium.** Implement the Hoffmann loss-as-function-of-compute curve. Plot loss vs `log10(C)` for the compute-optimal frontier. Identify when the law predicts we'd need `>10^28` FLOPs for the next 0.1 reduction in cross-entropy.
-3. **Hard.** Fit your own scaling law on 5 tiny models (100K to 10M params) trained on the same dataset. Estimate `α` and `E`. How well do your exponents match published ones?
+1. **쉬움.** `code/main.py`를 실행하라. 계산 예산 `1e20`, `1e22`, `1e24`에 대해 Chinchilla 최적 `(N, D)`를 출력하라. 실제 모델 표와 비교하라.
+2. **중간.** 계산량의 함수로 보는 Hoffmann 손실 곡선을 구현하라. 계산 최적 전선에 대해 손실 대 `log10(C)`를 그려라. 교차 엔트로피를 다음 0.1만큼 줄이려면 법칙상 `>10^28` FLOPs가 필요해지는 시점을 찾으라.
+3. **어려움.** 같은 데이터셋으로 학습한 아주 작은 모델 5개(100K-10M 파라미터)에 대해 직접 스케일링 법칙을 맞춰 보라. `α`와 `E`를 추정하라. 당신의 지수는 공개된 지수와 얼마나 잘 맞는가?
 
-## Key Terms
+## 핵심 용어
 
-| Term | What people say | What it actually means |
+| 용어 | 사람들이 하는 말 | 실제 의미 |
 |------|-----------------|-----------------------|
-| Parameters (N) | "Model size" | Non-embedding weight count; determines capacity. |
-| Tokens (D) | "Training data" | Number of training tokens seen; determines how well the parameters get used. |
-| Compute (C) | "FLOPs spent" | Approximately `6 × N × D` for a standard transformer. |
-| Chinchilla-optimal | "D/N ≈ 20" | Ratio that minimizes loss per FLOP of pretraining. |
-| Over-training | "Past Chinchilla" | Spend extra training FLOPs to save inference FLOPs; D/N >> 20. |
-| Irreducible loss | "The floor" | The `E` term in the scaling law; the entropy of the data itself. |
-| Emergent capability | "Sudden jumps at scale" | Often a scorer artifact; continuous loss is smooth. |
-| Effective compute | "Training-efficiency multiplier" | Better data / optimizer / architecture multiplies how far a FLOP goes. |
+| Parameters (N) | "모델 크기" | 임베딩 제외 가중치 수. 용량을 결정한다. |
+| Tokens (D) | "훈련 데이터" | 학습 중 본 훈련 토큰 수. 파라미터가 얼마나 잘 쓰이는지를 결정한다. |
+| Compute (C) | "쓴 FLOPs" | 표준 트랜스포머에서는 대략 `6 × N × D`. |
+| Chinchilla-optimal | "D/N ≈ 20" | 사전학습 FLOP당 손실을 최소화하는 비율. |
+| Over-training | "Chinchilla 이후" | 추론 FLOPs를 아끼기 위해 추가 훈련 FLOPs를 쓴다. D/N >> 20. |
+| Irreducible loss | "바닥" | 스케일링 법칙의 `E` 항. 데이터 자체의 엔트로피. |
+| Emergent capability | "스케일에서 갑자기 점프" | 종종 채점기 인공물이다. 연속 손실은 매끄럽다. |
+| Effective compute | "훈련 효율 배수" | 더 좋은 데이터 / 옵티마이저 / 아키텍처가 FLOP 하나가 가는 거리를 곱해 준다. |
 
-## Further Reading
+## 더 읽을거리
 
-- [Kaplan et al. (2020). Scaling Laws for Neural Language Models](https://arxiv.org/abs/2001.08361) — the first scaling law paper; undertrained.
+- [Kaplan et al. (2020). Scaling Laws for Neural Language Models](https://arxiv.org/abs/2001.08361) — 최초의 스케일링 법칙 논문. 덜 학습된 모델을 기준으로 했다.
 - [Hoffmann et al. (2022). Training Compute-Optimal Large Language Models](https://arxiv.org/abs/2203.15556) — Chinchilla.
-- [Schaeffer et al. (2023). Are Emergent Abilities of Large Language Models a Mirage?](https://arxiv.org/abs/2304.15004) — emergence as measurement artifact.
-- [Sardana, Frankle (2024). Beyond Chinchilla-Optimal: Accounting for Inference in Language Model Scaling Laws](https://arxiv.org/abs/2401.00448) — why Llama's over-training is right for its workload.
-- [Jordan et al. (2024). Muon: An optimizer for hidden layers in neural networks](https://kellerjordan.github.io/posts/muon/) — 2× compute multiplier.
+- [Schaeffer et al. (2023). Are Emergent Abilities of Large Language Models a Mirage?](https://arxiv.org/abs/2304.15004) — 측정 인공물로서의 창발성.
+- [Sardana, Frankle (2024). Beyond Chinchilla-Optimal: Accounting for Inference in Language Model Scaling Laws](https://arxiv.org/abs/2401.00448) — Llama의 과훈련이 해당 워크로드에 맞는 이유.
+- [Jordan et al. (2024). Muon: An optimizer for hidden layers in neural networks](https://kellerjordan.github.io/posts/muon/) — 2배 계산량 배수.

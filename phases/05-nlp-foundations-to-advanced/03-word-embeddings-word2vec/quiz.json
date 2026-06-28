@@ -1,102 +1,102 @@
 {
   "lesson": "03-word-embeddings-word2vec",
-  "title": "Word Embeddings — Word2Vec from Scratch",
+  "title": "Word Embeddings — Word2Vec 직접 구현",
   "questions": [
     {
       "stage": "pre",
-      "question": "What is the distributional hypothesis?",
+      "question": "distributional hypothesis란 무엇인가요?",
       "options": [
-        "You shall know a word by the company it keeps",
-        "Words are uniformly distributed across documents",
-        "All words can be embedded in 300 dimensions",
-        "Frequent words carry the most meaning"
+        "단어는 함께 등장하는 이웃으로 알 수 있다는 생각",
+        "단어는 문서 전체에 균일하게 분포한다는 생각",
+        "모든 단어는 300차원에 embedding될 수 있다는 생각",
+        "빈번한 단어가 가장 많은 의미를 담는다는 생각"
       ],
       "correct": 0,
-      "explanation": "Firth's (1957) distributional hypothesis: similar contexts imply similar meanings."
+      "explanation": "Firth(1957)의 distributional hypothesis: 비슷한 context는 비슷한 meaning을 암시합니다."
     },
     {
       "stage": "pre",
-      "question": "Why is plain softmax over the vocabulary impractical in Word2Vec?",
+      "question": "Word2Vec에서 vocabulary 전체에 대한 plain softmax가 비현실적인 이유는 무엇인가요?",
       "options": [
-        "Computing softmax over 100k+ vocabulary terms is prohibitively expensive per training step",
-        "Softmax cannot model probabilities",
-        "Softmax has no gradient",
-        "It causes vanishing gradients"
+        "학습 step마다 100k+ vocabulary term 전체에 softmax를 계산하는 비용이 지나치게 크기 때문입니다",
+        "Softmax는 확률을 모델링할 수 없기 때문입니다",
+        "Softmax에는 gradient가 없기 때문입니다",
+        "vanishing gradient를 일으키기 때문입니다"
       ],
       "correct": 0,
-      "explanation": "Full-vocabulary softmax is too expensive; negative sampling reformulates it as binary classification."
+      "explanation": "full-vocabulary softmax는 너무 비싸므로 negative sampling이 이를 binary classification으로 다시 표현합니다."
     },
     {
       "stage": "check",
-      "question": "What is the difference between skip-gram and CBOW?",
+      "question": "Skip-gram과 CBOW의 차이는 무엇인가요?",
       "options": [
-        "Skip-gram uses bigrams; CBOW uses unigrams",
-        "Skip-gram predicts context words from the center; CBOW predicts the center from context",
-        "Skip-gram predicts the center word from context; CBOW does the reverse",
-        "Skip-gram trains a deep network; CBOW is shallow"
+        "Skip-gram은 bigram을 쓰고 CBOW는 unigram을 씁니다",
+        "Skip-gram은 center에서 context word를 예측하고, CBOW는 context에서 center를 예측합니다",
+        "Skip-gram은 context에서 center word를 예측하고, CBOW는 그 반대입니다",
+        "Skip-gram은 deep network를 학습하고, CBOW는 shallow network입니다"
       ],
       "correct": 1,
       "explanation": "Skip-gram: center -> context. CBOW: context -> center."
     },
     {
       "stage": "check",
-      "question": "In negative sampling, what is the objective for the positive pair (center, context)?",
+      "question": "negative sampling에서 positive pair (center, context)에 대한 objective는 무엇인가요?",
       "options": [
-        "Maximize sigmoid(W[center] dot W'[context]) so it is close to 1",
-        "Force them to be orthogonal",
-        "Minimize their dot product",
-        "Decorrelate the vectors"
+        "sigmoid(W[center] dot W'[context])를 최대화해 1에 가깝게 만듭니다",
+        "두 vector가 orthogonal이 되도록 강제합니다",
+        "두 vector의 dot product를 최소화합니다",
+        "vector들의 상관을 제거합니다"
       ],
       "correct": 0,
-      "explanation": "Positive pairs train sigmoid near 1; sampled negatives train sigmoid near 0."
+      "explanation": "Positive pair는 sigmoid가 1에 가까워지도록 학습하고, sampled negative는 sigmoid가 0에 가까워지도록 학습합니다."
     },
     {
       "stage": "check",
-      "question": "After training Word2Vec, which weight matrix becomes the word embeddings?",
+      "question": "Word2Vec 학습 후 어떤 weight matrix가 word embedding이 되나요?",
       "options": [
-        "A separate post-training projection",
-        "The input-to-hidden W matrix (center-word table)",
-        "Both, multiplied together",
-        "The hidden-to-output W' matrix"
+        "별도의 post-training projection",
+        "input-to-hidden W matrix(center-word table)",
+        "둘을 곱한 결과",
+        "hidden-to-output W' matrix"
       ],
       "correct": 1,
-      "explanation": "The center-word table W is the standard embedding output; W' is often discarded or averaged in."
+      "explanation": "center-word table W가 표준 embedding output입니다. W'는 대개 버리거나 평균에 포함합니다."
     },
     {
       "stage": "post",
-      "question": "Why does Word2Vec fail on polysemy (e.g. 'bank')?",
+      "question": "Word2Vec이 polysemy(예: 'bank')에서 실패하는 이유는 무엇인가요?",
       "options": [
-        "The window size is too small",
-        "It ignores rare words",
-        "Negative sampling drops rare meanings",
-        "It assigns one static vector per word, so 'river bank' and 'financial bank' share the same vector"
+        "window size가 너무 작기 때문입니다",
+        "rare word를 무시하기 때문입니다",
+        "negative sampling이 rare meaning을 버리기 때문입니다",
+        "단어마다 static vector 하나를 할당하므로 'river bank'와 'financial bank'가 같은 vector를 공유하기 때문입니다"
       ],
       "correct": 3,
-      "explanation": "Static embeddings cannot disambiguate senses; contextual embeddings (ELMo/BERT) fix this."
+      "explanation": "Static embedding은 sense를 구분할 수 없습니다. contextual embedding(ELMo/BERT)이 이를 고칩니다."
     },
     {
       "stage": "post",
-      "question": "When would you still reach for Word2Vec over a transformer in 2026?",
+      "question": "2026년에 transformer 대신 Word2Vec을 여전히 선택할 상황은 언제인가요?",
       "options": [
-        "Lightweight, on-device, domain-specific retrieval where a single row lookup is the latency budget",
-        "When you need contextual disambiguation",
-        "When inputs are very long",
-        "When dialog quality matters"
+        "single row lookup이 latency budget인 lightweight, on-device, domain-specific retrieval",
+        "contextual disambiguation이 필요할 때",
+        "입력이 매우 길 때",
+        "dialog quality가 중요할 때"
       ],
       "correct": 0,
-      "explanation": "Word2Vec wins on tiny latency budgets, on-device inference, or fast domain-specific training."
+      "explanation": "Word2Vec은 매우 작은 latency budget, on-device inference, 빠른 domain-specific training에서 이깁니다."
     },
     {
       "stage": "post",
-      "question": "What enables the famous analogy 'king - man + woman ~ queen'?",
+      "question": "유명한 analogy 'king - man + woman ~ queen'을 가능하게 하는 것은 무엇인가요?",
       "options": [
-        "The model encodes royalty as a flag bit",
-        "Skip-gram trains on royal vocabularies",
-        "Vector arithmetic captures linear directions like 'royal' that transfer across genders",
-        "Cosine similarity is invariant to gender"
+        "모델이 royalty를 flag bit로 encoding합니다",
+        "Skip-gram이 royal vocabulary로 학습합니다",
+        "Vector arithmetic이 gender를 가로질러 전이되는 'royal' 같은 linear direction을 포착합니다",
+        "Cosine similarity가 gender에 invariant입니다"
       ],
       "correct": 2,
-      "explanation": "Directions in embedding space encode relational features, so adding/subtracting moves systematically."
+      "explanation": "embedding space의 direction은 relational feature를 encoding하므로, 더하고 빼면 체계적으로 이동합니다."
     }
   ]
 }

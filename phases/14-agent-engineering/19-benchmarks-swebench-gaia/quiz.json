@@ -1,58 +1,58 @@
 {
   "lesson": "19-benchmarks-swebench-gaia",
-  "title": "Benchmarks: SWE-bench, GAIA, AgentBench",
+  "title": "Benchmark: SWE-bench, GAIA, AgentBench",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does SWE-bench's evaluator check on a candidate patch?",
+      "question": "SWE-bench evaluator는 candidate patch에서 무엇을 확인하는가?",
       "options": [
-        "BLEU score against the reference fix",
-        "Previously failing tests now pass (FAIL_TO_PASS) and previously passing tests still pass (PASS_TO_PASS)",
-        "Patch length under 200 lines",
-        "Patch passes a separate LLM judge"
+        "reference fix 대비 BLEU score",
+        "이전에 실패하던 test가 이제 통과하고(FAIL_TO_PASS), 이전에 통과하던 test가 계속 통과하는지(PASS_TO_PASS)",
+        "patch 길이가 200줄 미만인지",
+        "별도 LLM judge를 통과하는지"
       ],
       "correct": 1,
-      "explanation": "The harness gates on test transitions: bug-revealing tests must flip while regression tests must stay green."
+      "explanation": "harness는 test transition으로 gate한다. bug를 드러내던 test는 뒤집혀야 하고 regression test는 계속 green이어야 한다."
     },
     {
       "stage": "pre",
-      "question": "Why does SWE-bench Verified exist?",
+      "question": "SWE-bench Verified는 왜 존재하는가?",
       "options": [
-        "It runs faster",
-        "OpenAI's 500-task human-curated subset removes ambiguous issues and unreliable tests",
-        "It includes more languages",
-        "It uses a different patch format"
+        "더 빨리 실행되기 때문에",
+        "OpenAI의 500-task human-curated subset이 애매한 issue와 신뢰할 수 없는 test를 제거하기 때문에",
+        "더 많은 언어를 포함하기 때문에",
+        "다른 patch format을 사용하기 때문에"
       ],
       "correct": 1,
-      "explanation": "Verified is the cleaner subset for credible reporting."
+      "explanation": "Verified는 신뢰할 수 있는 reporting을 위한 더 깨끗한 subset이다."
     },
     {
       "stage": "check",
-      "question": "What did SWE-bench+ find about successful patches?",
+      "question": "SWE-bench+는 성공한 patch에 대해 무엇을 발견했는가?",
       "options": [
-        "32.67% leaked solution text in the issue and 31.08% had suspiciously weak test coverage",
-        "All patches were memorized",
-        "There is no contamination",
-        "Patches always exceeded 1000 lines"
+        "32.67%는 issue에 solution text가 누출되어 있었고 31.08%는 test coverage가 의심스러울 만큼 약했다",
+        "모든 patch가 memorized되어 있었다",
+        "contamination은 전혀 없다",
+        "patch가 항상 1000줄을 넘었다"
       ],
       "correct": 0,
-      "explanation": "SWE-bench+ flagged solution leakage and weak coverage on a large fraction of successful patches."
+      "explanation": "SWE-bench+는 성공한 patch의 큰 비율에서 solution leakage와 약한 coverage를 flag했다."
     },
     {
       "stage": "check",
-      "question": "What is GAIA's design philosophy?",
+      "question": "GAIA의 설계 철학은 무엇인가?",
       "options": [
-        "Hard for humans, easy for AI",
-        "Conceptually simple for humans (about 92%) but hard for AI (early GPT-4 with plugins: about 15%)",
-        "Pure benchmark of vector retrieval",
-        "Only single-turn questions"
+        "사람에게는 어렵고 AI에게는 쉽다",
+        "사람에게는 개념적으로 단순하지만(약 92%) AI에게는 어렵다(초기 GPT-4 with plugins: 약 15%)",
+        "순수 vector retrieval benchmark",
+        "single-turn question만 포함한다"
       ],
       "correct": 1,
-      "explanation": "GAIA is intentionally easy-for-humans, hard-for-AI, testing reasoning + tools + modality."
+      "explanation": "GAIA는 reasoning + tool + modality를 테스트하며 의도적으로 사람에게 쉽고 AI에게 어렵다."
     },
     {
       "stage": "check",
-      "question": "Which is NOT one of AgentBench's environment categories?",
+      "question": "다음 중 AgentBench의 environment category가 아닌 것은?",
       "options": [
         "Code (Bash, DB, KG)",
         "Games (Alfworld, LTP)",
@@ -60,31 +60,31 @@
         "Gradient (RL, IRL)"
       ],
       "correct": 3,
-      "explanation": "AgentBench covers code, games, web, and open-ended generation. There is no gradient category."
+      "explanation": "AgentBench는 code, game, web, open-ended generation을 다룬다. gradient category는 없다."
     },
     {
       "stage": "post",
-      "question": "What does the lesson identify as the wrong way to report SWE-bench numbers?",
+      "question": "lesson이 SWE-bench 수치를 보고하는 잘못된 방식으로 지적하는 것은 무엇인가?",
       "options": [
-        "Reporting per-repo breakdowns",
-        "Reporting one aggregate number without mentioning Verified or SWE-bench+ context",
-        "Reporting step counts",
-        "Reporting wall-clock"
+        "repo별 breakdown을 보고하는 것",
+        "Verified나 SWE-bench+ context를 언급하지 않고 aggregate number 하나만 보고하는 것",
+        "step count를 보고하는 것",
+        "wall-clock을 보고하는 것"
       ],
       "correct": 1,
-      "explanation": "Single-number fixation hides contamination and cost; always report Verified and per-distribution context."
+      "explanation": "single-number fixation은 contamination과 cost를 숨긴다. 항상 Verified와 distribution context를 보고하라."
     },
     {
       "stage": "post",
-      "question": "Which dimension do these benchmarks NOT measure?",
+      "question": "이 benchmark들이 측정하지 않는 차원은 무엇인가?",
       "options": [
-        "Real-world operational cost (tokens, wall-clock), adversarial safety, and your own domain",
-        "Test transitions",
-        "Per-task success",
-        "Step counts"
+        "실제 운영 비용(tokens, wall-clock), adversarial safety, 자체 domain",
+        "test transition",
+        "task별 success",
+        "step count"
       ],
       "correct": 0,
-      "explanation": "Benchmarks aggregate; they do not capture cost, adversarial robustness, or your domain."
+      "explanation": "benchmark는 aggregate한다. cost, adversarial robustness, 당신의 domain은 포착하지 않는다."
     }
   ]
 }

@@ -1,34 +1,34 @@
 {
   "lesson": "07-memory-virtual-context-memgpt",
-  "title": "Memory: Virtual Context and MemGPT",
+  "title": "Memory: Virtual Context와 MemGPT",
   "questions": [
     {
       "stage": "pre",
-      "question": "What OS analogy does MemGPT build on?",
+      "question": "MemGPT가 기반으로 삼는 OS analogy는 무엇인가요?",
       "options": [
-        "Processes and threads",
-        "Virtual memory: main context as RAM, external store as disk, memory tools as page in and out",
-        "Network sockets",
-        "File descriptors"
+        "process와 thread",
+        "virtual memory: main context는 RAM, external store는 disk, memory tool은 page in/out",
+        "network socket",
+        "file descriptor"
       ],
       "correct": 1,
-      "explanation": "MemGPT maps prompt to RAM, external store to disk, and memory tools to page-fault-style transfers."
+      "explanation": "MemGPT는 prompt를 RAM에, external store를 disk에, memory tool을 page-fault-style transfer에 mapping합니다."
     },
     {
       "stage": "pre",
-      "question": "Why do bigger context windows not fully solve memory?",
+      "question": "더 큰 context window가 memory를 완전히 해결하지 못하는 이유는 무엇인가요?",
       "options": [
-        "Providers cap them at 4k tokens",
-        "Overflow, dilution of attention, and lack of cross-session persistence still bite even with 128k windows",
-        "Long context costs nothing",
-        "The model refuses long input"
+        "provider가 4k token으로 cap을 두기 때문",
+        "128k window에서도 overflow, attention dilution, cross-session persistence 부족이 여전히 문제가 되기 때문",
+        "long context에는 비용이 전혀 들지 않기 때문",
+        "model이 long input을 거부하기 때문"
       ],
       "correct": 1,
-      "explanation": "Mem0 measured 128k-window baselines still missing facts a 4k agent with external memory catches; overflow, dilution, and persistence remain."
+      "explanation": "Mem0는 128k-window baseline도 external memory를 가진 4k agent가 잡는 fact를 놓친다고 측정했습니다. overflow, dilution, persistence가 남아 있습니다."
     },
     {
       "stage": "check",
-      "question": "Which of these is NOT one of MemGPT's canonical memory tools?",
+      "question": "다음 중 MemGPT의 canonical memory tool이 아닌 것은 무엇인가요?",
       "options": [
         "core_memory_append",
         "archival_memory_search",
@@ -36,23 +36,23 @@
         "gradient_memory_update"
       ],
       "correct": 3,
-      "explanation": "There is no gradient memory tool; the surface is core/archival/conversation operations."
+      "explanation": "gradient memory tool은 없습니다. surface는 core/archival/conversation operation입니다."
     },
     {
       "stage": "check",
-      "question": "What does the interrupt pattern do in MemGPT?",
+      "question": "MemGPT에서 interrupt pattern은 무엇을 하나요?",
       "options": [
-        "It halts the entire agent run on any error",
-        "Mid-conversation the agent invokes a memory tool, the runtime executes it, and the result splices into the next turn",
-        "It bypasses the context window entirely",
-        "It triggers a model retrain"
+        "error가 나면 entire agent run을 halt한다",
+        "conversation 중 agent가 memory tool을 invoke하고, runtime이 실행하며, result가 next turn에 splice된다",
+        "context window를 완전히 우회한다",
+        "model retrain을 trigger한다"
       ],
       "correct": 1,
-      "explanation": "Memory-as-interrupt: invoke memory tool, runtime fetches, result returns as a new observation on the next turn (like a Unix read())."
+      "explanation": "memory-as-interrupt는 memory tool을 invoke하고 runtime이 fetch하며 result가 next turn에 new observation으로 돌아오는 것입니다(Unix read()와 유사)."
     },
     {
       "stage": "check",
-      "question": "Which production system did MemGPT evolve into in 2024?",
+      "question": "MemGPT는 2024년에 어떤 production system으로 진화했나요?",
       "options": [
         "Mem0",
         "Letta",
@@ -60,31 +60,31 @@
         "Pinecone"
       ],
       "correct": 1,
-      "explanation": "MemGPT became Letta in September 2024; the research repo cpacker/MemGPT still exists as the origin."
+      "explanation": "MemGPT는 2024년 9월 Letta가 되었습니다. research repo cpacker/MemGPT는 origin으로 남아 있습니다."
     },
     {
       "stage": "post",
-      "question": "What is memory poisoning in this context?",
+      "question": "이 context에서 memory poisoning은 무엇인가요?",
       "options": [
-        "A bug that corrupts vector indices",
-        "An attacker's content gets stored as a memory note and is re-ingested on future recalls",
-        "Reading from disk when RAM is available",
-        "Embedding model version drift"
+        "vector index를 corrupt하는 bug",
+        "attacker content가 memory note로 저장되고 future recall에서 다시 ingest되는 것",
+        "RAM이 available한데 disk에서 읽는 것",
+        "embedding model version drift"
       ],
       "correct": 1,
-      "explanation": "External memory is retrieved text; if attacker-reachable content lands in a memory note the agent re-ingests it next session."
+      "explanation": "external memory는 retrieved text입니다. attacker-reachable content가 memory note에 들어가면 다음 session에서 agent가 다시 ingest합니다."
     },
     {
       "stage": "post",
-      "question": "Why does the lesson say production memory systems are MemGPT variants?",
+      "question": "lesson이 production memory system을 MemGPT variant라고 말하는 이유는 무엇인가요?",
       "options": [
-        "They use the same vector DB",
-        "Letta, Mem0, Assistants threads, and Claude Agent SDK all run the two-tier (or more) paged-memory pattern; differences are operational shape",
-        "MemGPT owns the trademark",
-        "They share weights"
+        "같은 vector DB를 쓰기 때문",
+        "Letta, Mem0, Assistants threads, Claude Agent SDK가 모두 two-tier 또는 그 이상의 paged-memory pattern을 실행하며 차이는 operational shape이기 때문",
+        "MemGPT가 trademark를 소유하기 때문",
+        "weight를 공유하기 때문"
       ],
       "correct": 1,
-      "explanation": "Pick by operational shape, not pattern; all share the MemGPT page in/out skeleton."
+      "explanation": "pattern이 아니라 operational shape로 고르세요. 모두 MemGPT page in/out skeleton을 공유합니다."
     }
   ]
 }

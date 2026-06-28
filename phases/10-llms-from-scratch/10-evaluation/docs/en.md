@@ -1,519 +1,166 @@
-# Evaluation: Benchmarks, Evals, LM Harness
+# 평가: Benchmarks, Evals, LM Harness
 
-> Goodhart's Law: when a measure becomes a target, it ceases to be a good measure. Every frontier lab games benchmarks. MMLU scores go up while models still can't reliably count the number of R's in "strawberry." The only eval that matters is YOUR eval -- on YOUR task, with YOUR data.
+> Goodhart's Law: measure가 target이 되면 더 이상 좋은 measure가 아닙니다. frontier lab은 benchmark를 game합니다. MMLU score는 오르지만 model은 여전히 "strawberry"의 R 개수를 안정적으로 세지 못합니다. 중요한 eval은 YOUR task, YOUR data 위의 YOUR eval입니다.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 10, Lessons 01-05 (LLMs from Scratch)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Build a custom evaluation harness that runs multiple-choice and open-ended benchmarks against a language model
-- Explain why standard benchmarks (MMLU, HumanEval) saturate and fail to differentiate frontier models
-- Implement task-specific evals with proper metrics: exact match, F1, BLEU, and LLM-as-judge scoring
-- Design a custom evaluation suite targeting your specific use case rather than relying solely on public leaderboards
+- multiple-choice와 open-ended benchmark를 language model에 실행하는 custom evaluation harness를 만듭니다
+- MMLU, HumanEval 같은 standard benchmark가 saturate되어 frontier model을 구분하지 못하는 이유를 설명합니다
+- exact match, F1, BLEU, LLM-as-judge scoring 같은 task-specific eval metric을 구현합니다
+- public leaderboard만 의존하지 않고 특정 use case를 겨냥한 custom evaluation suite를 설계합니다
 
-## The Problem
+## 문제
 
-MMLU was published in 2020 with 15,908 questions across 57 subjects. Within three years, frontier models saturated it. GPT-4 scored 86.4%. Claude 3 Opus scored 86.8%. Llama 3 405B scored 88.6%. The leaderboard compressed into a 3-point range where differences are statistical noise, not real capability gaps.
+MMLU는 2020년에 57개 subject, 15,908개 question으로 발표되었습니다. 3년 안에 frontier model이 포화시켰습니다. GPT-4는 86.4%, Claude 3 Opus는 86.8%, Llama 3 405B는 88.6%를 기록했습니다. leaderboard는 3점 범위로 압축되었고, 이 차이는 실제 capability gap이 아니라 statistical noise에 가깝습니다.
 
-Meanwhile, those same models fail at tasks that a 10-year-old handles without thinking. Claude 3.5 Sonnet, scoring 88.7% on MMLU, initially could not count the letters in "strawberry" -- a task that requires zero world knowledge and zero reasoning, just character-level iteration. HumanEval tests code generation with 164 problems. Models score 90%+ on it while still producing code that crashes on edge cases any junior developer would catch.
+동시에 같은 model들은 10살 아이가 쉽게 하는 task에서 실패합니다. "strawberry"의 글자 수 세기처럼 world knowledge도 reasoning도 필요 없는 character-level iteration에서 실패할 수 있습니다. HumanEval에서 90% 이상을 받아도 edge case에서 crash하는 code를 만듭니다.
 
-The gap between benchmark performance and real-world reliability is the central problem of LLM evaluation. Benchmarks tell you how a model performs on the benchmark. They tell you almost nothing about how that model will perform on your specific task, with your specific data, under your specific failure modes. If you are building a customer support bot, MMLU is irrelevant. If you are building a code assistant, HumanEval only covers function-level generation -- it says nothing about debugging, refactoring, or explaining code across files.
+benchmark는 model이 benchmark에서 어떻게 동작하는지만 알려 줍니다. customer support bot을 만들고 있다면 MMLU는 거의 무관합니다. code assistant라면 HumanEval은 function-level generation만 다루며 debugging, refactoring, multi-file explanation을 말해 주지 않습니다. 최종 평가는 deployment condition과 같아야 합니다.
 
-You need custom evals. Not because benchmarks are useless -- they are useful for rough model selection -- but because the final evaluation must match your deployment conditions exactly.
+## 개념
 
-## The Concept
+### Eval 지형
 
-### The Eval Landscape
+세 종류의 evaluation이 있습니다.
 
-There are three categories of evaluation, each with different cost and signal quality.
+**Benchmarks**는 standardized test suite입니다. MMLU, HumanEval, SWE-bench, MATH, ARC, HellaSwag 등이 있습니다. 같은 test로 model을 비교할 수 있지만, training data contamination과 benchmark-specific optimization 때문에 signal이 약해지고 있습니다.
 
-**Benchmarks** are standardized test suites. MMLU, HumanEval, SWE-bench, MATH, ARC, HellaSwag. You run a model against the benchmark and get a score. The advantage: everyone uses the same test, so you can compare models. The disadvantage: models and training data increasingly contaminate these benchmarks. Labs train on data that includes benchmark questions. Scores go up. Capability may not.
+**Custom evals**는 특정 use case를 위해 직접 만드는 test suite입니다. legal summarizer는 legal document로, SQL generator는 실제 database schema로 평가합니다. 만들기는 비싸지만 production performance를 가장 잘 예측합니다.
 
-**Custom evals** are test suites you build for your specific use case. You define the inputs, the expected outputs, and the scoring function. A legal document summarizer gets evaluated on legal documents. A SQL generator gets evaluated on your database schema. These are expensive to create but they are the only evaluation that predicts production performance.
-
-**Human evals** use paid annotators to judge model outputs on criteria like helpfulness, correctness, fluency, and safety. The gold standard for open-ended tasks where automated scoring fails. Chatbot Arena has collected over 2 million human preference votes across 100+ models. The downside: cost ($0.10-$2.00 per judgment) and speed (hours to days).
+**Human evals**는 paid annotator가 helpfulness, correctness, fluency, safety 같은 기준으로 model output을 판단합니다. open-ended task의 gold standard이지만 judgment당 $0.10-$2.00이 들고 느립니다.
 
 ```mermaid
 graph TD
-    subgraph Eval["Evaluation Landscape"]
-        direction LR
-        B["Benchmarks\n(MMLU, HumanEval)\nCheap, standardized\nGameable, stale"]
-        C["Custom Evals\nYour task, your data\nHighest signal\nExpensive to build"]
-        H["Human Evals\n(Chatbot Arena)\nGold standard\nSlow, costly"]
-    end
-
-    B -->|"rough model selection"| C
-    C -->|"ambiguous cases"| H
-
-    style B fill:#1a1a2e,stroke:#ffa500,color:#fff
-    style C fill:#1a1a2e,stroke:#51cf66,color:#fff
-    style H fill:#1a1a2e,stroke:#e94560,color:#fff
+    B["Benchmarks\ncheap, standardized\ngameable"]
+    C["Custom Evals\nyour task, your data\nhighest signal"]
+    H["Human Evals\ngold standard\nslow, costly"]
+    B --> C
+    C --> H
 ```
 
-### Why Benchmarks Break
+### Benchmark가 깨지는 이유
 
-Three mechanisms cause benchmark scores to stop reflecting real capability.
+**Data contamination.** training corpus는 internet을 scrape합니다. benchmark question도 internet에 있습니다. model이 training 중 answer를 볼 수 있습니다.
 
-**Data contamination.** Training corpora scrape the internet. Benchmark questions live on the internet. Models see the answers during training. This is not cheating in the traditional sense -- labs do not intentionally include benchmark data. But web-scale scraping makes it nearly impossible to exclude.
+**Teaching to the test.** lab은 benchmark performance에 맞춰 training mixture를 최적화합니다. MMLU-style multiple choice가 training mix에 있으면 model은 format과 answer distribution을 배웁니다.
 
-**Teaching to the test.** Labs optimize training mixtures for benchmark performance. If 5% of the training mix is MMLU-style multiple choice, the model learns the format and the answer distribution. MMLU is 4-way multiple choice. Models learn that the answer distribution is approximately uniform across A/B/C/D, which helps even when the model does not know the answer.
+**Saturation.** 모든 frontier model이 85-90%를 받으면 benchmark는 더 이상 구분하지 못합니다. 남은 10-15%는 ambiguous, mislabeled, 또는 obscure domain knowledge일 수 있습니다.
 
-**Saturation.** When every frontier model scores 85-90% on a benchmark, the benchmark stops discriminating. The remaining 10-15% of questions may be ambiguous, mislabeled, or require obscure domain knowledge. Improving from 87% to 89% on MMLU may mean the model memorized two more obscure questions, not that it got smarter.
+### Perplexity
 
-### Perplexity: A Quick Health Check
+perplexity는 model이 token sequence에 얼마나 놀라는지를 측정합니다.
 
-Perplexity measures how surprised a model is by a sequence of tokens. Formally, it is the exponentiated average negative log-likelihood:
-
-```
+```text
 PPL = exp(-1/N * sum(log P(token_i | context)))
 ```
 
-A perplexity of 10 means the model is, on average, as uncertain as choosing uniformly among 10 options at each token position. Lower is better. GPT-2 gets a perplexity of ~30 on WikiText-103. GPT-3 gets ~20. Llama 3 8B gets ~7.
-
-Perplexity is useful for comparing models on the same test set, but it has blind spots. A model can have low perplexity by being good at predicting common patterns while being terrible at rare but important patterns. It also says nothing about instruction following, reasoning, or factual accuracy. Use it as a sanity check, not a final verdict.
+perplexity 10은 model이 평균적으로 token position마다 10개 option 중 uniform하게 고르는 정도의 uncertainty를 갖는다는 뜻입니다. 낮을수록 좋습니다. 하지만 perplexity는 instruction following, reasoning, factual accuracy를 말해 주지 않습니다. sanity check로 쓰고 final verdict로 쓰지 마세요.
 
 ### LLM-as-Judge
 
-Use a strong model to evaluate a weaker model's output. The idea is simple: ask GPT-4o or Claude Sonnet to rate a response on a 1-5 scale for correctness, helpfulness, and safety. This costs about $0.01 per judgment with GPT-4o-mini and correlates surprisingly well with human judgments -- around 80% agreement on most tasks.
+강한 model로 약한 model의 output을 평가합니다. GPT-4o나 Claude Sonnet에게 rubric을 주고 correctness, helpfulness, safety를 1-5 scale로 scoring하게 할 수 있습니다. GPT-4o-mini 기준 judgment당 약 $0.01이며 human judgment와 약 80% 일치합니다.
 
-The scoring prompt matters more than the model. A vague prompt ("Rate this response") produces noisy scores. A structured prompt with a rubric ("Score 5 if the answer is factually correct and cites a source, 4 if correct but unsourced, 3 if partially correct...") produces consistent, reproducible scores.
+scoring prompt가 중요합니다. "Rate this response" 같은 vague prompt는 noisy합니다. "factual하고 source를 cite하면 5, correct하지만 source가 없으면 4..."처럼 structured rubric을 써야 consistent합니다.
 
-Failure modes: judge models exhibit position bias (prefer the first response in pairwise comparisons), verbosity bias (prefer longer responses), and self-preference (GPT-4 rates GPT-4 outputs higher than equivalent Claude outputs). Mitigations: randomize order, normalize for length, use a different judge than the model being evaluated.
+failure mode도 있습니다. judge model은 position bias, verbosity bias, self-preference를 보입니다. 순서를 randomize하고, length를 normalize하고, 평가 대상과 다른 model을 judge로 쓰세요.
 
-### ELO Ratings from Pairwise Comparisons
+### ELO Ratings
 
-Chatbot Arena's approach. Show two responses to the same prompt from different models. A human (or LLM judge) picks the better one. From thousands of these comparisons, compute an ELO rating for each model -- the same system used in chess.
-
-ELO advantages: relative ranking is more reliable than absolute scoring, handles ties gracefully, and converges with fewer comparisons than scoring every output independently. As of early 2026, Chatbot Arena ranks show GPT-4o, Claude 3.5 Sonnet, and Gemini 1.5 Pro within 20 ELO points of each other at the top.
+Chatbot Arena 방식입니다. 같은 prompt에 대한 두 model response를 보여 주고 human 또는 LLM judge가 더 나은 쪽을 고릅니다. 수천 comparison에서 chess처럼 ELO rating을 계산합니다. relative ranking은 absolute score보다 reliable하고 tie도 다루기 쉽습니다.
 
 ```mermaid
 graph LR
-    subgraph ELO["ELO Rating Pipeline"]
-        direction TB
-        P["Prompt"] --> MA["Model A Output"]
-        P --> MB["Model B Output"]
-        MA --> J["Judge\n(Human or LLM)"]
-        MB --> J
-        J --> W["A Wins / B Wins / Tie"]
-        W --> E["ELO Update\nK=32"]
-    end
-
-    style P fill:#1a1a2e,stroke:#0f3460,color:#fff
-    style J fill:#1a1a2e,stroke:#e94560,color:#fff
-    style E fill:#1a1a2e,stroke:#51cf66,color:#fff
+    P["Prompt"] --> A["Model A Output"]
+    P --> B["Model B Output"]
+    A --> J["Judge"]
+    B --> J
+    J --> W["A wins / B wins / Tie"]
+    W --> E["ELO Update"]
 ```
 
-### Eval Frameworks
+### Eval framework
 
-**lm-evaluation-harness** (EleutherAI): the standard open-source eval framework. Supports 200+ benchmarks. Run any Hugging Face model against MMLU, HellaSwag, ARC, etc. with one command. Used by the Open LLM Leaderboard.
+- **lm-evaluation-harness**: EleutherAI의 open-source standard입니다. 200+ benchmark를 지원하며 Open LLM Leaderboard에서 사용됩니다.
+- **RAGAS**: RAG pipeline용 evaluation framework입니다. faithfulness, relevance, answer correctness를 측정합니다.
+- **promptfoo**: prompt engineering용 config-driven eval입니다. YAML test case를 정의하고 여러 model에 대해 pass/fail report를 냅니다.
 
-**RAGAS**: evaluation framework specifically for RAG pipelines. Measures faithfulness (does the answer match the retrieved context?), relevance (is the retrieved context relevant to the question?), and answer correctness.
+### Custom Eval 만들기
 
-**promptfoo**: config-driven eval for prompt engineering. Define test cases in YAML, run against multiple models, get a pass/fail report. Useful for regression testing prompts -- make sure a prompt change does not break existing test cases.
+1. **Define the task.** "answer questions"가 아니라 "customer complaint email에서 product name, issue category, sentiment를 추출"처럼 정확히 씁니다.
+2. **Create test cases.** prototype은 최소 50개, production은 200개 이상입니다. empty input, adversarial input, ambiguous input, multilingual input을 포함하세요.
+3. **Define scoring.** structured output은 exact match, text similarity는 BLEU/ROUGE, open-ended quality는 LLM-as-judge, extraction은 F1을 씁니다.
+4. **Automate.** 하나의 command로 eval이 돌아가야 합니다.
+5. **Track over time.** 단일 score보다 trendline이 중요합니다. prompt와 함께 eval을 versioning하세요.
 
-### Building Custom Evals
-
-The only eval that matters for production. The process:
-
-1. **Define the task.** What exactly should the model do? Be precise. "Answer questions" is too vague. "Given a customer complaint email, extract the product name, issue category, and sentiment" is a task you can evaluate.
-
-2. **Create test cases.** Minimum 50 for a prototype eval, 200+ for production. Each test case is an (input, expected_output) pair. Include edge cases: empty inputs, adversarial inputs, ambiguous inputs, inputs in other languages.
-
-3. **Define scoring.** Exact match for structured outputs. BLEU/ROUGE for text similarity. LLM-as-judge for open-ended quality. F1 for extraction tasks. Combine multiple metrics with weights.
-
-4. **Automate.** Every eval runs with one command. No manual steps. Store results in a format that enables comparison over time.
-
-5. **Track over time.** An eval score is meaningless in isolation. You need the trendline. Did the score improve after the last prompt change? Did it regress after switching models? Version your eval alongside your prompts.
-
-| Eval Type | Cost per judgment | Agreement with humans | Best for |
+| Eval 유형 | 판단당 비용 | 사람 판단과의 일치도 | 적합한 용도 |
 |-----------|------------------|----------------------|----------|
 | Exact match | ~$0 | 100% (when applicable) | Structured output, classification |
 | BLEU/ROUGE | ~$0 | ~60% | Translation, summarization |
 | LLM-as-judge | ~$0.01 | ~80% | Open-ended generation |
-| Human eval | $0.10-$2.00 | N/A (is the ground truth) | Ambiguous, high-stakes tasks |
+| Human eval | $0.10-$2.00 | N/A | Ambiguous, high-stakes tasks |
 
 ```figure
 perplexity-loss
 ```
 
-## Build It
+## 직접 만들기
 
-### Step 1: A Minimal Eval Framework
+`code/main.py`는 minimal eval framework를 구현합니다. eval case는 input, expected output, metadata를 갖고 scorer는 prediction과 reference를 받아 0-1 score를 반환합니다.
 
-Define the core abstractions. An eval case has an input, an expected output, and an optional metadata dict. A scorer takes a prediction and a reference and returns a score between 0 and 1.
+구현하는 scorer:
 
-```python
-import json
-from collections import Counter
+- **exact match**: classification 또는 structured output에 사용
+- **token F1**: extraction task에서 partial credit 제공
+- **BLEU-like score**: n-gram overlap 기반 translation/summarization sanity check
+- **multiple-choice scoring**: option별 log likelihood 비교
+- **LLM-as-judge stub**: rubric 기반 judge를 simulate해 외부 API 없이 pipeline shape 확인
 
-class EvalCase:
-    def __init__(self, input_text, expected, metadata=None):
-        self.input_text = input_text
-        self.expected = expected
-        self.metadata = metadata or {}
+eval harness는 model function을 받아 모든 case를 실행하고 per-case result, aggregate score, failure breakdown을 JSON-friendly structure로 반환합니다.
 
-class EvalSuite:
-    def __init__(self, name, cases, scorers):
-        self.name = name
-        self.cases = cases
-        self.scorers = scorers
+## 사용하기
 
-    def run(self, model_fn):
-        results = []
-        for case in self.cases:
-            prediction = model_fn(case.input_text)
-            scores = {}
-            for scorer_name, scorer_fn in self.scorers.items():
-                scores[scorer_name] = scorer_fn(prediction, case.expected)
-            results.append({
-                "input": case.input_text,
-                "expected": case.expected,
-                "prediction": prediction,
-                "scores": scores,
-            })
-        return results
+```bash
+cd phases/10-llms-from-scratch/10-evaluation/code
+python3 main.py
 ```
 
-### Step 2: Scoring Functions
+demo는 multiple-choice benchmark, extraction eval, open-ended rubric eval을 실행하고 aggregate report를 출력합니다.
 
-Build exact match, token F1, and a simulated LLM-as-judge scorer.
+## 산출물
 
-```python
-def exact_match(prediction, expected):
-    return 1.0 if prediction.strip().lower() == expected.strip().lower() else 0.0
+이 lesson은 두 artifact를 제공합니다.
 
-def token_f1(prediction, expected):
-    pred_tokens = set(prediction.lower().split())
-    exp_tokens = set(expected.lower().split())
-    if not pred_tokens or not exp_tokens:
-        return 0.0
-    common = pred_tokens & exp_tokens
-    precision = len(common) / len(pred_tokens)
-    recall = len(common) / len(exp_tokens)
-    if precision + recall == 0:
-        return 0.0
-    return 2 * (precision * recall) / (precision + recall)
+- `outputs/prompt-eval-designer.md`: task description을 받아 custom evaluation suite를 설계하는 prompt
+- `outputs/skill-llm-evaluation.md`: task type, budget, requirement에 따라 evaluation strategy를 고르는 decision framework
 
-def llm_judge_simulated(prediction, expected):
-    pred_words = set(prediction.lower().split())
-    exp_words = set(expected.lower().split())
-    if not exp_words:
-        return 0.0
-    overlap = len(pred_words & exp_words) / len(exp_words)
-    length_penalty = min(1.0, len(prediction) / max(len(expected), 1))
-    return round(overlap * 0.7 + length_penalty * 0.3, 3)
-```
+## 연습 문제
 
-### Step 3: ELO Rating System
+1. 새로운 task-specific eval을 50 case 이상으로 설계하세요.
+2. exact match만 쓸 때와 F1을 함께 쓸 때 failure interpretation이 어떻게 달라지는지 비교하세요.
+3. LLM-as-judge rubric을 세부적으로 바꿔 score variance를 측정하세요.
+4. 같은 model을 benchmark와 custom eval에서 비교하고 ranking이 바뀌는지 확인하세요.
+5. production failure 하나를 regression case로 추가하고 prompt change마다 gate로 사용하세요.
 
-Implement pairwise comparisons with ELO updates. This is exactly the system Chatbot Arena uses to rank models.
+## 핵심 용어
 
-```python
-class ELOTracker:
-    def __init__(self, k=32, initial_rating=1500):
-        self.ratings = {}
-        self.k = k
-        self.initial_rating = initial_rating
-        self.history = []
+| 용어 | 의미 |
+|------|---------|
+| Benchmark | standardized public test suite |
+| Custom eval | deployment task와 data에 맞춘 자체 test suite |
+| Goodhart's Law | measure가 target이 되면 좋은 measure가 아니게 된다는 법칙 |
+| Perplexity | token sequence의 average negative log-likelihood를 exponentiate한 값 |
+| LLM-as-judge | 강한 LLM으로 output을 rubric에 따라 scoring하는 방식 |
+| ELO | pairwise comparison에서 model relative strength를 추정하는 rating |
+| Data contamination | benchmark item이 training data에 포함되어 score가 부풀려지는 현상 |
 
-    def _ensure_player(self, name):
-        if name not in self.ratings:
-            self.ratings[name] = self.initial_rating
+## 더 읽을거리
 
-    def expected_score(self, rating_a, rating_b):
-        return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
-
-    def record_match(self, player_a, player_b, outcome):
-        self._ensure_player(player_a)
-        self._ensure_player(player_b)
-
-        ea = self.expected_score(self.ratings[player_a], self.ratings[player_b])
-        eb = 1 - ea
-
-        if outcome == "a":
-            sa, sb = 1.0, 0.0
-        elif outcome == "b":
-            sa, sb = 0.0, 1.0
-        else:
-            sa, sb = 0.5, 0.5
-
-        self.ratings[player_a] += self.k * (sa - ea)
-        self.ratings[player_b] += self.k * (sb - eb)
-
-        self.history.append({
-            "a": player_a, "b": player_b,
-            "outcome": outcome,
-            "rating_a": round(self.ratings[player_a], 1),
-            "rating_b": round(self.ratings[player_b], 1),
-        })
-
-    def leaderboard(self):
-        return sorted(self.ratings.items(), key=lambda x: -x[1])
-```
-
-### Step 4: Perplexity Calculation
-
-Compute perplexity using token probabilities. In practice you would get these from the model's logits. Here we simulate with a probability distribution.
-
-```python
-import numpy as np
-
-def perplexity(log_probs):
-    if not log_probs:
-        return float("inf")
-    avg_neg_log_prob = -np.mean(log_probs)
-    return float(np.exp(avg_neg_log_prob))
-
-def token_log_probs_simulated(text, model_quality=0.8):
-    np.random.seed(hash(text) % 2**31)
-    tokens = text.split()
-    log_probs = []
-    for i, token in enumerate(tokens):
-        base_prob = model_quality
-        if len(token) > 8:
-            base_prob *= 0.6
-        if i == 0:
-            base_prob *= 0.7
-        prob = np.clip(base_prob + np.random.normal(0, 0.1), 0.01, 0.99)
-        log_probs.append(float(np.log(prob)))
-    return log_probs
-```
-
-### Step 5: Aggregate Results
-
-Compute summary statistics across an eval run: mean, median, pass rate at a threshold, and per-metric breakdowns.
-
-```python
-def summarize_results(results, threshold=0.8):
-    all_scores = {}
-    for r in results:
-        for metric, score in r["scores"].items():
-            all_scores.setdefault(metric, []).append(score)
-
-    summary = {}
-    for metric, scores in all_scores.items():
-        arr = np.array(scores)
-        summary[metric] = {
-            "mean": round(float(np.mean(arr)), 3),
-            "median": round(float(np.median(arr)), 3),
-            "std": round(float(np.std(arr)), 3),
-            "min": round(float(np.min(arr)), 3),
-            "max": round(float(np.max(arr)), 3),
-            "pass_rate": round(float(np.mean(arr >= threshold)), 3),
-            "n": len(scores),
-        }
-    return summary
-
-def print_summary(summary, suite_name="Eval"):
-    print(f"\n{'=' * 60}")
-    print(f"  {suite_name} Summary")
-    print(f"{'=' * 60}")
-    for metric, stats in summary.items():
-        print(f"\n  {metric}:")
-        print(f"    Mean:      {stats['mean']:.3f}")
-        print(f"    Median:    {stats['median']:.3f}")
-        print(f"    Std:       {stats['std']:.3f}")
-        print(f"    Range:     [{stats['min']:.3f}, {stats['max']:.3f}]")
-        print(f"    Pass rate: {stats['pass_rate']:.1%} (threshold >= 0.8)")
-        print(f"    N:         {stats['n']}")
-```
-
-### Step 6: Run the Full Pipeline
-
-Wire everything together. Define a task, create test cases, simulate two models, run evals, compute ELO from pairwise comparisons, and print the leaderboard.
-
-```python
-def demo_model_good(prompt):
-    responses = {
-        "What is the capital of France?": "Paris",
-        "What is 2 + 2?": "4",
-        "Who wrote Hamlet?": "William Shakespeare",
-        "What language is PyTorch written in?": "Python and C++",
-        "What is the boiling point of water?": "100 degrees Celsius",
-    }
-    return responses.get(prompt, "I don't know")
-
-def demo_model_bad(prompt):
-    responses = {
-        "What is the capital of France?": "Paris is the capital city of France",
-        "What is 2 + 2?": "The answer is four",
-        "Who wrote Hamlet?": "Shakespeare",
-        "What language is PyTorch written in?": "Python",
-        "What is the boiling point of water?": "212 Fahrenheit",
-    }
-    return responses.get(prompt, "Unknown")
-
-cases = [
-    EvalCase("What is the capital of France?", "Paris"),
-    EvalCase("What is 2 + 2?", "4"),
-    EvalCase("Who wrote Hamlet?", "William Shakespeare"),
-    EvalCase("What language is PyTorch written in?", "Python and C++"),
-    EvalCase("What is the boiling point of water?", "100 degrees Celsius"),
-]
-
-suite = EvalSuite(
-    name="General Knowledge",
-    cases=cases,
-    scorers={
-        "exact_match": exact_match,
-        "token_f1": token_f1,
-        "llm_judge": llm_judge_simulated,
-    },
-)
-
-results_good = suite.run(demo_model_good)
-results_bad = suite.run(demo_model_bad)
-
-print_summary(summarize_results(results_good), "Model A (concise)")
-print_summary(summarize_results(results_bad), "Model B (verbose)")
-```
-
-The "good" model gives exact answers. The "bad" model gives verbose paraphrases. Exact match punishes the verbose model severely. Token F1 and LLM-as-judge are more forgiving. This illustrates why metric choice matters: the same model looks great or terrible depending on how you score it.
-
-### Step 7: ELO Tournament
-
-Run pairwise comparisons between models across multiple rounds.
-
-```python
-elo = ELOTracker(k=32)
-
-for case in cases:
-    pred_a = demo_model_good(case.input_text)
-    pred_b = demo_model_bad(case.input_text)
-
-    score_a = token_f1(pred_a, case.expected)
-    score_b = token_f1(pred_b, case.expected)
-
-    if score_a > score_b:
-        outcome = "a"
-    elif score_b > score_a:
-        outcome = "b"
-    else:
-        outcome = "tie"
-
-    elo.record_match("model_a_concise", "model_b_verbose", outcome)
-
-print("\nELO Leaderboard:")
-for name, rating in elo.leaderboard():
-    print(f"  {name}: {rating:.0f}")
-```
-
-### Step 8: Perplexity Comparison
-
-Compare perplexity across "models" of different quality levels.
-
-```python
-test_text = "The quick brown fox jumps over the lazy dog in the garden"
-
-for quality, label in [(0.9, "Strong model"), (0.7, "Medium model"), (0.4, "Weak model")]:
-    log_probs = token_log_probs_simulated(test_text, model_quality=quality)
-    ppl = perplexity(log_probs)
-    print(f"  {label} (quality={quality}): perplexity = {ppl:.2f}")
-```
-
-## Use It
-
-### lm-evaluation-harness (EleutherAI)
-
-The standard tool for running benchmarks on any model.
-
-```python
-# pip install lm-eval
-# Command line:
-# lm_eval --model hf --model_args pretrained=meta-llama/Llama-3.1-8B --tasks mmlu --batch_size 8
-
-# Python API:
-# import lm_eval
-# results = lm_eval.simple_evaluate(
-#     model="hf",
-#     model_args="pretrained=meta-llama/Llama-3.1-8B",
-#     tasks=["mmlu", "hellaswag", "arc_easy"],
-#     batch_size=8,
-# )
-# print(results["results"])
-```
-
-### promptfoo
-
-Config-driven eval for prompt engineering. Define tests in YAML and run against multiple providers.
-
-```yaml
-# promptfoo.yaml
-providers:
-  - openai:gpt-4o-mini
-  - anthropic:claude-3-haiku
-
-prompts:
-  - "Answer in one word: {{question}}"
-
-tests:
-  - vars:
-      question: "What is the capital of France?"
-    assert:
-      - type: contains
-        value: "Paris"
-  - vars:
-      question: "What is 2 + 2?"
-    assert:
-      - type: equals
-        value: "4"
-```
-
-### RAGAS for RAG evaluation
-
-```python
-# pip install ragas
-# from ragas import evaluate
-# from ragas.metrics import faithfulness, answer_relevancy, context_precision
-#
-# result = evaluate(
-#     dataset,
-#     metrics=[faithfulness, answer_relevancy, context_precision],
-# )
-# print(result)
-```
-
-RAGAS measures what generic evals miss: whether the model's answer is grounded in the retrieved context, not just whether the answer is "correct" in the abstract.
-
-## Ship It
-
-This lesson produces `outputs/prompt-eval-designer.md` -- a reusable prompt that designs custom eval suites for any task. Give it a task description and it generates test cases, scoring functions, and a pass/fail threshold recommendation.
-
-It also produces `outputs/skill-llm-evaluation.md` -- a decision framework for choosing the right evaluation strategy based on your task type, budget, and latency requirements.
-
-## Exercises
-
-1. Add a "consistency" scorer that runs the same input through the model 5 times and measures how often the outputs match. Inconsistent answers on deterministic inputs reveal fragile prompts or high temperature settings.
-
-2. Extend the ELO tracker to support multiple judge functions (exact match, F1, LLM-as-judge) and weight them. Compare how the leaderboard changes when you weight exact match heavily versus F1 heavily.
-
-3. Build an eval suite for a specific task: email classification into 5 categories. Create 100 test cases with diverse examples including edge cases (emails that could belong to multiple categories, empty emails, emails in other languages). Measure how different "models" (rule-based, keyword matching, simulated LLM) perform.
-
-4. Implement contamination detection: given a set of eval questions and a training corpus, check what percentage of eval questions (or close paraphrases) appear in the training data. This is how researchers audit benchmark validity.
-
-5. Build a "model diff" tool. Given eval results from two model versions, highlight which specific test cases improved, which regressed, and which stayed the same. This is the eval equivalent of a code diff -- essential for understanding whether a change helped or hurt.
-
-## Key Terms
-
-| Term | What people say | What it actually means |
-|------|----------------|----------------------|
-| MMLU | "The benchmark" | Massive Multitask Language Understanding -- 15,908 multiple choice questions across 57 subjects, saturated above 88% by 2025 |
-| HumanEval | "Code eval" | 164 Python function-completion problems from OpenAI, tests only isolated function generation |
-| SWE-bench | "Real coding eval" | 2,294 GitHub issues from 12 Python repos, measures end-to-end bug fixing including test generation |
-| Perplexity | "How confused the model is" | exp(-avg(log P(token_i given context))) -- lower means the model assigns higher probability to the actual tokens |
-| ELO rating | "Chess ranking for models" | A relative skill rating computed from pairwise win/loss records, used by Chatbot Arena to rank 100+ models |
-| LLM-as-judge | "Using AI to grade AI" | A strong model scores a weaker model's outputs against a rubric, ~80% agreement with human judges at ~$0.01/judgment |
-| Data contamination | "The model saw the test" | Training data includes benchmark questions, inflating scores without improving real capability |
-| Eval suite | "A bunch of tests" | A versioned collection of (input, expected_output, scorer) triples that measure a specific capability |
-| Pass rate | "What percentage it gets right" | Fraction of eval cases scoring above a threshold -- more actionable than mean score because it measures reliability |
-| Chatbot Arena | "Model ranking website" | LMSYS platform with 2M+ human preference votes, producing the most trusted LLM leaderboard via ELO ratings |
-
-## Further Reading
-
-- [Hendrycks et al., 2021 -- "Measuring Massive Multitask Language Understanding"](https://arxiv.org/abs/2009.03300) -- the MMLU paper, still the most cited LLM benchmark despite its saturation
-- [Chen et al., 2021 -- "Evaluating Large Language Models Trained on Code"](https://arxiv.org/abs/2107.03374) -- the HumanEval paper from OpenAI, established code generation evaluation methodology
-- [Zheng et al., 2023 -- "Judging LLM-as-a-Judge"](https://arxiv.org/abs/2306.05685) -- systematic analysis of using LLMs to evaluate LLMs, including position bias and verbosity bias findings
-- [LMSYS Chatbot Arena](https://chat.lmsys.org/) -- crowdsourced model comparison platform with 2M+ votes, the most trusted real-world LLM ranking
+- [EleutherAI lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
+- [Chatbot Arena / LMSYS](https://chat.lmsys.org/)
+- [RAGAS](https://docs.ragas.io/)
+- [promptfoo](https://www.promptfoo.dev/)

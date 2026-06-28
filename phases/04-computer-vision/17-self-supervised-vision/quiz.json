@@ -2,38 +2,38 @@
   "questions": [
     {
       "stage": "pre",
-      "question": "Why does SimCLR need batch sizes of 512-8192 while supervised ImageNet training works with batch 256?",
-      "options": ["SimCLR is slower", "Each sample needs many negative examples to produce a useful contrastive signal; the batch itself is the pool of negatives. Small batches starve the InfoNCE loss of negatives and training collapses or stalls", "Batch norm requires it", "Contrastive loss divides by batch size"],
+      "question": "지도 ImageNet 학습은 배치 256으로도 동작하는데 SimCLR은 왜 512-8192 크기의 배치가 필요할까요?",
+      "options": ["SimCLR이 더 느리기 때문입니다", "각 샘플은 유용한 contrastive signal을 만들기 위해 많은 negative example이 필요하고, 배치 자체가 negative pool입니다. 작은 배치는 InfoNCE 손실에 negative를 부족하게 만들어 학습이 collapse하거나 멈춥니다", "Batch norm이 요구하기 때문입니다", "Contrastive loss가 배치 크기로 나누기 때문입니다"],
       "correct": 1,
-      "explanation": "InfoNCE loss ranks the positive pair against all other samples in the batch. A batch of 32 gives 30 negatives per positive; 1024 gives 2046. More negatives = sharper contrastive signal. MoCo introduced a momentum queue of past features so effective negatives scale beyond the batch size; this is the standard trick when GPU memory limits batch size."
+      "explanation": "InfoNCE 손실은 positive pair를 배치 안의 다른 모든 샘플과 비교해 순위를 매깁니다. 배치 32는 positive당 30개의 negative를 제공하고, 1024는 2046개를 제공합니다. negative가 많을수록 contrastive signal이 더 날카로워집니다. MoCo는 effective negative가 배치 크기를 넘어 확장되도록 과거 특징의 momentum queue를 도입했습니다. GPU 메모리가 배치 크기를 제한할 때 쓰는 표준 기법입니다."
     },
     {
       "stage": "pre",
-      "question": "What prevents DINO from collapsing to a constant output?",
-      "options": ["Strong augmentation alone", "A combination of centring (subtract per-dimension EMA mean from the teacher output) and sharpening (low teacher temperature); centring stops one dimension from dominating, sharpening stops the output collapsing to uniform", "Large batch size", "The momentum schedule"],
+      "question": "DINO가 상수 출력으로 collapse하는 것을 무엇이 막을까요?",
+      "options": ["강한 augmentation만으로 막습니다", "centering(teacher 출력에서 차원별 EMA 평균 빼기)과 sharpening(낮은 teacher temperature)의 조합입니다. centering은 한 차원이 지배하는 것을 막고, sharpening은 출력이 uniform으로 collapse하는 것을 막습니다", "큰 배치 크기입니다", "Momentum schedule입니다"],
       "correct": 1,
-      "explanation": "DINO does not use explicit negatives. Without centring, one output dimension can dominate and the student learns to always predict it. Without sharpening (low teacher temperature), the teacher's output becomes near-uniform and the student learns to match uniform, which is also collapse. The two together keep the output diverse across dimensions and peaked per sample."
+      "explanation": "DINO는 명시적인 negative를 사용하지 않습니다. centering이 없으면 한 출력 차원이 지배할 수 있고 student는 항상 그것을 예측하도록 학습합니다. sharpening(낮은 teacher temperature)이 없으면 teacher 출력이 거의 uniform이 되고 student는 uniform을 맞추도록 학습하는데, 이것도 collapse입니다. 둘을 함께 쓰면 출력이 차원 전반에서 다양하고 샘플마다 뾰족하게 유지됩니다."
     },
     {
       "stage": "post",
-      "question": "MAE masks 75% of patches. BERT masks 15% of tokens. Why the difference?",
-      "options": ["75% is arbitrary", "Image patches have low entropy — neighbours are highly correlated — so masking only 15% would be trivially solvable by local extrapolation. Masking 75% forces the encoder to learn global semantic features to reconstruct the missing patches", "BERT requires 15% by design", "Text tokens are larger than image patches"],
+      "question": "MAE는 패치의 75%를 마스크합니다. BERT는 토큰의 15%를 마스크합니다. 왜 차이가 날까요?",
+      "options": ["75%는 임의의 값입니다", "이미지 패치는 entropy가 낮고 이웃 간 상관이 높아서 15%만 마스킹하면 local extrapolation으로 쉽게 풀 수 있습니다. 75%를 마스킹하면 인코더가 누락된 패치를 재구성하기 위해 global semantic feature를 학습해야 합니다", "BERT는 설계상 15%를 요구합니다", "텍스트 토큰이 이미지 패치보다 더 크기 때문입니다"],
       "correct": 1,
-      "explanation": "The mask ratio should match the information density of the modality. Text: 15% is enough because each token has many plausible completions. Images: neighbouring pixels almost determine each other, so low mask ratios are solvable without real representation learning. MAE's 75% is calibrated to force semantic understanding."
+      "explanation": "Mask ratio는 modality의 정보 밀도와 맞아야 합니다. 텍스트에서는 각 토큰에 그럴듯한 완성 후보가 많기 때문에 15%로도 충분합니다. 이미지에서는 이웃 픽셀이 서로를 거의 결정하므로 낮은 mask ratio는 진짜 representation learning 없이도 풀 수 있습니다. MAE의 75%는 의미 이해를 강제하도록 보정된 값입니다."
     },
     {
       "stage": "post",
-      "question": "After self-supervised pretraining, the 'linear probe' evaluation trains only what?",
-      "options": ["The entire encoder", "A single linear classifier on top of the frozen encoder features; this isolates feature quality from fine-tuning dynamics", "A full MLP classifier head", "The positional embedding"],
+      "question": "자기지도 사전학습 후 'linear probe' 평가는 무엇만 학습할까요?",
+      "options": ["전체 인코더", "고정된 인코더 특징 위의 단일 선형 분류기입니다. 이렇게 하면 feature quality를 fine-tuning dynamics와 분리할 수 있습니다", "전체 MLP classifier head", "Positional embedding"],
       "correct": 1,
-      "explanation": "Linear probe freezes the encoder and fits Linear(features -> num_classes) on a labelled downstream dataset. The accuracy is a direct measure of the feature space's linear separability — a proxy for feature quality. Fine-tuning the whole backbone adds nonlinear capacity and usually lifts accuracy a few points, but mixes in optimisation effects. Both numbers are reported in SSL papers."
+      "explanation": "Linear probe는 인코더를 고정하고 라벨이 있는 다운스트림 데이터셋에서 Linear(features -> num_classes)를 맞춥니다. 정확도는 feature space의 linear separability를 직접 측정한 값이며 feature quality의 proxy입니다. 전체 backbone을 fine-tuning하면 nonlinear capacity가 추가되어 보통 정확도가 몇 포인트 오르지만, optimisation 효과도 함께 섞입니다. SSL 논문은 두 수치를 모두 보고합니다."
     },
     {
       "stage": "post",
-      "question": "Why does MAE use an asymmetric encoder-decoder design (big encoder on 25% visible patches, small decoder on all tokens)?",
-      "options": ["Memory constraints", "The encoder never processes mask tokens; a small decoder only handles reconstruction. This makes encoder FLOPs proportional to visible patches (1/4 of full input) and lets pretraining run 3x faster than naive designs that process all tokens through the full encoder", "Masked tokens confuse self-attention", "The decoder needs its own backbone"],
+      "question": "MAE는 왜 비대칭 encoder-decoder 설계(25% visible patch에는 큰 encoder, 모든 token에는 작은 decoder)를 사용할까요?",
+      "options": ["메모리 제약 때문입니다", "인코더는 mask token을 절대 처리하지 않고, 작은 디코더만 재구성을 처리합니다. 이 때문에 인코더 FLOPs가 visible patch(전체 입력의 1/4)에 비례하고, 모든 token을 전체 인코더에 통과시키는 순진한 설계보다 사전학습이 3배 빠릅니다", "Masked token이 self-attention을 혼란스럽게 만들기 때문입니다", "디코더에는 자체 backbone이 필요하기 때문입니다"],
       "correct": 1,
-      "explanation": "The key efficiency win in MAE: the expensive encoder only ever sees visible patches, which is 25% of the input. Mask tokens appear only in the shallow decoder. This makes pretraining roughly 3x faster than BEiT (which processes all tokens through the encoder) with equal or better downstream accuracy."
+      "explanation": "MAE의 핵심 효율 이점은 비싼 인코더가 입력의 25%인 visible patch만 본다는 점입니다. Mask token은 얕은 디코더에만 나타납니다. 이로 인해 모든 token을 인코더로 처리하는 BEiT보다 사전학습이 대략 3배 빠르며, 다운스트림 정확도는 같거나 더 좋습니다."
     }
   ]
 }

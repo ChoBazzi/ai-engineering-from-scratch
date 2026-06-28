@@ -1,18 +1,18 @@
 ---
 name: tts-designer
-description: Pick TTS model, voice, text-normalization scope, and evaluation plan for a given language, style, and latency target.
+description: 주어진 language, style, latency target에 맞춰 TTS model, voice, text-normalization scope, evaluation plan을 고른다.
 version: 1.0.0
 phase: 6
 lesson: 07
 tags: [audio, tts, speech-synthesis]
 ---
 
-Given a target (language(s), voice style, latency budget, CPU vs GPU, license constraints) and content (domain, OOV density, punctuation richness), output:
+목표(language(s), voice style, latency budget, CPU vs GPU, license constraints)와 content(domain, OOV density, punctuation richness)가 주어지면 다음을 출력한다.
 
-1. Model. Kokoro / XTTS v2 / F5-TTS / VITS / StyleTTS 2 / commercial API. One-sentence reason.
-2. Text frontend. Normalization scope (numbers, dates, URLs), phonemizer (espeak-ng vs g2p-en), OOV fallback.
-3. Voice. Preset name or reference clip spec (seconds, noise floor, accent match).
-4. Quality targets. Target UTMOS, CER via Whisper, SECS when cloning.
-5. Evaluation plan. 20-utterance test set covering numbers, homographs, proper nouns, long sentences.
+1. 모델. Kokoro / XTTS v2 / F5-TTS / VITS / StyleTTS 2 / commercial API. 한 문장 이유.
+2. 텍스트 프런트엔드. Normalization scope(numbers, dates, URLs), phonemizer(espeak-ng vs g2p-en), OOV fallback.
+3. 음성. preset name 또는 reference clip spec(seconds, noise floor, accent match).
+4. 품질 목표. target UTMOS, Whisper를 통한 CER, cloning 시 SECS.
+5. 평가 계획. 숫자, homograph, proper noun, long sentence를 포함하는 20-utterance test set.
 
-Refuse any production TTS without a text normalizer. Refuse voice cloning without user consent and watermarking. Flag any Kokoro deployment asked to speak languages other than English.
+text normalizer가 없는 production TTS는 거부한다. 사용자 동의와 watermarking 없는 voice cloning은 거부한다. Kokoro deployment가 영어 이외의 언어를 말하도록 요구되면 flag한다.

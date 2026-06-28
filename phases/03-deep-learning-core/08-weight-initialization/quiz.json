@@ -1,37 +1,62 @@
 [
   {
-    "question": "What happens if you initialize all weights in a neural network to zero?",
-    "options": ["The network trains normally but slowly", "All neurons compute identical outputs and receive identical gradients, so the network has only 1 effective neuron per layer", "The network diverges", "Zero init is the recommended default"],
+    "question": "신경망의 모든 weights를 0으로 초기화하면 어떤 일이 발생하나요?",
+    "options": [
+      "네트워크가 정상적으로 훈련되지만 느리다",
+      "모든 뉴런이 동일한 출력을 계산하고 동일한 gradient를 받으므로, 네트워크는 layer마다 유효 뉴런이 1개뿐이다",
+      "네트워크가 발산한다",
+      "Zero init은 권장되는 기본값이다"
+    ],
     "correct": 1,
-    "explanation": "With zero weights, every neuron in a layer computes the same function, receives the same gradient, and updates identically. This 'symmetry' means hundreds of parameters behave as one.",
+    "explanation": "Zero weights에서는 한 layer의 모든 뉴런이 같은 함수를 계산하고, 같은 gradient를 받으며, 동일하게 업데이트됩니다. 이 'symmetry' 때문에 수백 개의 파라미터가 하나처럼 동작합니다.",
     "stage": "pre"
   },
   {
-    "question": "Why does the scale of random weight initialization matter?",
-    "options": ["Larger weights train faster", "If variance is too high, activations explode; if too low, activations vanish -- both prevent training", "Scale only matters for the output layer", "It doesn't matter as long as weights are nonzero"],
+    "question": "무작위 weight initialization의 scale이 중요한 이유는 무엇인가요?",
+    "options": [
+      "더 큰 weights가 더 빠르게 훈련되기 때문이다",
+      "분산이 너무 높으면 activations가 폭발하고, 너무 낮으면 activations가 사라지며, 둘 다 훈련을 막기 때문이다",
+      "Scale은 output layer에서만 중요하다",
+      "Weights가 0이 아니기만 하면 중요하지 않다"
+    ],
     "correct": 1,
-    "explanation": "Each layer multiplies variance by fan_in * Var(w). If this product is > 1, signal explodes exponentially through layers. If < 1, it vanishes. Proper initialization keeps this product at exactly 1.",
+    "explanation": "각 layer는 분산에 fan_in * Var(w)를 곱합니다. 이 곱이 1보다 크면 signal은 layer를 지나며 지수적으로 폭발합니다. 1보다 작으면 사라집니다. 올바른 initialization은 이 곱을 정확히 1로 유지합니다.",
     "stage": "pre"
   },
   {
-    "question": "What is the formula for Kaiming/He initialization variance?",
-    "options": ["Var(w) = 1/fan_in", "Var(w) = 2/fan_in", "Var(w) = 2/(fan_in + fan_out)", "Var(w) = 1/(fan_in + fan_out)"],
+    "question": "Kaiming/He initialization variance의 공식은 무엇인가요?",
+    "options": [
+      "Var(w) = 1/fan_in",
+      "Var(w) = 2/fan_in",
+      "Var(w) = 2/(fan_in + fan_out)",
+      "Var(w) = 1/(fan_in + fan_out)"
+    ],
     "correct": 1,
-    "explanation": "Kaiming init uses Var(w) = 2/fan_in. The factor of 2 compensates for ReLU zeroing half the activations (negative values become 0), which effectively halves the fan_in.",
+    "explanation": "Kaiming init은 Var(w) = 2/fan_in을 사용합니다. 2라는 factor는 ReLU가 activation의 절반(음수 값)을 0으로 만들어 유효 fan_in을 절반으로 줄이는 것을 보상합니다.",
     "stage": "post"
   },
   {
-    "question": "When should you use Xavier/Glorot initialization instead of Kaiming/He?",
-    "options": ["Always -- Xavier is universally better", "When using sigmoid or tanh activations, which don't zero half the outputs like ReLU", "When training on small datasets", "When using Adam optimizer"],
+    "question": "Kaiming/He 대신 Xavier/Glorot initialization을 언제 사용해야 하나요?",
+    "options": [
+      "항상 사용한다. Xavier가 보편적으로 더 좋다",
+      "ReLU처럼 출력의 절반을 0으로 만들지 않는 sigmoid 또는 tanh activation을 사용할 때",
+      "작은 dataset으로 훈련할 때",
+      "Adam optimizer를 사용할 때"
+    ],
     "correct": 1,
-    "explanation": "Xavier init uses Var(w) = 2/(fan_in + fan_out), designed for activations that are roughly linear near zero (sigmoid, tanh). Kaiming's extra factor of 2 compensates for ReLU's half-zeroing, which Xavier doesn't need.",
+    "explanation": "Xavier init은 Var(w) = 2/(fan_in + fan_out)을 사용하며, 0 근처에서 대략 선형인 activation(sigmoid, tanh)을 위해 설계되었습니다. Kaiming의 추가 factor 2는 ReLU의 half-zeroing을 보상하는데, Xavier에는 필요하지 않습니다.",
     "stage": "post"
   },
   {
-    "question": "Why does GPT-2 scale residual layer weights by 1/sqrt(2N)?",
-    "options": ["To speed up training", "Each residual addition increases variance, so scaling prevents the accumulated signal from growing unbounded through N layers", "To reduce the number of parameters", "To improve tokenization"],
+    "question": "GPT-2는 왜 residual layer weights를 1/sqrt(2N)으로 scale하나요?",
+    "options": [
+      "훈련 속도를 높이기 위해서",
+      "각 residual addition이 분산을 증가시키므로, scaling이 N개 layer를 지나는 동안 누적 signal이 제한 없이 커지는 것을 막기 위해서",
+      "파라미터 수를 줄이기 위해서",
+      "Tokenization을 개선하기 위해서"
+    ],
     "correct": 1,
-    "explanation": "Residual connections add sublayer output to the input: x = x + sublayer(x). Each addition increases variance. With N residual layers, variance grows proportionally to N. Scaling by 1/sqrt(2N) keeps the signal stable.",
+    "explanation": "Residual connection은 sublayer output을 input에 더합니다: x = x + sublayer(x). 각 addition은 분산을 증가시킵니다. N개의 residual layer가 있으면 분산은 N에 비례해 커집니다. 1/sqrt(2N)으로 scale하면 signal이 안정적으로 유지됩니다.",
     "stage": "post"
   }
 ]

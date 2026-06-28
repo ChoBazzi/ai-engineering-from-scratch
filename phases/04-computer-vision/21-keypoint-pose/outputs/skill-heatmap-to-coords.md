@@ -1,6 +1,6 @@
 ---
 name: skill-heatmap-to-coords
-description: Write the sub-pixel heatmap-to-coordinate routine used by every production pose model
+description: 모든 production pose model이 쓰는 sub-pixel heatmap-to-coordinate routine 작성
 version: 1.0.0
 phase: 4
 lesson: 21
@@ -9,43 +9,43 @@ tags: [keypoint, pose, subpixel, inference]
 
 # Heatmap to Coords
 
-Turn raw keypoint heatmaps into sub-pixel precise coordinates. The cheapest accuracy upgrade in every pose pipeline.
+raw keypoint heatmap을 sub-pixel 정밀도의 coordinate로 바꾼다. 모든 pose pipeline에서 가장 저렴한 accuracy upgrade다.
 
-## When to use
+## 사용할 때
 
-- Deploying a heatmap-based keypoint model.
-- Benchmarking pose metrics — OKS is extremely sensitive to sub-pixel accuracy.
-- Porting pose code from one framework to another.
+- heatmap-based keypoint model을 배포할 때.
+- pose metric을 benchmark할 때. OKS는 sub-pixel accuracy에 매우 민감하다.
+- pose code를 한 framework에서 다른 framework로 porting할 때.
 
-## Inputs
+## 입력
 
-- `heatmaps`: `(N, K, H, W)` tensor, per-keypoint heatmaps from the model.
-- `confidence_threshold`: discard keypoints whose peak is below this value.
+- `heatmaps`: `(N, K, H, W)` tensor, model이 낸 keypoint별 heatmap.
+- `confidence_threshold`: peak가 이 값보다 낮은 keypoint를 버린다.
 
-## Steps
+## 단계
 
-1. **Argmax** each heatmap to find the integer peak location.
-2. **First-difference offset** — estimate sub-pixel offset from neighbouring pixels. The `0.25` coefficient is a heuristic calibrated for Gaussian heatmaps with `sigma >= 1`; for principled sub-pixel recovery, use a full quadratic fit (DARK) or a Gaussian fit.
+1. **Argmax** 각 heatmap에서 integer peak location을 찾는다.
+2. **First-difference offset** — 이웃 pixel에서 sub-pixel offset을 추정한다. `0.25` coefficient는 `sigma >= 1`인 Gaussian heatmap에 맞춰 calibrate한 heuristic이다. 원칙적인 sub-pixel recovery가 필요하면 full quadratic fit(DARK) 또는 Gaussian fit을 사용한다.
 
-```
+```text
 dx = 0.25 * sign(heatmap[y, x+1] - heatmap[y, x-1])
 dy = 0.25 * sign(heatmap[y+1, x] - heatmap[y-1, x])
 ```
 
-For the DARK / quadratic variant, approximate using a local quadratic:
+DARK / quadratic variant는 local quadratic으로 근사한다.
 
-```
+```text
 dx = -0.5 * (heatmap[y, x+1] - heatmap[y, x-1])
         / (heatmap[y, x+1] - 2 * heatmap[y, x] + heatmap[y, x-1] + eps)
 ```
 
-The quadratic fit is more accurate on peaked heatmaps; the sign-based offset is the safer default when heatmaps are noisy.
+quadratic fit은 peak가 뚜렷한 heatmap에서 더 정확하다. sign-based offset은 heatmap이 noisy할 때 더 안전한 default다.
 
-3. **Add offset** to the integer peak.
-4. **Confidence** — return the peak value per keypoint; clients use it to mask low-confidence predictions.
-5. **Boundary case** — when the peak lands on the first or last pixel along an axis, one of the neighbours is clamped; the offset collapses to zero, which is the safest fallback.
+3. **Offset 추가** integer peak에 offset을 더한다.
+4. **Confidence** — keypoint별 peak value를 반환한다. client는 이를 low-confidence prediction mask에 사용한다.
+5. **Boundary case** — peak가 한 axis의 첫 pixel이나 마지막 pixel에 놓이면 이웃 중 하나가 clamp된다. offset은 0으로 collapse되며, 이것이 가장 안전한 fallback이다.
 
-## Output template
+## 출력 template
 
 ```python
 import torch
@@ -89,18 +89,18 @@ def heatmap_to_coords_subpixel(heatmaps, threshold=0.2):
     return coords, conf, mask
 ```
 
-## Report
+## 보고서
 
-```
+```text
 [subpixel decode]
   keypoints:   K
   threshold:   <float>
   valid_rate:  fraction of keypoints above threshold
 ```
 
-## Rules
+## 규칙
 
-- Always clamp neighbour indices to valid range; off-edge keypoints have zero-difference offset but no crash.
-- Return confidence alongside coordinates so clients can mask low-confidence points.
-- Sub-pixel refinement only helps when the heatmap is smooth around the peak — check that training used a Gaussian target with sigma >= 1.
-- For very small heatmap resolutions (< 48x48), consider upsampling the heatmap to full image size before extracting coordinates; the sub-pixel offset scales with the stride.
+- neighbour index는 항상 valid range로 clamp한다. edge 바깥 keypoint는 zero-difference offset을 가지지만 crash하지 않는다.
+- client가 low-confidence point를 mask할 수 있도록 coordinate와 함께 confidence를 반환한다.
+- Sub-pixel refinement는 peak 주변 heatmap이 smooth할 때만 도움이 된다. training이 sigma >= 1인 Gaussian target을 사용했는지 확인한다.
+- heatmap resolution이 매우 작다면(< 48x48), coordinate 추출 전에 heatmap을 full image size로 upsample하는 것을 고려한다. sub-pixel offset은 stride에 따라 scale된다.

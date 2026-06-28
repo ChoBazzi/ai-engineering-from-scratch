@@ -1,6 +1,6 @@
 ---
 name: skill-recall-at-k-runner
-description: Write a clean evaluation harness for recall@K with train/val/gallery splits and proper data contract
+description: train/val/gallery split과 proper data contract를 갖춘 recall@K clean evaluation harness 작성하기
 version: 1.0.0
 phase: 4
 lesson: 20
@@ -9,31 +9,31 @@ tags: [retrieval, evaluation, recall, faiss]
 
 # Recall@K Runner
 
-Turn a folder of query and gallery images plus labels into a reproducible recall@K number.
+query 및 gallery image folder와 label을 reproducible recall@K number로 바꿉니다.
 
-## When to use
+## 사용 시점
 
-- First retrieval benchmark for a new backbone.
-- Tracking embedding quality across fine-tune epochs.
-- Comparing two retrieval systems on the same dataset.
+- new backbone의 첫 retrieval benchmark를 만들 때.
+- fine-tune epoch 전반의 embedding quality를 tracking할 때.
+- 같은 dataset에서 두 retrieval system을 비교할 때.
 
 ## Inputs
 
-- `query_images`: list of paths.
-- `gallery_images`: list of paths (query may or may not overlap).
-- `query_labels`, `gallery_labels`: class or instance IDs.
-- `encoder_fn`: callable `image -> embedding` (precomputed or live).
-- `ks`: list like `[1, 5, 10]`.
+- `query_images`: path list.
+- `gallery_images`: path list(query와 overlap할 수도 있고 아닐 수도 있음).
+- `query_labels`, `gallery_labels`: class 또는 instance ID.
+- `encoder_fn`: callable `image -> embedding`(precomputed 또는 live).
+- `ks`: `[1, 5, 10]` 같은 list.
 
 ## Steps
 
-1. Encode every gallery image once. Save as numpy array.
-2. Encode every query image.
-3. L2-normalise both sets of embeddings.
-4. For each query, compute similarity against all gallery items.
-5. Sort descending, take top max(ks).
-6. For each K, check whether any of the top-K gallery items shares the query's label.
-7. Report `recall@K = fraction of queries that had at least one correct neighbour in top K`.
+1. 모든 gallery image를 한 번 encode합니다. numpy array로 저장합니다.
+2. 모든 query image를 encode합니다.
+3. 두 embedding set을 모두 L2-normalise합니다.
+4. 각 query에 대해 모든 gallery item과의 similarity를 계산합니다.
+5. 내림차순으로 sort하고 top max(ks)를 가져옵니다.
+6. 각 K에 대해 top-K gallery item 중 query의 label을 공유하는 것이 있는지 확인합니다.
+7. `recall@K = fraction of queries that had at least one correct neighbour in top K`를 report합니다.
 
 ## Output template
 
@@ -95,7 +95,7 @@ def evaluate(query_images, query_labels, gallery_images, gallery_labels, encoder
 
 ## Report
 
-```
+```text
 [evaluation]
   num queries:   <int>
   num gallery:   <int>
@@ -109,7 +109,7 @@ def evaluate(query_images, query_labels, gallery_images, gallery_labels, encoder
 
 ## Rules
 
-- Normalise embeddings before computing similarity; FAISS IndexFlatIP on normalised vectors equals cosine.
-- When a query's ground-truth label is absent from the gallery, exclude it; otherwise recall is trivially capped below 1.
-- If query and gallery overlap, exclude the query itself from its own top-K or you measure self-similarity, not retrieval.
-- For `num_queries > 10,000`, batch the similarity matmul to avoid OOM.
+- similarity를 계산하기 전에 embedding을 normalise합니다. normalised vector에서 FAISS IndexFlatIP는 cosine과 같습니다.
+- query의 ground-truth label이 gallery에 없으면 제외합니다. 그렇지 않으면 recall이 trivial하게 1 아래로 cap됩니다.
+- query와 gallery가 overlap하면 query 자체를 자신의 top-K에서 제외합니다. 그렇지 않으면 retrieval이 아니라 self-similarity를 측정합니다.
+- `num_queries > 10,000`이면 OOM을 피하기 위해 similarity matmul을 batch 처리합니다.

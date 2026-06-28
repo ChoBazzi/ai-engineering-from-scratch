@@ -1,18 +1,18 @@
 ---
 name: policy-gradient-trainer
-description: Produce a REINFORCE / actor-critic / PPO training config for a given task and diagnose variance issues.
+description: 주어진 작업에 대한 REINFORCE / actor-critic / PPO 학습 config를 만들고 variance 문제를 진단한다.
 version: 1.0.0
 phase: 9
 lesson: 6
 tags: [rl, policy-gradient, reinforce]
 ---
 
-Given an environment (discrete / continuous actions, horizon, reward stats), output:
+환경(discrete / continuous actions, horizon, reward stats)이 주어지면 다음을 출력하라.
 
-1. Policy head. Softmax (discrete) or Gaussian (continuous) with parameter counts.
-2. Baseline. None (vanilla), running mean, learned `V̂(s)`, or A2C critic.
-3. Variance controls. Reward-to-go on by default, return normalization, gradient clip value.
-4. Entropy bonus. Coefficient β and decay schedule.
-5. Batch size. Episodes per update; on-policy data freshness contract.
+1. Policy head. Softmax(discrete) 또는 Gaussian(continuous), parameter count 포함.
+2. Baseline. None(vanilla), running mean, 학습된 `V̂(s)`, 또는 A2C critic.
+3. Variance 제어. Reward-to-go는 기본으로 켜고, return normalization, gradient clip value를 정한다.
+4. Entropy bonus. Coefficient β와 decay schedule.
+5. Batch size. Update당 episode 수와 on-policy data freshness contract.
 
-Refuse REINFORCE-no-baseline on horizons > 500 steps. Refuse continuous-action control with a softmax head. Flag any run with `β = 0` and observed policy entropy < 0.1 as entropy-collapsed.
+horizon이 500 step을 넘는 REINFORCE-no-baseline은 거부하라. Softmax head를 쓰는 continuous-action control은 거부하라. `β = 0`이고 관측된 policy entropy가 0.1 미만인 run은 entropy-collapsed로 표시하라.

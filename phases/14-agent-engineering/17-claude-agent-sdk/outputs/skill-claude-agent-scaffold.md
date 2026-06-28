@@ -1,33 +1,33 @@
 ---
 name: claude-agent-scaffold
-description: Scaffold a Claude Agent SDK app with subagents, lifecycle hooks, session store, MCP server attachment, and W3C trace propagation.
+description: subagent, lifecycle hook, session store, MCP server attachment, W3C trace propagation을 갖춘 Claude Agent SDK 앱을 scaffold한다.
 version: 1.0.0
 phase: 14
 lesson: 17
 tags: [claude-agent-sdk, subagents, hooks, session-store, mcp]
 ---
 
-Given a product domain and a list of MCP servers, scaffold a Claude Agent SDK app.
+product domain과 MCP server 목록이 주어지면 Claude Agent SDK 앱을 scaffold한다.
 
-Produce:
+다음을 만든다.
 
-1. A main agent definition with instructions, built-in tool access (read_file, write_file, shell, grep, glob, web fetch), and custom function tools.
-2. Subagent spawner for parallelization and context isolation. Use when the orchestrator would otherwise blow its context budget.
-3. Lifecycle hooks registered: PreToolUse + PostToolUse for audit, SessionStart for setup, SessionEnd for teardown, UserPromptSubmit for rule enforcement (see pro-workflow patterns).
-4. Session store (SQLite default) with `list_subkeys` wired to render a subagent tree.
-5. MCP server attachment for external tool/resource surfaces.
-6. W3C trace context propagation so OTel spans from the caller continue through the CLI.
+1. instructions, 내장 도구 접근(read_file, write_file, shell, grep, glob, web fetch), custom function tool을 가진 main agent definition.
+2. parallelization과 context isolation을 위한 subagent spawner. orchestrator가 아니면 context budget을 터뜨릴 때 사용한다.
+3. 등록된 lifecycle hook: audit를 위한 PreToolUse + PostToolUse, setup을 위한 SessionStart, teardown을 위한 SessionEnd, rule enforcement를 위한 UserPromptSubmit(pro-workflow pattern 참조).
+4. subagent tree를 렌더링하도록 `list_subkeys`가 연결된 session store(SQLite 기본).
+5. 외부 tool/resource surface를 위한 MCP server attachment.
+6. caller의 OTel span이 CLI까지 이어지도록 하는 W3C trace context propagation.
 
-Hard rejects:
+Hard reject:
 
-- Spawning a subagent for a single-tool task. Subagents are for parallelization or context isolation; not for "one read_file call."
-- Hooks with synchronous expensive work. Hooks should be microseconds to milliseconds. Long work belongs in a subagent.
-- Session stores without a cascade-delete policy. Orphaned subagent sessions bloat storage.
+- single-tool task에 subagent를 생성하는 것. subagent는 parallelization 또는 context isolation을 위한 것이지 "read_file 한 번 호출"을 위한 것이 아니다.
+- synchronous expensive work가 있는 hook. hook은 microsecond에서 millisecond여야 한다. 긴 작업은 subagent에 둔다.
+- cascade-delete policy가 없는 session store. orphaned subagent session은 storage를 부풀린다.
 
-Refusal rules:
+거부 규칙:
 
-- If the product needs long-running async work (hours-to-days), refuse the self-hosted SDK and route to Claude Managed Agents.
-- If the user asks for `--session-mirror` to a shared location, refuse. Session transcripts carry PII; mirror to per-user encrypted storage.
-- If the agent depends on raw LLM streaming for UX without tool use, refuse the Agent SDK and recommend the Client SDK directly.
+- product에 장시간 비동기 작업(hours-to-days)이 필요하면 self-hosted SDK를 거부하고 Claude Managed Agents로 route한다.
+- 사용자가 shared location에 `--session-mirror`를 요구하면 거부한다. session transcript에는 PII가 있다. per-user encrypted storage로 mirror한다.
+- agent가 tool use 없이 UX용 raw LLM streaming에 의존한다면 Agent SDK를 거부하고 Client SDK 직접 사용을 권장한다.
 
-Output: `agent.py`, `tools.py`, `hooks.py`, `session.py`, `README.md` explaining the subagent policy, hook registry, session backend, MCP attachments, and OTel wiring. End with "what to read next" pointing to Lesson 22 for voice handoffs, Lesson 23 for OTel span attribution, or Lesson 18 if product needs production runtime shape.
+출력: `agent.py`, `tools.py`, `hooks.py`, `session.py`, 그리고 subagent policy, hook registry, session backend, MCP attachment, OTel wiring을 설명하는 `README.md`. 마지막에는 voice handoff를 위한 Lesson 22, OTel span attribution을 위한 Lesson 23, product에 production runtime shape가 필요하면 Lesson 18을 가리키는 "what to read next"로 끝낸다.

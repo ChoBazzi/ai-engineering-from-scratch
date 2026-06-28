@@ -1,30 +1,30 @@
-# Video Understanding — Temporal Modeling
+# 비디오 이해 — 시간 모델링
 
-> A video is a sequence of images plus the physics that connects them. Every video model either treats time as an extra axis (3D conv), a sequence to attend over (transformer), or a feature to extract once and pool (2D+pool).
+> Video는 이미지의 시퀀스와 그 이미지를 연결하는 physics로 이루어진다. 모든 video model은 시간을 extra axis(3D conv), attend할 sequence(transformer), 또는 한 번 추출해 pooling할 feature(2D+pool) 중 하나로 다룬다.
 
 **Type:** Learn + Build
 **Languages:** Python
 **Prerequisites:** Phase 4 Lesson 03 (CNNs), Phase 4 Lesson 04 (Image Classification)
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Distinguish the three main video-modelling approaches (2D+pool, 3D conv, spatio-temporal transformer) and predict their cost and accuracy trade-offs
-- Implement frame sampling, temporal pooling, and a 2D+pool baseline classifier in PyTorch
-- Explain why I3D's "inflated" 3D kernels transfer well from ImageNet weights and what a factorised (2+1)D conv does differently
-- Read the standard action-recognition datasets and metrics: Kinetics-400/600, UCF101, Something-Something V2; top-1 accuracy at the clip and video level
+- 세 가지 주요 video-modelling 접근법(2D+pool, 3D conv, spatio-temporal transformer)을 구분하고 cost와 accuracy trade-off를 예측한다
+- PyTorch에서 frame sampling, temporal pooling, 2D+pool baseline classifier를 구현한다
+- I3D의 "inflated" 3D kernel이 ImageNet weights에서 잘 transfer되는 이유와 factorised (2+1)D conv가 무엇을 다르게 하는지 설명한다
+- 표준 action-recognition dataset과 metric을 읽는다: Kinetics-400/600, UCF101, Something-Something V2, clip level과 video level의 top-1 accuracy
 
-## The Problem
+## 문제
 
-A 30-second video at 30 fps is 900 images. Naively, video classification is image classification run 900 times followed by some kind of aggregation. That works when the action is visible in almost every frame (sports, cooking, exercise videos) and fails badly when the action is defined by motion itself: "pushing something from left to right" looks like two still objects in every single frame.
+30fps의 30초 video는 900장의 이미지다. 순진하게 보면 video classification은 image classification을 900번 실행한 뒤 어떤 방식으로든 aggregation하는 것이다. 이 방법은 action이 거의 모든 frame에 보일 때(sports, cooking, exercise videos)는 동작하지만, action 자체가 motion으로 정의될 때는 심하게 실패한다. "pushing something from left to right"는 모든 single frame에서 두 개의 정지 object처럼 보인다.
 
-The core question for every video architecture is: when does temporal structure get modelled, and how? The answer drives everything else — compute cost, pretraining strategy, whether you can reuse ImageNet weights, what datasets the model trains on.
+모든 video architecture의 핵심 질문은 temporal structure가 언제, 어떻게 모델링되는가다. 그 답이 나머지 전부를 결정한다. Compute cost, pretraining strategy, ImageNet weights 재사용 가능 여부, 어떤 dataset에서 model을 학습할지가 모두 여기서 나온다.
 
-This lesson is deliberately shorter than the static-image lessons. The core image machinery is already in place, and video understanding is mostly about the temporal story: sampling, modelling, and aggregating.
+이 lesson은 static-image lesson보다 의도적으로 짧다. 핵심 image machinery는 이미 마련되어 있고, video understanding은 대부분 sampling, modelling, aggregating이라는 temporal story에 관한 것이다.
 
-## The Concept
+## 개념
 
-### The three architectural families
+### 세 가지 architecture family
 
 ```mermaid
 flowchart LR
@@ -43,85 +43,85 @@ flowchart LR
 
 ### 2D + pool
 
-Take a 2D CNN (ResNet, EfficientNet, ViT). Run it independently on every sampled frame. Average (or max-pool, or attention-pool) the per-frame embeddings. Feed the pooled vector to a classifier.
+2D CNN(ResNet, EfficientNet, ViT)을 가져온다. Sampling된 모든 frame에서 독립적으로 실행한다. Frame별 embedding을 평균하거나(max-pool 또는 attention-pool도 가능) pooled vector를 classifier에 넣는다.
 
-Pros:
-- ImageNet pretraining transfers directly.
-- Simplest to implement.
-- Cheap: T frames * single-image inference cost.
+장점:
+- ImageNet pretraining이 직접 transfer된다.
+- 구현이 가장 단순하다.
+- 저렴하다. T frames * single-image inference cost다.
 
-Cons:
-- Cannot model motion. Action = aggregate of appearances.
-- Temporal pooling is order-invariant; "open door" and "close door" look the same.
+단점:
+- Motion을 모델링할 수 없다. Action = appearance의 aggregate다.
+- Temporal pooling은 order-invariant다. "open door"와 "close door"가 같아 보인다.
 
-When to use: appearance-heavy tasks, transfer learning on small video datasets, initial baselines.
+사용 시점: Appearance-heavy task, 작은 video dataset의 transfer learning, 초기 baseline.
 
 ### 3D convolutions
 
-Replace 2D (H, W) kernels with 3D (T, H, W) kernels. The network convolves over both space and time. Early family: C3D, I3D, SlowFast.
+2D (H, W) kernel을 3D (T, H, W) kernel로 바꾼다. Network는 space와 time 모두에 대해 convolution한다. 초기 family는 C3D, I3D, SlowFast다.
 
-I3D trick: take a pretrained 2D ImageNet model, "inflate" each 2D kernel by copying it along a new time axis. A 3x3 2D conv becomes a 3x3x3 3D conv. This gives the 3D model strong pretrained weights instead of training from scratch.
+I3D trick: 사전 학습된 2D ImageNet model을 가져와 각 2D kernel을 새 time axis 방향으로 복사해 "inflate"한다. 3x3 2D conv는 3x3x3 3D conv가 된다. 이렇게 하면 3D model이 scratch부터 학습하는 대신 강한 pretrained weights를 얻는다.
 
-Pros:
-- Directly models motion.
-- I3D inflation gives free transfer learning.
+장점:
+- Motion을 직접 모델링한다.
+- I3D inflation은 transfer learning을 공짜로 준다.
 
-Cons:
-- T/8 more FLOPs than the 2D counterpart (for temporal kernel of 3 stacked 3 times).
-- Temporal kernels are small; long-range motion needs a pyramid or dual-stream approach.
+단점:
+- 2D counterpart보다 T/8 더 많은 FLOPs가 든다(temporal kernel 3을 3번 쌓은 경우).
+- Temporal kernel은 작다. Long-range motion에는 pyramid 또는 dual-stream approach가 필요하다.
 
-When to use: action recognition where motion is the signal (Something-Something V2, Kinetics with motion-heavy classes).
+사용 시점: Motion이 signal인 action recognition(Something-Something V2, motion-heavy class가 있는 Kinetics).
 
 ### Spatio-temporal transformers
 
-Tokenise the video into a grid of space-time patches and attend across all of them. TimeSformer, ViViT, Video Swin, VideoMAE.
+Video를 space-time patch의 grid로 tokenize하고 전체에 attention을 적용한다. TimeSformer, ViViT, Video Swin, VideoMAE가 여기에 속한다.
 
-Attention patterns that matter:
-- **Joint** — one big attention over (t, h, w). Quadratic in `T*H*W`; expensive.
-- **Divided** — two attentions per block: one over time, one over space. Linear-ish scaling.
-- **Factorised** — time attention alternates with space attention across blocks.
+중요한 attention pattern:
+- **Joint** — (t, h, w)에 대한 하나의 큰 attention. `T*H*W`에 대해 quadratic이므로 비싸다.
+- **Divided** — block마다 두 attention을 둔다. 하나는 time, 하나는 space. 거의 linear에 가까운 scaling을 가진다.
+- **Factorised** — time attention과 space attention이 block 사이에서 번갈아 나온다.
 
-Pros:
-- SOTA accuracy on every major benchmark.
-- Transfers from image transformers (ViT) via patch inflation.
-- Supports long-context video via sparse attention.
+장점:
+- 모든 주요 benchmark에서 SOTA accuracy.
+- Patch inflation을 통해 image transformer(ViT)에서 transfer된다.
+- Sparse attention을 통해 long-context video를 지원한다.
 
-Cons:
-- Compute-hungry.
-- Requires careful attention pattern choice or runtime balloons.
+단점:
+- Compute를 많이 먹는다.
+- Attention pattern을 신중하게 고르지 않으면 runtime이 급증한다.
 
-When to use: large datasets, high-fidelity video understanding, multi-modal video+text tasks.
+사용 시점: Large dataset, high-fidelity video understanding, multi-modal video+text task.
 
 ### Frame sampling
 
-A 10-second clip at 30 fps is 300 frames; feeding all 300 to any model is wasteful. Standard strategies:
+30fps의 10초 clip은 300 frames다. 어떤 model에도 300장을 모두 넣는 것은 낭비다. 표준 전략은 다음과 같다.
 
-- **Uniform sampling** — pick T frames evenly across the clip. Default for 2D+pool.
-- **Dense sampling** — random contiguous T-frame window. Common for 3D convs because motion requires neighbouring frames.
-- **Multi-clip** — sample multiple T-frame windows from the same video, classify each, average predictions at test time.
+- **Uniform sampling** — clip 전체에서 T frames를 균등하게 고른다. 2D+pool의 기본값이다.
+- **Dense sampling** — 인접한 T-frame window를 random하게 고른다. Motion에는 neighboring frame이 필요하므로 3D conv에서 흔하다.
+- **Multi-clip** — 같은 video에서 여러 T-frame window를 sample하고 각각 classify한 뒤 test time에 prediction을 평균한다.
 
-T is usually 8, 16, 32, or 64. Higher T = more temporal signal at more compute.
+T는 보통 8, 16, 32, 64다. T가 높을수록 더 많은 temporal signal을 얻지만 compute도 더 든다.
 
-### Evaluation
+### 평가
 
-Two levels:
-- **Clip-level accuracy** — model sees one T-frame clip, reports top-k.
-- **Video-level accuracy** — average clip-level predictions across multiple clips per video; higher and more stable.
+두 level이 있다.
+- **Clip-level accuracy** — model이 하나의 T-frame clip을 보고 top-k를 보고한다.
+- **Video-level accuracy** — video당 여러 clip-level prediction을 평균한다. 더 높고 안정적이다.
 
-Always report both. A model that scores 78% clip / 82% video is relying heavily on test-time averaging; one that scores 80% / 81% is more robust per-clip.
+항상 둘 다 보고한다. 78% clip / 82% video를 기록한 model은 test-time averaging에 크게 의존한다. 80% / 81%를 기록한 model은 per-clip 기준으로 더 robust하다.
 
-### Datasets you will meet
+### 만나게 될 dataset
 
-- **Kinetics-400 / 600 / 700** — the general-purpose action dataset. 400k clips; YouTube URLs (many now dead).
-- **Something-Something V2** — motion-defined actions ("moving X from left to right"). Cannot be solved by 2D+pool.
-- **UCF-101**, **HMDB-51** — older, smaller, still reported.
-- **AVA** — action *localisation* in space and time; harder than classification.
+- **Kinetics-400 / 600 / 700** — general-purpose action dataset. 400k clips와 YouTube URLs(지금은 dead link가 많다).
+- **Something-Something V2** — motion-defined action("moving X from left to right"). 2D+pool로는 풀 수 없다.
+- **UCF-101**, **HMDB-51** — 더 오래되고 작지만 여전히 보고된다.
+- **AVA** — space와 time에서 action *localisation*을 수행한다. Classification보다 어렵다.
 
-## Build It
+## 직접 만들기
 
 ### Step 1: Frame sampler
 
-Uniform and dense samplers that work on a list of frames (or a video tensor).
+Frame list 또는 video tensor에서 동작하는 uniform sampler와 dense sampler다.
 
 ```python
 import numpy as np
@@ -141,11 +141,11 @@ def sample_dense(num_frames_total, T, rng=None):
     return list(range(start, start + T))
 ```
 
-Both return `T` indices that you use to slice the video tensor.
+둘 다 video tensor를 slice하는 데 사용할 `T`개의 index를 반환한다.
 
-### Step 2: A 2D+pool baseline
+### Step 2: 2D+pool baseline
 
-Run a 2D ResNet-18 over every frame, average-pool features, classify.
+모든 frame에 2D ResNet-18을 실행하고, feature를 average-pool한 뒤 classify한다.
 
 ```python
 import torch
@@ -174,11 +174,11 @@ print(f"output: {model(x).shape}")
 print(f"params: {sum(p.numel() for p in model.parameters()):,}")
 ```
 
-Eleven million parameters, ImageNet pretrained, runs per-frame, averages, classifies. This baseline is often within 5-10 points of proper 3D models on appearance-heavy tasks — sometimes better, because it reuses a stronger ImageNet backbone.
+1100만 파라미터, ImageNet pretrained, per-frame 실행, 평균, classification. 이 baseline은 appearance-heavy task에서 proper 3D model보다 5-10 point 이내인 경우가 많고 때로는 더 낫다. 더 강한 ImageNet backbone을 재사용하기 때문이다.
 
-### Step 3: An I3D-style inflated 3D conv
+### Step 3: I3D-style inflated 3D conv
 
-Turn a single 2D conv into a 3D conv by repeating weights along a new time axis.
+단일 2D conv를 새 time axis 방향으로 weight를 반복해 3D conv로 바꾼다.
 
 ```python
 def inflate_2d_to_3d(conv2d, time_kernel=3):
@@ -200,11 +200,11 @@ x = torch.randn(1, 3, 8, 56, 56)
 print(f"3D output shape:  {tuple(conv3d(x).shape)}")
 ```
 
-The division by `time_kernel` keeps the activation magnitudes roughly constant — important for not breaking batch-norm statistics on the first pass.
+`time_kernel`로 나누면 activation magnitude가 대략 일정하게 유지된다. 첫 pass에서 batch-norm statistics를 깨지 않으려면 중요하다.
 
 ### Step 4: Factorised (2+1)D conv
 
-Split a 3D conv into a 2D (spatial) and a 1D (temporal) conv. Same receptive field, fewer parameters, better accuracy on some benchmarks.
+3D conv를 2D(spatial) conv와 1D(temporal) conv로 나눈다. Receptive field는 같고, parameter는 더 적으며, 일부 benchmark에서는 accuracy가 더 좋다.
 
 ```python
 class Conv2Plus1D(nn.Module):
@@ -227,46 +227,46 @@ x = torch.randn(1, 3, 8, 56, 56)
 print(f"(2+1)D output: {tuple(c(x).shape)}")
 ```
 
-A full R(2+1)D network is the same as a ResNet-18 with every 3x3 conv replaced by `Conv2Plus1D`.
+Full R(2+1)D network는 모든 3x3 conv를 `Conv2Plus1D`로 바꾼 ResNet-18과 같다.
 
-## Use It
+## 사용하기
 
-Two libraries cover production video work:
+두 library가 production video work를 담당한다.
 
-- `torchvision.models.video` — R(2+1)D, MViT, Swin3D with pretrained Kinetics weights. Same API as image models.
-- `pytorchvideo` (Meta) — model zoo, data loaders for Kinetics / SSv2 / AVA, standard transforms.
+- `torchvision.models.video` — Kinetics pretrained weights가 있는 R(2+1)D, MViT, Swin3D. Image model과 같은 API를 쓴다.
+- `pytorchvideo`(Meta) — model zoo, Kinetics / SSv2 / AVA용 data loader, standard transform.
 
-For Vision-Language video models (video captioning, video QA), use `transformers` (`VideoMAE`, `VideoLLaMA`, `InternVideo`).
+Vision-Language video model(video captioning, video QA)에는 `transformers`(`VideoMAE`, `VideoLLaMA`, `InternVideo`)를 사용한다.
 
-## Ship It
+## 출시하기
 
-This lesson produces:
+이 lesson의 산출물은 다음과 같다.
 
-- `outputs/prompt-video-architecture-picker.md` — a prompt that picks 2D+pool / I3D / (2+1)D / transformer based on appearance-vs-motion, dataset size, and compute budget.
-- `outputs/skill-frame-sampler-auditor.md` — a skill that inspects a video pipeline's sampler and flags common bugs: off-by-one index, uneven sampling when `num_frames < T`, lack of aspect-preserving crop, etc.
+- `outputs/prompt-video-architecture-picker.md` — appearance-vs-motion, dataset size, compute budget을 바탕으로 2D+pool / I3D / (2+1)D / transformer를 고르는 prompt.
+- `outputs/skill-frame-sampler-auditor.md` — video pipeline의 sampler를 검사하고 common bug를 flag하는 skill. 예: off-by-one index, `num_frames < T`일 때 uneven sampling, aspect-preserving crop 누락 등.
 
-## Exercises
+## 연습 문제
 
-1. **(Easy)** Compute FLOPs (approximate) for FramePool with T=8 vs an I3D-style 3D ResNet with T=8. Justify why 2D+pool is 3-5x cheaper.
-2. **(Medium)** Generate a synthetic video dataset: random balls moving in random directions, labelled by direction of motion ("left-to-right", "right-to-left", "diagonal-up"). Train FramePool on it. Show that it achieves near-chance accuracy, proving appearance alone is insufficient for motion tasks.
-3. **(Hard)** Build an R(2+1)D-18 by replacing every Conv2d in a ResNet-18 with `Conv2Plus1D`. Inflate the first conv's weights from an ImageNet-pretrained ResNet-18. Train on the motion dataset from exercise 2 and beat FramePool.
+1. **(Easy)** T=8인 FramePool과 T=8인 I3D-style 3D ResNet의 FLOPs를 근사 계산한다. 2D+pool이 왜 3-5x 더 싼지 정당화한다.
+2. **(Medium)** Synthetic video dataset을 만든다. Random ball이 random direction으로 움직이고, motion direction("left-to-right", "right-to-left", "diagonal-up")으로 label된다. FramePool을 학습한다. Appearance alone이 motion task에 부족함을 보이기 위해 near-chance accuracy를 달성함을 보여준다.
+3. **(Hard)** ResNet-18의 모든 Conv2d를 `Conv2Plus1D`로 바꿔 R(2+1)D-18을 만든다. ImageNet-pretrained ResNet-18에서 첫 conv의 weights를 inflate한다. Exercise 2의 motion dataset에서 학습하고 FramePool을 이긴다.
 
-## Key Terms
+## 핵심 용어
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
-| 2D + pool | "Per-frame classifier" | Run a 2D CNN on every sampled frame, average-pool features across time, classify |
-| 3D convolution | "Spatio-temporal kernel" | Kernel that convolves over (T, H, W); can model motion natively |
-| Inflation | "Lift 2D weights to 3D" | Initialise 3D conv weights by repeating a 2D conv's weights along the new time axis, then divide by kernel_T to preserve activation scale |
-| (2+1)D | "Factorised conv" | Split 3D into 2D spatial + 1D temporal; fewer parameters, extra non-linearity between |
-| Divided attention | "Time then space" | Transformer block with two attentions per layer: one over tokens at the same frame, one over tokens at the same position |
-| Clip | "T-frame window" | A sampled subsequence of T frames; the unit a video model consumes |
-| Clip vs video accuracy | "Two eval settings" | Clip = one sample per video, video = average across multiple sampled clips |
-| Kinetics | "The ImageNet of video" | 400-700 action classes, 300k+ YouTube clips, the standard video pretraining corpus |
+| 2D + pool | "Per-frame classifier" | Sampling된 모든 frame에서 2D CNN을 실행하고, feature를 time 축으로 average-pool한 뒤 classify한다 |
+| 3D convolution | "Spatio-temporal kernel" | (T, H, W)에 대해 convolution하는 kernel이다. Motion을 native하게 모델링할 수 있다 |
+| Inflation | "Lift 2D weights to 3D" | 2D conv의 weights를 새 time axis 방향으로 반복해 3D conv weights를 initialise하고, activation scale 보존을 위해 kernel_T로 나눈다 |
+| (2+1)D | "Factorised conv" | 3D를 2D spatial + 1D temporal로 나눈다. Parameter가 더 적고 중간에 extra non-linearity가 있다 |
+| Divided attention | "Time then space" | Layer마다 attention 두 개가 있는 transformer block이다. 하나는 같은 frame의 token에, 하나는 같은 position의 token에 적용한다 |
+| Clip | "T-frame window" | T frames의 sampled subsequence다. Video model이 소비하는 단위다 |
+| Clip vs video accuracy | "Two eval settings" | Clip = video당 sample 하나, video = 여러 sampled clip을 평균 |
+| Kinetics | "The ImageNet of video" | 400-700 action class, 300k+ YouTube clips로 구성된 표준 video pretraining corpus |
 
-## Further Reading
+## 더 읽을거리
 
-- [I3D: Quo Vadis, Action Recognition (Carreira & Zisserman, 2017)](https://arxiv.org/abs/1705.07750) — introduces inflation and the Kinetics dataset
-- [R(2+1)D: A Closer Look at Spatiotemporal Convolutions (Tran et al., 2018)](https://arxiv.org/abs/1711.11248) — factorised conv, still a strong baseline
-- [TimeSformer: Is Space-Time Attention All You Need? (Bertasius et al., 2021)](https://arxiv.org/abs/2102.05095) — the first strong video transformer
-- [VideoMAE (Tong et al., 2022)](https://arxiv.org/abs/2203.12602) — masked autoencoder pretraining for video; current dominant pretraining recipe
+- [I3D: Quo Vadis, Action Recognition (Carreira & Zisserman, 2017)](https://arxiv.org/abs/1705.07750) — inflation과 Kinetics dataset을 소개한다
+- [R(2+1)D: A Closer Look at Spatiotemporal Convolutions (Tran et al., 2018)](https://arxiv.org/abs/1711.11248) — factorised conv. 여전히 강한 baseline이다
+- [TimeSformer: Is Space-Time Attention All You Need? (Bertasius et al., 2021)](https://arxiv.org/abs/2102.05095) — 최초의 강력한 video transformer
+- [VideoMAE (Tong et al., 2022)](https://arxiv.org/abs/2203.12602) — video용 masked autoencoder pretraining. 현재 지배적인 pretraining recipe다

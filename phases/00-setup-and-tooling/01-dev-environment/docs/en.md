@@ -1,28 +1,28 @@
-# Dev Environment
+# 개발 환경
 
-> Your tools shape your thinking. Set them up once, set them up right.
+> 도구는 사고방식을 만든다. 한 번 제대로 설정해 두자.
 
 **Type:** Build
 **Languages:** Python, Node.js, Rust
 **Prerequisites:** None
 **Time:** ~45 minutes
 
-## Learning Objectives
+## 학습 목표
 
-- Set up Python 3.11+, Node.js 20+, and Rust toolchains from scratch
-- Configure virtual environments and package managers for reproducible builds
-- Verify GPU access with CUDA/MPS and run a test tensor operation
-- Understand the four-layer stack: system, packages, runtimes, AI libraries
+- Python 3.11+, Node.js 20+, Rust toolchain을 처음부터 설정한다
+- 재현 가능한 빌드를 위해 virtual environment와 package manager를 구성한다
+- CUDA/MPS로 GPU 접근을 확인하고 테스트 tensor 연산을 실행한다
+- system, packages, runtimes, AI libraries로 이루어진 4계층 stack을 이해한다
 
-## The Problem
+## 문제
 
-You're about to learn AI engineering across 200+ lessons using Python, TypeScript, Rust, and Julia. If your environment is broken, every single lesson becomes a fight against tooling instead of learning.
+이제 Python, TypeScript, Rust, Julia를 사용해 200개가 넘는 lesson에서 AI engineering을 배울 것이다. 환경이 망가져 있으면 모든 lesson이 학습이 아니라 tooling과의 싸움이 된다.
 
-Most people skip environment setup. Then they spend hours debugging import errors, version conflicts, and missing CUDA drivers. We're going to do this once, properly.
+대부분의 사람은 환경 설정을 건너뛴다. 그러고 나서 import error, version conflict, 누락된 CUDA driver를 디버깅하느라 몇 시간을 쓴다. 우리는 이 작업을 한 번, 제대로 할 것이다.
 
-## The Concept
+## 개념
 
-An AI engineering environment has four layers:
+AI engineering 환경에는 네 개의 계층이 있다:
 
 ```mermaid
 graph TD
@@ -31,13 +31,13 @@ graph TD
     C --> D["1. System Foundation\nOS, shell, git, editor, GPU drivers"]
 ```
 
-We install bottom-up. Each layer depends on the one below it.
+아래에서 위로 설치한다. 각 계층은 그 아래 계층에 의존한다.
 
-## Build It
+## 직접 만들기
 
-### Step 1: System Foundation
+### 단계 1: System Foundation
 
-Check your system and install the basics.
+시스템을 확인하고 기본 도구를 설치한다.
 
 ```bash
 # macOS
@@ -51,9 +51,9 @@ sudo apt update && sudo apt install -y build-essential git curl wget
 wsl --install -d Ubuntu-24.04
 ```
 
-### Step 2: Python with uv
+### 단계 2: uv로 Python 설정하기
 
-We use `uv` — it's 10-100x faster than pip and handles virtual environments automatically.
+우리는 `uv`를 사용한다. pip보다 10-100배 빠르고 virtual environment를 자동으로 처리한다.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -66,7 +66,7 @@ source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 uv pip install numpy matplotlib jupyter
 ```
 
-Verify:
+확인:
 
 ```python
 import sys
@@ -78,9 +78,9 @@ a = np.array([1, 2, 3])
 print(f"Vector: {a}, dot product with itself: {np.dot(a, a)}")
 ```
 
-### Step 3: Node.js with pnpm
+### 단계 3: pnpm으로 Node.js 설정하기
 
-For TypeScript lessons (agents, MCP servers, web apps).
+TypeScript lesson(agent, MCP server, web app)에 사용한다.
 
 ```bash
 curl -fsSL https://fnm.vercel.app/install | bash
@@ -92,9 +92,9 @@ npm install -g pnpm
 node -e "console.log('Node', process.version)"
 ```
 
-### Step 4: Rust
+### 단계 4: Rust
 
-For performance-critical lessons (inference, systems).
+성능이 중요한 lesson(inference, systems)에 사용한다.
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -103,9 +103,9 @@ rustc --version
 cargo --version
 ```
 
-### Step 5: Julia (Optional)
+### 단계 5: Julia (Optional)
 
-For math-heavy lessons where Julia shines.
+Julia가 강점을 보이는 수학 중심 lesson에 사용한다.
 
 ```bash
 curl -fsSL https://install.julialang.org | sh
@@ -113,7 +113,7 @@ curl -fsSL https://install.julialang.org | sh
 julia -e 'println("Julia ", VERSION)'
 ```
 
-### Step 6: GPU Setup (If You Have One)
+### 단계 6: GPU 설정(있는 경우)
 
 ```bash
 # NVIDIA
@@ -130,35 +130,35 @@ if torch.cuda.is_available():
     print(f"GPU: {torch.cuda.get_device_name(0)}")
 ```
 
-No GPU? No problem. Most lessons work on CPU. For training-heavy lessons, use Google Colab or cloud GPUs.
+GPU가 없어도 괜찮다. 대부분의 lesson은 CPU에서 동작한다. training이 많은 lesson에서는 Google Colab이나 cloud GPU를 사용한다.
 
-### Step 7: Verify Everything
+### 단계 7: 전체 확인
 
-Run the verification script:
+검증 script를 실행한다:
 
 ```bash
 python phases/00-setup-and-tooling/01-dev-environment/code/verify.py
 ```
 
-## Use It
+## 활용하기
 
-Your environment is now ready for every lesson in this course. Here's what you'll use where:
+이제 이 course의 모든 lesson을 진행할 환경이 준비되었다. 어디에서 무엇을 쓰는지는 다음과 같다:
 
-| Language | Used In | Package Manager |
+| Language | 사용 위치 | Package Manager |
 |----------|---------|-----------------|
 | Python | Phases 1-12 (ML, DL, NLP, Vision, Audio, LLMs) | uv |
 | TypeScript | Phases 13-17 (Tools, Agents, Swarms, Infra) | pnpm |
-| Rust | Phases 12, 15-17 (Performance-critical systems) | cargo |
-| Julia | Phase 1 (Math foundations) | Pkg |
+| Rust | Phases 12, 15-17 (성능이 중요한 systems) | cargo |
+| Julia | Phase 1 (수학 기초) | Pkg |
 
-## Ship It
+## 결과물
 
-This lesson produces a verification script that anyone can run to check their setup.
+이 lesson은 누구나 자신의 설정을 확인하기 위해 실행할 수 있는 검증 script를 만든다.
 
-See `outputs/prompt-env-check.md` for a prompt that helps AI assistants diagnose environment issues.
+AI assistant가 environment issue를 진단하도록 돕는 prompt는 `outputs/prompt-env-check.md`를 참고한다.
 
-## Exercises
+## 연습 문제
 
-1. Run the verification script and fix any failures
-2. Create a Python virtual environment for this course and install PyTorch
-3. Write a "hello world" in all four languages and run each one
+1. 검증 script를 실행하고 실패가 있으면 수정한다
+2. 이 course를 위한 Python virtual environment를 만들고 PyTorch를 설치한다
+3. 네 가지 language 모두에서 "hello world"를 작성하고 각각 실행한다

@@ -1,163 +1,152 @@
-# Contributing
+# 기여하기
 
-Lessons, translations, fixes, outputs — all welcome. One contribution per pull
-request keeps reviews fast and lets contributor counts and credit work
-correctly.
+수업, 번역, 수정, 산출물 모두 환영합니다. pull request 하나에 기여 하나만 담으면 리뷰가 빨라지고, 기여자 수와 크레딧도 정확히 반영됩니다.
 
-## Important: the README and ROADMAP feed the website
+## 중요: README와 ROADMAP은 웹사이트의 입력입니다
 
-`site/build.js` parses `README.md`, `ROADMAP.md`, and `glossary/terms.md` to
-generate `site/data.js`. Two patterns must stay intact in any pull request that
-touches those files:
+`site/build.js`는 `README.md`, `ROADMAP.md`, `glossary/terms.md`를 파싱해 `site/data.js`를 생성합니다. 이 파일들을 수정하는 pull request에서는 다음 패턴을 반드시 유지해야 합니다.
 
-- Phase headers in either `### Phase N: Name \`X lessons\`` form or
-  `<details><summary><b>Phase N — Name</b> ... <code>X lessons</code> ... <em>Description</em></summary>` form.
-- Lesson tables with the column shape `| # | Lesson | Type | Lang |` (or
-  `| # | Project | Combines | Lang |` for capstone tables). The `Lang` column
-  accepts plain text (`Python, TypeScript`) or the legacy emoji flags
-  (`🐍 🟦 🦀 🟣 ⚛️`); both are parser-equivalent.
-- ROADMAP status glyphs (`✅`, `🚧`, `⬚`) on phase headers and lesson rows.
-  Do not replace them with text — the parser keys off the exact characters.
+- Phase 헤더는 `### Phase N: Name \`X lessons\`` 형식이거나 `<details><summary><b>Phase N — Name</b> ... <code>X lessons</code> ... <em>Description</em></summary>` 형식이어야 합니다.
+- 수업 표는 `| # | Lesson | Type | Lang |` 열 구조를 유지해야 합니다. capstone 표는 `| # | Project | Combines | Lang |`를 사용합니다. `Lang` 열은 일반 텍스트(`Python, TypeScript`) 또는 레거시 이모지 플래그(`🐍 🟦 🦀 🟣 ⚛️`)를 받을 수 있으며, 파서에서는 둘을 동일하게 취급합니다.
+- ROADMAP의 phase 헤더와 수업 행에는 상태 글리프(`✅`, `🚧`, `⬚`)를 유지해야 합니다. 텍스트로 바꾸지 마세요. 파서는 정확히 이 문자를 기준으로 동작합니다.
 
-Run `node site/build.js` after editing those files; `git diff site/data.js`
-should show only the timestamp change if your edit was structural-safe.
+이 파일들을 수정한 뒤에는 `node site/build.js`를 실행하세요. 구조를 안전하게 유지했다면 `git diff site/data.js`에는 timestamp 변경만 보여야 합니다.
 
-## Ways to Contribute
+## 기여 방법
 
-### 1. Add a New Lesson
+### 1. 새 수업 추가
 
-Each lesson lives in `phases/XX-phase-name/NN-lesson-name/` with this structure:
+각 수업은 `phases/XX-phase-name/NN-lesson-name/` 아래에 있으며, 구조는 다음과 같습니다.
 
 ```
 NN-lesson-name/
-├── code/           At least one runnable implementation
-├── notebook/       Jupyter notebook for experimentation (optional)
+├── code/           실행 가능한 구현 하나 이상
+├── notebook/       실험용 Jupyter notebook (선택)
 ├── docs/
-│   └── en.md       Lesson documentation (required)
-└── outputs/        Prompts, skills, or agents this lesson produces (if applicable)
+│   └── en.md       수업 문서 (필수)
+└── outputs/        이 수업이 만드는 프롬프트, 스킬, 에이전트 (해당하는 경우)
 ```
 
-**Lesson doc format** (`en.md`):
+**수업 문서 형식** (`en.md`):
 
 ```markdown
-# Lesson Title
+# 수업 제목
 
-> One-line motto — the core idea in one sentence.
+> 한 줄 모토 — 핵심 아이디어를 한 문장으로.
 
-## The Problem
+## 문제
 
-Why does this matter? What can't you do without this?
+왜 중요한가? 이것 없이는 무엇을 할 수 없는가?
 
-## The Concept
+## 개념
 
-Explain with diagrams, visuals, and intuition. Code comes later.
+다이어그램, 시각 자료, 직관으로 설명합니다. 코드는 나중에 나옵니다.
 
-## Build It
+## 직접 만들기
 
-Step-by-step implementation from scratch.
+처음부터 단계별로 구현합니다.
 
-## Use It
+## 활용하기
 
-Now use a real framework or library to do the same thing.
+이제 실제 프레임워크나 라이브러리로 같은 일을 해 봅니다.
 
-## Ship It
+## 산출물로 만들기
 
-The prompt, skill, agent, or tool this lesson produces.
+이 수업이 만드는 프롬프트, 스킬, 에이전트 또는 도구입니다.
 
-## Exercises
+## 연습 문제
 
-1. Exercise one
-2. Exercise two
-3. Challenge exercise
+1. 연습 문제 하나
+2. 연습 문제 둘
+3. 도전 과제
 ```
 
-### 2. Add a Translation
+### 2. 번역 추가
 
-Create a new file in any lesson's `docs/` folder:
+어떤 수업이든 `docs/` 폴더에 새 파일을 만듭니다.
 
 ```
 docs/
-├── en.md    (English — always required)
-├── zh.md    (Chinese)
-├── ja.md    (Japanese)
-├── es.md    (Spanish)
-├── hi.md    (Hindi)
+├── en.md    (영어 — 항상 필수)
+├── zh.md    (중국어)
+├── ja.md    (일본어)
+├── es.md    (스페인어)
+├── hi.md    (힌디어)
 └── ...
 ```
 
-Keep the same structure as the English version. Translate content, not code.
+영어 버전과 같은 구조를 유지하세요. 코드는 번역하지 말고 콘텐츠만 번역합니다.
 
-### 3. Add an Output
+### 3. 산출물 추가
 
-If a lesson should produce a reusable prompt, skill, agent, or MCP server:
+수업에서 재사용 가능한 프롬프트, 스킬, 에이전트, MCP 서버를 만들어야 한다면:
 
-1. Create it in the lesson's `outputs/` folder
-2. Add a reference in the top-level `outputs/` index
+1. 해당 수업의 `outputs/` 폴더에 만듭니다
+2. 최상위 `outputs/` 인덱스에 참조를 추가합니다
 
-**Prompt format:**
+**프롬프트 형식:**
 
 ```markdown
 ---
 name: prompt-name
-description: What this prompt does
+description: 이 프롬프트가 하는 일
 phase: 14
 lesson: 01
 ---
 
-[System prompt or template here]
+[여기에 시스템 프롬프트 또는 템플릿]
 ```
 
-**Skill format:**
+**스킬 형식:**
 
 ```markdown
 ---
 name: skill-name
-description: What this skill teaches
+description: 이 스킬이 가르치는 내용
 version: 1.0.0
 phase: 14
 lesson: 01
 tags: [agents, loops]
 ---
 
-[Skill content here]
+[여기에 스킬 내용]
 ```
 
-### 4. Fix Bugs or Improve Existing Lessons
+### 4. 버그 수정 또는 기존 수업 개선
 
-- Fix code that doesn't run
-- Improve explanations
-- Add better diagrams
-- Update outdated information
+- 실행되지 않는 코드 수정
+- 설명 개선
+- 더 나은 다이어그램 추가
+- 오래된 정보 갱신
 
-### 5. Add Exercises or Projects
+### 5. 연습 문제 또는 프로젝트 추가
 
-More exercises and projects are always welcome, especially ones that connect multiple phases.
+연습 문제와 프로젝트는 언제나 환영합니다. 여러 phase를 연결하는 내용이면 특히 좋습니다.
 
-## Guidelines
+## 지침
 
-- **Code must run.** Every code file should execute without errors with the listed dependencies.
-- **No comments in code.** Code should be self-explanatory. Use the docs for explanation.
-- **Best language for the job.** Don't force Python where TypeScript or Rust is the better choice.
-- **Build from scratch first.** Always implement the concept from first principles before showing the framework version.
-- **Keep it practical.** Theory serves practice, not the other way around.
-- **No AI slop.** Write like a human. Be direct. Cut filler.
+- **코드는 실행되어야 합니다.** 모든 코드 파일은 명시된 의존성으로 오류 없이 실행되어야 합니다.
+- **코드에 주석을 넣지 않습니다.** 코드는 스스로 설명적이어야 합니다. 설명은 문서에서 하세요.
+- **작업에 가장 맞는 언어를 선택합니다.** TypeScript나 Rust가 더 나은 선택인 곳에 Python을 억지로 쓰지 마세요.
+- **처음부터 먼저 만듭니다.** 프레임워크 버전을 보여 주기 전에 항상 첫 원리부터 개념을 구현합니다.
+- **실용적으로 유지합니다.** 이론은 실무를 돕기 위한 것이지 그 반대가 아닙니다.
+- **AI식 군더더기를 피합니다.** 사람처럼 쓰세요. 직접적으로 말하고 불필요한 말을 덜어내세요.
 
-## Pull Request Process
+## Pull Request 절차
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b add-lesson-phase3-gradient-descent`)
-3. Make your changes
-4. Ensure all code runs
-5. Submit a pull request with a clear description
+1. 리포지터리를 포크합니다
+2. 기능 브랜치를 만듭니다(`git checkout -b add-lesson-phase3-gradient-descent`)
+3. 변경 사항을 작성합니다
+4. 모든 코드가 실행되는지 확인합니다
+5. 명확한 설명과 함께 pull request를 제출합니다
 
-## Code of Conduct
+## 행동 강령
 
-See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Be kind, be helpful, be constructive.
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)를 참고하세요. 친절하고, 도움이 되며, 건설적으로 행동하세요.
 
-## Style
+## 스타일
 
-- Direct prose. Cut filler. Match the manual's tone, not marketing copy.
-- No decorative emojis in headings. Lang column emoji flags are the one
-  exception and only because the parser maps them.
-- Code runs as-is with the dependencies listed in the lesson.
-- Build from scratch first, framework second.
+- 직접적인 문장. 군더더기 제거. 마케팅 문구가 아니라 매뉴얼의 톤에 맞춥니다.
+- 제목에 장식용 이모지를 쓰지 않습니다. `Lang` 열의 이모지 플래그만 예외이며, 파서가 이를 매핑하기 때문입니다.
+- 코드는 수업에 명시된 의존성으로 그대로 실행되어야 합니다.
+- 직접 구현이 먼저, 프레임워크는 그다음입니다.

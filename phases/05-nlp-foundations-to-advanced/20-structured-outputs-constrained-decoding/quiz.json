@@ -1,102 +1,102 @@
 {
   "lesson": "20-structured-outputs-constrained-decoding",
-  "title": "Structured Outputs & Constrained Decoding",
+  "title": "구조화 출력과 Constrained Decoding",
   "questions": [
     {
       "stage": "pre",
-      "question": "Why is prompt-only 'return JSON' not enough for production?",
+      "question": "prompt만으로 'return JSON'을 요청하는 방식이 production에 충분하지 않은 이유는 무엇인가요?",
       "options": [
-        "JSON is too verbose",
-        "Prompts are too long",
-        "Frontier models comply most of the time but not always; the small fraction of malformed outputs breaks downstream parsers",
-        "Prompting cannot describe schemas"
+        "JSON이 너무 verbose하기 때문에",
+        "prompt가 너무 길기 때문에",
+        "Frontier model은 대부분 준수하지만 항상은 아니며, malformed output의 작은 비율이 downstream parser를 깨뜨리기 때문에",
+        "Prompting으로 schema를 설명할 수 없기 때문에"
       ],
       "correct": 2,
-      "explanation": "Prompt-only structure works ~80% of the time on frontier models; production needs harder guarantees."
+      "explanation": "Prompt-only structure는 frontier model에서 약 80% 동작합니다. production에는 더 강한 보장이 필요합니다."
     },
     {
       "stage": "pre",
-      "question": "What does constrained decoding modify at each generation step?",
+      "question": "Constrained decoding은 각 generation step에서 무엇을 수정하나요?",
       "options": [
-        "The KV cache",
-        "The tokenizer",
-        "The training loss",
-        "The logit vector, masking tokens that would invalidate the target grammar so only valid continuations can be sampled"
+        "KV cache",
+        "tokenizer",
+        "training loss",
+        "logit vector를 수정해 target grammar를 invalid하게 만들 token을 mask하고 valid continuation만 sample되게 한다"
       ],
       "correct": 3,
-      "explanation": "A logit processor sets invalid tokens to -inf so the softmax cannot sample them."
+      "explanation": "logit processor는 invalid token을 -inf로 설정해 softmax가 그것을 sample할 수 없게 합니다."
     },
     {
       "stage": "check",
-      "question": "Why might constrained decoding be faster than free generation?",
+      "question": "Constrained decoding이 free generation보다 빠를 수 있는 이유는 무엇인가요?",
       "options": [
-        "The model is smaller",
-        "Forced scaffold tokens (e.g. '{\"name\": \"') can be emitted directly without sampling, and the valid-token search space shrinks",
-        "It avoids softmax entirely",
-        "It skips backprop"
+        "model이 더 작기 때문에",
+        "forced scaffold token(예: '{\"name\": \"')은 sampling 없이 직접 emit할 수 있고 valid-token search space가 줄어들기 때문에",
+        "softmax를 완전히 피하기 때문에",
+        "backprop을 건너뛰기 때문에"
       ],
       "correct": 1,
-      "explanation": "Determined tokens skip sampling and reduced valid-token sets shrink the decode cost."
+      "explanation": "결정된 token은 sampling을 건너뛰고, 줄어든 valid-token set은 decode cost를 낮춥니다."
     },
     {
       "stage": "check",
-      "question": "Which schema design choice prevents premature commitment by the model?",
+      "question": "모델의 premature commitment를 막는 schema design 선택은 무엇인가요?",
       "options": [
-        "Put 'answer' first",
-        "Use shorter keys",
-        "Place reasoning fields before the answer/decision field so the model thinks before committing",
-        "Use snake_case"
+        "'answer'를 먼저 둔다",
+        "더 짧은 key를 사용한다",
+        "모델이 commit하기 전에 생각하도록 reasoning field를 answer/decision field보다 앞에 둔다",
+        "snake_case를 사용한다"
       ],
       "correct": 2,
-      "explanation": "Field order is logic: putting reasoning first lets the model think before locking in an answer."
+      "explanation": "Field order는 logic입니다. reasoning을 먼저 두면 모델이 answer를 고정하기 전에 생각할 수 있습니다."
     },
     {
       "stage": "check",
-      "question": "What is the limitation of FSM-based constrained decoding tools like Outlines?",
+      "question": "Outlines 같은 FSM-based constrained decoding tool의 한계는 무엇인가요?",
       "options": [
-        "They are not deterministic",
-        "They lock you to OpenAI",
-        "Recursive schemas have to be flattened; truly recursive structures need CFG-based engines such as XGrammar",
-        "They only support enums"
+        "deterministic하지 않다",
+        "OpenAI에 lock-in된다",
+        "Recursive schema는 flatten되어야 하며, 진짜 recursive structure에는 XGrammar 같은 CFG-based engine이 필요하다",
+        "enum만 지원한다"
       ],
       "correct": 2,
-      "explanation": "FSMs cannot represent unbounded recursion; CFG engines handle it."
+      "explanation": "FSM은 unbounded recursion을 표현할 수 없습니다. CFG engine은 이를 처리합니다."
     },
     {
       "stage": "post",
-      "question": "Why is Instructor described as not modifying logits?",
+      "question": "Instructor가 logits를 수정하지 않는다고 설명되는 이유는 무엇인가요?",
       "options": [
-        "Instructor formats the schema into the prompt and parses/retries the output; logit masking happens server-side or not at all",
-        "It uses gradient updates",
-        "Required by Anthropic",
-        "It edits the prompt"
+        "Instructor는 schema를 prompt에 format하고 output을 parse/retry하며, logit masking은 server-side에서 일어나거나 전혀 일어나지 않기 때문에",
+        "gradient update를 사용하기 때문에",
+        "Anthropic이 요구하기 때문에",
+        "prompt를 edit하기 때문에"
       ],
       "correct": 0,
-      "explanation": "Instructor uses provider-side structured output plus client-side validation and retries, not logit masking."
+      "explanation": "Instructor는 logit masking이 아니라 provider-side structured output과 client-side validation/retries를 사용합니다."
     },
     {
       "stage": "post",
-      "question": "What problem can a strict regex like date='YYYY-MM-DD' introduce?",
+      "question": "date='YYYY-MM-DD' 같은 strict regex가 어떤 문제를 만들 수 있나요?",
       "options": [
-        "It requires CFG support",
-        "It removes any escape hatch for unknown values, so the model fabricates a date instead of returning null/sentinel",
-        "It breaks JSON parsing",
-        "Regex is slow"
+        "CFG support가 필요하다",
+        "unknown value를 위한 escape hatch를 없애서 모델이 null/sentinel을 반환하는 대신 date를 지어내게 만든다",
+        "JSON parsing을 깨뜨린다",
+        "Regex가 느리다"
       ],
       "correct": 1,
-      "explanation": "Over-strict grammars force the model to invent values; always allow null/sentinel for unknowns."
+      "explanation": "너무 strict한 grammar는 모델이 값을 지어내도록 강제합니다. unknown에는 항상 null/sentinel을 허용하세요."
     },
     {
       "stage": "post",
-      "question": "When should you reach for vLLM guided decoding vs a vendor structured-output API?",
+      "question": "vendor structured-output API 대신 vLLM guided decoding을 선택해야 하는 때는 언제인가요?",
       "options": [
-        "Always vendor",
-        "Only for tiny schemas",
-        "Only with byte-level BPE",
-        "Self-hosted inference where you control the model and want logit-level guarantees without retries"
+        "항상 vendor",
+        "tiny schema에서만",
+        "byte-level BPE에서만",
+        "model을 직접 제어하고 retry 없이 logit-level guarantee를 원하는 self-hosted inference"
       ],
       "correct": 3,
-      "explanation": "vLLM guided decoding fits self-hosted serving with logit-level constraints; vendor APIs lock you to their stack."
+      "explanation": "vLLM guided decoding은 logit-level constraint가 필요한 self-hosted serving에 맞습니다. vendor API는 해당 stack에 lock-in됩니다."
     }
   ]
 }

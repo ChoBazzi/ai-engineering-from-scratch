@@ -1,102 +1,102 @@
 {
   "lesson": "28-long-context-evaluation",
-  "title": "Long-Context Evaluation — NIAH, RULER, LongBench, MRCR",
+  "title": "Long-Context 평가 — NIAH, RULER, LongBench, MRCR",
   "questions": [
     {
       "stage": "pre",
-      "question": "What does the original NIAH benchmark measure?",
+      "question": "원래 NIAH benchmark는 무엇을 측정하는가?",
       "options": [
         "Tokenizer fertility",
-        "Whether the model can retrieve a planted fact at controlled depths across a long context",
+        "긴 context의 제어된 depth에 심어 둔 fact를 model이 retrieve할 수 있는지 여부",
         "Embedding cosine drift",
-        "Multi-hop reasoning only"
+        "Multi-hop reasoning만"
       ],
       "correct": 1,
-      "explanation": "NIAH = needle in a haystack: plant a fact, ask the model to retrieve it, sweep depth and length."
+      "explanation": "NIAH = needle in a haystack이다. fact를 심고, model에게 retrieve하게 하며, depth와 length를 sweep한다."
     },
     {
       "stage": "pre",
-      "question": "Why is the advertised context window often very different from the usable context?",
+      "question": "광고된 context window가 usable context와 크게 다른 경우가 많은 이유는 무엇인가?",
       "options": [
-        "Attention degrades with length and task; spec-sheet maximums rarely hold under multi-hop or reasoning loads",
-        "Tokenizers truncate",
-        "Embeddings overflow",
-        "Beam search slows"
+        "attention은 length와 task에 따라 degrade되며, spec-sheet maximum은 multi-hop이나 reasoning load에서 거의 유지되지 않기 때문이다",
+        "Tokenizer가 truncate하기 때문이다",
+        "Embedding이 overflow하기 때문이다",
+        "Beam search가 느려지기 때문이다"
       ],
       "correct": 0,
-      "explanation": "Effective context for reasoning is usually 25-50% of the advertised max."
+      "explanation": "reasoning을 위한 effective context는 보통 광고된 max의 25-50%다."
     },
     {
       "stage": "check",
-      "question": "What does RULER add over NIAH?",
+      "question": "RULER는 NIAH에 비해 무엇을 추가하는가?",
       "options": [
-        "Translation tasks",
-        "Faster inference",
-        "Per-token logprobs",
-        "Thirteen task types across retrieval, multi-hop tracing, aggregation, and QA at multiple context lengths"
+        "Translation task",
+        "더 빠른 inference",
+        "token별 logprob",
+        "여러 context length에서 retrieval, multi-hop tracing, aggregation, QA에 걸친 13개 task type"
       ],
       "correct": 3,
-      "explanation": "RULER expands NIAH into a multi-task long-context benchmark catching models that saturate NIAH but fail elsewhere."
+      "explanation": "RULER는 NIAH를 multi-task long-context benchmark로 확장해, NIAH는 saturate하지만 다른 곳에서 실패하는 model을 잡아낸다."
     },
     {
       "stage": "check",
-      "question": "What is the 'lost in the middle' effect?",
+      "question": "'lost in the middle' effect란 무엇인가?",
       "options": [
-        "Models under-attend to content placed in the middle of long inputs; depth=0.5 often performs worse than depth=0 or 1",
-        "Models reorder tokens",
-        "Models forget the first token",
-        "Models lose punctuation"
+        "model이 긴 input의 중간에 놓인 content에 attention을 덜 주는 현상이다. depth=0.5가 depth=0이나 1보다 성능이 나쁜 경우가 많다",
+        "model이 token을 재정렬하는 현상",
+        "model이 첫 token을 잊는 현상",
+        "model이 punctuation을 잃는 현상"
       ],
       "correct": 0,
-      "explanation": "Mid-context content is least attended; sweeping depth exposes the U-shaped accuracy curve."
+      "explanation": "mid-context content는 attention을 가장 적게 받는다. depth sweep은 U-shaped accuracy curve를 드러낸다."
     },
     {
       "stage": "check",
-      "question": "Why must NIAH-only evaluation be supplemented with multi-hop tests?",
+      "question": "NIAH-only evaluation에 multi-hop test를 보완해야 하는 이유는 무엇인가?",
       "options": [
-        "Multi-hop is faster",
-        "NIAH lacks ground truth",
-        "NIAH cannot run on long context",
-        "Frontier models can ace single-needle retrieval but still fail multi-hop variable-tracing or aggregation tasks"
+        "Multi-hop이 더 빠르기 때문이다",
+        "NIAH에는 ground truth가 없기 때문이다",
+        "NIAH는 long context에서 실행할 수 없기 때문이다",
+        "frontier model은 single-needle retrieval은 완벽히 해도 multi-hop variable-tracing이나 aggregation task에서는 실패할 수 있기 때문이다"
       ],
       "correct": 3,
-      "explanation": "Retrieval pass does not imply reasoning pass; multi-hop benchmarks expose the real ceiling."
+      "explanation": "retrieval pass가 reasoning pass를 의미하지는 않는다. multi-hop benchmark가 실제 ceiling을 드러낸다."
     },
     {
       "stage": "post",
-      "question": "What does NoLiMa stress?",
+      "question": "NoLiMa는 무엇을 stress하는가?",
       "options": [
         "Streaming output",
         "Latency",
         "Tokenization",
-        "Needles that share no literal tokens with the query, so retrieval requires a semantic reasoning step"
+        "query와 literal token을 공유하지 않는 needle로, retrieval에 semantic reasoning step이 필요하게 하는 것"
       ],
       "correct": 3,
-      "explanation": "NoLiMa removes lexical overlap so the model must reason rather than match keywords."
+      "explanation": "NoLiMa는 lexical overlap을 제거해 model이 keyword matching이 아니라 reasoning을 하도록 만든다."
     },
     {
       "stage": "post",
-      "question": "What two numbers should a long-context spec sheet report?",
+      "question": "long-context spec sheet가 report해야 하는 두 숫자는 무엇인가?",
       "options": [
-        "Effective retrieval length (e.g. 90% NIAH pass) and effective reasoning length (e.g. 70% multi-hop pass)",
-        "GPU memory and latency only",
-        "Only the advertised max",
-        "Tokens per second only"
+        "effective retrieval length(예: 90% NIAH pass)와 effective reasoning length(예: 70% multi-hop pass)",
+        "GPU memory와 latency만",
+        "광고된 max만",
+        "초당 token 수만"
       ],
       "correct": 0,
-      "explanation": "Distinguishing retrieval-effective from reasoning-effective length is essential for real-world claims."
+      "explanation": "retrieval-effective length와 reasoning-effective length를 구분하는 것은 real-world claim에 필수적이다."
     },
     {
       "stage": "post",
-      "question": "Why measure time-to-first-token at long context lengths?",
+      "question": "긴 context length에서 time-to-first-token을 측정해야 하는 이유는 무엇인가?",
       "options": [
-        "1M-token prefills can take tens of seconds; accuracy alone hides product-impacting latency",
-        "Tokenization is slow",
-        "Required by RAG",
-        "Beam search depends on it"
+        "1M-token prefill은 수십 초가 걸릴 수 있기 때문이다. accuracy만 보면 product에 영향을 주는 latency가 숨겨진다",
+        "Tokenization이 느리기 때문이다",
+        "RAG가 요구하기 때문이다",
+        "Beam search가 그것에 의존하기 때문이다"
       ],
       "correct": 0,
-      "explanation": "Long prompts have huge prefill costs; latency must be tracked alongside accuracy."
+      "explanation": "긴 prompt는 prefill cost가 매우 크다. latency는 accuracy와 함께 추적해야 한다."
     }
   ]
 }

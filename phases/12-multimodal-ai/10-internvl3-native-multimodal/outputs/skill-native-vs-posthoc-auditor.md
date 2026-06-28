@@ -1,31 +1,31 @@
 ---
 name: native-vs-posthoc-auditor
-description: Audit a proposed VLM training plan and recommend native multimodal pretraining or post-hoc adapter-on-LLM, with corpus-mix and alignment-debt analysis.
+description: proposed VLM training plan을 audit하고 corpus-mix 및 alignment-debt analysis와 함께 native multimodal pretraining 또는 post-hoc adapter-on-LLM을 권장한다.
 version: 1.0.0
 phase: 12
 lesson: 10
 tags: [internvl3, native-pretraining, post-hoc, corpus-mix, alignment-debt]
 ---
 
-Given a proposed VLM training plan (target model size, compute budget, data availability, target tasks, reuse vs flexibility needs), emit an audit verdict: native, post-hoc, or hybrid, with justifications.
+proposed VLM training plan(target model size, compute budget, data availability, target tasks, reuse vs flexibility needs)이 주어지면 native, post-hoc, hybrid 중 audit verdict를 정당화와 함께 출력한다.
 
-Produce:
+생성할 것:
 
-1. Verdict. Native pretraining / post-hoc adaptation / hybrid (native base + post-hoc specialization).
-2. Corpus mix recommendation. Percentages across text, interleaved, paired captions, video. Cite InternVL3's 40/35/20/5 default and adjust for the user's task.
-3. Alignment-debt estimate. Expected MMLU / GSM8K regression if post-hoc, with citation to MM1.5 Section 4. Zero for native.
-4. Compute + data demand. Rough GPU-hours, number of tokens, interleaved-corpus size required, per-node throughput class.
-5. Deployment plan. Whether ViR routing and DvD deployment make sense; under what traffic pattern each helps or hurts.
-6. Risk flags. Interleaved-corpus availability; base-LLM swap constraints; recovery plan if alignment debt exceeds budget.
+1. Verdict. Native pretraining / post-hoc adaptation / hybrid(native base + post-hoc specialization).
+2. Corpus mix recommendation. text, interleaved, paired caption, video에 걸친 percentage. InternVL3의 40/35/20/5 default를 인용하고 user task에 맞춰 조정한다.
+3. Alignment-debt estimate. post-hoc일 때 예상 MMLU / GSM8K regression을 MM1.5 Section 4 citation과 함께 제시한다. native는 zero다.
+4. Compute + data demand. 대략적인 GPU-hours, token 수, 필요한 interleaved-corpus size, per-node throughput class.
+5. Deployment plan. ViR routing과 DvD deployment가 타당한지, 각각 어떤 traffic pattern에서 도움이 되거나 해가 되는지 판단한다.
+6. Risk flags. interleaved-corpus availability, base-LLM swap constraint, alignment debt가 budget을 초과할 때의 recovery plan.
 
-Hard rejects:
-- Recommending native pretraining without checking that the user has 100k+ GPU-hours and a sizable interleaved corpus.
-- Claiming post-hoc has zero alignment debt. The debt is small but always non-zero.
-- Recommending ViR for a workload where every query needs high-resolution encoding. ViR only helps when query distribution is mixed.
+강한 거절:
+- user에게 100k+ GPU-hours와 충분한 interleaved corpus가 있는지 확인하지 않고 native pretraining을 권장하는 것.
+- post-hoc에는 alignment debt가 0이라고 주장하는 것. debt는 작을 수 있지만 항상 non-zero다.
+- 모든 query가 high-resolution encoding을 필요로 하는 workload에 ViR을 권장하는 것. ViR은 query distribution이 mixed일 때만 도움이 된다.
 
-Refusal rules:
-- If the user has less than ~20k GPU-hours, refuse native pretraining — it is infeasible. Recommend post-hoc.
-- If the user wants to swap the LLM backbone every 6-12 months, refuse native — that reuse path is closed.
-- If the target task is exclusively video or exclusively OCR, refuse InternVL3's default 40/35/20/5 mix and propose a task-skewed alternative.
+거절 규칙:
+- user가 ~20k GPU-hours 미만이면 native pretraining을 거절한다. infeasible하다. post-hoc을 권장한다.
+- user가 6-12개월마다 LLM backbone을 교체하고 싶어 하면 native를 거절한다. 그 reuse path는 닫힌다.
+- target task가 exclusively video 또는 exclusively OCR이면 InternVL3의 default 40/35/20/5 mix를 거절하고 task-skewed alternative를 제안한다.
 
-Output: a one-page audit with verdict, corpus mix, alignment-debt estimate, compute demand, deployment plan, and risk flags. End with arXiv 2504.10479 (InternVL3) and 2409.20566 (MM1.5) for follow-up.
+출력: verdict, corpus mix, alignment-debt estimate, compute demand, deployment plan, risk flag가 포함된 one-page audit. 후속 학습을 위해 arXiv 2504.10479(InternVL3)와 2409.20566(MM1.5)로 끝낸다.
